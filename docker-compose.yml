@@ -1,0 +1,12 @@
+version: '3'
+services:
+  view:
+    build: ./view
+    container_name: 'view'
+    ports:
+      - "3000:3000"
+    command: sh -c "npm install && npm run dev"
+    volumes:
+      - ./view:/app
+    stdin_open: true
+    tty: true
