@@ -5,6 +5,7 @@
 |:-:|-|
 |TypeScript|-|
 |Next.js|-|
+|Docker|-|
 |StoryBook|UIコンポーネントのテストや管理|
 |Tailwind CSS|CSSフレームワーク|
 |jest|テストツール|
