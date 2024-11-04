@@ -1,9 +1,9 @@
-import { Button } from "@/components/ui/button";
+import { AnimationButton } from "@/components/parts/AnimationButton";
 
 export default function Home() {
   return (
     <main>
-      <Button>Get Started!</Button>
+      <AnimationButton icon="Home">Get Started!</AnimationButton>
     </main>
   );
 }
