@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Imaimai Front Template
 
-## Getting Started
+### Overview
+"Imaimai Front Template" is a Next.js project designed for high-performance and fast development using cutting-edge technology. With Bun as the package manager, it achieves faster build times and execution. Lefthook automates pre-commit and pre-push checks to ensure stable code quality.
 
-First, run the development server:
+### Features
+- **High Performance**: Leveraging Bun for faster builds and execution compared to traditional environments.
+- **Theme Switching**: Integrated with `next-themes` for seamless dark/light theme toggling.
+- **Intuitive UI**: Built with shadcn/ui, offering stylish, highly customizable UI components.
+- **Code Quality Assurance**: Biome handles code checks and formatting automatically before commits. TypeScript type checks are also run to catch potential errors early.
+- **Sidebar Included**: An implemented sidebar enhances usability and navigation.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### Technologies Used
+- **Next.js**: A powerful framework for server-side rendering and static site generation.
+- **Bun**: A fast JavaScript runtime for building, executing, and managing packages.
+- **shadcn/ui**: A stylish and modern UI component library.
+- **Tailwind CSS**: A customizable utility-first CSS framework.
+- **TypeScript**: Ensures type safety and reliability.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Scripts
+- `dev`: Starts the development server.
+- `build`: Builds the app for production.
+- `start`: Runs the production build.
+- `check`: Runs Biome for code checks with auto-fixes.
+- `format`: Formats code using Biome.
+- `init:lefthook`: Sets up Lefthook.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Lefthook Hooks
+#### pre-commit
+1. **fix**: Formats staged files using Biome and updates the index.
+2. **check**: Runs Biome checks on staged files.
+3. **type**: Runs TypeScript type checks to prevent potential errors.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+#### pre-push
+1. **check**: Runs Biome checks on staged files.
