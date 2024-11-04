@@ -1,5 +1,6 @@
 import { Aurora } from "../parts/Aurora";
 import { AppSidebar } from "../parts/app-sidebar";
+import { Header } from "../parts/header";
 import { SidebarProvider, SidebarTrigger } from "../ui/sidebar";
 
 type MainLayoutProps = {
@@ -14,6 +15,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         <AppSidebar />
         <main>
           <SidebarTrigger />
+          <Header />
           <div className="py-2 px-12">{children}</div>
         </main>
       </SidebarProvider>
