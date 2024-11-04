@@ -5,7 +5,7 @@ pre-commit:
       run: bun biome format --write --no-errors-on-unmatched {staged_files} && git update-index --again
     check:
       glob: "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}"
-      run: bun biome check --apply --no-errors-on-unmatched {staged_files} && git update-index --again
+      run: bun biome check --write --no-errors-on-unmatched {staged_files} && git update-index --again
     type:
       glob: "*.{ts,tsx}"
       run: bun tsc --noEmit
