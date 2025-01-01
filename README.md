@@ -8,7 +8,6 @@
 - **Theme Switching**: Integrated with `next-themes` for seamless dark/light theme toggling.
 - **Intuitive UI**: Built with shadcn/ui, offering stylish, highly customizable UI components.
 - **Code Quality Assurance**: Biome handles code checks and formatting automatically before commits. TypeScript type checks are also run to catch potential errors early.
-- **Sidebar Included**: An implemented sidebar enhances usability and navigation.
 
 ### Technologies Used
 - **Next.js**: A powerful framework for server-side rendering and static site generation.
