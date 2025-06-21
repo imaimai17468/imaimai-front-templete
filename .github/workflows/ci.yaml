@@ -25,7 +25,7 @@ jobs:
       run: bun install
 
     - name: Run Biome
-      run: biome ci ./src
+      run: bun run check
 
     - name: Run TypeScript Compiler
       run: bun tsc
