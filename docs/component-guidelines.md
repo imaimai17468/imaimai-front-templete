@@ -75,6 +75,121 @@ src/components/
             └── UserStats.tsx
 ```
 
+## Server/Client Components 使い分けルール
+
+### 基本原則: Server Components優先
+**原則**: 基本的にはServer Componentsで作成し、どうしても必要な場合のみClient Componentsを使用する。
+
+### 必須ルール
+1. **page.tsx は必ずServer Component** - ページレベルのコンポーネントはServer Componentsで実装
+2. **`'use client'` は最小限** - 本当に必要な場合のみClient Componentsを使用
+3. **データフェッチ優先度**: Server Components > Client Components
+
+### Server Components を使用する場合（デフォルト）
+- **静的コンテンツ表示**
+- **データベースやAPIからのデータフェッチ**
+- **SEOが重要なコンテンツ**
+- **初期表示パフォーマンスが重要**
+- **秘密情報や環境変数へのアクセス**
+
+### Client Components を使用する場合（必要時のみ）
+- **useState、useEffect などのReactフックが必要**
+- **ブラウザAPI（localStorage、geolocation等）の使用**
+- **イベントハンドラー（onClick、onSubmit等）が必要**
+- **リアルタイムな状態管理が必要**
+- **Third-party ライブラリがClient Side実行を要求**
+
+### 実装例
+
+#### ✅ 正しい構造: Server Component優先
+```typescript
+// app/dashboard/page.tsx (Server Component)
+async function DashboardPage() {
+  const data = await fetchUserData(); // Server側でデータフェッチ
+  
+  return (
+    <div>
+      <DashboardHeader user={data.user} />
+      <InteractiveChart data={data.analytics} /> {/* Client Component */}
+      <StaticReports reports={data.reports} /> {/* Server Component */}
+    </div>
+  );
+}
+
+// components/features/dashboard/interactive-chart/InteractiveChart.tsx
+'use client'; // 必要時のみ
+
+import { useState } from 'react';
+
+export function InteractiveChart({ data }: Props) {
+  const [selectedPeriod, setSelectedPeriod] = useState('monthly');
+  
+  return (
+    <div>
+      <button onClick={() => setSelectedPeriod('weekly')}>週次</button>
+      <Chart data={data} period={selectedPeriod} />
+    </div>
+  );
+}
+```
+
+#### ❌ 間違った例: 不必要なClient Component
+```typescript
+// ❌ 悪い例: データフェッチをClient側で実行
+'use client';
+
+import { useState, useEffect } from 'react';
+
+function BadDashboard() {
+  const [data, setData] = useState(null);
+  
+  useEffect(() => {
+    fetchUserData().then(setData); // Server側で実行すべき
+  }, []);
+  
+  return <div>{data && <DashboardContent data={data} />}</div>;
+}
+```
+
+### 判断基準チェックリスト
+コンポーネント作成時の判断フロー：
+
+1. **このコンポーネントはpage.tsxか？**
+   - ✅ はい → Server Component必須
+
+2. **Reactフック（useState、useEffect等）が必要か？**
+   - ✅ はい → Client Component
+   - ❌ いいえ → 次へ
+
+3. **ブラウザAPIやイベントハンドラーが必要か？**
+   - ✅ はい → Client Component
+   - ❌ いいえ → 次へ
+
+4. **純粋な表示・レンダリングのみか？**
+   - ✅ はい → Server Component（デフォルト）
+
+### パフォーマンス最適化パターン
+
+#### Client Component の境界を最小化
+```typescript
+// ✅ 推奨: 必要な部分のみClient Component
+function ProductPage({ product }: Props) { // Server Component
+  return (
+    <div>
+      <ProductInfo product={product} /> {/* Server Component */}
+      <ProductImages images={product.images} /> {/* Server Component */}
+      <AddToCartButton productId={product.id} /> {/* Client Component のみ */}
+    </div>
+  );
+}
+
+// ❌ 避ける: ページ全体をClient Component
+'use client';
+function BadProductPage({ product }: Props) {
+  // ページ全体が不必要にClient側で実行される
+}
+```
+
 ## コンポーネント分離ガイドライン
 
 ### 核心原則: 動作の観察可能性
@@ -340,6 +455,7 @@ src/components/features/chat-page/
 - [ ] 相対パスではなく`@/`エイリアスで絶対インポートパスを使用
 - [ ] 全てのコンポーネントで直接インポートを使用
 - [ ] **ARIA属性と競合するprop名を避ける**（例：`role`の代わりに`avatarType`を使用）
+- [ ] **Server/Client Components の適切な選択**: page.tsxは必ずServer Component、フックやイベントハンドラーが必要な場合のみClient Component
 
 ## AIエージェント向け重要な注意事項
 - **常にユーザーの承認を得る** コンポーネントの作成、移動、リファクタリング前に
