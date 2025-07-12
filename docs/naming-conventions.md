@@ -9,6 +9,7 @@
 - **変数**: 名詞を使用 (`userId`, `totalPrice`, `isLoading`)
 - **コンポーネント**: 名詞を使用 (`UserProfile`, `NavigationMenu`)
 - **イベントハンドラー**: `handle` + イベント名 (`handleSubmit`, `handleClick`)
+- **関数引数**: 2個以上の引数を持つ場合はオブジェクトを使用 (`getUserData({ id, includeProfile })`, `createUser({ name, email })`)
 
 ### よくある間違い
 ```typescript
@@ -23,6 +24,11 @@ const calcPrice // → calculatePrice
 // ❌ 不自然な語順
 const usersActive // → activeUsers
 function getUserFromId() // → getUserById()
+
+// ❌ 複数引数を個別に定義
+function createUser(name, email) // → createUser({ name, email })
+function updateSettings(id, theme, language) // → updateSettings({ id, theme, language })
+function calculatePrice(quantity, unitPrice) // → calculatePrice({ quantity, unitPrice })
 ```
 
 ## 省略規則
