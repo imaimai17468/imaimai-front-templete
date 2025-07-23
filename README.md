@@ -8,6 +8,7 @@ Next.js 15 + TypeScript + Tailwind CSS + shadcn/ui を使用したモダンなWe
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS v4
 - **UI Components**: shadcn/ui (Radix UI primitives)
+- **Authentication**: Supabase Auth
 - **Code Quality**: Biome (linting & formatting)
 - **Testing**: Vitest + Testing Library
 - **Storybook**: Component development & documentation
@@ -20,11 +21,57 @@ Next.js 15 + TypeScript + Tailwind CSS + shadcn/ui を使用したモダンなWe
 
 - Node.js 18.0.0 以上
 - Bun (推奨) または npm/yarn/pnpm
+- Supabaseアカウント
+- GitHubアカウント（OAuth認証用）
 
-### インストール
+### 1. リポジトリのセットアップ
 
 ```bash
+# リポジトリをクローンまたはテンプレートから作成
+git clone <your-repo-url>
+cd <your-repo-name>
+
+# 依存関係をインストール
 bun install
+```
+
+### 2. Supabaseプロジェクトのセットアップ
+
+1. [Supabase](https://supabase.com)でアカウントを作成
+2. 新しいプロジェクトを作成
+3. プロジェクトのダッシュボードから以下の情報を取得：
+   - Project URL
+   - Anon Key
+
+### 3. GitHub OAuth設定
+
+#### GitHub側の設定
+1. GitHubの[Settings > Developer settings > OAuth Apps](https://github.com/settings/developers)にアクセス
+2. 「New OAuth App」をクリック
+3. 以下の情報を入力：
+   - **Application name**: アプリ名（任意）
+   - **Homepage URL**: `http://localhost:3000`（開発環境）
+   - **Authorization callback URL**: `https://<your-project-ref>.supabase.co/auth/v1/callback`
+4. アプリケーションを登録後、Client IDとClient Secretを取得
+
+#### Supabase側の設定
+1. Supabaseダッシュボードで「Authentication」→「Providers」にアクセス
+2. GitHubプロバイダーを有効化
+3. GitHubで取得したClient IDとClient Secretを入力
+4. 「Save」をクリック
+
+### 4. 環境変数の設定
+
+```bash
+# .env.localファイルを作成
+cp .env.example .env.local
+```
+
+`.env.local`ファイルを編集し、Supabaseの認証情報を設定：
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 ```
 
 ### 開発サーバーの起動
@@ -110,11 +157,29 @@ shadcn/uiコンポーネントは `src/components/ui/` に配置されていま�
 bunx shadcn@latest add [component-name]
 ```
 
+## 認証機能
+
+このテンプレートには、Supabase Authを使用した認証機能が実装されています：
+
+- GitHub OAuth認証
+- ログイン/ログアウト機能
+- 認証状態に応じたUIの出し分け
+- プロフィールアバターの表示
+
+### 認証フロー
+
+1. ユーザーが「Sign In」ボタンをクリック
+2. `/login`ページでGitHubログインボタンをクリック
+3. GitHubの認証画面にリダイレクト
+4. 認証成功後、`/auth/callback`でセッションを作成
+5. ホームページにリダイレクト
+
 ## 参考リンク
 
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Tailwind CSS](https://tailwindcss.com/docs)
 - [shadcn/ui](https://ui.shadcn.com/)
+- [Supabase Auth](https://supabase.com/docs/guides/auth)
 - [Biome](https://biomejs.dev/)
 - [Vitest](https://vitest.dev/)
 - [Storybook](https://storybook.js.org/)
