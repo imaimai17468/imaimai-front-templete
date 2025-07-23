@@ -23,6 +23,9 @@
 			},
 			"nursery": {
 				"useSortedClasses": "error"
+			},
+			"suspicious": {
+				"noExplicitAny": "error"
 			}
 		}
 	},
