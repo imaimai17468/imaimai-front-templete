@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Geist_Mono } from "next/font/google";
+import { Header } from "@/components/shared/header/Header";
+
+const geistMono = Geist_Mono({
+	subsets: ["latin"],
+	variable: "--font-geist-mono",
+});
 
 export const metadata: Metadata = {
 	title: "Create Next App",
@@ -12,8 +19,13 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en">
-			<body className="antialiased">{children}</body>
+		<html lang="ja">
+			<body className={`dark antialiased ${geistMono.className}`}>
+				<Header />
+				<div className="my-[10%] flex min-h-screen w-full justify-center px-6 md:px-0">
+					<div className="w-full max-w-7xl">{children}</div>
+				</div>
+			</body>
 		</html>
 	);
 }
