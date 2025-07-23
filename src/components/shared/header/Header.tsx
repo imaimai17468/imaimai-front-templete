@@ -1,7 +1,13 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/server";
+import { AuthNavigation } from "./auth-navigation/AuthNavigation";
 
-export const Header = () => {
+export const Header = async () => {
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
 	return (
 		<header className="fixed top-0 right-0 left-0 z-50">
 			<div className="flex items-center justify-between px-6 py-6">
@@ -17,9 +23,7 @@ export const Header = () => {
 					<Link href="/link2" className="text-gray-400 text-sm">
 						Link2
 					</Link>
-					<Button size="sm" className="text-sm">
-						Button
-					</Button>
+					<AuthNavigation user={user} />
 				</div>
 			</div>
 		</header>
