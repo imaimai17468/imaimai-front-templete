@@ -1,0 +1,4 @@
+[tools]
+python = "3.11"
+task = "latest"
+uv = "latest"
