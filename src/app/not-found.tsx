@@ -8,13 +8,13 @@ export default function NotFound() {
 			<div className="flex flex-col items-center gap-4">
 				<FileQuestion className="h-16 w-16 text-muted-foreground" />
 				<h1 className="font-bold text-6xl">404</h1>
-				<h2 className="font-semibold text-2xl">ページが見つかりません</h2>
+				<h2 className="font-semibold text-2xl">Page Not Found</h2>
 				<p className="max-w-md text-center text-muted-foreground">
-					お探しのページは存在しないか、移動した可能性があります。
+					The page you're looking for doesn't exist or may have been moved.
 				</p>
 			</div>
 			<Button asChild>
-				<Link href="/">ホームへ戻る</Link>
+				<Link href="/">Return to Home</Link>
 			</Button>
 		</div>
 	);

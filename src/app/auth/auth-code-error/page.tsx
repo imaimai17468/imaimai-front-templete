@@ -7,19 +7,19 @@ export default function AuthCodeErrorPage() {
 		<div className="flex h-screen flex-col items-center justify-center gap-6">
 			<div className="flex flex-col items-center gap-4">
 				<AlertTriangle className="h-12 w-12 text-destructive" />
-				<h1 className="font-semibold text-2xl">認証エラー</h1>
+				<h1 className="font-semibold text-2xl">Authentication Error</h1>
 				<p className="max-w-md text-center text-muted-foreground">
-					認証処理中にエラーが発生しました。
+					An error occurred during authentication.
 					<br />
-					もう一度お試しください。
+					Please try again.
 				</p>
 			</div>
 			<div className="flex gap-4">
 				<Button asChild>
-					<Link href="/login">ログインページへ</Link>
+					<Link href="/login">Go to Login</Link>
 				</Button>
 				<Button asChild variant="outline">
-					<Link href="/">ホームへ戻る</Link>
+					<Link href="/">Return to Home</Link>
 				</Button>
 			</div>
 		</div>
