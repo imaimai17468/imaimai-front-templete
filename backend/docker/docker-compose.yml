@@ -1,4 +1,22 @@
 services:
+  db:
+    image: postgres:15-alpine
+    container_name: db
+    environment:
+      - POSTGRES_DB=mydb
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=root
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d mydb"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   backend:
     build:
       context: ..
@@ -9,3 +27,10 @@ services:
       - ..:/app
     environment:
       - PYTHONPATH=/app
+      - DATABASE_URL=postgresql://user:root@db:5432/mydb
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
