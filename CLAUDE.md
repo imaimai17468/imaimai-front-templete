@@ -324,6 +324,36 @@ src/
 
 ## コンポーネント分離・作成ガイド
 
+## shadcn/ui コンポーネントの活用原則
+
+### 核心原則: 既存コンポーネントの最大活用
+
+新しいfeaturesコンポーネントを作成する前に、必ず以下の確認を行ってください：
+
+1. **既存UIコンポーネントの確認**
+   - `src/components/ui/`内のshadcn/uiコンポーネントで実現できないか検討
+   - 複数のUIコンポーネントの組み合わせで要件を満たせないか検討
+
+2. **コンポーネント選択の優先順位**
+   1. 単一のshadcn/uiコンポーネントで実現可能 → そのまま使用
+   2. 複数のshadcn/uiコンポーネントの組み合わせで実現可能 → 組み合わせて使用
+   3. 既存コンポーネントのカスタマイズで実現可能 → propsやclassNameで調整
+   4. 上記で実現不可能 → 新規カスタムコンポーネントを作成
+
+3. **shadcn/ui活用の利点**
+   - アクセシビリティが担保されている
+   - ダークモード対応済み
+   - 一貫性のあるデザイン
+   - メンテナンスコストの削減
+
+### 利用可能なshadcn/uiコンポーネント一覧
+- フォーム関連: `form`, `input`, `textarea`, `select`, `checkbox`, `radio-group`, `switch`
+- フィードバック: `alert`, `alert-dialog`, `dialog`, `toast`（sonner）
+- ナビゲーション: `tabs`, `navigation-menu`, `breadcrumb`, `pagination`
+- レイアウト: `card`, `separator`, `accordion`, `collapsible`
+- データ表示: `table`, `badge`, `avatar`, `progress`
+- その他多数...
+
 ## コンポーネント命名規則
 
 ### 厳格なルール
