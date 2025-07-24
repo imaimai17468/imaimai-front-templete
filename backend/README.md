@@ -38,6 +38,12 @@ source ~/.zshrc
 # Pythonバージョンファイルサポートの有効化（初回のみ）
 mise settings add idiomatic_version_file_enable_tools python
 
+# プロジェクトディレクトリに移動
+cd backend
+
+# miseツールの自動インストール
+mise trust && mise install
+
 # 依存関係のインストール
 task install
 ```
