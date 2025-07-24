@@ -102,8 +102,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 このテンプレートでは、ユーザー情報を管理するための`public.users`テーブルを使用します。以下の手順でセットアップしてください：
 
 1. Supabaseダッシュボードの「SQL Editor」にアクセス
-2. `supabase/migrations/001_create_users_table.sql`の内容を実行
-3. 既存ユーザーがいる場合は、`supabase/migrations/002_migrate_existing_users.sql`も実行
+2. 以下のマイグレーションファイルを順番に実行：
+   - `supabase/migrations/001_create_users_table.sql` - 基本テーブルの作成
+   - `supabase/migrations/002_migrate_existing_users.sql` - 既存ユーザーのマイグレーション
+   - `supabase/migrations/003_add_avatar_url_to_users.sql` - アバターURL列の追加
 
 #### テーブル構造
 
@@ -112,13 +114,49 @@ public.users
 ├── id (UUID) - auth.usersへの外部キー
 ├── created_at (TIMESTAMP) - 作成日時
 ├── updated_at (TIMESTAMP) - 更新日時（自動更新）
-└── name (TEXT) - ユーザー名
+├── name (TEXT) - ユーザー名
+└── avatar_url (TEXT) - アバター画像のURL
 ```
 
 **特徴：**
 - 新規ユーザー登録時に自動的にレコードが作成されます
-- OAuth認証時は`user_metadata`から名前を自動取得します
+- OAuth認証時は`user_metadata`から名前とアバターURLを自動取得します
 - RLS（Row Level Security）により、ユーザーは自分のデータのみアクセス可能です
+
+### 7. Supabase Storageのセットアップ
+
+プロフィール画像のアップロード機能を使用するために、Supabase Storageの設定が必要です：
+
+#### avatarsバケットの作成
+
+1. Supabaseダッシュボードの「Storage」にアクセス
+2. 「New bucket」をクリック
+3. 以下の設定でバケットを作成：
+   - **Name**: `avatars`
+   - **Public bucket**: チェックを入れる（画像を公開アクセス可能にする）
+   - **File size limit**: 5MB（5242880 bytes）
+   - **Allowed MIME types**: `image/*`（画像ファイルのみ許可）
+
+#### RLSポリシーの設定
+
+バケット作成後、以下のポリシーを設定します：
+
+1. Storageダッシュボードで「Policies」タブを選択
+2. 「New Policy」から「For full customization」を選択
+3. `supabase/migrations/004_storage_policies.sql`の内容を参考に、以下のポリシーを作成：
+   - **Public Read**: 誰でもアバター画像を閲覧可能
+   - **Authenticated Upload**: 認証済みユーザーは自分のアバターのみアップロード可能
+   - **Authenticated Update**: ユーザーは自分のアバターのみ更新可能
+   - **Authenticated Delete**: ユーザーは自分のアバターのみ削除可能
+
+**ファイル構造：**
+```
+avatars/
+└── {user_id}/
+    └── avatar.{extension}
+```
+
+この構造により、各ユーザーが自分のフォルダ内のファイルのみ操作できるようになります。
 
 ### 開発サーバーの起動
 
@@ -220,6 +258,35 @@ bunx shadcn@latest add [component-name]
 3. 選択したプロバイダーの認証画面にリダイレクト
 4. 認証成功後、`/auth/callback`でセッションを作成
 5. ホームページにリダイレクト
+
+## プロフィール機能
+
+ユーザーは自分のプロフィール情報を管理できます：
+
+### 機能一覧
+
+- **プロフィール表示**: `/profile`ページでユーザー情報を表示
+- **名前の編集**: 表示名を自由に変更可能
+- **アバター画像のアップロード**: 
+  - 最大5MBまでの画像ファイルをアップロード
+  - アップロード中のプログレス表示
+  - 即時プレビュー機能
+  - Supabase Storageに安全に保存
+
+### プロフィール編集フロー
+
+1. ヘッダーのユーザーメニューから「Profile」を選択
+2. `/profile`ページでプロフィール情報を確認
+3. アバター画像をクリックして新しい画像を選択
+4. 名前フィールドを編集
+5. 「Update Profile」ボタンで保存
+
+### 技術的な実装
+
+- **データ管理**: `public.users`テーブルでユーザー情報を管理
+- **画像保存**: Supabase Storageの`avatars`バケットに保存
+- **リアルタイムバリデーション**: Zodスキーマによる入力検証
+- **アクセシビリティ**: shadcn/uiのFormコンポーネントでWCAG準拠
 
 ## 参考リンク
 
