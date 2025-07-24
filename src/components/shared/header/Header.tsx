@@ -1,12 +1,9 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { fetchCurrentUser } from "@/gateways/user";
 import { AuthNavigation } from "./auth-navigation/AuthNavigation";
 
 export const Header = async () => {
-	const supabase = await createClient();
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
+	const user = await fetchCurrentUser();
 
 	return (
 		<header className="fixed top-0 right-0 left-0 z-50">

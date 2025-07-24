@@ -1,10 +1,10 @@
-import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import type { UserWithEmail } from "@/entities/user";
 import { UserMenu } from "../user-menu/UserMenu";
 
 type AuthNavigationProps = {
-	user: User | null;
+	user: UserWithEmail | null;
 };
 
 export const AuthNavigation = ({ user }: AuthNavigationProps) => {

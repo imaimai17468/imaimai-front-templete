@@ -1,6 +1,5 @@
 "use client";
 
-import type { User } from "@supabase/supabase-js";
 import { LogOut, User as UserIcon } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,16 +11,16 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { UserWithEmail } from "@/entities/user";
 import { signOut } from "@/lib/auth";
 
 type UserMenuProps = {
-	user: User;
+	user: UserWithEmail;
 };
 
 export const UserMenu = ({ user }: UserMenuProps) => {
-	const avatarUrl = user.user_metadata?.avatar_url;
-	const name =
-		user.user_metadata?.name || user.user_metadata?.user_name || "User";
+	const avatarUrl = user.avatarUrl;
+	const name = user.name || "User";
 	const email = user.email;
 
 	return (
@@ -32,7 +31,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
 					className="cursor-pointer rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
 				>
 					<Avatar className="h-8 w-8">
-						<AvatarImage src={avatarUrl} alt={name} />
+						<AvatarImage src={avatarUrl || undefined} alt={name} />
 						<AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
 					</Avatar>
 				</button>
@@ -52,7 +51,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
 				<DropdownMenuItem asChild>
 					<Link href="/profile" className="cursor-pointer">
 						<UserIcon className="mr-2 h-4 w-4" />
-						<span>プロフィール</span>
+						<span>Profile</span>
 					</Link>
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
@@ -64,7 +63,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
 					}}
 				>
 					<LogOut className="mr-2 h-4 w-4" />
-					<span>ログアウト</span>
+					<span>Log out</span>
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
