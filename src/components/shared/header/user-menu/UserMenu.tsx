@@ -1,6 +1,7 @@
 "use client";
 
-import { LogOut, User } from "lucide-react";
+import type { User } from "@supabase/supabase-js";
+import { LogOut, User as UserIcon } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -14,15 +15,7 @@ import {
 import { signOut } from "@/lib/auth";
 
 type UserMenuProps = {
-	user: {
-		id: string;
-		email?: string;
-		user_metadata?: {
-			avatar_url?: string;
-			name?: string;
-			user_name?: string;
-		};
-	};
+	user: User;
 };
 
 export const UserMenu = ({ user }: UserMenuProps) => {
@@ -58,7 +51,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
 				<DropdownMenuSeparator />
 				<DropdownMenuItem asChild>
 					<Link href="/profile" className="cursor-pointer">
-						<User className="mr-2 h-4 w-4" />
+						<UserIcon className="mr-2 h-4 w-4" />
 						<span>プロフィール</span>
 					</Link>
 				</DropdownMenuItem>
