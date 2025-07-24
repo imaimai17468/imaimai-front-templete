@@ -95,6 +95,31 @@ NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 ```
 
+### 6. データベースのセットアップ
+
+#### usersテーブルの作成
+
+このテンプレートでは、ユーザー情報を管理するための`public.users`テーブルを使用します。以下の手順でセットアップしてください：
+
+1. Supabaseダッシュボードの「SQL Editor」にアクセス
+2. `supabase/migrations/001_create_users_table.sql`の内容を実行
+3. 既存ユーザーがいる場合は、`supabase/migrations/002_migrate_existing_users.sql`も実行
+
+#### テーブル構造
+
+```sql
+public.users
+├── id (UUID) - auth.usersへの外部キー
+├── created_at (TIMESTAMP) - 作成日時
+├── updated_at (TIMESTAMP) - 更新日時（自動更新）
+└── name (TEXT) - ユーザー名
+```
+
+**特徴：**
+- 新規ユーザー登録時に自動的にレコードが作成されます
+- OAuth認証時は`user_metadata`から名前を自動取得します
+- RLS（Row Level Security）により、ユーザーは自分のデータのみアクセス可能です
+
 ### 開発サーバーの起動
 
 ```bash
