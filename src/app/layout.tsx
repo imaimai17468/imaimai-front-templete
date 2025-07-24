@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Geist_Mono } from "next/font/google";
 import { Header } from "@/components/shared/header/Header";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistMono = Geist_Mono({
 	subsets: ["latin"],
@@ -25,6 +26,7 @@ export default function RootLayout({
 				<div className="flex min-h-screen w-full justify-center px-6 md:px-0">
 					<div className="w-full max-w-7xl">{children}</div>
 				</div>
+				<Toaster richColors position="top-center" />
 			</body>
 		</html>
 	);
