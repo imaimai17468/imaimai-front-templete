@@ -78,6 +78,7 @@ task format        # Ruffでフォーマット
 ```bash
 task docker:build  # Dockerイメージをビルド
 task docker:up     # Dockerコンテナを起動
+task docker:down   # Dockerコンテナを停止
 task clean         # 生成ファイルをクリーンアップ
 ```
 
