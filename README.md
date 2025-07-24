@@ -95,17 +95,34 @@ NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 ```
 
-### 6. データベースのセットアップ
+### 6. Supabase Storageのセットアップ
 
-#### usersテーブルの作成
+プロフィール画像のアップロード機能を使用するために、まずSupabase Storageのバケットを作成します：
 
-このテンプレートでは、ユーザー情報を管理するための`public.users`テーブルを使用します。以下の手順でセットアップしてください：
+#### avatarsバケットの作成
+
+1. Supabaseダッシュボードの「Storage」にアクセス
+2. 「New bucket」をクリック
+3. 以下の設定でバケットを作成：
+   - **Name**: `avatars`
+   - **Public bucket**: チェックを入れる（画像を公開アクセス可能にする）
+   - **File size limit**: 5MB（5242880 bytes）
+   - **Allowed MIME types**: `image/*`（画像ファイルのみ許可）
+
+### 7. データベースとストレージポリシーのセットアップ
+
+バケット作成後、データベースとストレージポリシーを一括でセットアップします：
+
+#### 初期セットアップSQLの実行
 
 1. Supabaseダッシュボードの「SQL Editor」にアクセス
-2. 以下のマイグレーションファイルを順番に実行：
-   - `supabase/migrations/001_create_users_table.sql` - 基本テーブルの作成
-   - `supabase/migrations/002_migrate_existing_users.sql` - 既存ユーザーのマイグレーション
-   - `supabase/migrations/003_add_avatar_url_to_users.sql` - アバターURL列の追加
+2. `supabase/migrations/000_initial_setup.sql`の内容を実行
+
+このSQLは以下を自動的にセットアップします：
+- **usersテーブル**: ユーザープロフィール情報を保存
+- **自動ユーザー作成**: 新規登録時に自動的にプロフィールレコードを作成
+- **RLSポリシー**: usersテーブルのセキュリティポリシー
+- **ストレージポリシー**: avatarsバケットのアクセス制御ポリシー
 
 #### テーブル構造
 
@@ -118,36 +135,14 @@ public.users
 └── avatar_url (TEXT) - アバター画像のURL
 ```
 
-**特徴：**
-- 新規ユーザー登録時に自動的にレコードが作成されます
-- OAuth認証時は`user_metadata`から名前とアバターURLを自動取得します
-- RLS（Row Level Security）により、ユーザーは自分のデータのみアクセス可能です
+#### 自動設定されるポリシー
 
-### 7. Supabase Storageのセットアップ
+**usersテーブル:**
+- ユーザーは自分のデータのみ参照・更新可能
 
-プロフィール画像のアップロード機能を使用するために、Supabase Storageの設定が必要です：
-
-#### avatarsバケットの作成
-
-1. Supabaseダッシュボードの「Storage」にアクセス
-2. 「New bucket」をクリック
-3. 以下の設定でバケットを作成：
-   - **Name**: `avatars`
-   - **Public bucket**: チェックを入れる（画像を公開アクセス可能にする）
-   - **File size limit**: 5MB（5242880 bytes）
-   - **Allowed MIME types**: `image/*`（画像ファイルのみ許可）
-
-#### RLSポリシーの設定
-
-バケット作成後、以下のポリシーを設定します：
-
-1. Storageダッシュボードで「Policies」タブを選択
-2. 「New Policy」から「For full customization」を選択
-3. `supabase/migrations/004_storage_policies.sql`の内容を参考に、以下のポリシーを作成：
-   - **Public Read**: 誰でもアバター画像を閲覧可能
-   - **Authenticated Upload**: 認証済みユーザーは自分のアバターのみアップロード可能
-   - **Authenticated Update**: ユーザーは自分のアバターのみ更新可能
-   - **Authenticated Delete**: ユーザーは自分のアバターのみ削除可能
+**avatarsバケット:**
+- 誰でもアバター画像を閲覧可能（Public Read）
+- 認証済みユーザーは自分のフォルダ内のみ操作可能
 
 **ファイル構造：**
 ```
@@ -155,8 +150,6 @@ avatars/
 └── {user_id}/
     └── avatar.{extension}
 ```
-
-この構造により、各ユーザーが自分のフォルダ内のファイルのみ操作できるようになります。
 
 ### 開発サーバーの起動
 
