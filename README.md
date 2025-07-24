@@ -23,6 +23,7 @@ Next.js 15 + TypeScript + Tailwind CSS + shadcn/ui を使用したモダンなWe
 - Bun (推奨) または npm/yarn/pnpm
 - Supabaseアカウント
 - GitHubアカウント（OAuth認証用）
+- Googleアカウント（OAuth認証用）
 
 ### 1. リポジトリのセットアップ
 
@@ -60,7 +61,27 @@ bun install
 3. GitHubで取得したClient IDとClient Secretを入力
 4. 「Save」をクリック
 
-### 4. 環境変数の設定
+### 4. Google OAuth設定
+
+#### Google側の設定
+1. [Google Cloud Console](https://console.cloud.google.com/)にアクセス
+2. 新しいプロジェクトを作成または既存のプロジェクトを選択
+3. 「APIとサービス」→「認証情報」にアクセス
+4. 「認証情報を作成」→「OAuth クライアント ID」をクリック
+5. アプリケーションの種類で「ウェブ アプリケーション」を選択
+6. 以下の情報を入力：
+   - **名前**: アプリ名（任意）
+   - **承認済みのJavaScript生成元**: `http://localhost:3000`（開発環境）
+   - **承認済みのリダイレクトURI**: `https://<your-project-ref>.supabase.co/auth/v1/callback`
+7. 作成後、Client IDとClient Secretを取得
+
+#### Supabase側の設定
+1. Supabaseダッシュボードで「Authentication」→「Providers」にアクセス
+2. Googleプロバイダーを有効化
+3. Googleで取得したClient IDとClient Secretを入力
+4. 「Save」をクリック
+
+### 5. 環境変数の設定
 
 ```bash
 # .env.localファイルを作成
@@ -162,6 +183,7 @@ bunx shadcn@latest add [component-name]
 このテンプレートには、Supabase Authを使用した認証機能が実装されています：
 
 - GitHub OAuth認証
+- Google OAuth認証
 - ログイン/ログアウト機能
 - 認証状態に応じたUIの出し分け
 - プロフィールアバターの表示
@@ -169,8 +191,8 @@ bunx shadcn@latest add [component-name]
 ### 認証フロー
 
 1. ユーザーが「Sign In」ボタンをクリック
-2. `/login`ページでGitHubログインボタンをクリック
-3. GitHubの認証画面にリダイレクト
+2. `/login`ページでGitHub/Googleログインボタンをクリック
+3. 選択したプロバイダーの認証画面にリダイレクト
 4. 認証成功後、`/auth/callback`でセッションを作成
 5. ホームページにリダイレクト
 

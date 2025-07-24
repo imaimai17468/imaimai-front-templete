@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { signInWithGithub } from "@/lib/auth";
+import { signInWithGithub, signInWithGoogle } from "@/lib/auth";
 
 export default function Home() {
 	return (
@@ -23,7 +23,12 @@ export default function Home() {
 					/>
 					Sign in With Github
 				</Button>
-				<Button type="button" variant="outline" className="cursor-pointer">
+				<Button
+					type="button"
+					variant="outline"
+					className="cursor-pointer"
+					onClick={signInWithGoogle}
+				>
 					Sign in With Google
 				</Button>
 			</div>
