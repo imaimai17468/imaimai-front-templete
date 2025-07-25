@@ -74,6 +74,19 @@ bun run db:push
 
 # データベースGUIを起動
 bun run db:studio
+
+# Supabaseの型を生成
+bun run db:typegen
 ```
+
+### 注意事項：db:typegenコマンドの設定
+
+`bun run db:typegen`コマンドを使用する前に、package.jsonの`db:typegen`スクリプトを編集して、自分のSupabaseプロジェクトIDに変更してください：
+
+```json
+"db:typegen": "supabase gen types typescript --project-id '<your-project-id>' --schema public > src/lib/supabase/types.ts"
+```
+
+`<your-project-id>`は、SupabaseダッシュボードのProject Settings > Generalで確認できます。
 
 ※ 初回セットアップでは不要です。既存のスキーマで動作します。

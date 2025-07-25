@@ -14,7 +14,7 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "test": "vitest --run",
-    "db:typegen": "supabase gen types typescript --project-id 'zsweyihnyvglyfzmqwiw' --schema public > src/lib/supabase/types.ts",
+    "db:typegen": "supabase gen types typescript --project-id 'your-project-id' --schema public > src/lib/supabase/types.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
