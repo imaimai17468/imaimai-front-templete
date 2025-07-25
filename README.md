@@ -9,6 +9,7 @@ Next.js 15 + TypeScript + Tailwind CSS + shadcn/ui を使用したモダンなWe
 - **Styling**: Tailwind CSS v4
 - **UI Components**: shadcn/ui (Radix UI primitives)
 - **Authentication**: Supabase Auth
+- **Database**: PostgreSQL (Supabase) + Drizzle ORM
 - **Code Quality**: Biome (linting & formatting)
 - **Testing**: Vitest + Testing Library
 - **Storybook**: Component development & documentation
@@ -45,7 +46,7 @@ cp .env.example .env.local
 
 #### 📖 ドキュメント
 
-- **[Supabaseセットアップガイド](./docs/SUPABASE_SETUP.md)** - 認証機能を使用する場合
+- **[データベースセットアップガイド](./docs/DATABASE_SETUP.md)** - Supabase + Drizzle ORMの設定手順
 - **[Supabaseを使わない場合](./docs/WITHOUT_SUPABASE.md)** - 認証機能が不要な場合
 
 #### 必要な設定
