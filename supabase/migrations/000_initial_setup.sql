@@ -1,39 +1,17 @@
 -- ============================================
 -- Initial Setup for User Profile System
 -- ============================================
--- This migration sets up the complete user profile system including:
--- 1. Users table with profile information
--- 2. Automatic user creation on auth signup
--- 3. Avatar storage with proper RLS policies
--- 4. Row Level Security for data protection
+-- このマイグレーションは、Drizzleで管理できない
+-- PostgreSQL固有の機能のみを含みます：
+-- 1. updated_atトリガー
+-- 2. 認証時の自動ユーザー作成
+-- 3. ストレージポリシー
+-- 
+-- テーブル定義とRLSはDrizzleで管理されます
 -- ============================================
 
 -- ============================================
--- 1. Create users table
--- ============================================
-CREATE TABLE IF NOT EXISTS public.users (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
-  name TEXT,
-  avatar_url TEXT
-);
-
--- Enable RLS
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-
--- Users can view their own data
-CREATE POLICY "Users can view own data" ON public.users
-  FOR SELECT
-  USING (auth.uid() = id);
-
--- Users can update their own data
-CREATE POLICY "Users can update own data" ON public.users
-  FOR UPDATE
-  USING (auth.uid() = id);
-
--- ============================================
--- 2. Create updated_at trigger
+-- 1. Create updated_at trigger
 -- ============================================
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -49,7 +27,7 @@ CREATE TRIGGER update_users_updated_at
   EXECUTE FUNCTION public.update_updated_at_column();
 
 -- ============================================
--- 3. Create function to handle new user signup
+-- 2. Create function to handle new user signup
 -- ============================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
@@ -76,7 +54,7 @@ CREATE TRIGGER on_auth_user_created
   EXECUTE FUNCTION public.handle_new_user();
 
 -- ============================================
--- 4. Migrate existing users (if any)
+-- 3. Migrate existing users (if any)
 -- ============================================
 INSERT INTO public.users (id, created_at, name, avatar_url)
 SELECT
@@ -94,7 +72,7 @@ WHERE id NOT IN (SELECT id FROM public.users)
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================
--- 5. Storage policies for avatars bucket
+-- 4. Storage policies for avatars bucket
 -- ============================================
 -- Note: The 'avatars' bucket must be created via Supabase Dashboard before running this SQL
 -- These policies will be automatically applied to the bucket
