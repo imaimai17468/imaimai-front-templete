@@ -1,4 +1,7 @@
+import { config } from "dotenv";
 import type { Config } from "drizzle-kit";
+
+config({ path: ".env.local" });
 
 export default {
   schema: "./src/lib/drizzle/schema.ts",
@@ -15,8 +18,4 @@ export default {
   schemaFilter: ["public"],
   // アンダースコアで始まるテーブルを除外
   tablesFilter: ["!_*"],
-  // RLSとSupabase固有の機能を有効化
-  entities: {
-    roles: true,
-  },
 } satisfies Config;
