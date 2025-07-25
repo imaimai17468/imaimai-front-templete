@@ -16,9 +16,10 @@
     "test": "vitest --run",
     "db:typegen": "supabase gen types typescript --project-id 'zsweyihnyvglyfzmqwiw' --schema public > src/lib/supabase/types.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:pull": "drizzle-kit pull",
+    "supabase:push": "node scripts/supabase-push.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
@@ -86,6 +87,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.6.0",
+    "dotenv": "^17.2.1",
     "drizzle-kit": "^0.31.4",
     "jsdom": "^26.1.0",
     "storybook": "^9.0.16",
