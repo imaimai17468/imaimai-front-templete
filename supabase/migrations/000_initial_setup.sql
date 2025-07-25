@@ -1,15 +1,12 @@
 -- ============================================
 -- Initial Setup for User Profile System
 -- ============================================
--- This migration sets up the complete user profile system including:
--- 1. Users table with profile information
--- 2. Automatic user creation on auth signup
--- 3. Avatar storage with proper RLS policies
--- 4. Row Level Security for data protection
+-- このマイグレーションは、初期セットアップと
+-- Drizzleで管理できないPostgreSQL固有の機能を含みます
 -- ============================================
 
 -- ============================================
--- 1. Create users table
+-- 1. Create users table (初回のみ、以降はDrizzleで管理)
 -- ============================================
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -22,15 +19,20 @@ CREATE TABLE IF NOT EXISTS public.users (
 -- Enable RLS
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
--- Users can view their own data
-CREATE POLICY "Users can view own data" ON public.users
+-- ユーザーは自分のデータのみ閲覧可能
+DROP POLICY IF EXISTS "users_select_policy" ON public.users;
+CREATE POLICY "users_select_policy" ON public.users
   FOR SELECT
+  TO authenticated
   USING (auth.uid() = id);
 
--- Users can update their own data
-CREATE POLICY "Users can update own data" ON public.users
+-- ユーザーは自分のデータのみ更新可能
+DROP POLICY IF EXISTS "users_update_policy" ON public.users;
+CREATE POLICY "users_update_policy" ON public.users
   FOR UPDATE
-  USING (auth.uid() = id);
+  TO authenticated
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
 
 -- ============================================
 -- 2. Create updated_at trigger
@@ -43,6 +45,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_users_updated_at ON public.users;
 CREATE TRIGGER update_users_updated_at 
   BEFORE UPDATE ON public.users
   FOR EACH ROW
@@ -70,6 +73,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Create trigger for automatic user creation
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
@@ -100,11 +104,13 @@ ON CONFLICT (id) DO NOTHING;
 -- These policies will be automatically applied to the bucket
 
 -- Policy 1: Anyone can view avatar images (Public Read)
+DROP POLICY IF EXISTS "Avatar images are publicly accessible" ON storage.objects;
 CREATE POLICY "Avatar images are publicly accessible"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'avatars');
 
 -- Policy 2: Users can upload their own avatar
+DROP POLICY IF EXISTS "Users can upload their own avatar" ON storage.objects;
 CREATE POLICY "Users can upload their own avatar"
 ON storage.objects FOR INSERT
 TO authenticated
@@ -114,6 +120,7 @@ WITH CHECK (
 );
 
 -- Policy 3: Users can update their own avatar
+DROP POLICY IF EXISTS "Users can update their own avatar" ON storage.objects;
 CREATE POLICY "Users can update their own avatar"
 ON storage.objects FOR UPDATE
 TO authenticated
@@ -127,6 +134,7 @@ WITH CHECK (
 );
 
 -- Policy 4: Users can delete their own avatar
+DROP POLICY IF EXISTS "Users can delete their own avatar" ON storage.objects;
 CREATE POLICY "Users can delete their own avatar"
 ON storage.objects FOR DELETE
 TO authenticated
