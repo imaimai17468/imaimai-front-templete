@@ -1,17 +1,41 @@
 -- ============================================
 -- Initial Setup for User Profile System
 -- ============================================
--- このマイグレーションは、Drizzleで管理できない
--- PostgreSQL固有の機能のみを含みます：
--- 1. updated_atトリガー
--- 2. 認証時の自動ユーザー作成
--- 3. ストレージポリシー
--- 
--- テーブル定義とRLSはDrizzleで管理されます
+-- このマイグレーションは、初期セットアップと
+-- Drizzleで管理できないPostgreSQL固有の機能を含みます
 -- ============================================
 
 -- ============================================
--- 1. Create updated_at trigger
+-- 1. Create users table (初回のみ、以降はDrizzleで管理)
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.users (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
+  name TEXT,
+  avatar_url TEXT
+);
+
+-- Enable RLS
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+-- ユーザーは自分のデータのみ閲覧可能
+DROP POLICY IF EXISTS "users_select_policy" ON public.users;
+CREATE POLICY "users_select_policy" ON public.users
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() = id);
+
+-- ユーザーは自分のデータのみ更新可能
+DROP POLICY IF EXISTS "users_update_policy" ON public.users;
+CREATE POLICY "users_update_policy" ON public.users
+  FOR UPDATE
+  TO authenticated
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
+
+-- ============================================
+-- 2. Create updated_at trigger
 -- ============================================
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -21,13 +45,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_users_updated_at ON public.users;
 CREATE TRIGGER update_users_updated_at 
   BEFORE UPDATE ON public.users
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
 -- ============================================
--- 2. Create function to handle new user signup
+-- 3. Create function to handle new user signup
 -- ============================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
@@ -48,13 +73,14 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Create trigger for automatic user creation
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_new_user();
 
 -- ============================================
--- 3. Migrate existing users (if any)
+-- 4. Migrate existing users (if any)
 -- ============================================
 INSERT INTO public.users (id, created_at, name, avatar_url)
 SELECT
@@ -72,17 +98,19 @@ WHERE id NOT IN (SELECT id FROM public.users)
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================
--- 4. Storage policies for avatars bucket
+-- 5. Storage policies for avatars bucket
 -- ============================================
 -- Note: The 'avatars' bucket must be created via Supabase Dashboard before running this SQL
 -- These policies will be automatically applied to the bucket
 
 -- Policy 1: Anyone can view avatar images (Public Read)
+DROP POLICY IF EXISTS "Avatar images are publicly accessible" ON storage.objects;
 CREATE POLICY "Avatar images are publicly accessible"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'avatars');
 
 -- Policy 2: Users can upload their own avatar
+DROP POLICY IF EXISTS "Users can upload their own avatar" ON storage.objects;
 CREATE POLICY "Users can upload their own avatar"
 ON storage.objects FOR INSERT
 TO authenticated
@@ -92,6 +120,7 @@ WITH CHECK (
 );
 
 -- Policy 3: Users can update their own avatar
+DROP POLICY IF EXISTS "Users can update their own avatar" ON storage.objects;
 CREATE POLICY "Users can update their own avatar"
 ON storage.objects FOR UPDATE
 TO authenticated
@@ -105,6 +134,7 @@ WITH CHECK (
 );
 
 -- Policy 4: Users can delete their own avatar
+DROP POLICY IF EXISTS "Users can delete their own avatar" ON storage.objects;
 CREATE POLICY "Users can delete their own avatar"
 ON storage.objects FOR DELETE
 TO authenticated
