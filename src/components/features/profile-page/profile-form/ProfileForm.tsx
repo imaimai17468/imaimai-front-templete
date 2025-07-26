@@ -6,7 +6,7 @@ import { useRef, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
-import { updateProfile, uploadAvatar } from "@/app/actions/profile";
+import { updateProfile, uploadAvatar } from "@/actions/profile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
