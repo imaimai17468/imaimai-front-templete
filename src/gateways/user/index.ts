@@ -1,9 +1,12 @@
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import {
 	type UpdateUser,
 	type UserWithEmail,
 	UserWithEmailSchema,
 } from "@/entities/user";
+import { db } from "@/lib/drizzle/db";
+import { users } from "@/lib/drizzle/schema";
 import { createClient } from "@/lib/supabase/server";
 
 export const fetchCurrentUser = async (): Promise<UserWithEmail | null> => {
@@ -17,22 +20,22 @@ export const fetchCurrentUser = async (): Promise<UserWithEmail | null> => {
 		return null;
 	}
 
-	const { data: profile, error } = await supabase
-		.from("users")
-		.select("*")
-		.eq("id", authUser.id)
-		.single();
+	const profile = await db
+		.select()
+		.from(users)
+		.where(eq(users.id, authUser.id))
+		.limit(1);
 
-	if (error || !profile) {
+	if (!profile.length) {
 		return null;
 	}
 
 	const rawUser = {
-		id: profile.id,
-		name: profile.name,
-		avatarUrl: profile.avatar_url,
-		createdAt: profile.created_at,
-		updatedAt: profile.updated_at,
+		id: profile[0].id,
+		name: profile[0].name,
+		avatarUrl: profile[0].avatarUrl,
+		createdAt: profile[0].createdAt.toISOString(),
+		updatedAt: profile[0].updatedAt.toISOString(),
 		email: authUser.email,
 	};
 
@@ -43,19 +46,20 @@ export const updateUser = async (
 	userId: string,
 	data: UpdateUser,
 ): Promise<{ success: boolean; error?: string }> => {
-	const supabase = await createClient();
+	try {
+		await db
+			.update(users)
+			.set({
+				name: data.name,
+				updatedAt: new Date(),
+			})
+			.where(eq(users.id, userId));
 
-	const { error } = await supabase
-		.from("users")
-		.update({ name: data.name })
-		.eq("id", userId);
-
-	if (error) {
+		revalidatePath("/profile");
+		return { success: true };
+	} catch (_error) {
 		return { success: false, error: "Failed to update profile" };
 	}
-
-	revalidatePath("/profile");
-	return { success: true };
 };
 
 export const updateUserAvatar = async (
@@ -81,15 +85,18 @@ export const updateUserAvatar = async (
 		data: { publicUrl },
 	} = supabase.storage.from("avatars").getPublicUrl(fileName);
 
-	const { error: updateError } = await supabase
-		.from("users")
-		.update({ avatar_url: publicUrl })
-		.eq("id", userId);
+	try {
+		await db
+			.update(users)
+			.set({
+				avatarUrl: publicUrl,
+				updatedAt: new Date(),
+			})
+			.where(eq(users.id, userId));
 
-	if (updateError) {
+		revalidatePath("/profile");
+		return { success: true, avatarUrl: publicUrl };
+	} catch (_error) {
 		return { success: false, error: "Failed to update profile" };
 	}
-
-	revalidatePath("/profile");
-	return { success: true, avatarUrl: publicUrl };
 };
