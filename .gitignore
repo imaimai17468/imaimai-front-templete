@@ -1,86 +1,20 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-*storybook.log
-storybook-static
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Python virtual environments
-.venv/
-venv/
-ENV/
-env/
-
-# Python testing and tools cache
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-
-# IDE and editor files
+# IDE and editor files (全プロジェクト共通)
 .vscode/
 .idea/
 *.swp
 *.swo
+
+# OS files (全プロジェクト共通)
+.DS_Store
+Thumbs.db
+.Spotlight-V100
+.Trashes
+
+# Environment files (全プロジェクト共通)
+.env*
+
+# Temporary files (全プロジェクト共通)
+*.tmp
+*.temp

@@ -22,22 +22,14 @@ wheels/
 MANIFEST
 
 # Virtual environments
-.env
-.venv
-env/
+.venv/
 venv/
 ENV/
+env/
 env.bak/
 venv.bak/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Testing
+# Testing & Quality Tools
 .pytest_cache/
 .coverage
 htmlcov/
@@ -47,13 +39,9 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
-
-# Type checking
 .mypy_cache/
 .dmypy.json
 dmypy.json
-
-# Linting
 .ruff_cache/
 
 # Database
@@ -63,16 +51,3 @@ dmypy.json
 # Logs
 *.log
 src/db/logs/*.log
-
-# OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Temporary files
-*.tmp
-*.temp
