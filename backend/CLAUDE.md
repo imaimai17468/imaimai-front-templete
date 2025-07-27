@@ -158,6 +158,16 @@ Claude Code は日本語でコミュニケーションを行う必要があり�
 - `task format` - Ruff でコードを自動フォーマット
 - `task typecheck` - mypy で型チェックを実行
 
+### マイグレーションコマンド
+
+- `task migrate` - 自動マイグレーション（生成＋適用）
+- `task migrate:generate` - マイグレーション生成のみ
+- `task migrate:upgrade` - 手動アップグレード（全て適用）
+- `task migrate:downgrade` - 1つ前にダウングレード
+- `task migrate:status` - 現在の状態表示
+- `task migrate:history` - 履歴表示
+- `task migrate:reset` - データベースリセット（全てダウングレード）
+
 ### Docker コマンド
 
 - `task docker:build` - Docker イメージをビルド
@@ -177,6 +187,7 @@ Claude Code は日本語でコミュニケーションを行う必要があり�
 - **リンター/フォーマッター**: Ruff
 - **型チェッカー**: mypy
 - **テスト**: pytest
+- **マイグレーション**: Alembic + 自動マイグレーションツール
 - **コンテナ**: Docker
 
 ### プロジェクト構造
@@ -190,8 +201,10 @@ backend/
 │   ├── services/          # ビジネスロジック
 │   ├── db/                # データベース関連
 │   │   ├── database.py    # データベース接続
-│   │   ├── models.py      # SQLAlchemy モデル
+│   │   ├── models/        # SQLAlchemy モデル群
 │   │   └── migrations/    # Alembic マイグレーション
+│   ├── script/            # ユーティリティスクリプト
+│   │   └── auto_migrate/  # 自動マイグレーションツール
 │   └── utils/             # ユーティリティ関数
 ├── tests/                  # テストコード
 ├── docker/                 # Docker 設定
@@ -214,6 +227,7 @@ backend/
 
 - **SQLAlchemy ORM**: データベースアクセスにSQLAlchemyを使用
 - **Alembic**: データベースマイグレーション管理
+- **自動マイグレーション**: 意味のあるファイル名を自動生成するマイグレーションシステム
 - **接続プール**: 効率的なデータベース接続管理
 - **トランザクション**: 適切なトランザクション境界の設定
 

@@ -16,10 +16,20 @@ tasks:
     cmds:
       - uv run ruff check .
 
+  lint:fix:
+    desc: Run linting with ruff and auto-fix issues
+    cmds:
+      - uv run ruff check . --fix
+
   format:
     desc: Format code with ruff
     cmds:
       - uv run ruff format .
+
+  format:check:
+    desc: Check code formatting without making changes
+    cmds:
+      - uv run ruff format . --check
 
   test:
     desc: Run tests with pytest
@@ -30,6 +40,71 @@ tasks:
     desc: Run type checking with mypy
     cmds:
       - uv run mypy src
+
+  check:all:
+    desc: Run all code quality checks (lint, format, typecheck)
+    cmds:
+      - task lint
+      - task format:check
+      - task typecheck
+      - echo "✅ すべてのコード品質チェックが完了しました"
+
+  fix:all:
+    desc: Auto-fix all possible issues (lint + format)
+    cmds:
+      - echo "🔧 コード品質の自動修正を開始..."
+      - task lint:fix
+      - task format
+      - echo "✅ 自動修正が完了しました。型チェックを実行してください - task typecheck"
+
+  # マイグレーション関連
+  migrate:
+    desc: Run auto migration (generate + upgrade)
+    cmds:
+      - uv run python -m src.script.auto_migrate
+
+  migrate:generate:
+    desc: Generate migration only (no upgrade)
+    cmds:
+      - uv run python -m src.script.auto_migrate --no-upgrade
+
+  migrate:status:
+    desc: Show migration status
+    cmds:
+      - uv run python -m src.script.auto_migrate --status
+
+  migrate:upgrade:
+    desc: Upgrade database to latest migration
+    cmds:
+      - uv run alembic upgrade head
+
+  migrate:downgrade:
+    desc: Safely rollback database by one migration (with file integrity check)
+    cmds:
+      - uv run python -m src.script.migration_safety --downgrade
+
+  migrate:downgrade:force:
+    desc: Force rollback database by one migration (skip integrity check)
+    cmds:
+      - echo "⚠️  強制巻き戻し（ファイル整合性チェックをスキップ）"
+      - uv run alembic downgrade -1
+
+  migrate:check:
+    desc: Check migration files integrity
+    cmds:
+      - uv run python -m src.script.migration_safety --check-only
+
+  migrate:reset:
+    desc: Reset database to base (remove all migrations)
+    cmds:
+      - echo "⚠️  データベースを初期状態にリセットします"
+      - uv run alembic downgrade base
+      - echo "✅ データベースリセット完了（全てのマイグレーションが削除されました）"
+
+  migrate:history:
+    desc: Show migration history
+    cmds:
+      - uv run alembic history
 
   docker:build:
     desc: Build Docker image
