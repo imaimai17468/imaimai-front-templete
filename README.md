@@ -1,6 +1,6 @@
 **AIエージェント利用時、開発開始プロンプト**
 ```bash
-担当領域を明確にしてから、該当する専用CLAUDE.mdを読み込んで作業開始してください。
+リポジトリ直下のREADME.mdとCLAUDE.mdを確認後、担当領域を明確にしてから、該当する専用CLAUDE.mdを読み込んで作業開始してください。
 ```
 
 # Next.js + FastAPI Template
