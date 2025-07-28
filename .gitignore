@@ -18,3 +18,6 @@ Thumbs.db
 # Temporary files (全プロジェクト共通)
 *.tmp
 *.temp
+
+# Kiro related files (AI開発支援ツール)
+.kiro/
