@@ -76,6 +76,15 @@ task format        # Ruffでフォーマット
 task typecheck     # mypyで型チェック
 ```
 
+### Docker
+
+```bash
+task docker:build  # Dockerイメージをビルド
+task docker:up     # Dockerコンテナを起動
+task docker:down   # Dockerコンテナを停止
+task clean         # 生成ファイルをクリーンアップ
+```
+
 ### データベース・マイグレーション
 
 ```bash
@@ -86,15 +95,6 @@ task migrate:downgrade   # 1つ前にダウングレード
 task migrate:status      # 現在の状態表示
 task migrate:history     # 履歴表示
 task migrate:reset       # データベースリセット
-```
-
-### Docker
-
-```bash
-task docker:build  # Dockerイメージをビルド
-task docker:up     # Dockerコンテナを起動
-task docker:down   # Dockerコンテナを停止
-task clean         # 生成ファイルをクリーンアップ
 ```
 
 ## プロジェクト構成
