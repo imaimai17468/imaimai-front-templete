@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Geist_Mono } from "next/font/google";
 import { Header } from "@/components/shared/header/Header";
 import { Toaster } from "@/components/ui/sonner";
-
-const geistMono = Geist_Mono({
-	subsets: ["latin"],
-	variable: "--font-geist-mono",
-});
 
 export const metadata: Metadata = {
 	title: "Create Next App",
@@ -21,7 +15,13 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="ja">
-			<body className={`dark antialiased ${geistMono.className}`}>
+			<body
+				className="dark antialiased"
+				style={{
+					fontFamily:
+						'"Hiragino Kaku Gothic ProN", "ヒラギノ角ゴ ProN W3", "Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W3", "メイリオ", Meiryo, "游ゴシック", YuGothic, sans-serif',
+				}}
+			>
 				<Header />
 				<div className="flex min-h-screen w-full justify-center px-6 md:px-0">
 					<div className="w-full max-w-7xl">{children}</div>
