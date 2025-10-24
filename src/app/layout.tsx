@@ -22,9 +22,11 @@ export default function RootLayout({
 						'"Hiragino Kaku Gothic ProN", "ヒラギノ角ゴ ProN W3", "Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W3", "メイリオ", Meiryo, "游ゴシック", YuGothic, sans-serif',
 				}}
 			>
-				<Header />
-				<div className="flex min-h-screen w-full justify-center px-6 md:px-0">
-					<div className="w-full max-w-7xl">{children}</div>
+				<div className="flex min-h-dvh flex-col gap-16">
+					<Header />
+					<div className="flex w-full flex-1 justify-center px-6 md:px-4">
+						<div className="container w-full">{children}</div>
+					</div>
 				</div>
 				<Toaster richColors position="top-center" />
 			</body>
