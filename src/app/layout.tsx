@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Header } from "@/components/shared/header/Header";
+import { ThemeProvider } from "@/components/shared/theme-provider/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
@@ -14,21 +15,28 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="ja">
+		<html lang="ja" suppressHydrationWarning>
 			<body
-				className="dark antialiased"
+				className="antialiased"
 				style={{
 					fontFamily:
 						'"Hiragino Kaku Gothic ProN", "ヒラギノ角ゴ ProN W3", "Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W3", "メイリオ", Meiryo, "游ゴシック", YuGothic, sans-serif',
 				}}
 			>
-				<div className="flex min-h-dvh flex-col gap-16">
-					<Header />
-					<div className="flex w-full flex-1 justify-center px-6 md:px-4">
-						<div className="container w-full">{children}</div>
+				<ThemeProvider
+					attribute="class"
+					defaultTheme="system"
+					enableSystem
+					disableTransitionOnChange
+				>
+					<div className="flex min-h-dvh flex-col gap-16">
+						<Header />
+						<div className="flex w-full flex-1 justify-center px-6 md:px-4">
+							<div className="container w-full">{children}</div>
+						</div>
 					</div>
-				</div>
-				<Toaster richColors position="top-center" />
+					<Toaster richColors position="top-center" />
+				</ThemeProvider>
 			</body>
 		</html>
 	);

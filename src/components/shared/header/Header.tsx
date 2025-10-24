@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ModeToggle } from "@/components/shared/mode-toggle/ModeToggle";
 import { fetchCurrentUser } from "@/gateways/user";
 import { AuthNavigation } from "./auth-navigation/AuthNavigation";
 
@@ -20,6 +21,7 @@ export const Header = async () => {
 					<Link href="/link2" className="text-gray-400 text-sm">
 						Link2
 					</Link>
+					<ModeToggle />
 					<AuthNavigation user={user} />
 				</div>
 			</div>
