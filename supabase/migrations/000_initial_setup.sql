@@ -6,34 +6,8 @@
 -- ============================================
 
 -- ============================================
--- 1. Create users table (初回のみ、以降はDrizzleで管理)
--- ============================================
-CREATE TABLE IF NOT EXISTS public.users (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
-  name TEXT,
-  avatar_url TEXT
-);
-
--- Enable RLS
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-
--- ユーザーは自分のデータのみ閲覧可能
-DROP POLICY IF EXISTS "users_select_policy" ON public.users;
-CREATE POLICY "users_select_policy" ON public.users
-  FOR SELECT
-  TO authenticated
-  USING (auth.uid() = id);
-
--- ユーザーは自分のデータのみ更新可能
-DROP POLICY IF EXISTS "users_update_policy" ON public.users;
-CREATE POLICY "users_update_policy" ON public.users
-  FOR UPDATE
-  TO authenticated
-  USING (auth.uid() = id)
-  WITH CHECK (auth.uid() = id);
-
+-- Note: usersテーブルとRLSポリシーはDrizzle ORMのschema.tsで管理されています
+-- (src/lib/drizzle/schema.ts を参照)
 -- ============================================
 -- 2. Create updated_at trigger
 -- ============================================
