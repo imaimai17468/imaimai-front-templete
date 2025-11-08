@@ -1,6 +1,6 @@
 # Development Workflow Rules
 
-このファイルは、Claude Codeを使用した開発ワークフローの標準手順を定義します。
+このファイルは、Cursorを使用した開発ワークフローの標準手順を定義します。
 新機能の追加やバグ修正を行う際は、以下のフローに従ってください。
 
 ## 基本方針
@@ -60,13 +60,13 @@
 
 以下のカスタムコマンドが利用可能です：
 
-- **`component-refactoring-specialist`** (`.claude/agents/app-code-specialist.md`) - Reactコンポーネントのリファクタリング専門家。ロジック抽出、プレゼンターパターン適用、ディレクトリ構造の再編成を担当
-- **`test-guideline-enforcer`** (`.claude/agents/test-guideline-enforcer.md`) - Vitest / React Testing Libraryを使用したテストコードの品質、構造、命名規約を強制
-- **`storybook-story-creator`** (`.claude/agents/storybook-story-creator.md`) - プロジェクトルールに準拠したStorybookストーリーの作成とメンテナンス
-- **`ui-design-advisor`** (`.claude/agents/ui-design-advisor.md`) - ダークテーマに焦点を当てたUI/UXデザイン専門家。レイアウトのレビューと改善提案を担当
-- **`spec-document-creator`** (`.claude/agents/spec-document-creator.md`) - 拡張可能な仕様書作成コマンド。機能仕様、API仕様、アーキテクチャ仕様など複数のドキュメントタイプをサポート
-- **`adr-memory-manager`** (`.claude/agents/adr-memory-manager.md`) - AI用のADR（Architecture Decision Record）を自動記録・検索・管理。JSON形式で機械可読性を最優先に設計
-- **`project-onboarding`** (`.claude/agents/project-onboarding.md`) - プロジェクトの構造、ドメイン知識、技術スタック、アーキテクチャパターンを分析・記録。新規プロジェクトのオンボーディングに最適
+- **`component-refactoring-specialist`** (`.cursor/commands/app-code-specialist.md`) - Reactコンポーネントのリファクタリング専門家。ロジック抽出、プレゼンターパターン適用、ディレクトリ構造の再編成を担当
+- **`test-guideline-enforcer`** (`.cursor/commands/test-guideline-enforcer.md`) - Vitest / React Testing Libraryを使用したテストコードの品質、構造、命名規約を強制
+- **`storybook-story-creator`** (`.cursor/commands/storybook-story-creator.md`) - プロジェクトルールに準拠したStorybookストーリーの作成とメンテナンス
+- **`ui-design-advisor`** (`.cursor/commands/ui-design-advisor.md`) - ダークテーマに焦点を当てたUI/UXデザイン専門家。レイアウトのレビューと改善提案を担当
+- **`spec-document-creator`** (`.cursor/commands/spec-document-creator.md`) - 拡張可能な仕様書作成コマンド。機能仕様、API仕様、アーキテクチャ仕様など複数のドキュメントタイプをサポート
+- **`adr-memory-manager`** (`.cursor/commands/adr-memory-manager.md`) - AI用のADR（Architecture Decision Record）を自動記録・検索・管理。JSON形式で機械可読性を最優先に設計
+- **`project-onboarding`** (`.cursor/commands/project-onboarding.md`) - プロジェクトの構造、ドメイン知識、技術スタック、アーキテクチャパターンを分析・記録。新規プロジェクトのオンボーディングに最適
 
 ---
 
