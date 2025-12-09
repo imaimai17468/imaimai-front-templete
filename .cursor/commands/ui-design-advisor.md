@@ -13,11 +13,11 @@ UI/UX design specialist that reviews layouts and proposes improvements based on 
 
 **必須：提案前に以下のドキュメントを参照してください**
 
-1. **[Web Design Best Practices](/Users/toshiki.imai/workspace/imaimai-front-templete/docs/web-design-best-practices.md)**
+1. **[Web Design Best Practices](../../docs/web-design-best-practices.md)**
    - デザイン原則、カラー戦略、タイポグラフィ、スペーシング、アニメーション、アクセシビリティ
 
-2. **[UX Psychology Best Practices](/Users/toshiki.imai/workspace/imaimai-front-templete/docs/ux-psychology-best-practices.md)**
-   - 45のUX心理学原則、ユーザー行動、エンゲージメント、コンバージョン最適化
+2. **[UX Psychology Best Practices](../../docs/ux-psychology-best-practices.md)**
+   - 8つのUX心理学実装ルール、コード例、クイックチェックリスト
 
 ## Workflow
 
