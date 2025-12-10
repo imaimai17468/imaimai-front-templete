@@ -14,8 +14,6 @@
         "start-mcp-server",
         "--context",
         "ide-assistant",
-        "--project",
-        "/Users/toshiki.imai/workspace/imaimai-front-templete",
         "--enable-gui-log-window",
         "false",
         "--enable-web-dashboard",
