@@ -3,70 +3,16 @@
 このファイルは、Claude Codeを使用した開発ワークフローの標準手順を定義します。
 新機能の追加やバグ修正を行う際は、以下のフローに従ってください。
 
-## 基本方針
-
-- **できるだけ全てのフェーズを実行する**（タイプ別の推奨フローは下記参照）
-- **各フェーズで TodoWrite ツールを活用**して進捗を管理する
-- **不明点があれば AskUserQuestion で確認**してから進める
-- **エラーが発生したら必ず修正**してから次のフェーズに進む
-- **コミット前にすべてのチェックがパス**していることを確認
-- **段階的にコミット**し、大きすぎる変更を避ける
-- **Next.js MCP、Chrome DevTools MCPを積極的に活用**して動作確認を徹底する
-
 ---
 
-## クイックリファレンス
-
-変更のタイプに応じて、適切なフローを選択してください：
-
-| 変更タイプ | 推奨フロー | 所要時間目安 | 説明 |
-|-----------|-----------|-------------|------|
-| **新機能追加** | Phase 1-11 全て | 60-120分 | 完全なワークフロー |
-| **中規模バグ修正** | 1,4,5,6,8,9A,10,11 | 30-60分 | 調査→実装→テスト→確認 |
-| **UI/デザイン調整** | 1,3,4,5,8,9A,10,11 | 20-40分 | UIデザインレビュー含む |
-| **小規模リファクタ** | 1,4,5,8,10,11 | 15-30分 | 既存パターン踏襲 |
-| **タイポ修正** | 5,8,10,11 | 5分 | 設定ファイルや小さな修正 |
-| **ドキュメント更新** | 5,10,11 | 5-10分 | ドキュメントのみの変更 |
-
-**Phase 9について:**
-- **Phase 9A（簡易確認）**: 必須 - Next.js MCPでエラーチェック
-- **Phase 9B（詳細検証）**: 任意 - Chrome DevToolsでの詳細確認
-
----
-
-## フェーズ概要
-
-### 必須フェーズ vs 任意フェーズ
-
-#### 必須フェーズ（ほぼすべてのケースで実行）
-1. **Phase 1: Investigation & Research** - Context7/Kiriで調査
-4. **Phase 4: Planning** - TodoWriteで計画立案
-5. **Phase 5: Implementation** - Serenaでコード実装
-8. **Phase 8: Quality Checks** - bun run でチェック実行
-9. **Phase 9A: Runtime Verification** - Next.js MCPで動作確認
-10. **Phase 10: Git Commit** - コミット作成
-11. **Phase 11: Push** - リモートへプッシュ
-
-#### 状況に応じて実行（推奨）
-2. **Phase 2: Architecture Design** - 新機能や大規模変更時
-3. **Phase 3: UI/UX Design** - UI変更がある場合
-6. **Phase 6: Testing & Stories** - ロジック変更がある場合
-7. **Phase 7: Code Review** - リファクタリングが必要な場合
-9. **Phase 9B: Browser Verification** - 詳細な動作確認が必要な場合
-
----
-
-## 使用エージェント/コマンド
+## 使用エージェント
 
 以下のカスタムコマンドが利用可能です：
 
-- **`component-refactoring-specialist`** (`.claude/agents/app-code-specialist.md`) - Reactコンポーネントのリファクタリング専門家。ロジック抽出、プレゼンターパターン適用、ディレクトリ構造の再編成を担当
+- **`coding-specialist`** (`.claude/agents/coding-specialist.md`) - Reactコンポーネントのコーディング専門家。ロジック抽出、プレゼンターパターン適用、ディレクトリ構造の再編成を担当
 - **`test-guideline-enforcer`** (`.claude/agents/test-guideline-enforcer.md`) - Vitest / React Testing Libraryを使用したテストコードの品質、構造、命名規約を強制
 - **`storybook-story-creator`** (`.claude/agents/storybook-story-creator.md`) - プロジェクトルールに準拠したStorybookストーリーの作成とメンテナンス
-- **`ui-design-advisor`** (`.claude/agents/ui-design-advisor.md`) - ダークテーマに焦点を当てたUI/UXデザイン専門家。レイアウトのレビューと改善提案を担当
-- **`spec-document-creator`** (`.claude/agents/spec-document-creator.md`) - 拡張可能な仕様書作成コマンド。機能仕様、API仕様、アーキテクチャ仕様など複数のドキュメントタイプをサポート
-- **`adr-memory-manager`** (`.claude/agents/adr-memory-manager.md`) - AI用のADR（Architecture Decision Record）を自動記録・検索・管理。JSON形式で機械可読性を最優先に設計
-- **`project-onboarding`** (`.claude/agents/project-onboarding.md`) - プロジェクトの構造、ドメイン知識、技術スタック、アーキテクチャパターンを分析・記録。新規プロジェクトのオンボーディングに最適
+- **`ui-design-advisor`** (`.claude/agents/ui-design-advisor.md`) - UI/UXデザイン専門家。レイアウトのレビューと改善提案を担当
 
 ---
 
@@ -124,75 +70,19 @@ path: 'src/auth/login.ts'
 - Next.js, React, その他使用するライブラリの最新情報を確認
 - `mcp__context7__resolve-library-id` → `mcp__context7__get-library-docs` の順で実行
 
-#### 3. 既存決定の確認（ADR参照）
-- `adr-memory-manager` エージェントを使用して既存のアーキテクチャ決定を確認
-- 関連するADRを検索して、過去の決定とその根拠を理解
-- 既存の決定に従うか、新しい決定が必要かを判断
-
-#### 4. 調査結果の整理
+#### 3. 調査結果の整理
 - 既存パターンやコーディング規約を把握
 - 再利用可能なコンポーネントやユーティリティを特定
 - Kiriで取得したコンテキストを基に実装方針を決定
-- 既存ADRと照合して決定の一貫性を確認
 
 **完了チェックリスト:**
 - [ ] Kiri MCPで関連コードを特定
 - [ ] 必要なライブラリのドキュメントを確認
 - [ ] 既存パターンと依存関係を把握
-- [ ] 関連するADRを確認し、既存決定を理解
 
 ---
 
-### Phase 2: Architecture Design (アーキテクチャ設計) 【推奨：新機能/大規模変更時】
-
-**使用エージェント**: component-refactoring-specialist, spec-document-creator, adr-memory-manager
-
-**このフェーズをスキップできるケース:**
-- 既存パターンに完全に倣う場合
-- 1ファイル以内の小さな修正
-- ドキュメントやスタイルのみの変更
-
-#### 1. 技術的方針の決定
-- ファイル配置、ディレクトリ構造の決定
-- 状態管理の方法（useState, useContext, 外部ライブラリなど）
-- データフローとコンポーネント間の関係性の設計
-- APIエンドポイントやデータ取得戦略の決定
-- **重要な決定は `adr-memory-manager` で記録**
-
-#### 2. コンポーネント設計
-- `component-refactoring-specialist` エージェントを使用
-- コンポーネント分割の方針（責任の分離、単一責任原則）
-- Props インターフェースの設計
-- 再利用性と保守性を考慮した設計
-- 既存コンポーネントとの整合性確認
-
-#### 3. 仕様書の作成
-- `spec-document-creator` エージェントを使用して仕様書を作成
-- 機能仕様、API仕様、アーキテクチャ仕様など必要に応じて作成
-- 既存コードからリバースエンジニアリングする場合は、コード分析機能を活用
-
-#### 4. アーキテクチャ決定の記録
-- `adr-memory-manager` エージェントを使用して重要な決定を記録
-- 決定のコンテキスト、根拠、代替案を記録
-- 影響を受けるファイルやコンポーネントを記録
-- 関連するADRとリンク
-
-#### 5. パフォーマンス考慮事項
-- Next.js 16の機能活用（Cache Components, Server Componentsなど）
-- レンダリング戦略（SSR, SSG, ISRなど）
-- 画像最適化、コード分割など
-
-**完了チェックリスト:**
-- [ ] ファイル配置とディレクトリ構造を決定
-- [ ] コンポーネント分割方針を決定
-- [ ] 状態管理とデータフローを設計
-- [ ] パフォーマンス戦略を検討
-- [ ] 必要に応じて仕様書を作成
-- [ ] 重要なアーキテクチャ決定をADRとして記録
-
----
-
-### Phase 3: UI/UX Design (デザイン設計) 【推奨：UI変更時】
+### Phase 2: UI/UX Design (デザイン設計) 【推奨：UI変更時】
 
 **使用エージェント**: ui-design-advisor
 
@@ -222,7 +112,7 @@ path: 'src/auth/login.ts'
 
 ---
 
-### Phase 4: Planning (計画立案) 【必須】
+### Phase 3: Planning (計画立案) 【必須】
 
 **使用ツール**: TodoWrite tool
 
@@ -241,6 +131,44 @@ path: 'src/auth/login.ts'
 - [ ] TodoWriteで全タスクを登録
 - [ ] タスクの実行順序を決定
 - [ ] 不明点をすべて解消
+
+---
+
+### Phase 4: Plan Review (計画レビュー) 【必須】
+
+**使用ツール**: Codex MCP + coding-specialist ガイドライン
+
+#### 1. 計画のレビュー依頼
+
+Codex MCPを使用して、coding-specialistのガイドラインに基づいて計画をレビューします。
+
+```
+mcp__codex__codex
+prompt: ".claude/agents/coding-specialist.mdのガイドラインに基づいて、以下の実装計画をレビューしてください：
+
+【実装計画】
+[TodoWriteで作成した計画内容]
+
+以下の観点でレビューしてください：
+1. coding-specialistガイドラインへの準拠
+2. アーキテクチャ的な問題点
+3. 改善提案
+4. 見落としている考慮事項"
+sessionId: "plan-review-[task-name]"
+model: "gpt-5-codex"
+reasoningEffort: "high"
+```
+
+#### 2. レビュー結果の反映
+
+- 指摘事項を確認し、必要に応じて計画を修正
+- TodoWriteを更新して修正内容を反映
+- 不明点があれば `AskUserQuestion` で確認
+
+**完了チェックリスト:**
+- [ ] Codexによる計画レビューを実施
+- [ ] 指摘事項を確認・修正
+- [ ] TodoWriteを更新
 
 ---
 
@@ -294,20 +222,13 @@ relative_path: 'src/auth/user.ts'
 #### 2. コーディング規約の遵守
 - TypeScriptの型定義を厳密に
 - 日本語コメントで意図を明確に
-- ESLint、Prettierの設定に従う
+- Biomeの設定に従う
 - プロジェクト固有のパターンを踏襲
 - **バレルインポート禁止**（`@/` aliasを使用した個別インポート）
 
 #### 3. 進捗管理
 - TodoWriteツールでタスクを `in_progress` → `completed` に更新
 - 一度に1つのタスクに集中
-
-#### 4. ADRの更新（実装完了後）
-- `adr-memory-manager` エージェントを使用して実装内容をADRに反映
-- Phase 2で記録したADRに実装の詳細を追記
-- 実際に実装されたファイル、コンポーネント、パターンを記録
-- 実装時の変更点や追加の決定事項があれば記録
-- コード例を追加してADRをより実用的に
 
 **完了チェックリスト:**
 - [ ] Serena MCPでシンボルベース編集を実施
@@ -316,13 +237,13 @@ relative_path: 'src/auth/user.ts'
 - [ ] 既存パターンに準拠
 - [ ] 日本語コメントで意図を説明
 - [ ] TodoWriteで進捗更新済み
-- [ ] 実装完了後、関連するADRを更新・追記
 
 ---
 
 ### Phase 6: Testing & Stories (テスト・ストーリー作成) 【推奨：ロジック変更時】
 
 **使用エージェント**: test-guideline-enforcer, storybook-story-creator
+**使用ツール**: Serena MCP（実装）
 
 **このフェーズをスキップできるケース:**
 - UI/表示のみの変更でロジック変更なし
@@ -330,13 +251,15 @@ relative_path: 'src/auth/user.ts'
 - ドキュメントのみの変更
 
 #### 1. Storybook ストーリー作成
-- `storybook-story-creator` エージェントを使用
+- `storybook-story-creator` エージェントでストーリー設計
 - **条件分岐による表示切り替えのある場合のみ**ストーリーを作成
 - 単純なprops値の違いはストーリー化しない
+- **実装はSerena MCPで行う**（`insert_after_symbol` など）
 
 #### 2. テストコード作成
-- `test-guideline-enforcer` エージェントを使用
+- `test-guideline-enforcer` エージェントでテスト設計
 - Vitest / React Testing Libraryで実装
+- **実装はSerena MCPで行う**（テストファイル作成・編集）
 - AAAパターン（Arrange-Act-Assert）を厳守
 - 日本語のテストタイトル
 - すべての条件分岐をカバー
@@ -349,42 +272,47 @@ relative_path: 'src/auth/user.ts'
 
 ---
 
-### Phase 7: Code Review (コードレビュー) 【推奨：リファクタリング時】
+### Phase 7: Code Review (コードレビュー) 【必須】
 
-**使用エージェント**: component-refactoring-specialist
+**使用ツール**: Codex MCP + coding-specialist ガイドライン
 
-**このフェーズを実行すべきケース:**
-- コードの品質に不安がある場合
-- リファクタリングが必要な場合
-- 複雑なロジックを実装した場合
+#### 1. 実装レビュー依頼
 
-#### 1. 実装レビュー
-- `component-refactoring-specialist` エージェントを使用
-- コードの品質、可読性、保守性を確認
-- ベストプラクティスへの準拠を確認
-- パフォーマンス上の問題がないか確認
-- コンポーネントの責任分離が適切か確認
+Codex MCPを使用して、coding-specialistのガイドラインに基づいて実装コードをレビューします。
 
-#### 2. リファクタリング
-- 必要に応じてコードを改善
-- 重複コードの削除
-- 命名の改善
-- コンポーネントの分割・統合の提案
+```
+mcp__codex__codex
+prompt: ".claude/agents/coding-specialist.mdのガイドラインに基づいて、以下の実装コードをレビューしてください：
 
-#### 3. ADRの最終確認・更新
-- `adr-memory-manager` エージェントを使用してADRを最終確認
-- リファクタリングによる変更があればADRを更新
-- 実装がADRの決定と一致しているか確認
-- 新しいパターンや変更点があれば追記
-- ADRのステータスを「accepted」に更新（実装完了時）
+【実装コード】
+[変更したファイルのパスと内容]
+
+以下の観点でレビューしてください：
+1. coding-specialistガイドラインへの準拠
+2. コードの品質、可読性、保守性
+3. ベストプラクティスへの準拠
+4. パフォーマンス上の問題
+5. コンポーネントの責任分離
+6. リファクタリングの必要性"
+sessionId: "code-review-[task-name]"
+model: "gpt-5-codex"
+reasoningEffort: "high"
+```
+
+#### 2. レビュー結果の反映
+
+- 指摘事項を確認
+- **必要な修正はSerena MCPで実施**
+- 重複コードの削除、命名改善、コンポーネント分割などを実施
+- 不明点があれば `AskUserQuestion` で確認
 
 **完了チェックリスト:**
+- [ ] Codexによるコードレビューを実施
+- [ ] 指摘事項を確認・修正（Serena MCP使用）
 - [ ] コード品質が基準を満たす
 - [ ] ベストプラクティスに準拠
 - [ ] パフォーマンス問題なし
 - [ ] 責任分離が適切
-- [ ] 関連するADRを確認し、必要に応じて更新
-- [ ] ADRの実装例とコードが一致していることを確認
 
 ---
 
@@ -396,10 +324,10 @@ relative_path: 'src/auth/user.ts'
 
 ```bash
 # 型チェック
-bun run type-check
+bun run typecheck
 
-# Lint
-bun run lint
+# Lint (Biome)
+bun run check
 
 # テスト実行
 bun run test
@@ -414,7 +342,7 @@ bun run build
 
 **完了チェックリスト:**
 - [ ] 型チェックが通る
-- [ ] Lintエラーがゼロ
+- [ ] Biome checkがパス
 - [ ] すべてのテストが通る
 - [ ] ビルドが成功
 
@@ -524,51 +452,3 @@ gh pr create --title "PR title" --body "PR description"
 **完了チェックリスト:**
 - [ ] プッシュが成功
 - [ ] 必要に応じてPR作成
-
----
-
-## トラブルシューティング
-
-### Phase 8でビルドエラーが発生
-1. エラーメッセージを詳細に確認
-2. `mcp__ide__getDiagnostics` で型エラーの詳細を取得
-3. 必要に応じて Phase 5 に戻って修正
-4. Phase 8 を再実行
-
-### Phase 9Aでランタイムエラーが発生
-1. Next.js MCPで詳細確認（`get-errors`, `get-logs`）
-2. エラーの原因を特定
-3. Phase 5 に戻って修正
-4. Phase 8, 9A を再実行
-
-### Phase 9Bでブラウザエラーが発生
-1. Chrome DevToolsでコンソールエラー確認（`list_console_messages`）
-2. ネットワークエラー確認（`list_network_requests`）
-3. 必要に応じて Phase 5 に戻って修正
-4. Phase 8, 9A, 9B を再実行
-
-### テストが失敗する
-1. テストエラーメッセージを確認
-2. 期待値と実際の値を比較
-3. Phase 5 または Phase 6 に戻って修正
-4. Phase 8 を再実行
-
----
-
-## 補足資料
-
-- **[MCP_REFERENCE.md](./MCP_REFERENCE.md)**: Kiri MCP、Serena MCP、Next.js MCP、Chrome DevTools MCP、Browser Eval MCPの詳細なコマンドリファレンス
-
-## MCP使い分けまとめ
-
-| フェーズ | 使用MCP | 主な用途 |
-|---------|---------|---------|
-| **Phase 1: 調査** | Kiri MCP | コードベース検索、コンテキスト抽出、依存関係分析 |
-| **Phase 5: 実装** | Serena MCP | シンボルベース編集、リネーム、挿入・置換 |
-| **Phase 9A: 動作確認** | Next.js MCP | ランタイムエラー確認、ルート確認 |
-| **Phase 9B: 詳細検証** | Chrome DevTools MCP | ブラウザ検証、パフォーマンス測定 |
-| **全フェーズ** | Context7 MCP | ライブラリドキュメント取得 |
-
-**Kiri vs Serenaの使い分け**:
-- **調査（読み取り）**: Kiri → セマンティック検索、自動ランク付け、依存関係分析
-- **実装（書き込み）**: Serena → シンボル編集、リネーム、挿入・置換
