@@ -34,6 +34,10 @@
     "kiri": {
       "command": "npx",
       "args": ["kiri-mcp-server@latest", "--repo", ".", "--db", ".kiri/index.duckdb", "--watch"]
+    },
+    "codex": {
+      "command": "npx",
+      "args": ["-y", "codex-mcp-server@latest"]
     }
   }
 }
