@@ -1,5 +1,5 @@
 ---
-name: component-refactoring-specialist
+name: coding-specialist
 description: React component refactoring specialist that handles structural organization and maintainability improvements. Extracts logic, applies presenter patterns, and reorganizes directory structures.
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: inherit
