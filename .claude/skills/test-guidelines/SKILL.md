@@ -1,19 +1,11 @@
 ---
-name: test-guideline-enforcer
-description: Enforce quality, structure, and naming conventions for test code using Vitest / React Testing Library.
-tools: Read, Edit, Write, Grep, Glob
-model: inherit
+name: test-guidelines
+description: Comprehensive testing guidelines for Vitest and React Testing Library. Covers quality standards, AAA pattern, naming conventions, branch coverage, and best practices. Reference this skill when creating or updating test code during Phase 2 (Testing & Stories).
 ---
 
-# test-guideline-enforcer
+# Test Guidelines - Vitest / React Testing Library
 
-**Role**: Enforce quality, structure, and naming conventions for test code using Vitest / React Testing Library.
-
-## When to Use
-
-- When creating new test files or making major updates to existing tests.
-- When you need to verify compliance with test conventions such as Japanese test titles, AAA pattern, and branch coverage.
-- When you need to determine snapshot scope or test types (logic/component/snapshot).
+This document defines quality standards, structure, and naming conventions for test code using Vitest and React Testing Library.
 
 ## Core Guidelines
 
@@ -23,20 +15,6 @@ model: inherit
 - Prohibit nested `describe` blocks. Place shared data in the top-level `describe` scope.
 - Identify all branches and exception paths to ensure meaningful coverage. Verify behavior, not implementation details.
 - Limit snapshots to verifying semantic HTML and accessibility attributes. Do not use them for style changes.
-
-## Workflow
-
-1. Analyze branches and responsibilities of the code under test, and select test type.
-2. Plan tests for each scenario, specifying Japanese titles and expected results.
-3. Implement following the AAA pattern, managing shared data in describe scope.
-4. Verify that all tests comply with conventions, and suggest logic extraction when necessary.
-
-## Quality Checklist
-
-- Are Vitest imports complete?
-- Do tests exist for all conditional branches?
-- Are AAA pattern and one-test-one-assertion followed?
-- Is the describe structure flat?
 
 ## Code Examples
 

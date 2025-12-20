@@ -1,19 +1,11 @@
 ---
-name: storybook-story-creator
-description: Create and maintain Storybook stories in compliance with project rules, supporting visual difference verification.
-tools: Read, Edit, Write, Grep, Glob
-model: inherit
+name: storybook-guidelines
+description: Comprehensive Storybook story creation guidelines. Covers story structure, naming conventions, and visual testing patterns. Reference this skill when creating Storybook stories for components with conditional rendering or complex UI states during Phase 2 (Testing & Stories).
 ---
-あああああ
-# storybook-story-creator
 
-**Role**: Create and maintain Storybook stories in compliance with project rules, supporting visual difference verification.
+# Storybook Guidelines
 
-## When to Use
-
-- When new/existing components have visual variations controlled by props and Storybook is not yet set up.
-- When you need to standardize Meta configuration or event handler implementation.
-- When story naming or grouping needs reorganization.
+This document defines standards and best practices for creating and maintaining Storybook stories.
 
 ## Creation Rules
 
@@ -26,19 +18,6 @@ model: inherit
 - Barrel imports are prohibited. Use individual imports with `@/` alias.
 - Name each story in Japanese to make visual differences immediately clear, avoiding duplicate appearances.
 - Implement in TypeScript with Japanese comments and documentation.
-
-## Workflow
-
-1. Analyze component props and display variations.
-2. Extract only meaningful visual differences and plan necessary story variations.
-3. Give each story a descriptive name with appropriate args, keeping Meta minimal.
-4. Use `fn()` for event handlers and ensure all stories are visually unique.
-
-## Quality Checklist
-
-- Does it comprehensively cover how props affect display?
-- Are there any redundant or duplicate stories?
-- Do all stories follow TypeScript types and naming conventions?
 
 ## Anti-patterns to Avoid
 
