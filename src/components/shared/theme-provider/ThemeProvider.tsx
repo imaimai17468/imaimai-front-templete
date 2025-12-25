@@ -8,8 +8,8 @@ import type * as React from "react";
  * next-themesを使用してダークモード/ライトモードの切り替えを実現
  */
 export function ThemeProvider({
-	children,
-	...props
+  children,
+  ...props
 }: React.ComponentProps<typeof NextThemesProvider>) {
-	return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
+  return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
 }

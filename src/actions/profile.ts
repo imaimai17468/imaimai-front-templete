@@ -2,39 +2,39 @@
 
 import { UpdateUserSchema } from "@/entities/user";
 import {
-	fetchCurrentUser,
-	updateUser,
-	updateUserAvatar,
+  fetchCurrentUser,
+  updateUser,
+  updateUserAvatar,
 } from "@/gateways/user";
 
 export const updateProfile = async (formData: FormData) => {
-	const user = await fetchCurrentUser();
+  const user = await fetchCurrentUser();
 
-	if (!user) {
-		return { error: "Not authenticated" };
-	}
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
 
-	const name = formData.get("name") as string;
+  const name = formData.get("name") as string;
 
-	const validationResult = UpdateUserSchema.safeParse({ name });
-	if (!validationResult.success) {
-		return { error: validationResult.error.issues[0].message };
-	}
+  const validationResult = UpdateUserSchema.safeParse({ name });
+  if (!validationResult.success) {
+    return { error: validationResult.error.issues[0].message };
+  }
 
-	return updateUser(user.id, validationResult.data);
+  return updateUser(user.id, validationResult.data);
 };
 
 export const uploadAvatar = async (formData: FormData) => {
-	const user = await fetchCurrentUser();
+  const user = await fetchCurrentUser();
 
-	if (!user) {
-		return { error: "Not authenticated" };
-	}
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
 
-	const file = formData.get("avatar") as File;
-	if (!file || file.size === 0) {
-		return { error: "No file selected" };
-	}
+  const file = formData.get("avatar") as File;
+  if (!file || file.size === 0) {
+    return { error: "No file selected" };
+  }
 
-	return updateUserAvatar(user.id, file);
+  return updateUserAvatar(user.id, file);
 };
