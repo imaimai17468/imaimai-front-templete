@@ -16,29 +16,43 @@
 
 **実装・リファクタリング時は必ず `coding-guidelines` Skill を参照してください**。
 
-Skillには以下の詳細ガイドライン（600行以上）が含まれます：
-- **テスト容易性**（内部状態 vs Props制御、条件分岐の抽出）
-- **Props制御**（すべての表示状態をpropsで制御可能に）
-- **コンポーネント責務分離**（データフェッチング vs UI表示）
-- **ディレクトリ構造**（kebab-case、親子階層の明確化）
-- **AIが失敗しやすいパターン**（実装前チェックリスト）
-- **具体的なコード例**（❌NG / ✅OK パターン比較）
+### 基本原則
+
+1. **Server Component First**
+   - 基本的にすべて Server Component で実装
+   - データ取得は必ず Server で行う（async/await）
+   - Server Component を Suspense で挟んでローディング状態を管理
+   - インタラクティブ操作やフォームなど、仕方ない場合のみ "use client" を使用
+
+2. **ディレクトリ構造**
+   - `components/`: 汎用的な再利用可能コンポーネント
+   - `features/`: 機能ごとのコンポーネント
+   - コンポーネントで使用する関数は、**関数名でファイル化して同階層に配置**
+   - **ディレクトリを切るのはコンポーネントを切る時のみ**（utils/ や helpers/ は作らない）
+
+3. **entity/gateway パターン**
+   - `entities/`: データ型定義とバリデーション（Zodスキーマ）
+   - `gateways/`: データ取得関数（外部API呼び出し）
+   - Server Component で gateway 関数を呼び出してデータ取得
+
+4. **Props制御とテスト容易性**
+   - すべての表示状態を props で制御可能にする
+   - 内部状態に依存する条件分岐を避ける
+   - コンポーネントは純粋な表示ロジックのみ
 
 ## 利用可能なツール
 
-### SubAgents（タスク実行）
-
-- **`plan-reviewer`**: 調査（Kiri MCP）、UI/UXレビュー（ui-design-guidelines）、実装計画作成（TodoWrite）、統合レビュー（Codex MCP）
-- **`implement-review`**: 実装（Serena MCP）、コードレビュー（Codex MCP）
-- **`test-review`**: テスト・ストーリー作成（Serena MCP）、テストレビュー（Codex MCP）
-
 ### Skills（知識参照）
 
+#### コーディング系
 - **`coding-guidelines`**: React/TypeScript規約、アーキテクチャパターン、AI失敗パターン
 - **`test-guidelines`**: Vitest/RTL規約、AAAパターン、カバレッジ基準
 - **`storybook-guidelines`**: Storybookストーリー作成規約
-- **`ui-design-guidelines`**: 4pxグリッド、深度戦略、アニメーション規約、Anti-Patterns、汎用AIアエステティック回避
-- **`human-interface-guidelines`**: 認知心理学・HCI原則に基づくUX設計、メンタルモデル、インタラクションパターン
+
+#### デザイン系
+- **`design-guidelines`**: UI/UX設計原則の統合ガイドライン
+  - ui-design.md: 視覚デザイン（タイポグラフィ、色、モーション、Anti-Patterns、汎用AIアエステティック回避）
+  - ux-design.md: UX設計（認知心理学、HCI原則、メンタルモデル、インタラクションパターン）
 
 ### MCPs（Model Context Protocol）
 
@@ -65,6 +79,40 @@ bun run check            # Biome lint/format チェック
 bun run check:fix        # Biome lint/format 自動修正
 bun run test             # Vitest テスト実行
 ```
+
+### コード重複検出
+```bash
+similarity-ts src/       # コードの類似度を検出
+similarity-ts src/ --print   # コード内容も表示
+similarity-ts src/ --threshold 0.8  # 閾値を80%に設定（デフォルト: 87%）
+similarity-ts src/ --classes        # クラスの重複も検出
+similarity-ts src/ --types          # 型定義の重複も検出（デフォルト有効）
+```
+
+**使用例と検出結果**:
+
+similarity-ts は TypeScript/JavaScript のコード重複を AST ベースで検出します。
+
+```bash
+# 実行例
+similarity-ts src/ --exclude node_modules --exclude .next
+
+# 検出結果の例
+# === Function Similarity ===
+# Similarity: 100.00%
+#   src/app/api/overpass/police-boxes/route.ts:4-36 GET
+#   src/app/api/overpass/street-lights/route.ts:4-36 GET
+#
+# === Type Similarity ===
+# Similarity: 100.00%
+#   src/repositories/overpass/useStreetLights.ts:4 BoundsKey
+#   src/repositories/overpass/usePoliceBoxes.ts:4 BoundsKey
+```
+
+**リファクタリング指針**:
+- 100% 重複: 即座にリファクタリング推奨（共通関数/型に抽出）
+- 90%以上: リファクタリング検討（パターンの統一）
+- 80-90%: 将来的なリファクタリング候補
 
 ### Storybook
 ```bash
