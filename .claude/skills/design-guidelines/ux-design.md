@@ -1,9 +1,6 @@
----
-name: human-interface-guidelines
-description: Design intuitive, user-centered interfaces based on cognitive psychology and HCI principles. Use this skill when designing interaction patterns, information architecture, or evaluating UX decisions. Ensures interfaces match mental models and respect user cognition.
----
+# UX Design Guidelines
 
-This skill guides the design of intuitive human interfaces that feel natural and effortless. Apply these principles when making UX decisions, designing flows, or evaluating existing interfaces.
+This document guides the design of intuitive human interfaces that feel natural and effortless. Apply these principles when making UX decisions, designing flows, or evaluating existing interfaces.
 
 ## Design Thinking
 
