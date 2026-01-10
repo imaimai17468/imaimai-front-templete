@@ -13,8 +13,7 @@ Guidelines for React/Next.js development focusing on testability, Server Compone
 
 - **Server Components & Data Fetching** → [server-components.md](server-components.md)
 - **Testability & Props Control** → [testability.md](testability.md)
-- **useEffect Guidelines** → [useeffect-guidelines.md](useeffect-guidelines.md)
-- **Effect Dependencies** → [effect-dependencies.md](effect-dependencies.md)
+- **useEffect Guidelines & Dependencies** → [useeffect-guidelines.md](useeffect-guidelines.md)
 - **Architecture & Patterns** → [architecture.md](architecture.md)
 
 ---
@@ -41,9 +40,9 @@ Key topics:
 - Closure Variable Dependencies (extract to pure functions)
 - Conditional Branch Extraction (JSX → components, useEffect → pure functions)
 
-### useEffect Guidelines
+### useEffect Guidelines & Dependencies
 
-**When**: Deciding whether to use useEffect or alternatives
+**When**: Deciding whether to use useEffect, managing dependencies, or avoiding unnecessary re-renders
 **Read**: [useeffect-guidelines.md](useeffect-guidelines.md)
 
 Key topics:
@@ -51,14 +50,7 @@ Key topics:
 - When you DO need useEffect (external system synchronization)
 - Event handlers vs Effects decision framework
 - Data fetching patterns and race conditions
-
-### Effect Dependencies
-
-**When**: Managing useEffect dependencies and avoiding unnecessary re-renders
-**Read**: [effect-dependencies.md](effect-dependencies.md)
-
-Key topics:
-- Separating reactive and non-reactive logic (Event Handlers vs Effects)
+- Separating reactive and non-reactive logic
 - Managing dependencies (updater functions, useEffectEvent, avoiding objects/functions)
 - Reactive values and dependency array rules
 - Never suppress the exhaustive-deps linter
@@ -94,8 +86,7 @@ Are you writing a component?
 ├─ Does it need interactivity? (onClick, useState, useEffect)
 │  ├─ YES → "use client" required
 │  │  ├─ Using useEffect?
-│  │  │  ├─ Read: useeffect-guidelines.md (Do you really need it?)
-│  │  │  └─ If yes, read: effect-dependencies.md (Managing dependencies)
+│  │  │  └─ Read: useeffect-guidelines.md (Do you really need it? + Managing dependencies)
 │  │  └─ Read: testability.md
 │  └─ NO → Server Component (default)
 │     └─ Read: server-components.md
