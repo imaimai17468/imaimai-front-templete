@@ -1,8 +1,3 @@
----
-name: test-guidelines
-description: Comprehensive testing guidelines for Vitest and React Testing Library. Covers quality standards, AAA pattern, naming conventions, branch coverage, and best practices. Reference this skill when creating or updating test code during Phase 2 (Testing & Stories).
----
-
 # Test Guidelines - Vitest / React Testing Library
 
 This document defines quality standards, structure, and naming conventions for test code using Vitest and React Testing Library.

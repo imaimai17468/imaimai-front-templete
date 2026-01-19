@@ -1,8 +1,3 @@
----
-name: storybook-guidelines
-description: Comprehensive Storybook story creation guidelines. Covers story structure, naming conventions, and visual testing patterns. Reference this skill when creating Storybook stories for components with conditional rendering or complex UI states during Phase 2 (Testing & Stories).
----
-
 # Storybook Guidelines
 
 This document defines standards and best practices for creating and maintaining Storybook stories.

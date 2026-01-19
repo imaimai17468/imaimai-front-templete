@@ -44,12 +44,7 @@
 
 ### Skills（知識参照）
 
-#### コーディング系
 - **`coding-guidelines`**: React/TypeScript規約、アーキテクチャパターン、AI失敗パターン
-- **`test-guidelines`**: Vitest/RTL規約、AAAパターン、カバレッジ基準
-- **`storybook-guidelines`**: Storybookストーリー作成規約
-
-#### デザイン系
 - **`design-guidelines`**: UI/UX設計原則の統合ガイドライン
   - ui-design.md: 視覚デザイン（タイポグラフィ、色、モーション、Anti-Patterns、汎用AIアエステティック回避）
   - ux-design.md: UX設計（認知心理学、HCI原則、メンタルモデル、インタラクションパターン）
@@ -78,6 +73,18 @@ bun run typecheck        # TypeScript型チェック
 bun run check            # Biome lint/format チェック
 bun run check:fix        # Biome lint/format 自動修正
 bun run test             # Vitest テスト実行
+```
+
+### Storybook
+```bash
+bun run storybook        # Storybook起動 (port 6006)
+bun run build-storybook  # Storybookビルド
+```
+
+### データベース
+```bash
+bun run db:generate      # Drizzle migration生成
+bun run db:push          # Drizzle migration適用
 ```
 
 ### コード重複検出
@@ -113,15 +120,3 @@ similarity-ts src/ --exclude node_modules --exclude .next
 - 100% 重複: 即座にリファクタリング推奨（共通関数/型に抽出）
 - 90%以上: リファクタリング検討（パターンの統一）
 - 80-90%: 将来的なリファクタリング候補
-
-### Storybook
-```bash
-bun run storybook        # Storybook起動 (port 6006)
-bun run build-storybook  # Storybookビルド
-```
-
-### データベース
-```bash
-bun run db:generate      # Drizzle migration生成
-bun run db:push          # Drizzle migration適用
-```

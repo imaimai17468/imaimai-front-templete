@@ -15,6 +15,8 @@ Guidelines for React/Next.js development focusing on testability, Server Compone
 - **Testability & Props Control** → [testability.md](testability.md)
 - **useEffect Guidelines & Dependencies** → [useeffect-guidelines.md](useeffect-guidelines.md)
 - **Architecture & Patterns** → [architecture.md](architecture.md)
+- **Test Guidelines (Vitest/RTL)** → [test-guidelines.md](test-guidelines.md)
+- **Storybook Guidelines** → [storybook-guidelines.md](storybook-guidelines.md)
 
 ---
 
@@ -66,6 +68,29 @@ Key topics:
 - Function Extraction (action-based design)
 - Presenter Pattern (conditional text)
 
+### Test Guidelines
+
+**When**: Creating or updating test code during Phase 2 (Testing & Stories)
+**Read**: [test-guidelines.md](test-guidelines.md)
+
+Key topics:
+- AAA Pattern (Arrange-Act-Assert)
+- Test Structure (describe/test descriptions in Japanese)
+- Coverage Standards (branch coverage, exception paths)
+- React Testing Library best practices
+- Snapshot testing guidelines
+
+### Storybook Guidelines
+
+**When**: Creating Storybook stories for components with conditional rendering during Phase 2 (Testing & Stories)
+**Read**: [storybook-guidelines.md](storybook-guidelines.md)
+
+Key topics:
+- Story Creation Rules (conditional branching focus)
+- Meta Configuration (minimal setup)
+- Event Handlers (fn() usage)
+- Anti-patterns to avoid
+
 ---
 
 ## Core Principles
@@ -94,6 +119,12 @@ Are you writing a component?
 ├─ Does it fetch data?
 │  └─ Read: server-components.md + architecture.md (Entity/Gateway)
 │
-└─ Are you organizing files/functions?
-   └─ Read: architecture.md (Directory Structure)
+├─ Are you organizing files/functions?
+│  └─ Read: architecture.md (Directory Structure)
+│
+├─ Are you writing tests?
+│  └─ Read: test-guidelines.md (AAA Pattern, Coverage, RTL)
+│
+└─ Are you creating Storybook stories?
+   └─ Read: storybook-guidelines.md (Conditional Branching, Story Structure)
 ```
