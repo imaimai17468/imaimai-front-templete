@@ -47,7 +47,7 @@ cp .env.example .env.local
 #### 📖 ドキュメント
 
 - **[データベースセットアップガイド](./docs/DATABASE_SETUP.md)** - Supabase + Drizzle ORMの設定手順
-- **[Supabaseを使わない場合](./docs/WITHOUT_SUPABASE.md)** - 認証機能が不要な場合
+- **Supabaseを使わない場合** - 認証機能が不要な場合は `remove-supabase` スキルを参照してください
 
 #### 必要な設定
 

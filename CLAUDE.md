@@ -48,6 +48,7 @@
 - **`design-guidelines`**: UI/UX設計原則の統合ガイドライン
   - ui-design.md: 視覚デザイン（タイポグラフィ、色、モーション、Anti-Patterns、汎用AIアエステティック回避）
   - ux-design.md: UX設計（認知心理学、HCI原則、メンタルモデル、インタラクションパターン）
+- **`remove-supabase`**: Supabase認証とDrizzle ORMの削除手順（データベース・認証機能が不要な場合）
 
 ### MCPs（Model Context Protocol）
 
