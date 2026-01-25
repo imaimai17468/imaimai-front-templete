@@ -12,33 +12,76 @@
 - **Build**: Bun
 - **Lint/Format**: Biome
 
+## ディレクトリ構造
+
+### 基本ルール
+
+**ディレクトリを切るのはコンポーネントを切る時のみ**
+- コンポーネント1つにつき1ディレクトリ
+- 関数は使用するコンポーネントと同階層に配置（コロケーション）
+- `src/utils/` などの汎用関数管理ディレクトリは作成しない
+- コンポーネントで使用する関数は、関数名でファイル化して同階層に配置
+
+### ディレクトリマップ
+
+**コンポーネント階層とディレクトリ階層を一致させる**
+- 親コンポーネントがディレクトリの1階層目
+- 子コンポーネントはその親ディレクトリの中に配置
+- 孫コンポーネントはさらにその子ディレクトリの中に配置
+- 呼び出し関係がディレクトリ構造で視覚的にわかる
+
+```
+src/
+├── app/                          # Next.js App Router
+│   ├── (routes)/                 # ルートグループ
+│   │   └── page.tsx             # ページコンポーネント
+│   └── api/                      # API Routes
+│
+├── components/
+│   ├── ui/                       # shadcn/ui コンポーネント
+│   │   ├── button.tsx           # 再利用可能なUIプリミティブ
+│   │   ├── form.tsx
+│   │   └── input.tsx
+│   │
+│   ├── shared/                   # 共有コンポーネント
+│   │   └── main-layout/         # レイアウトなど複数機能で使用
+│   │       └── MainLayout.tsx
+│   │
+│   └── features/                 # 機能別コンポーネント ⭐重要⭐
+│       ├── login-page/          # まず大きな機能（ページ）単位でグルーピング
+│       │   ├── LoginPage.tsx    # ディレクトリ名と一致するコンポーネント（1階層目）
+│       │   └── LoginForm/       # その中に各コンポーネントを配置
+│       │       └── LoginForm.tsx
+│       └── profile-page/        # 別の機能（ページ）
+│           ├── ProfilePage.tsx  # ディレクトリ名と一致するコンポーネント（1階層目）
+│           ├── formatUserName.ts  # 同階層に関数ファイルを配置
+│           ├── profile-header/  # 子コンポーネント（ProfilePageから呼び出される）
+│           │   ├── ProfileHeader.tsx
+│           │   └── avatar/      # 孫コンポーネント（ProfileHeaderから呼び出される）
+│           │       └── Avatar.tsx
+│           └── profile-stats/   # 子コンポーネント（ProfilePageから呼び出される）
+│               └── ProfileStats.tsx
+│
+├── repositories/                 # Client Component 用データ取得
+│   └── generation/
+│       └── use-delete-generation.ts  # React Query カスタムフック
+│
+├── entities/                     # データ型定義
+│   └── auth/
+│       └── magic-link-form.ts   # Zod スキーマ + 型定義
+│
+├── gateways/                     # データ取得関数
+│   └── auth/
+│       └── signInWithMagicLink.ts
+│
+└── lib/                          # ライブラリ設定
+    ├── supabase/
+    └── utils.ts
+```
+
 ## コーディング原則
 
-**実装・リファクタリング時は必ず `coding-guidelines` Skill を参照してください**。
-
-### 基本原則
-
-1. **Server Component First**
-   - 基本的にすべて Server Component で実装
-   - データ取得は必ず Server で行う（async/await）
-   - Server Component を Suspense で挟んでローディング状態を管理
-   - インタラクティブ操作やフォームなど、仕方ない場合のみ "use client" を使用
-
-2. **ディレクトリ構造**
-   - `components/`: 汎用的な再利用可能コンポーネント
-   - `features/`: 機能ごとのコンポーネント
-   - コンポーネントで使用する関数は、**関数名でファイル化して同階層に配置**
-   - **ディレクトリを切るのはコンポーネントを切る時のみ**（utils/ や helpers/ は作らない）
-
-3. **entity/gateway パターン**
-   - `entities/`: データ型定義とバリデーション（Zodスキーマ）
-   - `gateways/`: データ取得関数（外部API呼び出し）
-   - Server Component で gateway 関数を呼び出してデータ取得
-
-4. **Props制御とテスト容易性**
-   - すべての表示状態を props で制御可能にする
-   - 内部状態に依存する条件分岐を避ける
-   - コンポーネントは純粋な表示ロジックのみ
+`coding-guidelines` Skill を参照してください。
 
 ## 利用可能なツール
 
