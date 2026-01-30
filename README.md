@@ -1,18 +1,17 @@
 # My App
 
-Next.js 15 + TypeScript + Tailwind CSS + shadcn/ui を使用したモダンなWebアプリケーションテンプレートです。
+Next.js 16 + TypeScript + Tailwind CSS + shadcn/ui を使用したモダンなWebアプリケーションテンプレートです。
 
 ## 技術スタック
 
-- **Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript (tsgo)
 - **Styling**: Tailwind CSS v4
 - **UI Components**: shadcn/ui (Radix UI primitives)
 - **Authentication**: Supabase Auth
 - **Database**: PostgreSQL (Supabase) + Drizzle ORM
-- **Code Quality**: Biome (linting & formatting)
+- **Code Quality**: oxlint (linting) + oxfmt (formatting)
 - **Testing**: Vitest + Testing Library
-- **Storybook**: Component development & documentation
 - **Package Manager**: Bun
 - **Git Hooks**: Lefthook
 
@@ -44,7 +43,7 @@ cp .env.example .env.local
 
 このテンプレートはSupabaseを使用した認証とデータ管理を実装しています。
 
-#### 📖 ドキュメント
+#### ドキュメント
 
 - **[データベースセットアップガイド](./docs/DATABASE_SETUP.md)** - Supabase + Drizzle ORMの設定手順
 - **Supabaseを使わない場合** - 認証機能が不要な場合は `remove-supabase` スキルを参照してください
@@ -74,16 +73,18 @@ http://localhost:3000 でアプリケーションにアクセスできます。
 bun run dev          # 開発サーバーを起動
 bun run build        # プロダクション用ビルド
 bun run start        # プロダクションサーバーを起動
-bun run typecheck    # TypeScript型チェック
 ```
 
 ### コード品質
 
 ```bash
-bun run check        # Biome linter/formatter チェック
-bun run check:fix    # Biome 自動修正（unsafe修正含む）
-bun run format       # Biome フォーマットチェック
-bun run format:fix   # Biome 自動フォーマット
+bun run typecheck    # TypeScript型チェック (tsgo)
+bun run lint         # oxlint チェック
+bun run lint:fix     # oxlint 自動修正
+bun run format       # oxfmt フォーマットチェック
+bun run format:fix   # oxfmt 自動フォーマット
+bun run check        # lint + format チェック
+bun run check:fix    # lint + format 自動修正
 ```
 
 ### テスト
@@ -92,11 +93,12 @@ bun run format:fix   # Biome 自動フォーマット
 bun run test         # Vitestでテスト実行
 ```
 
-### Storybook
+### データベース
 
 ```bash
-bun run storybook        # Storybook開発サーバーを起動 (http://localhost:6006)
-bun run build-storybook  # Storybookをビルド
+bun run db:generate  # Drizzle migration生成
+bun run db:push      # Drizzle migration適用
+bun run db:studio    # Drizzle Studioを起動
 ```
 
 ## プロジェクト構成
@@ -111,6 +113,9 @@ src/
 │   ├── ui/                # shadcn/ui コンポーネント
 │   ├── shared/            # 共有コンポーネント
 │   └── features/          # 機能別コンポーネント
+├── entities/              # データ型定義（Zodスキーマ）
+├── gateways/              # データ取得関数
+├── repositories/          # React Queryカスタムフック
 └── lib/
     └── utils.ts           # ユーティリティ関数
 ```
@@ -121,7 +126,7 @@ src/
 
 - **コンポーネント命名**: ディレクトリ名（kebab-case）とTSXファイル名（PascalCase）の対応
 - **インポート**: `@/` エイリアスを使用した絶対パス
-- **コード品質**: Biomeによる自動linting/formatting
+- **コード品質**: oxlint/oxfmtによる自動linting/formatting
 - **Git Hooks**: コミット前の自動品質チェック
 
 詳細は `CLAUDE.md` を参照してください。
@@ -167,7 +172,7 @@ bunx shadcn@latest add [component-name]
 
 - **プロフィール表示**: `/profile`ページでユーザー情報を表示
 - **名前の編集**: 表示名を自由に変更可能
-- **アバター画像のアップロード**: 
+- **アバター画像のアップロード**:
   - 最大5MBまでの画像ファイルをアップロード
   - アップロード中のプログレス表示
   - 即時プレビュー機能
@@ -194,6 +199,5 @@ bunx shadcn@latest add [component-name]
 - [Tailwind CSS](https://tailwindcss.com/docs)
 - [shadcn/ui](https://ui.shadcn.com/)
 - [Supabase Auth](https://supabase.com/docs/guides/auth)
-- [Biome](https://biomejs.dev/)
+- [oxc (oxlint/oxfmt)](https://oxc.rs/)
 - [Vitest](https://vitest.dev/)
-- [Storybook](https://storybook.js.org/)
