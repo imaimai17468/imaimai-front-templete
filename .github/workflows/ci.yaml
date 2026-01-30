@@ -13,25 +13,20 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Setup Biome
-      uses: biomejs/setup-biome@v2
-      with:
-        version: latest
-
     - name: Install bun
       uses: oven-sh/setup-bun@v2
 
     - name: Install dependencies
       run: bun install
 
-    - name: Run Biome
+    - name: Run oxlint and oxfmt
       run: bun run check
 
     - name: Run Tests
       run: bun run test
 
-    - name: Run TypeScript Compiler
-      run: bun tsc
+    - name: Run TypeScript Type Check (tsgo)
+      run: bun run typecheck
 
     - name: Build Project
       run: bun run build
