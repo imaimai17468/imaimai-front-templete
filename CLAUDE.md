@@ -7,7 +7,6 @@
 - **Language**: TypeScript (厳格モード, tsgo)
 - **Styling**: Tailwind CSS, shadcn/ui
 - **Testing**: Vitest, React Testing Library
-- **UI Documentation**: Storybook
 - **Backend**: Supabase (PostgreSQL, Auth)
 - **Build**: Bun
 - **Lint**: oxlint
@@ -120,12 +119,6 @@ bun run format:fix       # oxfmt フォーマット適用
 bun run check            # lint + format チェック
 bun run check:fix        # lint + format 自動修正
 bun run test             # Vitest テスト実行
-```
-
-### Storybook
-```bash
-bun run storybook        # Storybook起動 (port 6006)
-bun run build-storybook  # Storybookビルド
 ```
 
 ### データベース
