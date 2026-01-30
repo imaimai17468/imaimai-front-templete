@@ -44,7 +44,7 @@ export const fetchCurrentUser = async (): Promise<UserWithEmail | null> => {
 
 export const updateUser = async (
   userId: string,
-  data: UpdateUser,
+  data: UpdateUser
 ): Promise<{ success: boolean; error?: string }> => {
   try {
     await db
@@ -64,7 +64,7 @@ export const updateUser = async (
 
 export const updateUserAvatar = async (
   userId: string,
-  file: File,
+  file: File
 ): Promise<{ success: boolean; error?: string; avatarUrl?: string }> => {
   const supabase = await createClient();
 

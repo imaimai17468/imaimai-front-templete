@@ -44,7 +44,7 @@ export const users = pgTable(
       to: authenticatedRole,
       using: sql`${authUid} = ${t.id}`,
     }),
-  ],
+  ]
 ).enableRLS();
 
 export type User = typeof users.$inferSelect;
