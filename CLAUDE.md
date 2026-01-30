@@ -4,7 +4,7 @@
 
 ### 技術スタック
 - **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript (厳格モード)
+- **Language**: TypeScript (厳格モード, tsgo)
 - **Styling**: Tailwind CSS, shadcn/ui
 - **Testing**: Vitest, React Testing Library
 - **UI Documentation**: Storybook
@@ -114,7 +114,7 @@ bun run start            # ビルド後のサーバー起動
 
 ### 品質チェック
 ```bash
-bun run typecheck        # TypeScript型チェック
+bun run typecheck        # TypeScript型チェック (tsgo)
 bun run lint             # oxlint チェック
 bun run lint:fix         # oxlint 自動修正
 bun run format           # oxfmt フォーマットチェック
