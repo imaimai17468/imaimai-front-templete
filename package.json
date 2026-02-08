@@ -18,8 +18,9 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:pull": "drizzle-kit pull",
-    "preview": "opennextjs-cloudflare && wrangler pages dev",
-    "deploy": "opennextjs-cloudflare && wrangler pages deploy"
+    "db:setup-local": "bash scripts/setup-local-db.sh",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
