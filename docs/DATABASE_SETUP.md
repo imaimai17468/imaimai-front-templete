@@ -1,59 +1,92 @@
 # データベースセットアップ
 
-## 1. Supabaseプロジェクトを作成
+## 1. Cloudflareリソースを作成
 
-1. [Supabase](https://supabase.com)で新規プロジェクト作成
-2. 以下を取得：
-   - Project URL
-   - Anon Key
-   - Database URL (Settings > Database > Connection string)
+### D1 データベース
 
-## 2. 環境変数を設定
+```bash
+wrangler d1 create imaimai-db
+```
+
+出力される `database_id` を控えておく。
+
+### R2 バケット
+
+```bash
+wrangler r2 bucket create imaimai-avatars
+```
+
+## 2. wrangler.toml を設定
+
+`wrangler.toml` の `database_id` を実際の値に更新：
+
+```toml
+[[d1_databases]]
+binding = "DB"
+database_name = "imaimai-db"
+database_id = "<ここに実際のdatabase_idを入力>"
+```
+
+## 3. 環境変数を設定
 
 ```bash
 cp .env.local.example .env.local
 ```
 
-`.env.local`を編集：
+`.env.local` を編集：
+
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
-DATABASE_URL=postgresql://postgres.[PROJECT-REF]:[YOUR-PASSWORD]@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres
+# Better Auth
+BETTER_AUTH_SECRET=<openssl rand -base64 32 で生成>
+NEXT_PUBLIC_BETTER_AUTH_URL=http://localhost:3000
+
+# OAuth Providers
+GOOGLE_CLIENT_ID=<your-google-client-id>
+GOOGLE_CLIENT_SECRET=<your-google-client-secret>
+
+# Cloudflare D1 (drizzle-kit用)
+CLOUDFLARE_ACCOUNT_ID=<your-account-id>
+CLOUDFLARE_D1_DATABASE_ID=<your-d1-database-id>
+CLOUDFLARE_API_TOKEN=<your-api-token>
+
+# Cloudflare R2
+R2_PUBLIC_URL=<your-r2-public-url>
 ```
 
-## 3. OAuth認証を設定
+### BETTER_AUTH_SECRET の生成
 
-### GitHub
-1. [GitHub OAuth Apps](https://github.com/settings/developers)で新規作成
-2. Authorization callback URL: `https://<your-project-ref>.supabase.co/auth/v1/callback`
-3. Client ID/Secretを取得
+```bash
+openssl rand -base64 32
+```
+
+### Cloudflare API Token の作成
+
+1. [Cloudflare Dashboard](https://dash.cloudflare.com/profile/api-tokens) でAPIトークンを作成
+2. 必要な権限: `D1 Edit`, `Workers R2 Storage Edit`
+
+## 4. OAuth認証を設定
 
 ### Google
-1. [Google Cloud Console](https://console.cloud.google.com/)でOAuth作成
-2. リダイレクトURI: `https://<your-project-ref>.supabase.co/auth/v1/callback`
-3. Client ID/Secretを取得
 
-### Supabase
-Authentication > ProvidersでGitHub/Googleを有効化し、Client ID/Secretを入力
+1. [Google Cloud Console](https://console.cloud.google.com/) でOAuthクライアントを作成
+2. 承認済みリダイレクトURI: `http://localhost:3000/api/auth/callback/google`
+3. Client ID / Client Secret を `.env.local` に設定
 
-## 4. Storageバケットを作成
-
-Storage > New bucketで作成：
-- Name: `avatars`
-- Public bucket: ✅
-- File size limit: 5MB
-- Allowed MIME types: `image/*`
+> **本番環境**: コールバックURLのドメインを本番URLに変更してください。
 
 ## 5. データベースを初期化
 
-SupabaseのSQL Editorで`supabase/migrations/000_initial_setup.sql`を実行
-
-または：
 ```bash
-bun run supabase:push
+# マイグレーションファイルを生成
+bun run db:generate
+
+# D1に適用
+bun run db:push
 ```
 
 ## 6. 動作確認
+
+### ローカル開発
 
 ```bash
 bun run dev
@@ -61,9 +94,17 @@ bun run dev
 
 http://localhost:3000 でアプリケーションが起動します。
 
+### Cloudflare Pages プレビュー
+
+```bash
+bun run preview
+```
+
+ローカルでCloudflare Workers環境をエミュレートして実行します。
+
 ## 補足：Drizzleコマンド
 
-初回セットアップ後、スキーマ変更時に使用：
+スキーマ変更時に使用：
 
 ```bash
 # スキーマからマイグレーション生成
@@ -75,6 +116,16 @@ bun run db:push
 # データベースGUIを起動
 bun run db:studio
 
-# Supabaseの型を生成
-bun run db:typegen
+# DBスキーマからDrizzleスキーマを生成
+bun run db:pull
 ```
+
+## 補足：デプロイ
+
+Cloudflare Pagesへのデプロイ：
+
+```bash
+bun run deploy
+```
+
+本番環境の環境変数は Cloudflare Dashboard > Pages > Settings > Environment variables で設定してください。
