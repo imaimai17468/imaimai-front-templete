@@ -3,7 +3,7 @@ import { z } from "zod";
 export const UserSchema = z.object({
   id: z.string(),
   name: z.string().nullable(),
-  avatarUrl: z.string().url().nullable(),
+  avatarUrl: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

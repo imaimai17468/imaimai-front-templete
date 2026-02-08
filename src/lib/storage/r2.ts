@@ -9,7 +9,7 @@ export const uploadToR2 = async (
   await env.AVATARS_BUCKET.put(key, file, {
     httpMetadata: { contentType },
   });
-  return `${process.env.R2_PUBLIC_URL}/${key}`;
+  return `/api/avatars?key=${encodeURIComponent(key)}`;
 };
 
 export const deleteFromR2 = async (key: string): Promise<void> => {
