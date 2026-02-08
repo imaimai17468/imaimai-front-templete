@@ -11,7 +11,7 @@ Next.js 16 + TypeScript + Tailwind CSS + shadcn/ui を使用したモダンなWe
 - **Authentication**: Better Auth (Google OAuth)
 - **Database**: Cloudflare D1 (SQLite) + Drizzle ORM
 - **Storage**: Cloudflare R2
-- **Hosting**: Cloudflare Pages (@opennextjs/cloudflare)
+- **Hosting**: Cloudflare Workers (@opennextjs/cloudflare)
 - **Code Quality**: oxlint (linting) + oxfmt (formatting)
 - **Testing**: Vitest + Testing Library
 - **Package Manager**: Bun

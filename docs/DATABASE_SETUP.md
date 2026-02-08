@@ -171,7 +171,7 @@ bun run db:pull
 
 ## 補足：デプロイ
 
-Cloudflare Pagesへのデプロイ：
+Cloudflare Workersへのデプロイ：
 
 ```bash
 bun run deploy
