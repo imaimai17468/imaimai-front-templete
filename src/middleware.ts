@@ -1,15 +1,10 @@
-import { getSessionCookie } from "better-auth/cookies";
 import { type NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
-  const sessionCookie = getSessionCookie(request);
+  const sessionToken = request.cookies.get("better-auth.session_token")?.value;
   const { pathname } = request.nextUrl;
 
-  if (sessionCookie && pathname === "/login") {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
-  if (!sessionCookie && pathname.startsWith("/profile")) {
+  if (!sessionToken && pathname.startsWith("/profile")) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -17,5 +12,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/profile/:path*", "/login"],
+  matcher: ["/profile/:path*"],
 };
