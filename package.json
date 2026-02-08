@@ -18,7 +18,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:pull": "drizzle-kit pull",
-    "db:setup-local": "bash scripts/setup-local-db.sh",
+    "db:push:local": "bash scripts/setup-local-db.sh",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },

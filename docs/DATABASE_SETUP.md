@@ -136,10 +136,10 @@ bun run db:push
 bun run db:generate
 
 # ローカル D1 に適用
-bun run db:setup-local
+bun run db:push:local
 ```
 
-`db:setup-local` はローカル D1 をリセットし、`src/lib/drizzle/migrations/` 内の全マイグレーション SQL を適用します。スキーマ変更時も `db:generate` → `db:setup-local` の順で実行すれば OK です（ローカルデータはリセットされます）。
+`db:push:local` はローカル D1 をリセットし、`src/lib/drizzle/migrations/` 内の全マイグレーション SQL を適用します。スキーマ変更時も `db:generate` → `db:push:local` の順で実行すれば OK です（ローカルデータはリセットされます）。
 
 ## 6. 動作確認
 
