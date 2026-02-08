@@ -6,16 +6,11 @@ config({ path: ".env.local" });
 export default {
   schema: "./src/lib/drizzle/schema.ts",
   out: "./src/lib/drizzle/migrations",
-  dialect: "postgresql",
+  dialect: "sqlite",
+  driver: "d1-http",
   dbCredentials: {
-    url:
-      process.env.DATABASE_URL ??
-      (() => {
-        throw new Error("DATABASE_URL is not set");
-      })(),
+    accountId: process.env.CLOUDFLARE_ACCOUNT_ID!,
+    databaseId: process.env.CLOUDFLARE_D1_DATABASE_ID!,
+    token: process.env.CLOUDFLARE_API_TOKEN!,
   },
-  // publicスキーマのみを対象にする（Supabaseの他のスキーマを除外）
-  schemaFilter: ["public"],
-  // アンダースコアで始まるテーブルを除外
-  tablesFilter: ["!_*"],
 } satisfies Config;

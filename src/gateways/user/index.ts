@@ -5,20 +5,20 @@ import {
   type UserWithEmail,
   UserWithEmailSchema,
 } from "@/entities/user";
-import { db } from "@/lib/drizzle/db";
+import { getDb } from "@/lib/drizzle/db";
 import { users } from "@/lib/drizzle/schema";
-import { createClient } from "@/lib/supabase/server";
+import { getSession } from "@/lib/auth/session";
+import { uploadToR2 } from "@/lib/storage/r2";
 
 export const fetchCurrentUser = async (): Promise<UserWithEmail | null> => {
-  const supabase = await createClient();
+  const session = await getSession();
 
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser();
-
-  if (!authUser) {
+  if (!session?.user) {
     return null;
   }
+
+  const db = await getDb();
+  const authUser = session.user;
 
   const profile = await db
     .select()
@@ -33,7 +33,7 @@ export const fetchCurrentUser = async (): Promise<UserWithEmail | null> => {
   const rawUser = {
     id: profile[0].id,
     name: profile[0].name,
-    avatarUrl: profile[0].avatarUrl,
+    avatarUrl: profile[0].image,
     createdAt: profile[0].createdAt.toISOString(),
     updatedAt: profile[0].updatedAt.toISOString(),
     email: authUser.email,
@@ -47,6 +47,7 @@ export const updateUser = async (
   data: UpdateUser
 ): Promise<{ success: boolean; error?: string }> => {
   try {
+    const db = await getDb();
     await db
       .update(users)
       .set({
@@ -66,30 +67,17 @@ export const updateUserAvatar = async (
   userId: string,
   file: File
 ): Promise<{ success: boolean; error?: string; avatarUrl?: string }> => {
-  const supabase = await createClient();
-
   const fileExt = file.name.split(".").pop();
-  const fileName = `${userId}/avatar.${fileExt}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("avatars")
-    .upload(fileName, file, {
-      upsert: true,
-    });
-
-  if (uploadError) {
-    return { success: false, error: "Failed to upload avatar" };
-  }
-
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from("avatars").getPublicUrl(fileName);
+  const key = `${userId}/avatar.${fileExt}`;
 
   try {
+    const publicUrl = await uploadToR2(key, file, file.type);
+
+    const db = await getDb();
     await db
       .update(users)
       .set({
-        avatarUrl: publicUrl,
+        image: publicUrl,
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId));
@@ -97,6 +85,6 @@ export const updateUserAvatar = async (
     revalidatePath("/profile");
     return { success: true, avatarUrl: publicUrl };
   } catch (_error) {
-    return { success: false, error: "Failed to update profile" };
+    return { success: false, error: "Failed to upload avatar" };
   }
 };
