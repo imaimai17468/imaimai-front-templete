@@ -2,6 +2,7 @@
 set -e
 
 MIGRATIONS_DIR="src/lib/drizzle/migrations"
+DB_NAME=$(grep 'database_name' wrangler.toml | head -1 | sed 's/.*= *"//;s/".*//')
 
 if [ ! -d "$MIGRATIONS_DIR" ]; then
   echo "Error: No migrations found. Run 'bun run db:generate' first."
@@ -21,7 +22,7 @@ rm -rf .wrangler/state
 echo "Applying migrations to local D1..."
 for f in $SQL_FILES; do
   echo "  $(basename "$f")"
-  wrangler d1 execute imaimai-db --local --file="$f"
+  wrangler d1 execute "$DB_NAME" --local --file="$f"
 done
 
 echo "Local D1 setup complete."

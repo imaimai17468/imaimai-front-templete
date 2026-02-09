@@ -5,7 +5,8 @@
 ### D1 データベース
 
 ```bash
-wrangler d1 create imaimai-db
+wrangler d1 create <任意のデータベース名>
+# 例: wrangler d1 create my-project-db
 ```
 
 出力される `database_id` を控えておく。
@@ -13,7 +14,8 @@ wrangler d1 create imaimai-db
 ### R2 バケット
 
 ```bash
-wrangler r2 bucket create imaimai-avatars
+wrangler r2 bucket create <任意のバケット名>
+# 例: wrangler r2 bucket create my-project-avatars
 ```
 
 ## 2. wrangler.toml を設定
@@ -23,7 +25,7 @@ wrangler r2 bucket create imaimai-avatars
 ```toml
 [[d1_databases]]
 binding = "DB"
-database_name = "imaimai-db"
+database_name = "<手順1で指定したデータベース名>"
 database_id = "<ここに実際のdatabase_idを入力>"
 ```
 
@@ -91,9 +93,9 @@ wrangler d1 list
 
 R2バケットを公開アクセス可能にする必要があります。
 
-1. [Cloudflare Dashboard](https://dash.cloudflare.com/) > **R2 Object Storage** > `imaimai-avatars`
+1. [Cloudflare Dashboard](https://dash.cloudflare.com/) > **R2 Object Storage** > 作成したバケット
 2. **Settings** タブを開く
-3. **パブリック開発 URL** を有効化する
+3. **パブリック開発 URL** を有効化する（またはカスタムドメインを設定）
 4. 発行されるURLが `R2_PUBLIC_URL` の値（例: `https://pub-xxxxxxxx.r2.dev`）
 
 > **本番環境**: カスタムドメインを設定することも可能です。
