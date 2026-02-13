@@ -131,27 +131,49 @@ bun run db:push
 
 ### ローカル D1 に適用（開発用）
 
-`bun run preview` で使用するローカル D1 には、マイグレーション SQL を適用する必要があります。
-
 ```bash
 # マイグレーションファイルを生成（初回 or スキーマ変更時）
 bun run db:generate
 
 # ローカル D1 に適用
 bun run db:push:local
+
+# テストユーザーを投入
+bun run db:seed:local
 ```
 
 `db:push:local` はローカル D1 をリセットし、`src/lib/drizzle/migrations/` 内の全マイグレーション SQL を適用します。スキーマ変更時も `db:generate` → `db:push:local` の順で実行すれば OK です（ローカルデータはリセットされます）。
 
 ## 6. 動作確認
 
+### 開発サーバー（日常的な開発）
+
+```bash
+bun run dev
+```
+
+`next.config.mjs` の `initOpenNextCloudflareForDev()` により、`bun run dev` でもローカルの D1/R2 バインディングが使えます。HMR が有効なので日常的な開発にはこちらを使用してください。
+
+### プレビュー（デプロイ前確認）
+
 ```bash
 bun run preview
 ```
 
-ローカルでCloudflare Workers環境をエミュレートして実行します。
+Cloudflare Workers ランタイムをエミュレートして実行します。デプロイ前の最終確認に使用してください。
 
-> **注意**: D1・R2・Better Auth はCloudflare Workersランタイム上でのみ動作します。`bun run dev` では `getCloudflareContext()` が使えないため、認証やDB操作の確認には必ず `bun run preview` を使用してください。
+| コマンド | ポート | DB/ストレージ | HMR | 用途 |
+|---------|--------|-------------|-----|------|
+| `bun run dev` | 3000 | ローカルD1/R2 | ○ | 日常的な開発 |
+| `bun run preview` | 8787 | ローカルD1/R2 | × | デプロイ前確認 |
+
+### ローカルデータのリセット
+
+```bash
+rm -rf .wrangler
+bun run db:push:local
+bun run db:seed:local
+```
 
 ## 補足：Drizzleコマンド
 
