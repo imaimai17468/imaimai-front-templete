@@ -4,13 +4,13 @@
 
 ### 技術スタック
 - **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript (厳格モード)
+- **Language**: TypeScript (厳格モード, tsgo)
 - **Styling**: Tailwind CSS, shadcn/ui
 - **Testing**: Vitest, React Testing Library
-- **UI Documentation**: Storybook
 - **Backend**: Supabase (PostgreSQL, Auth)
 - **Build**: Bun
-- **Lint/Format**: Biome
+- **Lint**: oxlint
+- **Format**: oxfmt
 
 ## ディレクトリ構造
 
@@ -97,10 +97,8 @@ src/
 
 - **Kiri**: セマンティックコード検索、依存関係分析
 - **Context7**: ライブラリドキュメント取得（Next.js等）
-- **Serena**: シンボルベースコード編集（シンボル検索、置換、挿入、リネーム）
 - **Codex**: AIコードレビュー
 - **Chrome DevTools**: ブラウザ自動化（スナップショット、クリック、評価）
-- **Next DevTools**: Next.js Runtime診断（エラー取得、ルート情報）
 
 ## コマンドリファレンス
 
@@ -113,16 +111,14 @@ bun run start            # ビルド後のサーバー起動
 
 ### 品質チェック
 ```bash
-bun run typecheck        # TypeScript型チェック
-bun run check            # Biome lint/format チェック
-bun run check:fix        # Biome lint/format 自動修正
+bun run typecheck        # TypeScript型チェック (tsgo)
+bun run lint             # oxlint チェック
+bun run lint:fix         # oxlint 自動修正
+bun run format           # oxfmt フォーマットチェック
+bun run format:fix       # oxfmt フォーマット適用
+bun run check            # lint + format チェック
+bun run check:fix        # lint + format 自動修正
 bun run test             # Vitest テスト実行
-```
-
-### Storybook
-```bash
-bun run storybook        # Storybook起動 (port 6006)
-bun run build-storybook  # Storybookビルド
 ```
 
 ### データベース

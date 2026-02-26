@@ -1,14 +1,16 @@
 pre-commit:
   commands:
-    check:
-      glob: "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}"
-      run: bun run check:fix --no-errors-on-unmatched --files-ignore-unknown=true --colors=off {staged_files}
+    lint:
+      glob: "*.{js,ts,jsx,tsx}"
+      run: bunx oxlint --fix {staged_files}
+      stage_fixed: true
+    format:
+      glob: "*.{js,ts,jsx,tsx,json}"
+      run: bunx oxfmt --write {staged_files}
       stage_fixed: true
 pre-push:
   commands:
     check:
-      glob: "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}"
-      run: bun run check --no-errors-on-unmatched --files-ignore-unknown=true --colors=off {push_files}
+      run: bun run check
     typecheck:
-      glob: "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}"
       run: bun run typecheck

@@ -19,7 +19,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import type { UserWithEmail } from "@/entities/user";
 import { UpdateUserSchema } from "@/entities/user";
 
@@ -33,8 +32,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(UpdateUserSchema),
@@ -47,7 +45,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -56,36 +54,24 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
       return;
     }
 
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
-    setIsUploading(true);
-    setUploadProgress(20);
-
-    const formData = new FormData();
-    formData.append("avatar", file);
-
-    startTransition(async () => {
-      setUploadProgress(60);
-      const result = await uploadAvatar(formData);
-      setUploadProgress(100);
-
-      if (result.error) {
-        toast.error(result.error);
-        setPreviewUrl(null);
-      } else {
-        toast.success("Avatar updated successfully");
-      }
-
-      setTimeout(() => {
-        setIsUploading(false);
-        setUploadProgress(0);
-      }, 500);
-    });
+    setPendingFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
   };
 
   const onSubmit = async (data: FormData) => {
     startTransition(async () => {
-      const formData = new FormData();
+      if (pendingFile) {
+        const avatarData = new globalThis.FormData();
+        avatarData.append("avatar", pendingFile);
+        const avatarResult = await uploadAvatar(avatarData);
+        if (avatarResult.error) {
+          toast.error(avatarResult.error);
+          return;
+        }
+        setPendingFile(null);
+      }
+
+      const formData = new globalThis.FormData();
       formData.append("name", data.name);
 
       const result = await updateProfile(formData);
@@ -115,13 +101,9 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
               type="button"
               onClick={handleAvatarClick}
               className="absolute right-0 bottom-0 cursor-pointer rounded-full bg-primary p-2 text-primary-foreground shadow-lg transition-transform hover:scale-110"
-              disabled={isPending || isUploading}
+              disabled={isPending}
             >
-              {isUploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Camera className="h-4 w-4" />
-              )}
+              <Camera className="h-4 w-4" />
             </button>
             <input
               ref={fileInputRef}
@@ -129,7 +111,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
               accept="image/*"
               className="hidden"
               onChange={handleFileChange}
-              disabled={isPending || isUploading}
+              disabled={isPending}
             />
           </div>
           <div className="flex-1 space-y-2">
@@ -139,7 +121,11 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
                 Click to change image (max 5MB)
               </p>
             </div>
-            {isUploading && <Progress value={uploadProgress} className="h-2" />}
+            {pendingFile && (
+              <p className="text-muted-foreground text-xs">
+                New image selected. Click &quot;Update Profile&quot; to save.
+              </p>
+            )}
           </div>
         </div>
 

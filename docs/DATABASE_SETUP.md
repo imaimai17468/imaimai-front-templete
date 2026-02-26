@@ -1,69 +1,183 @@
 # データベースセットアップ
 
-## 1. Supabaseプロジェクトを作成
+## 1. Cloudflareリソースを作成
 
-1. [Supabase](https://supabase.com)で新規プロジェクト作成
-2. 以下を取得：
-   - Project URL
-   - Anon Key
-   - Database URL (Settings > Database > Connection string)
+### D1 データベース
 
-## 2. 環境変数を設定
+```bash
+wrangler d1 create <任意のデータベース名>
+# 例: wrangler d1 create my-project-db
+```
+
+出力される `database_id` を控えておく。
+
+### R2 バケット
+
+```bash
+wrangler r2 bucket create <任意のバケット名>
+# 例: wrangler r2 bucket create my-project-avatars
+```
+
+## 2. wrangler.toml を設定
+
+`wrangler.toml` の `database_id` を実際の値に更新：
+
+```toml
+[[d1_databases]]
+binding = "DB"
+database_name = "<手順1で指定したデータベース名>"
+database_id = "<ここに実際のdatabase_idを入力>"
+```
+
+## 3. 環境変数を設定
 
 ```bash
 cp .env.local.example .env.local
 ```
 
-`.env.local`を編集：
+`.env.local` を編集：
+
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
-DATABASE_URL=postgresql://postgres.[PROJECT-REF]:[YOUR-PASSWORD]@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres
+# Better Auth
+BETTER_AUTH_SECRET=<openssl rand -base64 32 で生成>
+NEXT_PUBLIC_BETTER_AUTH_URL=http://localhost:8787
+
+# OAuth Providers
+GOOGLE_CLIENT_ID=<your-google-client-id>
+GOOGLE_CLIENT_SECRET=<your-google-client-secret>
+
+# Cloudflare D1 (drizzle-kit用)
+CLOUDFLARE_ACCOUNT_ID=<your-account-id>
+CLOUDFLARE_D1_DATABASE_ID=<your-d1-database-id>
+CLOUDFLARE_API_TOKEN=<your-api-token>
+
+# Cloudflare R2
+R2_PUBLIC_URL=<your-r2-public-url>
 ```
 
-## 3. OAuth認証を設定
+### BETTER_AUTH_SECRET の生成
 
-### GitHub
-1. [GitHub OAuth Apps](https://github.com/settings/developers)で新規作成
-2. Authorization callback URL: `https://<your-project-ref>.supabase.co/auth/v1/callback`
-3. Client ID/Secretを取得
+```bash
+openssl rand -base64 32
+```
+
+### CLOUDFLARE_ACCOUNT_ID の取得
+
+1. [Cloudflare Dashboard](https://dash.cloudflare.com/) にログイン
+2. **Workers & Pages** をクリック
+3. 右サイドバーに表示される **Account ID** をコピー
+
+CLIでも取得可能：
+```bash
+wrangler whoami
+```
+
+### CLOUDFLARE_D1_DATABASE_ID の取得
+
+手順1で `wrangler d1 create` を実行した際に出力された `database_id` の値。
+
+後から確認する場合：
+```bash
+wrangler d1 list
+```
+
+### Cloudflare API Token の作成
+
+1. [Cloudflare Dashboard](https://dash.cloudflare.com/profile/api-tokens) でAPIトークンを作成
+2. 「カスタムトークンを作成」を選択
+3. 必要な権限:
+   - **Account > D1 > Edit**
+   - **Account > Workers R2 Storage > Edit**
+
+### R2_PUBLIC_URL の取得
+
+R2バケットを公開アクセス可能にする必要があります。
+
+1. [Cloudflare Dashboard](https://dash.cloudflare.com/) > **R2 Object Storage** > 作成したバケット
+2. **Settings** タブを開く
+3. **パブリック開発 URL** を有効化する（またはカスタムドメインを設定）
+4. 発行されるURLが `R2_PUBLIC_URL` の値（例: `https://pub-xxxxxxxx.r2.dev`）
+
+> **本番環境**: カスタムドメインを設定することも可能です。
+
+## 4. OAuth認証を設定
 
 ### Google
-1. [Google Cloud Console](https://console.cloud.google.com/)でOAuth作成
-2. リダイレクトURI: `https://<your-project-ref>.supabase.co/auth/v1/callback`
-3. Client ID/Secretを取得
 
-### Supabase
-Authentication > ProvidersでGitHub/Googleを有効化し、Client ID/Secretを入力
+1. [Google Cloud Console](https://console.cloud.google.com/) > **APIとサービス** > **認証情報**
+2. **認証情報を作成** > **OAuthクライアントID** を選択
+3. アプリケーションの種類: **ウェブアプリケーション**
+4. **承認済みの JavaScript 生成元** に以下を追加:
+   - `http://localhost:8787`（開発時）
+5. **承認済みのリダイレクト URI** に以下を追加:
+   - `http://localhost:8787/api/auth/callback/google`（開発時）
+6. 作成後、Client ID / Client Secret を `.env.local` に設定
 
-## 4. Storageバケットを作成
-
-Storage > New bucketで作成：
-- Name: `avatars`
-- Public bucket: ✅
-- File size limit: 5MB
-- Allowed MIME types: `image/*`
+> **本番環境**: 生成元とリダイレクト URI にデプロイ先のURLも追加してください。
+> - 生成元: `https://your-domain.pages.dev`
+> - リダイレクト URI: `https://your-domain.pages.dev/api/auth/callback/google`
 
 ## 5. データベースを初期化
 
-SupabaseのSQL Editorで`supabase/migrations/000_initial_setup.sql`を実行
+### リモート D1 に適用（本番・ステージング）
 
-または：
 ```bash
-bun run supabase:push
+# マイグレーションファイルを生成
+bun run db:generate
+
+# D1に適用
+bun run db:push
 ```
 
+### ローカル D1 に適用（開発用）
+
+```bash
+# マイグレーションファイルを生成（初回 or スキーマ変更時）
+bun run db:generate
+
+# ローカル D1 に適用
+bun run db:push:local
+
+# テストユーザーを投入
+bun run db:seed:local
+```
+
+`db:push:local` はローカル D1 をリセットし、`src/lib/drizzle/migrations/` 内の全マイグレーション SQL を適用します。スキーマ変更時も `db:generate` → `db:push:local` の順で実行すれば OK です（ローカルデータはリセットされます）。
+
 ## 6. 動作確認
+
+### 開発サーバー（日常的な開発）
 
 ```bash
 bun run dev
 ```
 
-http://localhost:3000 でアプリケーションが起動します。
+`next.config.mjs` の `initOpenNextCloudflareForDev()` により、`bun run dev` でもローカルの D1/R2 バインディングが使えます。HMR が有効なので日常的な開発にはこちらを使用してください。
+
+### プレビュー（デプロイ前確認）
+
+```bash
+bun run preview
+```
+
+Cloudflare Workers ランタイムをエミュレートして実行します。デプロイ前の最終確認に使用してください。
+
+| コマンド | ポート | DB/ストレージ | HMR | 用途 |
+|---------|--------|-------------|-----|------|
+| `bun run dev` | 3000 | ローカルD1/R2 | ○ | 日常的な開発 |
+| `bun run preview` | 8787 | ローカルD1/R2 | × | デプロイ前確認 |
+
+### ローカルデータのリセット
+
+```bash
+rm -rf .wrangler
+bun run db:push:local
+bun run db:seed:local
+```
 
 ## 補足：Drizzleコマンド
 
-初回セットアップ後、スキーマ変更時に使用：
+スキーマ変更時に使用：
 
 ```bash
 # スキーマからマイグレーション生成
@@ -75,6 +189,16 @@ bun run db:push
 # データベースGUIを起動
 bun run db:studio
 
-# Supabaseの型を生成
-bun run db:typegen
+# DBスキーマからDrizzleスキーマを生成
+bun run db:pull
 ```
+
+## 補足：デプロイ
+
+Cloudflare Workersへのデプロイ：
+
+```bash
+bun run deploy
+```
+
+本番環境の環境変数は Cloudflare Dashboard > Pages > Settings > Environment variables で設定してください。

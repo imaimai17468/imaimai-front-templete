@@ -1,11 +1,11 @@
 import { z } from "zod";
 
 export const UserSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string(),
   name: z.string().nullable(),
-  avatarUrl: z.string().url().nullable(),
-  createdAt: z.string(), // Supabaseはカスタム形式のタイムスタンプを返す
-  updatedAt: z.string(), // Supabaseはカスタム形式のタイムスタンプを返す
+  avatarUrl: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
 });
 
 export type User = z.infer<typeof UserSchema>;
