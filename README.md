@@ -49,12 +49,12 @@ cp .env.local.example .env.local
 ### 開発サーバーの起動
 
 ```bash
-bun run preview
+bun run dev
 ```
 
-http://localhost:8787 でアプリケーションにアクセスできます。
+http://localhost:3000 でアプリケーションにアクセスできます。
 
-> D1・R2・Better Auth はCloudflare Workersランタイム上で動作するため、`bun run preview` を使用してください。
+> `next.config.mjs` で `initOpenNextCloudflareForDev` を使用しているため、`bun run dev` でもCloudflare D1/R2バインディングが有効になります。
 
 ## プロジェクト構成
 
