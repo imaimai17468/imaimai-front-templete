@@ -44,6 +44,45 @@ parent-component/
       GrandchildComponent.tsx
 ```
 
+### 1ディレクトリ = 1 `.tsx` ルール
+
+`.tsx` ファイルはすべてコンポーネントとみなす。**同一ディレクトリに `.tsx` を2つ以上置かない**。
+
+```typescript
+// ❌ 1ファイルに複数コンポーネント
+// PersonCell.tsx
+const MemberDisplay = ({ member }: { member: MemberOption }) => (
+  <div>...</div>
+);
+
+export const PersonCell = ({ value }: PersonCellProps) => {
+  return <MemberDisplay member={found} />;
+};
+```
+
+```
+// ✅ サブディレクトリに切り出す
+person-cell/
+  PersonCell.tsx
+  person-cell-view/
+    PersonCellView.tsx          # MemberDisplay を含む表示コンポーネント
+```
+
+#### 切り出しの判断基準
+
+| 状況 | 対応 |
+|------|------|
+| JSX を返す関数が2つ以上ある | サブディレクトリに切り出す |
+| ファイル内ローカルの `const XxxDisplay = () => (...)` | サブディレクトリに切り出す |
+| 定数・型定義・純粋関数のみ | `.ts` として同階層に置いてよい |
+| `renderXxx()` パターン（JSX を返すヘルパー関数） | コンポーネントに変換してサブディレクトリへ |
+
+#### 切り出し時のルール
+
+1. **定数・型はコンポーネントと一緒に移動する** — 切り出したコンポーネントだけが使う定数（カラーマップ等）は一緒に移動
+2. **親からは props で渡す** — 切り出したコンポーネントが必要なデータは props 経由で受け取る
+3. **命名はディレクトリ名 = コンポーネント名の kebab-case** — `PersonCellView` → `person-cell-view/PersonCellView.tsx`
+
 ---
 
 ## Entity/Gateway Pattern
@@ -234,6 +273,53 @@ function UserStatus({ status }: { status: string }) {
     </Badge>
   )
 }
+```
+
+---
+
+## Loops and Immutability
+
+Prefer `map`/`filter`/`reduce` over `for`/`while` with mutable accumulators.
+
+```typescript
+// ❌ Mutable accumulator with push
+const accepted: Result[] = [];
+for (const item of items) {
+  await doSomething(item);
+  accepted.push({ id: item.id });
+}
+return accepted;
+
+// ✅ Functional style with Promise.all + map
+const accepted = await Promise.all(
+  items.map(async (item) => {
+    await doSomething(item);
+    return { id: item.id };
+  })
+);
+return accepted;
+```
+
+When N+1 queries arise from loops, prefer query-level optimizations (recursive CTE, `IN` clause, batch operations) over iterating in application code.
+
+```typescript
+// ❌ N sequential queries in a while loop
+let currentId = documentId;
+while (currentId) {
+  const row = await db.select()...;
+  ancestors.push(row.parentId);
+  currentId = row.parentId;
+}
+
+// ✅ Single recursive CTE query
+const rows = await db.all<AncestorRow>(sql`
+  WITH RECURSIVE ancestors AS (
+    SELECT parent_id FROM documents WHERE id = ${documentId}
+    UNION ALL
+    SELECT d.parent_id FROM documents d JOIN ancestors a ON d.id = a.ancestor_id
+  )
+  SELECT * FROM ancestors
+`);
 ```
 
 ---

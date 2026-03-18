@@ -82,6 +82,49 @@ async function UserPage({ params }: { params: { id: string } }) {
 
 ---
 
+## Better Auth サーバーサイド API
+
+Better Auth は `auth.api` でサーバーサイドからも呼べる。`headers()` を渡す必要がある。
+
+```typescript
+import { auth } from "@/lib/auth/auth";
+import { headers } from "next/headers";
+
+// ✅ Server Component で auth.api を使う
+async function WorkspaceSettingsPage() {
+  const reqHeaders = await headers();
+  const orgData = await auth.api.getFullOrganization({
+    headers: reqHeaders,
+    query: { organizationId },
+  });
+  return <WorkspaceSettings members={orgData?.members ?? []} />;
+}
+```
+
+- **サーバー**: `auth.api.*`（`src/lib/auth/auth.ts`）— データ取得
+- **クライアント**: `authClient.*`（`src/lib/auth/auth-client.ts`）— mutation（招待送信・削除等）
+
+`auth.api` で取得できるデータを Drizzle で二重実装しない。
+
+---
+
+## Client mutation 後のリフレッシュ
+
+クライアントで mutation した後、Server Component のデータを再取得するには `router.refresh()` を使う。
+
+```typescript
+// ✅ mutation 後に router.refresh() で Server Component を再実行
+const router = useRouter();
+const handleInvite = async () => {
+  await authClient.organization.inviteMember({ email, role, organizationId });
+  router.refresh(); // page.tsx の Server Component が再実行される
+};
+```
+
+`useEffect` + `refreshKey` や手動 state 管理ではなく、`router.refresh()` でサーバーから最新データを取り直す。
+
+---
+
 ## Anti-Patterns (Never Do This)
 
 ### Data Fetching with useEffect

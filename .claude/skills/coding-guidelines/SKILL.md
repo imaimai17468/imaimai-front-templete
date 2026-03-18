@@ -15,6 +15,7 @@ Guidelines for React/Next.js development focusing on testability, Server Compone
 - **Testability & Props Control** → [testability.md](testability.md)
 - **useEffect Guidelines & Dependencies** → [useeffect-guidelines.md](useeffect-guidelines.md)
 - **Architecture & Patterns** → [architecture.md](architecture.md)
+- **Functional Style (Immutable/FP/Inference)** → [functional-style.md](functional-style.md)
 - **Test Guidelines (Vitest/RTL)** → [test-guidelines.md](test-guidelines.md)
 - **Storybook Guidelines** → [storybook-guidelines.md](storybook-guidelines.md)
 
