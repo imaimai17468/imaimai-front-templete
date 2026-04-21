@@ -12,15 +12,15 @@
   ],
   "categories": {
     "correctness": "error",
-    "suspicious": "warn"
+    "suspicious": "error"
   },
   "rules": {
-    "complexity": "warn",
+    "complexity": "error",
     "prefer-const": "error",
     "no-var": "error",
     "no-param-reassign": "error",
     "no-mutable-exports": "error",
-    "prefer-readonly": "warn",
+    "prefer-readonly": "error",
     "@typescript-eslint/no-explicit-any": "error",
     "react/react-in-jsx-scope": "off",
     "import/no-unassigned-import": "off"
