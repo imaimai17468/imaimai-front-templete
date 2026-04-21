@@ -1,57 +1,38 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "nextjs", "vitest", "jsx-a11y", "import"],
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "oxc",
+    "react",
+    "nextjs",
+    "vitest",
+    "import",
+    "jsx-a11y"
+  ],
   "categories": {
     "correctness": "error",
     "suspicious": "warn"
   },
   "rules": {
-    "no-unused-vars": [
-      "error",
-      {
-        "argsIgnorePattern": "^_",
-        "varsIgnorePattern": "^_",
-        "caughtErrorsIgnorePattern": "^_"
-      }
-    ],
+    "complexity": "warn",
+    "prefer-const": "error",
+    "no-var": "error",
+    "no-param-reassign": "error",
+    "no-mutable-exports": "error",
+    "prefer-readonly": "warn",
     "@typescript-eslint/no-explicit-any": "error",
     "react/react-in-jsx-scope": "off",
     "import/no-unassigned-import": "off"
   },
   "settings": {
-    "jsx-a11y": {
-      "polymorphicPropName": null,
-      "components": {},
-      "attributes": {}
-    },
-    "next": {
-      "rootDir": ["."]
-    },
-    "react": {
-      "formComponents": [],
-      "linkComponents": [],
-      "componentWrapperFunctions": []
-    },
-    "jsdoc": {
-      "ignorePrivate": false,
-      "ignoreInternal": false,
-      "ignoreReplacesDocs": true,
-      "overrideReplacesDocs": true,
-      "augmentsExtendsReplacesDocs": false,
-      "implementsReplacesDocs": false,
-      "exemptDestructuredRootsFromChecks": false,
-      "tagNamePreference": {}
-    },
-    "vitest": {
-      "typecheck": false
-    }
+    "next": { "rootDir": ["."] }
   },
   "env": {
     "builtin": true,
     "browser": true,
     "node": true
   },
-  "globals": {},
   "ignorePatterns": [
     "node_modules",
     ".next",
@@ -59,5 +40,13 @@
     "build",
     "*.config.js",
     "*.config.ts"
+  ],
+  "overrides": [
+    {
+      "files": ["**/*.d.ts"],
+      "rules": {
+        "unicorn/require-module-specifiers": "off"
+      }
+    }
   ]
 }
