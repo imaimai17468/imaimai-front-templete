@@ -24,6 +24,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Use the AAA pattern (Arrange, Act, Assert). One `expect` per test case.
 - Test names must follow the format: "should [expected behavior] when [condition]" (e.g., "should return error when value is 0").
 
+## Dependencies
+
+- `package.json` の依存バージョンは**完全固定**する。`^` や `~` のようなレンジ指定子、`"4"` のような major-only 指定は使わず、必ず `"1.2.3"` のような exact バージョンで記述する。パッケージを追加する際も同様に、インストール後にレンジ記号を取り除いて exact バージョンに書き換えること（`bun add -E <pkg>` のように exact で追加するか、手動で修正する）。
+
 ## Tools
 
 - **tsgo**: Type checker. Run `bun run typecheck`.
