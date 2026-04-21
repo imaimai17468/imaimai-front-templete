@@ -16,14 +16,22 @@
     "ask": ["Bash(git push:*)", "Bash(git commit:*)"]
   },
   "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [
-    "context7",
-    "serena",
-    "chrome-devtools",
-    "next-devtools",
-    "kiri"
-  ],
+  "enabledMcpjsonServers": ["context7", "chrome-devtools"],
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/toshiki.imai/workspace/fr-prototype && pnpm typecheck 2>&1; pnpm lint 2>&1; pnpm format 2>&1; pnpm knip 2>&1; (command -v similarity-ts >/dev/null && similarity-ts ./src 2>&1 || true)",
+            "timeout": 120,
+            "statusMessage": "Running typecheck, lint, format, knip, similarity..."
+          }
+        ]
+      }
+    ]
   }
 }
