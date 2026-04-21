@@ -56,6 +56,68 @@ http://localhost:3000 でアプリケーションにアクセスできます。
 
 > `next.config.mjs` で `initOpenNextCloudflareForDev` を使用しているため、`bun run dev` でもCloudflare D1/R2バインディングが有効になります。
 
+## Scripts
+
+| Command               | Description                      |
+| --------------------- | -------------------------------- |
+| `bun run dev`         | Start dev server                 |
+| `bun run build`       | Production build                 |
+| `bun run typecheck`   | Type check with tsgo             |
+| `bun run lint`        | Run oxlint                       |
+| `bun run format`      | Check formatting with oxfmt      |
+| `bun run format:fix`  | Format with oxfmt                |
+| `bun run knip`        | Detect unused deps/exports/files |
+| `bun run test`        | Run tests with Vitest            |
+
+## Tools
+
+- **[shadcn/ui](https://ui.shadcn.com/)** - UI components (`components.json`)
+- **[tsgo](https://github.com/microsoft/typescript-go)** - Type checker (`@typescript/native-preview`)
+- **[oxlint](https://oxc.rs/docs/guide/usage/linter)** - Linter (`.oxlintrc.json`)
+- **[oxfmt](https://oxc.rs/docs/guide/usage/formatter)** - Formatter (`.oxfmtrc.json`)
+- **[lefthook](https://github.com/evilmartians/lefthook)** - Git hooks (`lefthook.yml`)
+  - pre-commit: lint + format check
+- **[knip](https://knip.dev/)** - Unused deps/exports/files detection (`knip.json`)
+- **[similarity](https://github.com/mizchi/similarity)** - Code similarity detector (requires separate install)
+
+## Claude Code
+
+### Hooks
+
+Stop hook (`.claude/settings.json`) で作業終了時に自動実行:
+
+- `bun run typecheck` - tsgo
+- `bun run lint` - oxlint
+- `bun run format` - oxfmt
+- `bun run knip` - 未使用コード検出
+- `similarity-ts ./src` - コード類似度チェック
+
+### Skills
+
+| Command         | Description                                    |
+| --------------- | ---------------------------------------------- |
+| `/commit`       | 機能ごとにコミットを分割して作成               |
+| `/coding-guide` | コーディングルール・アーキテクチャガイドを参照 |
+
+### similarity のインストール
+
+Rust の cargo が必要です。各自でインストールしてください。
+
+```bash
+cargo install similarity-ts
+```
+
+```bash
+# 基本的な使い方
+similarity-ts ./src
+
+# コード付きで表示
+similarity-ts ./src --print
+
+# 閾値を下げて検出 (default: 0.85)
+similarity-ts ./src --threshold 0.7
+```
+
 ## プロジェクト構成
 
 ```
