@@ -2,8 +2,15 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "src/app/**/{page,layout,loading,error,not-found,route}.{ts,tsx}",
-    "src/middleware.ts",
     "scripts/**/*.{ts,js,sh}"
   ],
-  "project": ["src/**/*.{ts,tsx}"]
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignoreDependencies": [
+    "lefthook",
+    "@testing-library/dom",
+    "@testing-library/react",
+    "tailwindcss",
+    "tw-animate-css",
+    "postcss"
+  ]
 }
