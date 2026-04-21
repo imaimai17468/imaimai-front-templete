@@ -29,6 +29,26 @@ const results = items.map(transform);
 | Side effect | `forEach`               |
 | Existence   | `some`, `every`, `find` |
 
+### Tailwind — 既存クラスを使う
+
+Tailwind の arbitrary value 記法 `[...]` は使わない。既存のユーティリティと `globals.css` のテーマトークンだけで表現する。
+
+**サイズ系 (`w-`, `h-`, `p-`, `m-`, `gap-`, `inset-` 等)**
+
+Tailwind v4 では `--spacing` 変数ベースで動的生成されるため、任意の整数をそのまま使える（例: `w-80` = `20rem`、`w-327` も有効）。`w-[327px]` のような arbitrary は不要。
+
+**色・フォントサイズ・border-radius など "トークン化したいもの"**
+
+arbitrary で直書きせず、`globals.css` にトークンを追加してから Tailwind クラスで参照する。
+
+```tsx
+// NG — arbitrary value
+<div className="w-[327px] text-[13px] bg-[#1a1a1a] rounded-[10px]" />
+
+// OK — サイズは数値クラス直接指定、色・フォントサイズはトークン
+<div className="w-80 text-sm bg-background rounded-lg" />
+```
+
 ---
 
 ## Architecture

@@ -9,6 +9,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Coding Style
 
 - Do not use `for`, `for...in`, `for...of`, `while`, or `do...while` loops. Use functional alternatives such as `map`, `filter`, `reduce`, `flatMap`, and `forEach` instead.
+- Tailwind の arbitrary value 記法 `[...]`（例: `w-[327px]`, `text-[#1a1a1a]`）は使わない。サイズ系（`w-`, `h-`, `p-`, `m-`, `gap-` 等）は Tailwind v4 の `--spacing` ベースで任意の整数クラスが有効なのでそれを使う（`w-80`, `w-327` など）。色・フォントサイズ・半径など "トークン化したいもの" は `globals.css` にトークンを追加してから Tailwind クラスで参照する。
 
 ## Architecture
 
