@@ -58,7 +58,7 @@ export const updateUser = async (
 
     revalidatePath("/profile");
     return { success: true };
-  } catch (_error) {
+  } catch {
     return { success: false, error: "Failed to update profile" };
   }
 };
@@ -84,7 +84,7 @@ export const updateUserAvatar = async (
 
     revalidatePath("/profile");
     return { success: true, avatarUrl: publicUrl };
-  } catch (_error) {
+  } catch {
     return { success: false, error: "Failed to upload avatar" };
   }
 };
