@@ -16,7 +16,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 - `src/lib/` and `src/components/` are exceptions to the colocation rule — they hold shared utilities (e.g., shadcn `utils.ts`) and shared UI components (e.g., shadcn `ui/`) respectively. Do not apply page-level architecture rules to these directories.
 - Colocate components with their page: create a `components/` directory at the same level as the page that uses them.
-- One component per `.tsx` file. When a component grows sub-components, promote it from a file to a directory (`Component.tsx` → `Component/Component.tsx`). Place child components as siblings in the same directory — do not nest `components/` inside.
+- One component per `.tsx` file. Every component is placed in its own directory from the start (`Component/Component.tsx`) — do not create flat `Component.tsx` files and later promote them. Child components are added as siblings in the same directory (`Component/Child.tsx`). Do not nest `components/` inside a component directory.
 - Use the Container / Presenter pattern. Container handles data fetching and state; Presenter is a pure rendering component receiving props.
 - Extract logic into pure functions. Keep components free of complex inline logic.
 - Components must be controllable from the outside via props. Avoid internal state that cannot be overridden — design for testability.

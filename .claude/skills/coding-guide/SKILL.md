@@ -72,29 +72,34 @@ src/
     ├── dashboard/
     │   ├── page.tsx
     │   └── components/
-    │       ├── DashboardHeader.tsx
-    │       ├── DashboardHeader.container.tsx
-    │       └── StatsCard.tsx
+    │       ├── DashboardHeader/
+    │       │   ├── DashboardHeader.tsx
+    │       │   └── DashboardHeader.container.tsx
+    │       └── StatsCard/
+    │           └── StatsCard.tsx
     ├── settings/
     │   ├── page.tsx
     │   └── components/
-    │       └── SettingsForm.tsx
+    │       └── SettingsForm/
+    │           └── SettingsForm.tsx
     └── components/          # shared across multiple pages only
-        └── Sidebar.tsx
+        └── Sidebar/
+            └── Sidebar.tsx
 ```
 
-### Component Growth — File to Directory Promotion
+### Directory-First Component Layout
 
-When a component grows large enough to have its own sub-components, promote it from a file to a directory.
+**Every component lives in its own directory from day one.** Do not create a flat `Component.tsx` and promote it later when children appear — start with `Component/Component.tsx` even when there are no child components yet.
 
-**Before promotion** — sub-component is small and fits in the same file:
+**Initial state** — no children yet, but the directory exists:
 
 ```
 components/
-└── StatsCard.tsx          # TrendBadge defined internally (not exported)
+└── StatsCard/
+    └── StatsCard.tsx              # Presenter (main component)
 ```
 
-**After promotion** — sub-component needs its own file. Place child components as siblings in the same directory (do not nest `components/` inside):
+**When children are added** — place them as siblings in the same directory (do not nest `components/` inside):
 
 ```
 components/
@@ -104,11 +109,13 @@ components/
     └── TrendBadge.tsx             # Child component
 ```
 
-When to promote:
+When to split an internal sub-component into its own sibling file:
 
 - Sub-component exceeds ~30 lines
 - Sub-component needs its own props type definition
 - Sub-component needs its own test file
+
+Until one of the above applies, a small internal helper component may stay inside `StatsCard.tsx` (not exported).
 
 ### One Component Per File
 
