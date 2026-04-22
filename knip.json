@@ -2,9 +2,12 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "src/app/**/{page,layout,loading,error,not-found,route}.{ts,tsx}",
-    "scripts/**/*.{ts,js,sh}"
+    "scripts/**/*.{ts,js,sh}",
+    "src/components/ui/**/*.{ts,tsx}",
+    "src/lib/utils.ts"
   ],
   "project": ["src/**/*.{ts,tsx}"],
+  "ignore": ["src/actions/auth.ts"],
   "ignoreDependencies": [
     "lefthook",
     "@testing-library/dom",
