@@ -25,4 +25,5 @@ export const auth = betterAuth({
   },
 });
 
+/** @public Better Auth の Session 型。テンプレ用途で公開、派生実装で使う想定。 */
 export type Session = typeof auth.$Infer.Session;

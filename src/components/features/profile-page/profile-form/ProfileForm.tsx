@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import type { UserWithEmail } from "@/entities/user";
 import { UpdateUserSchema } from "@/entities/user";
 
+// similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
 type ProfileFormProps = {
   user: UserWithEmail;
 };

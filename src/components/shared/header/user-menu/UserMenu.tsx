@@ -14,6 +14,7 @@ import {
 import type { UserWithEmail } from "@/entities/user";
 import { signOut } from "@/lib/auth";
 
+// similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
 type UserMenuProps = {
   user: UserWithEmail;
 };

@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+/**
+ * @public
+ * テンプレートの User エンティティ。現在のページでは派生型 UserWithEmail のみ使用しているが、
+ * 派生プロジェクトで単体 User バリデーションが必要になる想定で export を維持する。
+ */
 export const UserSchema = z.object({
   id: z.string(),
   name: z.string().nullable(),
@@ -8,6 +13,7 @@ export const UserSchema = z.object({
   updatedAt: z.string(),
 });
 
+/** @public テンプレート用途で公開。UserSchema と対になる型。 */
 export type User = z.infer<typeof UserSchema>;
 
 export const UserWithEmailSchema = UserSchema.extend({
@@ -25,8 +31,10 @@ export const UpdateUserSchema = z.object({
 
 export type UpdateUser = z.infer<typeof UpdateUserSchema>;
 
+/** @public アバター URL 更新用スキーマ。テンプレ用途で公開、派生実装で使う想定。 */
 export const UpdateAvatarSchema = z.object({
   avatarUrl: z.string().url(),
 });
 
+/** @public UpdateAvatarSchema と対になる型。 */
 export type UpdateAvatar = z.infer<typeof UpdateAvatarSchema>;
