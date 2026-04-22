@@ -26,9 +26,29 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd /Users/toshiki.imai/workspace/imaimai-front-templete && bun run typecheck 2>&1; bun run lint 2>&1; bun run format 2>&1; bun run knip 2>&1; (command -v similarity-ts >/dev/null && similarity-ts ./src 2>&1 || true)",
+            "command": "cd /Users/toshiki.imai/workspace/imaimai-front-templete && OUT=$(bun run typecheck 2>&1 && bun run lint 2>&1 && bun run format 2>&1); RC=$?; if [ $RC -ne 0 ]; then printf '%s' \"$OUT\" | jq -Rs '{decision:\"block\", reason:(\"Stop hook: typecheck / lint / format が失敗しました。ターン終了前に必ず修正してください。\\n\\n\" + .)}'; exit 0; fi; printf '%s\\n' \"$OUT\"; bun run knip 2>&1 || true; (command -v similarity-ts >/dev/null && similarity-ts ./src 2>&1 || true)",
             "timeout": 120,
-            "statusMessage": "Running typecheck, lint, format, knip, similarity..."
+            "statusMessage": "Quality gate: typecheck → lint → format (blocking), knip + similarity (advisory)..."
+          },
+          {
+            "type": "agent",
+            "prompt": "あなたはコードレビュワーです。このターンで加えられた変更が `.claude/skills/coding-guide/SKILL.md` に書かれた規約に従っているかを厳格にレビューしてください。\n\n手順:\n1. `.claude/skills/coding-guide/SKILL.md` を Read して全規約を把握する\n2. `git diff HEAD` および `git status` で未コミットの変更・新規ファイルを確認する\n3. 変更された全 `.ts` / `.tsx` ファイルを Read し、以下の観点で規約違反を検出する:\n   - Coding Style: ループ禁止 / Tailwind arbitrary value 禁止 / 色の透明度修飾子禁止\n   - Architecture: Directory-First Layout / Container-Presenter 分離 / One Component Per File / Props-Driven Design / Pure Function 抽出\n   - Dependencies: package.json の exact version pinning\n   - Testing: AAA / 1 test = 1 expect / テスト名フォーマット（該当する変更があれば）\n4. 違反が 1 件でもあれば、最後に以下の厳密な JSON を**それだけ**で出力してターンをブロックする:\n   `{\"decision\":\"block\",\"reason\":\"<違反ファイル:行番号・規約名・該当コード・直し方 をリスト化>\"}`\n5. 違反が 1 件もなければ、`{\"decision\":\"approve\",\"reason\":\"coding-guide 準拠\"}` を出力する\n\n注意:\n- `src/components/ui/` と `src/lib/utils.ts` は shadcn 由来の例外領域（Container/Presenter 等の page-level ルールは適用しない）\n- 些細なスタイル差ではなく、規約に明記された違反のみを報告すること\n- JSON 以外の余計な出力を付けない\n\n$ARGUMENTS",
+            "model": "claude-sonnet-4-6",
+            "timeout": 300,
+            "statusMessage": "Agent review: coding-guide 準拠チェック..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "F=$(jq -r '.tool_input.file_path // \"\"'); case \"$F\" in *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs) ;; *) exit 0 ;; esac; cd /Users/toshiki.imai/workspace/imaimai-front-templete && OUT=$(bun run lint 2>&1 && bun run typecheck 2>&1); RC=$?; if [ $RC -ne 0 ]; then printf '%s' \"$OUT\" | jq -Rs '{decision:\"block\", reason:(\"PostToolUse: 編集後の lint / typecheck が失敗しました。次のツール呼び出し前に直してください。\\n\\n\" + .)}'; fi; exit 0",
+            "timeout": 60,
+            "statusMessage": "Per-edit check: lint + typecheck..."
           }
         ]
       }
