@@ -1,4 +1,7 @@
 {
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
   "permissions": {
     "allow": [
       "mcp__*",
@@ -41,35 +44,6 @@
       "Bash(drizzle-kit generate:*)",
       "Bash(ffmpeg:*)"
     ],
-    "ask": [
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "Bash(git merge:*)",
-      "Bash(git rebase:*)",
-      "Bash(git cherry-pick:*)",
-      "Bash(git reset:*)",
-      "Bash(git checkout:*)",
-      "Bash(git revert:*)",
-      "Bash(git tag:*)",
-      "Bash(gh pr create:*)",
-      "Bash(gh pr edit:*)",
-      "Bash(gh pr close:*)",
-      "Bash(gh pr merge:*)",
-      "Bash(gh pr comment:*)",
-      "Bash(gh issue:*)",
-      "Bash(bun add:*)",
-      "Bash(bun run deploy:*)",
-      "Bash(bun run preview:*)",
-      "Bash(bun run db:push:*)",
-      "Bash(bun run db:generate:*)",
-      "Bash(wrangler deploy:*)",
-      "Bash(wrangler d1 execute:*)",
-      "Bash(wrangler r2:*)",
-      "Bash(wrangler secret:*)",
-      "Bash(rm:*)",
-      "Bash(mv:*)",
-      "Bash(cp:*)"
-    ],
     "deny": [
       "Bash(rm -rf:*)",
       "Bash(rm -fr:*)",
@@ -101,13 +75,39 @@
       "Edit(./.env.local)",
       "Edit(./.env.development)",
       "Edit(./.env.production)"
+    ],
+    "ask": [
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git merge:*)",
+      "Bash(git rebase:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git reset:*)",
+      "Bash(git checkout:*)",
+      "Bash(git revert:*)",
+      "Bash(git tag:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr edit:*)",
+      "Bash(gh pr close:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh pr comment:*)",
+      "Bash(gh issue:*)",
+      "Bash(bun add:*)",
+      "Bash(bun run deploy:*)",
+      "Bash(bun run preview:*)",
+      "Bash(bun run db:push:*)",
+      "Bash(bun run db:generate:*)",
+      "Bash(wrangler deploy:*)",
+      "Bash(wrangler d1 execute:*)",
+      "Bash(wrangler r2:*)",
+      "Bash(wrangler secret:*)",
+      "Bash(rm:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": ["context7", "chrome-devtools"],
-  "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
-  },
   "hooks": {
     "Stop": [
       {
@@ -159,5 +159,9 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "figma@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true
   }
 }
