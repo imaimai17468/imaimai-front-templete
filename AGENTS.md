@@ -5,8 +5,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Coding Style
 
 - Do not use `for`, `for...in`, `for...of`, `while`, or `do...while` loops. Use functional alternatives such as `map`, `filter`, `reduce`, `flatMap`, and `forEach` instead.
-- Tailwind の arbitrary value 記法 `[...]`（例: `w-[327px]`, `text-[#1a1a1a]`）は使わない。サイズ系（`w-`, `h-`, `p-`, `m-`, `gap-` 等）は Tailwind v4 の `--spacing` ベースで任意の整数クラスが有効なのでそれを使う（`w-80`, `w-327` など）。色・フォントサイズ・半径など "トークン化したいもの" は `globals.css` にトークンを追加してから Tailwind クラスで参照する。
-- 色の透明度修飾子 `-XXX/YY`（例: `text-gray-800/80`, `bg-blue-600/50`）で濃淡を調整しない。「色を薄く」が必要なら、透明度を乗せずに**別のシェード**に切り替える（例: `text-gray-800` → `text-gray-700`）。半透明が本当に必要な場合（オーバーレイ等）は `globals.css` に専用のカラートークンを登録してから参照する。
+- Do not use Tailwind arbitrary value notation `[...]` (e.g., `w-[327px]`, `text-[#1a1a1a]`). For sizing utilities (`w-`, `h-`, `p-`, `m-`, `gap-`, etc.), rely on Tailwind v4's `--spacing`-based system, where any integer class is valid (e.g., `w-80`, `w-327`). For "tokenizable" values like colors, font sizes, and radii, add a token to `globals.css` first and then reference it via a Tailwind class.
+- Do not adjust shades with the color opacity modifier `-XXX/YY` (e.g., `text-gray-800/80`, `bg-blue-600/50`). When you need a "lighter color," switch to a **different shade** instead of layering opacity (e.g., `text-gray-800` → `text-gray-700`). When true transparency is genuinely required (overlays, etc.), register a dedicated color token in `globals.css` first and reference it.
 
 ## Architecture
 
@@ -23,7 +23,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Dependencies
 
-- `package.json` の依存バージョンは**完全固定**する。`^` や `~` のようなレンジ指定子、`"4"` のような major-only 指定は使わず、必ず `"1.2.3"` のような exact バージョンで記述する。パッケージを追加する際も同様に、インストール後にレンジ記号を取り除いて exact バージョンに書き換えること（`bun add -E <pkg>` のように exact で追加するか、手動で修正する）。
+- **Pin dependency versions exactly** in `package.json`. Do not use range specifiers like `^` or `~`, or major-only specifiers like `"4"` — always write exact versions such as `"1.2.3"`. When adding a package, either install it as exact (`bun add -E <pkg>`) or manually strip the range marker after installation so the entry is an exact version.
 
 ## Tools
 
