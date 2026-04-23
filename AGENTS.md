@@ -1,10 +1,6 @@
-<!-- BEGIN:nextjs-agent-rules -->
-
 # This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-
-<!-- END:nextjs-agent-rules -->
+This version has breaking changes — APIs, conventions, and file structure may differ from your training data. Heed deprecation notices emitted by `next dev`.
 
 ## Coding Style
 
@@ -20,6 +16,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Use the Container / Presenter pattern. Container handles data fetching and state; Presenter is a pure rendering component receiving props.
 - Extract logic into pure functions. Keep components free of complex inline logic.
 - Components must be controllable from the outside via props. Avoid internal state that cannot be overridden — design for testability.
+- Pure functions always require tests. Components require tests when rendering varies by props/state, or when a11y attributes (`aria-*`, `role`, etc.) are attached — i.e. cases where a snapshot is the only way to catch regressions on later changes. See `.claude/skills/coding-guide/SKILL.md` for details.
 - Tests follow white-box testing: test internal logic paths, not just inputs/outputs.
 - Use the AAA pattern (Arrange, Act, Assert). One `expect` per test case.
 - Test names must follow the format: "should [expected behavior] when [condition]" (e.g., "should return error when value is 0").
