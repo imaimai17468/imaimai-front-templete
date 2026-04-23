@@ -84,13 +84,28 @@ http://localhost:3000 でアプリケーションにアクセスできます。
 
 ### Hooks
 
-Stop hook (`.claude/settings.json`) で作業終了時に自動実行:
+`.claude/settings.json` で以下の hook を設定しています。
 
-- `bun run typecheck` - tsgo
+#### PreToolUse (`Edit` / `Write` / `MultiEdit`)
+
+編集前に coding-guide 違反を静的に検査してブロック:
+
+- `.claude/hooks/pre-tool-use-guard.sh` - `for`/`while` ループ、Tailwind arbitrary value (`[...]`)、色の透明度修飾子 (`-XXX/YY`) などを検出
+
+#### PostToolUse (`Edit` / `Write` / `MultiEdit`)
+
+`.ts` / `.tsx` / `.js` / `.jsx` / `.mjs` / `.cjs` を編集したら即座に検証:
+
 - `bun run lint` - oxlint
-- `bun run format` - oxfmt
-- `bun run knip` - 未使用コード検出
-- `similarity-ts ./src` - コード類似度チェック
+- `bun run typecheck` - tsgo
+- 失敗時は次のツール呼び出し前に修正するようブロック
+
+#### Stop (作業終了時)
+
+1. **Quality gate** (`stop-quality-gate.sh`) - すべて失敗でブロック
+   - `bun run typecheck` / `bun run lint` / `bun run format` / `bun run knip` / `similarity-ts ./src`
+2. **Agent review** (`stop-agent-review.sh`) - headless Claude (Opus) で coding-guide レビュー
+3. **Component verify** (`stop-component-verify.sh`) - chrome-devtools MCP で新規コンポーネントの動作確認
 
 ### Skills
 
