@@ -1,3 +1,9 @@
+---
+name: coding-guide
+description: Coding Guide. Use when the user asks for detailed coding rules, architecture patterns, testing conventions, or references `.claude/skills/coding-guide/SKILL.md`.
+user_invocable: true
+---
+
 # Coding Guide
 
 Detailed rules and patterns to follow when implementing code.
