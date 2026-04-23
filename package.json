@@ -13,6 +13,7 @@
     "check": "oxlint src && oxfmt --check src",
     "check:fix": "oxlint --fix src && oxfmt --write src",
     "typecheck": "tsgo --noEmit",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv",
     "test": "vitest --run",
     "knip": "knip",
     "db:generate": "drizzle-kit generate",
