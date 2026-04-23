@@ -35,6 +35,12 @@
             "command": "/Users/toshiki.imai/workspace/imaimai-front-templete/.claude/hooks/stop-agent-review.sh",
             "timeout": 300,
             "statusMessage": "Stop agent review: headless Claude (Opus) で coding-guide チェック..."
+          },
+          {
+            "type": "command",
+            "command": "/Users/toshiki.imai/workspace/imaimai-front-templete/.claude/hooks/stop-component-verify.sh",
+            "timeout": 300,
+            "statusMessage": "Stop component verify: chrome-devtools MCP で新規コンポーネント動作確認..."
           }
         ]
       }
