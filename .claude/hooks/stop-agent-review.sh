@@ -25,7 +25,7 @@ DIFF=$(git diff HEAD 2>&1 || true)
 
 # プロンプト（厳密な出力形式で返させる）
 read -r -d '' PROMPT <<'EOP' || true
-あなたはコードレビュワーです。このリポジトリの `.claude/skills/coding-guide/SKILL.md` を Read してから、以下の未コミット変更が規約に従っているかレビューしてください。
+あなたはコードレビュワーです。このリポジトリの `.claude/rules/*.md` (style / architecture / testing / dependencies / tools) を Read してから、以下の未コミット変更が規約に従っているかレビューしてください。
 
 **規約の要点**:
 - Coding Style: ループ禁止 / Tailwind arbitrary value 禁止 / 色の透明度修飾子禁止

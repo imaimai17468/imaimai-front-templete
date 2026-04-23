@@ -104,7 +104,7 @@ http://localhost:3000 でアプリケーションにアクセスできます。
 
 1. **Quality gate** (`stop-quality-gate.sh`) - すべて失敗でブロック
    - `bun run typecheck` / `bun run lint` / `bun run format` / `bun run knip` / `similarity-ts ./src`
-2. **Agent review** (`stop-agent-review.sh`) - headless Claude (Opus) で coding-guide レビュー
+2. **Agent review** (`stop-agent-review.sh`) - headless Claude (Opus) で `.claude/rules/*.md` に沿ったレビュー
 3. **Component verify** (`stop-component-verify.sh`) - chrome-devtools MCP で新規コンポーネントの動作確認
 
 ### Skills
@@ -113,7 +113,8 @@ http://localhost:3000 でアプリケーションにアクセスできます。
 | --------------- | ---------------------------------------------- |
 | `/commit`       | 機能ごとにコミットを分割して作成               |
 | `/pr`           | 変更内容のみの PR を作成（UI 変更時は demo GIF を自動添付） |
-| `/coding-guide` | コーディングルール・アーキテクチャガイドを参照 |
+
+コーディング規約は `.claude/rules/*.md` に分割管理しており、`AGENTS.md` から `@include` で常時ロードされます。
 
 ### similarity のインストール
 
