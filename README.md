@@ -97,6 +97,7 @@ Stop hook (`.claude/settings.json`) で作業終了時に自動実行:
 | Command         | Description                                    |
 | --------------- | ---------------------------------------------- |
 | `/commit`       | 機能ごとにコミットを分割して作成               |
+| `/pr`           | 変更内容のみの PR を作成（UI 変更時は demo GIF を自動添付） |
 | `/coding-guide` | コーディングルール・アーキテクチャガイドを参照 |
 
 ### similarity のインストール
