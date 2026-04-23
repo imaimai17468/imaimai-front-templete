@@ -23,24 +23,24 @@ const results = items.map(transform);
 | Side effect | `forEach`               |
 | Existence   | `some`, `every`, `find` |
 
-## Tailwind — 既存クラスを使う
+## Tailwind — use existing classes only
 
-Tailwind の arbitrary value 記法 `[...]` は使わない。既存のユーティリティと `globals.css` のテーマトークンだけで表現する。
+Do not use Tailwind's arbitrary value syntax `[...]`. Express everything with existing utilities and the theme tokens defined in `globals.css`.
 
-**サイズ系 (`w-`, `h-`, `p-`, `m-`, `gap-`, `inset-` 等)**
+**Sizing utilities (`w-`, `h-`, `p-`, `m-`, `gap-`, `inset-`, etc.)**
 
-Tailwind v4 では `--spacing` 変数ベースで動的生成されるため、任意の整数をそのまま使える（例: `w-80` = `20rem`、`w-327` も有効）。`w-[327px]` のような arbitrary は不要。
+Tailwind v4 generates these dynamically from the `--spacing` variable, so any integer class is valid (e.g., `w-80` = `20rem`, `w-327` works too). Arbitrary values like `w-[327px]` are unnecessary.
 
-**色・フォントサイズ・border-radius など "トークン化したいもの"**
+**Tokenizable values (colors, font sizes, border-radius, etc.)**
 
-arbitrary で直書きせず、`globals.css` にトークンを追加してから Tailwind クラスで参照する。
+Don't write arbitrary values inline. Add a token to `globals.css` first, then reference it through a Tailwind class.
 
-色の透明度修飾子 `-XXX/YY`（例: `text-gray-800/80`, `bg-blue-600/50`）で色の濃淡を調整しない。「色を薄く」が必要な場面では、透明度を乗せるのではなく**別のシェードのクラス**に切り替える（例: `text-gray-800` → `text-gray-700`）。半透明が本当に必要な場合（オーバーレイ等）は `globals.css` に専用のカラートークンを登録してから参照する。
+Don't use the color-opacity modifier `-XXX/YY` (e.g., `text-gray-800/80`, `bg-blue-600/50`) to adjust shade intensity. When you need "a lighter color," switch to a **different shade class** rather than layering opacity (e.g., `text-gray-800` → `text-gray-700`). If true transparency is genuinely required (overlays, etc.), add a dedicated color token in `globals.css` and reference it.
 
 ```tsx
-// NG — arbitrary value / 色を薄くするために透明度を使う
+// NG — arbitrary values / using opacity to lighten a color
 <div className="w-[327px] text-[13px] bg-[#1a1a1a] rounded-[10px] text-gray-800/80" />
 
-// OK — サイズは数値クラス、色・フォントサイズはトークン、薄くするならシェードを変える
+// OK — numeric classes for sizing, tokens for color/font-size, shade switch for lightness
 <div className="w-80 text-sm bg-background rounded-lg text-gray-700" />
 ```

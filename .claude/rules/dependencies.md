@@ -2,7 +2,7 @@
 
 ## Exact Version Pinning
 
-`package.json` の依存バージョンは**完全固定**する。レンジ指定子 (`^`, `~`) や major-only 表記 (`"4"`, `"^20"`) は使わず、必ず exact バージョン (`"1.2.3"`) で書く。
+Dependency versions in `package.json` must be **fully pinned**. Do not use range specifiers (`^`, `~`) or major-only notation (`"4"`, `"^20"`) — always write exact versions like `"1.2.3"`.
 
 **NG**
 
@@ -34,10 +34,10 @@
 }
 ```
 
-**追加・更新時の運用:**
+**When adding or updating:**
 
-- exact で追加する: `bun add -E <pkg>` / `bun add -E -d <pkg>`
-- 既存依存を更新する場合も、更新後に `package.json` の `^` / `~` / major-only 表記が残っていないか確認し、レンジが混入していたら手動で exact に修正する
-- バージョン一覧が必要なら `bun pm ls` で実際にインストールされているバージョンを確認できる
+- Add as exact: `bun add -E <pkg>` / `bun add -E -d <pkg>`.
+- When updating an existing dependency, check that no `^` / `~` / major-only notation remains in `package.json` after the update. If a range crept in, fix it manually to exact.
+- To see the currently installed versions, use `bun pm ls`.
 
-理由: テンプレート用途なので、派生プロジェクト間で環境差分が出ないよう完全固定する。アップデートは意図的に行い、常に lockfile と `package.json` が一致した状態を保つ。
+Rationale: this is a template repository, so derivative projects must not see environment drift. Updates are intentional, and `package.json` must always match the lockfile.

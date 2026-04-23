@@ -2,18 +2,18 @@
 
 ## When to Write Tests
 
-テストは「後の変更で壊れたことに気づけるか」を基準に書く。闇雲に全コンポーネントにテストを付ける運用は取らない。
+Write tests based on "will this catch a regression if someone changes it later?" Do not blindly add tests to every component.
 
-- **Pure 関数**: **常に必須**。`utils.ts` 等に関数を追加したら同ディレクトリに `*.test.ts` を追加し、分岐を全て網羅する。
-- **コンポーネント**: 以下のいずれかに該当する時にテストを書く（該当しない trivial な静的コンポーネントはスキップ可）:
-  - **props / state で出し分けがある**（条件分岐で異なる要素がレンダリングされる）
-  - **a11y 属性が付いている**（`aria-*`, `role`, `htmlFor`, `tabIndex`, keyboard handler 等）
-  - 上記に該当するコンポーネントを**変更する時**（回帰検知のため）
-  - → スナップショットを取らないと変更の影響が把握できないケースを対象にする
-- **Container**: データ取得をモックし、Presenter に渡す props を検証する。
-- **Presenter**: 上記「コンポーネント」基準に従う。単一の静的レンダリングで a11y も無ければテスト不要。
+- **Pure functions**: **always required**. When you add a function to `utils.ts` (or similar), add `*.test.ts` in the same directory and cover every branch.
+- **Components**: write tests when any of the following applies (trivial static components that don't match may be skipped):
+  - **Rendering varies by props / state** (different elements render under different conditions)
+  - **a11y attributes are present** (`aria-*`, `role`, `htmlFor`, `tabIndex`, keyboard handlers, etc.)
+  - **Modifying a component that meets the above** (to catch regressions)
+  - → target cases where the change impact cannot be understood without a snapshot
+- **Container**: mock data fetching and verify the props passed to the Presenter.
+- **Presenter**: follow the "Components" criteria above. A single static render with no a11y attributes needs no test.
 
-判断基準は「このコンポーネントを他人が将来変更した時、意図しない変化を検知できるか」。snapshot / `getByRole` / `getByLabelText` 等で固定する価値があるものにだけ投資する。
+The judgment rule is: "if someone else changes this component later, will the test catch unintended changes?" Only invest in tests worth fixing with `snapshot` / `getByRole` / `getByLabelText` / etc.
 
 ## White-Box Testing
 
