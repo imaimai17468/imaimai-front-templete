@@ -1,5 +1,7 @@
 # データベースセットアップ
 
+> テンプレートは初期状態で `wrangler.toml` にローカル開発用のダミー値 (`local-db` / `local-avatars` / ゼロ UUID) が入っています。`bun run dev` はこのまま起動でき、`initOpenNextCloudflareForDev()` がローカル D1/R2 バインディングを提供します。**本番 Cloudflare にデプロイする場合**のみ、以下の手順で実リソースに差し替えてください。
+
 ## 1. Cloudflareリソースを作成
 
 ### D1 データベース
@@ -18,15 +20,19 @@ wrangler r2 bucket create <任意のバケット名>
 # 例: wrangler r2 bucket create my-project-avatars
 ```
 
-## 2. wrangler.toml を設定
+## 2. wrangler.toml を実リソースに差し替え
 
-`wrangler.toml` の `database_id` を実際の値に更新：
+`wrangler.toml` のダミー値 (`local-db` / `local-avatars` / ゼロ UUID) を実際の値に更新：
 
 ```toml
 [[d1_databases]]
 binding = "DB"
 database_name = "<手順1で指定したデータベース名>"
 database_id = "<ここに実際のdatabase_idを入力>"
+
+[[r2_buckets]]
+binding = "AVATARS_BUCKET"
+bucket_name = "<手順1で指定したバケット名>"
 ```
 
 ## 3. 環境変数を設定
