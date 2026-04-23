@@ -8,12 +8,5 @@
   ],
   "project": ["src/**/*.{ts,tsx}"],
   "ignore": ["src/actions/auth.ts"],
-  "ignoreDependencies": [
-    "lefthook",
-    "@testing-library/dom",
-    "@testing-library/react",
-    "tailwindcss",
-    "tw-animate-css",
-    "postcss"
-  ]
+  "ignoreDependencies": ["lefthook", "tailwindcss", "tw-animate-css", "postcss"]
 }
