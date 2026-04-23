@@ -32,8 +32,10 @@ Open a GitHub pull request with a concise English summary of what changed and, w
 
 ## Demo
 
-![demo](docs/screenshots/<branch-slug>.gif)
+![demo](https://raw.githubusercontent.com/<owner>/<repo>/<branch-slug>/docs/screenshots/<branch-slug>.gif)
 ```
+
+Use an absolute `raw.githubusercontent.com` URL — relative paths like `docs/screenshots/...` do **not** render in GitHub PR descriptions. Resolve `<owner>/<repo>` from `git remote get-url origin`, and `<branch-slug>` from `git branch --show-current | tr '/' '-'`.
 
 Each `## What changed` bullet describes **what was changed in the code**, not why. One fact per bullet.
 
@@ -113,7 +115,7 @@ gh pr create --title "feat: add Clock component to home page" --body "$(cat <<'E
 
 ## Demo
 
-![demo](docs/screenshots/feature-add-clock.gif)
+![demo](https://raw.githubusercontent.com/imaimai17468/imaimai-front-templete/feature-add-clock/docs/screenshots/feature-add-clock.gif)
 
 EOF
 )"
