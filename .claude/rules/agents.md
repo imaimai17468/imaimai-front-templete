@@ -30,3 +30,7 @@ Escalate to `opus` only when the task involves non-trivial architectural judgmen
 ## Teams
 
 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is enabled for **genuine parallel collaboration** (multiple agents working on independent branches of the same effort simultaneously). Do not use teams for simple single-task offloads — dispatch a single subagent instead.
+
+## Before reporting done
+
+For multi-file implementations, added branches, or new pure functions: re-read the diff once more before declaring done. Look for missing test coverage on new branches, dead code / over-abstraction that the task didn't require, and null/undefined/off-by-one/async bug patterns types can't catch. Fix, then verify with `bun run typecheck` / `bun run test`. Coding-rule conformance is handled by the stop hook — this pass is for the quality concerns above only. Skip the pass entirely for one-liners, config-only, or docs-only changes.
