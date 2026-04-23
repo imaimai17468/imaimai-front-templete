@@ -7,3 +7,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 @.claude/rules/testing.md
 @.claude/rules/dependencies.md
 @.claude/rules/tools.md
+@.claude/rules/agents.md
