@@ -9,7 +9,7 @@ if [ "${CLAUDE_STOP_HOOK_RECURSION:-}" = "1" ]; then
   exit 0
 fi
 
-ROOT="/Users/toshiki.imai/workspace/imaimai-front-templete"
+ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 MODEL="claude-opus-4-7"
 
 cd "$ROOT"

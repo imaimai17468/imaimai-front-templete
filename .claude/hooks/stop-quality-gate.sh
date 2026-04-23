@@ -4,7 +4,7 @@
 
 set -uo pipefail
 
-ROOT="/Users/toshiki.imai/workspace/imaimai-front-templete"
+ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "$ROOT"
 
 # 変更なしならスキップ
