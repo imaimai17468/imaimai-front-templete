@@ -7,6 +7,14 @@
     "chrome-devtools": {
       "command": "npx",
       "args": ["chrome-devtools-mcp@0.23.0"]
+    },
+    "aegis": {
+      "command": "npx",
+      "args": ["-y", "@fuwasegu/aegis@1.3.0", "--surface", "agent"]
+    },
+    "aegis-admin": {
+      "command": "npx",
+      "args": ["-y", "@fuwasegu/aegis@1.3.0", "--surface", "admin"]
     }
   }
 }
