@@ -35,16 +35,13 @@ Read the user's request. If acceptance criteria or constraints are ambiguous, as
 
 If the request is clear enough, say so and proceed.
 
-### 2. Survey context
+### 2. Compile context via aegis
 
-In the parent, gather the minimum context the subagent will need:
+Call `aegis_compile_context` with `target_files` (the files that will be edited or created) and `plan` (one-line goal). aegis returns the relevant rule and ADR documents deterministically, with relevance scores. Use this output as the single source of truth for "what rules apply to this task" — do not also paste in the full `@include` content; the rules are already in the prompt baseline.
 
-- Relevant existing files (paths, not contents — let the subagent read them)
-- Applicable rules under `.claude/rules/` (cite by filename, not by quoting)
-- Existing patterns the change should mirror (the colocated component nearest the target)
-- Any out-of-scope concerns the user has flagged
+For peripheral context that aegis doesn't carry — the colocated component nearest the target, existing patterns the change should mirror — note paths only (do not read the contents into the parent; the subagent will read them).
 
-Avoid pulling large file contents into the parent. The subagent will read them directly.
+If aegis returns nothing relevant, that is itself a signal: either the knowledge base needs new docs (raise via `aegis_observe` with `event_type: "compile_miss"` after the work is done), or the task is genuinely outside any documented decision.
 
 ### 3. Decide on ADR
 
@@ -62,6 +59,8 @@ Draft a short plan in the parent session before dispatch. The plan should includ
 - Verification steps (`bun run typecheck` / `bun run test` / build / manual smoke test as applicable)
 
 Keep the plan tight — it is the subagent briefing, not a design document. If the plan exceeds ~30 lines, break the work into smaller dispatches.
+
+For genuinely complex multi-step work (≥ 5 distinct edits across unrelated areas, or work requiring TDD discipline), delegate the plan-writing itself to `superpowers:writing-plans` or use `superpowers:brainstorming` first. Per ADR-0006, superpowers' methodology skills are tools called from inside this orchestration — not parallel orchestrators. Do not let them auto-trigger as independent decision-makers.
 
 ### 5. Optional: worktree
 

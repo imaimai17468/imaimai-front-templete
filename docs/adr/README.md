@@ -55,3 +55,4 @@ Strictly sequential, zero-padded to 4 digits. Never renumber. When an ADR is sup
 | [0003](0003-subagent-driven-implementation.md) | Ticket-granularity implementation is delegated to subagents | accepted |
 | [0004](0004-permission-deny-as-security-boundary.md) | `permissions.deny` is the security boundary, not `ask` | accepted |
 | [0005](0005-wrangler-types-for-cloudflare-env.md) | Generate `CloudflareEnv` via `wrangler types`, not hand-written | accepted |
+| [0006](0006-orchestration-layering.md) | `/start-workflow` is the single orchestration entry; aegis / superpowers / custom skills are sub-steps | accepted |
