@@ -107,7 +107,12 @@
     ]
   },
   "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": ["context7", "chrome-devtools"],
+  "enabledMcpjsonServers": [
+    "context7",
+    "chrome-devtools",
+    "aegis",
+    "aegis-admin"
+  ],
   "hooks": {
     "Stop": [
       {
@@ -162,6 +167,7 @@
   },
   "enabledPlugins": {
     "figma@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
+    "typescript-lsp@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true
   }
 }
