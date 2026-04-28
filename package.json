@@ -60,7 +60,7 @@
     "drizzle-kit": "0.31.4",
     "jsdom": "26.1.0",
     "knip": "6.5.0",
-    "oxfmt": "0.27.0",
+    "oxfmt": "0.46.0",
     "oxlint": "1.42.0",
     "tailwindcss": "4.2.4",
     "tw-animate-css": "1.3.6",
