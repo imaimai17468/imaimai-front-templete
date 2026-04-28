@@ -29,6 +29,9 @@ jobs:
     - name: Install dependencies
       run: bun install --frozen-lockfile
 
+    - name: Generate Cloudflare env types
+      run: bun run cf-typegen
+
     - name: Audit direct dependencies for known vulnerabilities
       run: bash scripts/audit-direct.sh
 
