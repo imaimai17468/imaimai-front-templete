@@ -153,6 +153,17 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "mcp__aegis__aegis_compile_context|mcp__aegis-admin__aegis_compile_context",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-aegis-intent-tags-guard.sh",
+            "timeout": 5,
+            "statusMessage": "Pre-aegis intent_tags guard: intent_tags の指定を確認..."
+          }
+        ]
+      },
+      {
         "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
@@ -160,6 +171,18 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-use-guard.sh",
             "timeout": 10,
             "statusMessage": "Pre-edit guard: coding-guide 違反を検査中..."
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-edit-brainstorming-guard.sh",
+            "timeout": 5,
+            "statusMessage": "Pre-edit brainstorming guard: creative work に対する brainstorming 起動を確認..."
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-edit-parent-pickup-guard.sh",
+            "timeout": 5,
+            "statusMessage": "Pre-edit parent-pickup guard: subagent partial 後の巻き取りを検査..."
           }
         ]
       },
@@ -173,6 +196,17 @@
             "statusMessage": "Pre-agent guard: aegis_compile_context 呼び出しを確認..."
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-commit-review-guard.sh",
+            "timeout": 5,
+            "statusMessage": "Pre-commit review guard: subagent 成果物の code-review 済みを確認..."
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -184,6 +218,17 @@
             "command": "F=$(jq -r '.tool_input.file_path // \"\"'); case \"$F\" in *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs) ;; *) exit 0 ;; esac; cd $CLAUDE_PROJECT_DIR && OUT=$(bun run lint 2>&1 && bun run typecheck 2>&1); RC=$?; if [ $RC -ne 0 ]; then printf '%s' \"$OUT\" | jq -Rs --arg file \"$F\" '{systemMessage:(\"⛔ PostToolUse block: lint/typecheck 失敗 — \" + $file), decision:\"block\", reason:(\"PostToolUse: 編集後の lint / typecheck が失敗しました。次のツール呼び出し前に直してください。\\n\\n\" + .)}'; fi; exit 0",
             "timeout": 60,
             "statusMessage": "Per-edit check: lint + typecheck..."
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__aegis__aegis_compile_context|mcp__aegis-admin__aegis_compile_context",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-aegis-near-miss-warn.sh",
+            "timeout": 3,
+            "statusMessage": "Post-aegis near-miss warn: glob_no_match edge_hint を確認..."
           }
         ]
       }

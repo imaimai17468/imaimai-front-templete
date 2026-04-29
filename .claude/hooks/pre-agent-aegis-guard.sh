@@ -47,7 +47,7 @@ fi
 
 # 直近の本当のユーザープロンプトを探す試み:
 # - role=user で、content が「単一の text 文字列」または "type":"user-prompt"
-LAST_REAL_USER=$(awk -v start=1 'NR >= start && /"role":"user"/ && !/"tool_use_id"/ {print NR}' "$TRANSCRIPT" | tail -1 || true)
+LAST_REAL_USER=$(awk -v start=1 'NR >= start && /"role":"user"/ && !/"tool_use_id"/ && !/<system-reminder>/ && !/<task-notification>/ {print NR}' "$TRANSCRIPT" | tail -1 || true)
 if [ -n "${LAST_REAL_USER:-}" ] && [ "$LAST_REAL_USER" -gt "$START_LINE" ]; then
   START_LINE=$LAST_REAL_USER
 fi
