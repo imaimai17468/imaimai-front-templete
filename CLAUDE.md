@@ -1,5 +1,20 @@
 @AGENTS.md
 
+## Plan-then-Auto workflow
+
+When the user asks for planning — phrases such as "plan ...", "design ...", "think through ...", "計画して", "plan 組んで", "設計して", "考えて" — you MUST enter `EnterPlanMode` first and present a plan for approval, **even when Auto mode is active**. Only proceed to implementation after the plan is approved via `ExitPlanMode`. Do not skip this step unless the user explicitly says something like "skip the plan", "just implement", "計画なしで進めて", or "すぐ実装して".
+
+### Plan content requirements
+
+Before presenting the plan via `ExitPlanMode`, you MUST:
+
+1. **Consult Aegis** — call `aegis_compile_context` with the files you intend to touch and the user's request as `plan`. The returned guidelines and any deferred docs MUST shape the plan content. Cite the relevant `doc_id`s in the plan.
+2. **Reference existing ADRs** — scan `docs/adr/` and link any ADR whose decision constrains the plan. If the plan introduces a new architectural decision, note that a new ADR (`docs/adr/NNNN-<slug>.md`) will be authored as part of the work.
+3. **Use the `superpowers:writing-plans` skill format** — invoke `Skill("superpowers:writing-plans")` to load the canonical plan structure (goal / context / steps / verification). The plan saved to disk MUST follow that format.
+4. **Persist the plan** — `plansDirectory` is set to `./.claude/plans/`, so plan-mode output is saved there automatically. If for any reason it is not persisted by the harness, write it manually as `./.claude/plans/<YYYYMMDD>-<slug>.md`.
+
+For ticket-granularity work (implement a component, fix a non-trivial bug, refactor a module, add a feature), prefer invoking the `start-workflow` skill — it already orchestrates the clarify → plan → ADR → dispatch → review → commit sequence and integrates with both Aegis and superpowers.
+
 <!-- aegis:start -->
 ## Aegis Process Enforcement
 
