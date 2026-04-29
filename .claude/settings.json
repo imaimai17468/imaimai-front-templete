@@ -115,6 +115,18 @@
     "aegis-admin"
   ],
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/user-prompt-skill-reminder.sh",
+            "timeout": 5,
+            "statusMessage": "Skill reminder: brainstorming / writing-plans / aegis_compile_context の必要性を確認..."
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
@@ -148,6 +160,17 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-use-guard.sh",
             "timeout": 10,
             "statusMessage": "Pre-edit guard: coding-guide 違反を検査中..."
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-agent-aegis-guard.sh",
+            "timeout": 5,
+            "statusMessage": "Pre-agent guard: aegis_compile_context 呼び出しを確認..."
           }
         ]
       }
