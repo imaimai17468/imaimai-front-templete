@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # PreToolUse(Agent) guard:
-# subagent dispatch (`Agent` ツール) の直前に aegis_compile_context が
-# 呼ばれていなければ block する。
+# Block subagent dispatch (Agent tool) when aegis_compile_context has not been
+# called since the last user message.
 #
-# 「直前」の窓は「最後のユーザーメッセージ以降」とする。session 内で
-# 1 回呼んだだけで全 dispatch を素通りさせる失敗を防ぐ。
+# The "since last user message" window prevents a single early call from
+# whitelisting all subsequent dispatches in the session.
 #
-# 例外: subagent_type が claude-code-guide / Explore の場合、Aegis 知識を
-# 必要としない用途 (CLI Q&A / read-only search) なので block しない。
+# Exception: subagent_type claude-code-guide / Explore does not require Aegis
+# knowledge (CLI Q&A / read-only search), so those are allowed through.
 
 set -euo pipefail
 
@@ -27,16 +27,14 @@ esac
 
 TRANSCRIPT=$(printf '%s' "$INPUT" | jq -r '.transcript_path // ""')
 if [ -z "$TRANSCRIPT" ] || [ ! -f "$TRANSCRIPT" ]; then
-  # transcript が読めない時は block しない (誤検知より素通りを優先)
+  # Cannot read transcript — prefer false-negative over false-positive.
   exit 0
 fi
 
-# 最後のユーザー入力以降の窓を取り出す。
-# Claude Code の transcript は JSONL で、tool_result も role=user で記録されるため、
-# 「実ユーザーメッセージ」だけを拾う簡易判定: content 配列に type=text のみ含むもの、
-# あるいは parentUuid が null に近い形のもの。ここでは pragmatic に
-# `"type":"user-prompt"` か、`"isUserMessage":true` か、最後の 200 行のいずれか
-# 大きい方を窓とする。fallback として最後の 200 行は常に確保。
+# Extract the window starting from the last real user message.
+# Claude Code transcripts are JSONL where tool_result entries also use role=user,
+# so we use a pragmatic heuristic: entries with only type=text content, or
+# "type":"user-prompt" / "isUserMessage":true. Fallback: last 200 lines.
 
 WINDOW_LINES=200
 TOTAL_LINES=$(wc -l < "$TRANSCRIPT" | tr -d ' ')
@@ -45,8 +43,8 @@ if [ "$START_LINE" -lt 1 ]; then
   START_LINE=1
 fi
 
-# 直近の本当のユーザープロンプトを探す試み:
-# - role=user で、content が「単一の text 文字列」または "type":"user-prompt"
+# Find the last genuine user prompt:
+# - role=user entries that do not contain tool_use_id, system-reminder, or task-notification
 LAST_REAL_USER=$(awk -v start=1 'NR >= start && /"role":"user"/ && !/"tool_use_id"/ && !/<system-reminder>/ && !/<task-notification>/ {print NR}' "$TRANSCRIPT" | tail -1 || true)
 if [ -n "${LAST_REAL_USER:-}" ] && [ "$LAST_REAL_USER" -gt "$START_LINE" ]; then
   START_LINE=$LAST_REAL_USER
@@ -54,11 +52,17 @@ fi
 
 WINDOW=$(awk -v start="$START_LINE" 'NR >= start' "$TRANSCRIPT")
 
-if printf '%s' "$WINDOW" | grep -q 'aegis_compile_context'; then
+# Use grep -c instead of -q to avoid SIGPIPE-on-printf failure under
+# `set -euo pipefail`. With -q grep can exit on first match before printf has
+# finished writing the (possibly very large) WINDOW, causing a broken pipe and
+# the pipeline to be marked as failed by pipefail — which would incorrectly
+# evaluate the if-condition as false and proceed to block.
+HIT_COUNT=$(printf '%s' "$WINDOW" | grep -c 'aegis_compile_context' || true)
+if [ "${HIT_COUNT:-0}" -gt 0 ]; then
   exit 0
 fi
 
-REASON="PreToolUse(Agent): No aegis_compile_context call found since the last user message. Every subagent dispatch MUST be preceded by aegis_compile_context with target_files / plan / command (see CLAUDE.md and .claude/rules/agents.md \"Before each dispatch — Aegis is mandatory\"). For read-only search, set subagent_type to Explore (which is exempt from this guard)."
+REASON="PreToolUse(Agent): No aegis_compile_context call found since the last user message. Call aegis_compile_context with target_files / plan / command before dispatching a subagent (see CLAUDE.md / .claude/rules/agents.md). For read-only search, use subagent_type Explore instead."
 
 jq -n --arg reason "$REASON" '{
   decision: "block",

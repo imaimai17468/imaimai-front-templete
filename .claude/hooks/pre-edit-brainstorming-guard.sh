@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 # PreToolUse(Edit|Write|MultiEdit) guard:
-# 「設計／アイデア／構成案」などの creative work を示すユーザープロンプトの
-# 直後に、superpowers:brainstorming skill を invoke せずに Edit/Write/MultiEdit
-# しようとしたら block する。
+# Block Edit/Write/MultiEdit when the last user prompt contains creative-work
+# trigger words (design / idea / brainstorm / etc.) but superpowers:brainstorming
+# has not been invoked since that prompt.
 #
-# 目的: CLAUDE.md ルールにより「コード変更前に必ず superpowers:brainstorming
-#        を invoke」が義務付けられているが、reminder だけでは素通りできた。
-#        hook で block して遵守を強制する。
+# CLAUDE.md requires superpowers:brainstorming before any code change triggered
+# by creative/design requests. A reminder alone was insufficient — this hook
+# enforces compliance by blocking.
 #
-# 例外:
-#   - ユーザープロンプトに creative トリガー語がない場合 → block しない
-#   - バグ修正文脈 (バグ / fix / bug) が明確な場合 → block しない
-#   - ルール文書 (*.md / *.json 等の config) のみへの編集 → block しない
-#   - transcript が読めない場合 → block しない (素通り)
-#   - transcript に本物のユーザープロンプトが見当たらない場合 → block しない
+# Exceptions (allowed through):
+#   - No creative trigger words in the user prompt
+#   - Bug-fix context (バグ / fix / bug) is clearly present
+#   - Edit targets only rule/config files (*.md / *.json / etc.)
+#   - Transcript is unreadable
+#   - No genuine user prompt found in transcript
 
 set -euo pipefail
 
@@ -28,7 +28,7 @@ case "$TOOL" in
     ;;
 esac
 
-# 編集対象ファイルが rules/config 専用なら creative guard を適用しない
+# Skip creative guard when the target file is a rules/config-only file
 FILE_PATH=$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // ""')
 case "$FILE_PATH" in
   *.md|*.json|*.toml|*.yaml|*.yml|*.gitignore|*.env*)
@@ -41,7 +41,7 @@ if [ -z "$TRANSCRIPT" ] || [ ! -f "$TRANSCRIPT" ]; then
   exit 0
 fi
 
-# 最後のユーザー入力以降の窓を取り出す (pre-agent-aegis-guard.sh と同じロジック)
+# Extract the window since the last real user message (same logic as pre-agent-aegis-guard.sh)
 WINDOW_LINES=200
 TOTAL_LINES=$(wc -l < "$TRANSCRIPT" | tr -d ' ')
 START_LINE=$(( TOTAL_LINES - WINDOW_LINES ))
@@ -54,7 +54,7 @@ if [ -n "${LAST_REAL_USER:-}" ] && [ "$LAST_REAL_USER" -gt "$START_LINE" ]; then
   START_LINE=$LAST_REAL_USER
 fi
 
-# 最後のユーザープロンプトのテキストを取得
+# Extract the text of the last user prompt
 USER_PROMPT=$(awk -v start="$START_LINE" 'NR == start' "$TRANSCRIPT" | jq -r '
   if .content then
     [ .content[] | select(.type == "text") | .text ] | join(" ")
@@ -64,18 +64,18 @@ USER_PROMPT=$(awk -v start="$START_LINE" 'NR == start' "$TRANSCRIPT" | jq -r '
 ' 2>/dev/null || true)
 
 if [ -z "$USER_PROMPT" ]; then
-  # role フォーマットが想定外。素通り
+  # Unexpected role format — pass through
   exit 0
 fi
 
 LOWER_PROMPT=$(printf '%s' "$USER_PROMPT" | tr '[:upper:]' '[:lower:]')
 
-# bug fix 文脈なら skip (false positive 抑制)
+# Skip if this is a bug-fix context (reduces false positives)
 if printf '%s' "$LOWER_PROMPT" | grep -qE '(バグ|bug|fix |hotfix|bugfix)'; then
   exit 0
 fi
 
-# creative トリガー語チェック
+# Check for creative trigger words
 IS_CREATIVE=0
 if printf '%s' "$LOWER_PROMPT" | grep -qE '(brainstorm|design |アイデア|設計|構成案|考えて)'; then
   IS_CREATIVE=1
@@ -88,16 +88,18 @@ if [ "$IS_CREATIVE" -eq 0 ]; then
   exit 0
 fi
 
-# creative トリガーが見つかった。ユーザープロンプト以降の窓で
-# superpowers:brainstorming skill invocation があるか確認する
+# Creative trigger found. Check if superpowers:brainstorming was invoked
+# in the window since the last user prompt.
 WINDOW=$(awk -v start="$START_LINE" 'NR >= start' "$TRANSCRIPT")
 
-if printf '%s' "$WINDOW" | grep -q 'superpowers:brainstorming'; then
+# Use grep -c to avoid SIGPIPE on printf under pipefail when WINDOW is large.
+BRAIN_COUNT=$(printf '%s' "$WINDOW" | grep -c 'superpowers:brainstorming' || true)
+if [ "${BRAIN_COUNT:-0}" -gt 0 ]; then
   exit 0
 fi
 
-# brainstorming が起動されていない → block
-REASON="PreToolUse(Edit/Write): creative work was detected in the latest user prompt, but Skill('superpowers:brainstorming') has not been invoked since. Invoke superpowers:brainstorming before any Edit/Write/MultiEdit (see CLAUDE.md and the superpowers rules). If this is bug-fix work, the prompt should make that explicit (the guard exempts prompts containing bug/fix/hotfix/バグ)."
+# brainstorming not invoked → block
+REASON="PreToolUse(Edit/Write): Creative work detected but superpowers:brainstorming skill has not been invoked. Call Skill('superpowers:brainstorming') before Edit/Write (see CLAUDE.md / superpowers rules)."
 
 jq -n --arg reason "$REASON" '{
   decision: "block",

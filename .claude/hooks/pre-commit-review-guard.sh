@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 # PreToolUse(Bash) guard:
-# git commit 実行前に「直近の subagent dispatch 完了以降に
-# superpowers:requesting-code-review skill が起動されていない」場合 block する。
+# Block git commit when superpowers:requesting-code-review has not been invoked
+# since the most recent subagent dispatch completed.
 #
-# 目的: .claude/rules/agents.md "Before reporting done" の規定を強制する。
-#        subagent からの成果物は commit 前に独立した code review を経る必要がある。
+# Enforces .claude/rules/agents.md "Before reporting done": subagent output must
+# go through an independent code review before being committed.
 #
-# 例外 (trivial commit は block しない):
-#   - 変更ファイル数 ≤ 1 かつ追加/削除合計 ≤ 5 行
-#   - 全ファイルが *.md / .gitignore / *.json で済むケース
-#   - コミットメッセージが docs: / chore: プレフィックスかつ trivial 行数
-#   - 直近に Agent 完了がない (parent が直接書いた変更のみ) → block しない
-#   - transcript が読めない場合 → block しない
+# Exceptions (trivial commits are not blocked):
+#   - Changed files ≤ 1 and total added/deleted lines ≤ 5
+#   - All changed files are *.md / .gitignore / *.json
+#   - Commit message has docs: / chore: prefix and trivial line count
+#   - No Agent dispatch found in the recent window (parent wrote changes directly)
+#   - Transcript is unreadable
 
 set -euo pipefail
 
-# CLAUDE_PROJECT_DIR が未設定の場合は素通り (Claude Code 外での実行など)
+# Pass through when CLAUDE_PROJECT_DIR is unset (e.g. running outside Claude Code)
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-}"
 if [ -z "$PROJECT_DIR" ]; then
   exit 0
@@ -30,12 +30,12 @@ fi
 
 COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""')
 
-# git commit を含むかチェック
+# Check whether the command contains git commit
 if ! printf '%s' "$COMMAND" | grep -qE 'git commit'; then
   exit 0
 fi
 
-# trivial 判定: コミットメッセージが docs:/chore: プレフィックス
+# Trivial check: commit message has docs: or chore: prefix
 COMMIT_MSG=$(printf '%s' "$COMMAND" | grep -oE '(-m|--message)[[:space:]]+["\047]([^"'\'']+)' | tail -1 || true)
 if printf '%s' "$COMMIT_MSG" | grep -qE '(docs:|chore:)'; then
   # docs/chore でも staged の状況を確認して trivial なら pass
@@ -43,7 +43,7 @@ if printf '%s' "$COMMIT_MSG" | grep -qE '(docs:|chore:)'; then
   if [ -z "$STAGED_STAT" ]; then
     exit 0
   fi
-  # ファイル数と変更行数を取得
+  # Get file count and changed line count
   CHANGED_FILES=$(printf '%s' "$STAGED_STAT" | grep -c '|' || true)
   INSERTIONS=$(printf '%s' "$STAGED_STAT" | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' | head -1 || echo 0)
   DELETIONS=$(printf '%s' "$STAGED_STAT" | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+' | head -1 || echo 0)
@@ -53,10 +53,10 @@ if printf '%s' "$COMMIT_MSG" | grep -qE '(docs:|chore:)'; then
   fi
 fi
 
-# staged の状態をチェックして trivial かどうか判定
+# Check staged state to determine whether the commit is trivial
 STAGED_STAT=$(git -C "$PROJECT_DIR" diff --staged --stat 2>/dev/null || true)
 if [ -z "$STAGED_STAT" ]; then
-  # staged が空なら commit 自体が trivial or 別事情
+  # No staged changes — commit is trivial or some other condition
   exit 0
 fi
 
@@ -65,24 +65,24 @@ INSERTIONS=$(printf '%s' "$STAGED_STAT" | grep -oE '[0-9]+ insertion' | grep -oE
 DELETIONS=$(printf '%s' "$STAGED_STAT" | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+' | head -1 || echo 0)
 TOTAL_LINES=$(( INSERTIONS + DELETIONS ))
 
-# trivial 判定 1: 1 ファイル以下かつ 5 行以下
+# Trivial check 1: at most 1 file and at most 5 lines
 if [ "$CHANGED_FILES" -le 1 ] && [ "$TOTAL_LINES" -le 5 ]; then
   exit 0
 fi
 
-# trivial 判定 2: 全ファイルが md/json/gitignore 系
+# Trivial check 2: all changed files are md/json/gitignore-type
 ALL_NON_CONFIG=$(git -C "$PROJECT_DIR" diff --staged --name-only 2>/dev/null | grep -vE '\.(md|json|toml|yaml|yml)$|^\.gitignore$' | wc -l | tr -d ' ' || echo 1)
 if [ "$ALL_NON_CONFIG" -eq 0 ]; then
   exit 0
 fi
 
-# transcript を確認して Agent 完了があるか
+# Check the transcript for an Agent completion
 TRANSCRIPT=$(printf '%s' "$INPUT" | jq -r '.transcript_path // ""')
 if [ -z "$TRANSCRIPT" ] || [ ! -f "$TRANSCRIPT" ]; then
   exit 0
 fi
 
-# 最後のユーザー入力以降の窓
+# Window since the last real user message
 WINDOW_LINES=300
 TOTAL_TRANSCRIPT_LINES=$(wc -l < "$TRANSCRIPT" | tr -d ' ')
 START_LINE=$(( TOTAL_TRANSCRIPT_LINES - WINDOW_LINES ))
@@ -97,22 +97,25 @@ fi
 
 WINDOW=$(awk -v start="$START_LINE" 'NR >= start' "$TRANSCRIPT")
 
-# 直近窓内に Agent ツールのディスパッチが存在するか確認。
-# 以前は "tool_use_id" の出現数を見ていたが、これだと Bash/Edit/Read など他のツールの
-# tool_result まで「Agent 完了」と誤検知してしまう。Agent dispatch は assistant の
-# tool_use エントリで "name":"Agent" として現れるので、それを直接数える。
+# Check whether an Agent dispatch appears in the recent window.
+# Counting "tool_use_id" occurrences was unreliable — it matched tool_result entries
+# from Bash/Edit/Read as "Agent completions". Instead, count assistant tool_use entries
+# with "name":"Agent" directly.
 HAS_AGENT_DISPATCH=$(printf '%s' "$WINDOW" | grep -v '"tool_use_id"' | grep -c '"name":"Agent"' || true)
 if [ "$HAS_AGENT_DISPATCH" -eq 0 ]; then
-  # Agent dispatch なし = parent が直接書いた変更のみ → block しない
+  # No Agent dispatch — changes were written directly by the parent — do not block
   exit 0
 fi
 
-# Agent 完了がある場合: requesting-code-review が起動されているか確認
-if printf '%s' "$WINDOW" | grep -q 'superpowers:requesting-code-review'; then
+# Agent completion found: check whether requesting-code-review was invoked.
+# Use grep -c instead of -q to avoid SIGPIPE on printf under `set -euo pipefail`
+# when the WINDOW is large enough that grep can match early.
+REVIEW_COUNT=$(printf '%s' "$WINDOW" | grep -c 'superpowers:requesting-code-review' || true)
+if [ "${REVIEW_COUNT:-0}" -gt 0 ]; then
   exit 0
 fi
 
-REASON="PreToolUse(Bash/git commit): subagent output is about to be committed without an independent code review. Invoke Skill('superpowers:requesting-code-review') before git commit (see .claude/rules/agents.md \"Before reporting done\"). Trivial docs-only / config-only / single-line changes are exempted automatically; if this guard fires, the staged diff likely contains non-trivial changes that should go through review."
+REASON="PreToolUse(Bash/git commit): Subagent output has not gone through an independent code review before this commit. Call Skill('superpowers:requesting-code-review') before git commit (see .claude/rules/agents.md \"Before reporting done\"). Trivial docs-only / config-only / single-line changes are exempt — if this hook fired, the staged changes do not meet the trivial criteria."
 
 jq -n --arg reason "$REASON" '{
   decision: "block",

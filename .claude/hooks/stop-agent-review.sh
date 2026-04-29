@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Stop hook: headless Claude で coding-guide レビューを実施する。
-# agent 型 hook が Stop イベントで使えないため、command 型から `claude -p` を呼ぶワークアラウンド。
+# Stop hook: run a coding-guide review using headless Claude.
+# Agent-type hooks are not available on the Stop event, so we work around it by calling `claude -p` from a command-type hook.
 
 set -uo pipefail
 
-# 再帰ガード: 内側の `claude -p` から自分が再呼び出しされるのを防ぐ
+# Recursion guard: prevent the inner `claude -p` from re-invoking this hook
 if [ "${CLAUDE_STOP_HOOK_RECURSION:-}" = "1" ]; then
   exit 0
 fi
@@ -14,7 +14,7 @@ MODEL="claude-opus-4-7"
 
 cd "$ROOT"
 
-# 変更がなければ即スキップ（会話ターンで発火させない）
+# Skip immediately when there are no changes (do not fire on conversation turns)
 if [ -z "$(git status --porcelain)" ]; then
   exit 0
 fi
@@ -23,30 +23,30 @@ fi
 STATUS=$(git status --porcelain 2>&1 || true)
 DIFF=$(git diff HEAD 2>&1 || true)
 
-# プロンプト（厳密な出力形式で返させる）
+# Prompt (force a strict output format)
 read -r -d '' PROMPT <<'EOP' || true
-You are a code reviewer. Read this repo's `.claude/rules/*.md` (style / architecture / testing / dependencies / tools), then review whether the following uncommitted changes comply with those rules.
+You are a code reviewer. Read this repository's `.claude/rules/*.md` (style / architecture / testing / dependencies / tools), then review whether the following uncommitted changes follow the rules.
 
 **Rule highlights**:
-- Coding Style: no loops; no Tailwind arbitrary values; no color-opacity modifiers.
-- Architecture: directory-first layout; Container/Presenter separation; one component per file; props-driven design; extract pure functions.
-- Dependencies: package.json must use exact version pinning (no ^ / ~).
-- Exempt areas: `src/components/ui/*` and `src/lib/utils.ts` (shadcn-derived; page-level rules do not apply).
+- Coding Style: no loops / no Tailwind arbitrary values / no color-opacity modifier
+- Architecture: Directory-First Layout / Container-Presenter separation / One Component Per File / Props-Driven Design / pure-function extraction
+- Dependencies: package.json must use exact version pinning
+- Exception areas: `src/components/ui/*` and `src/lib/utils.ts` (shadcn-derived, page-level rules do not apply)
 
 **Output format (strict)**:
-- If there is at least one violation, write only `BLOCK: <file · rule · how to fix (one-line summary)>` as the first line.
-- If there are no violations, write only `APPROVE` as the first line.
-- No explanations, preambles, or markdown decoration are allowed.
+If there is even one violation, write only `BLOCK: <violating file / rule name / brief fix>` on the first line.
+If there are no violations, write only `APPROVE` on the first line.
+Do not write any other explanation, preamble, or markdown decoration.
 EOP
 
-# headless Claude 起動
+# Launch headless Claude
 RESULT=$(printf '%s\n\n=== git status ===\n%s\n\n=== git diff HEAD ===\n%s\n' "$PROMPT" "$STATUS" "$DIFF" \
   | CLAUDE_STOP_HOOK_RECURSION=1 claude -p --model "$MODEL" --output-format json 2>&1) || {
-    echo '{"systemMessage":"⚠️ Stop agent review: claude -p failed to start (skipped)"}'
+    echo '{"systemMessage":"⚠️ Stop agent review: claude -p launch failed (skipped)"}'
     exit 0
   }
 
-# 結果抽出
+# Extract result
 TEXT=$(printf '%s' "$RESULT" | jq -r '.result // empty' 2>/dev/null)
 if [ -z "$TEXT" ]; then
   TEXT="$RESULT"
@@ -62,7 +62,7 @@ if printf '%s' "$FIRST_LINE" | grep -q '^BLOCK'; then
     reason: ("Stop agent review detected a coding-guide violation:\n\n" + $r)
   }'
 elif printf '%s' "$FIRST_LINE" | grep -q '^APPROVE'; then
-  echo '{"systemMessage":"✅ Stop agent review: coding-guide OK"}'
+  echo '{"systemMessage":"✅ Stop agent review: coding-guide compliant"}'
 else
   jq -n --arg r "$FIRST_LINE" '{systemMessage: ("⚠️ Stop agent review: unexpected response — " + $r)}'
 fi

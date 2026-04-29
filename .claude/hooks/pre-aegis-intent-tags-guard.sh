@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # PreToolUse(mcp__aegis__aegis_compile_context) guard:
-# aegis_compile_context 呼び出しで intent_tags が未指定の場合を block する。
+# Block aegis_compile_context calls that omit intent_tags entirely.
 #
-# 目的: CLAUDE.md / AGENTS.md では「intent_tags の省略は禁止。明示的に
-#        skip したい場合のみ [] を渡せ」と規定されている。
-#        intent_tags フィールドが存在しない / null の呼び出しはすべて block する。
+# CLAUDE.md / AGENTS.md require intent_tags to always be specified.
+# Pass an empty array [] to explicitly skip expanded context.
+# Calls where intent_tags is absent or null are blocked.
 #
-# 例外:
-#   - intent_tags が空配列 [] の場合は明示的 skip として許容 (block しない)
-#   - intent_tags に 1 件以上タグが入っている場合は block しない
-#   - tool_name が対象ツール以外の場合は何もしない
-#   - jq パースエラー等の想定外状況は exit 0 (素通り)
+# Exceptions (allowed through):
+#   - intent_tags is an empty array [] (explicit skip)
+#   - intent_tags contains one or more tags
+#   - tool_name is not the target tool
+#   - Unexpected situations (e.g. jq parse error) — prefer pass-through
 
 set -euo pipefail
 
@@ -25,12 +25,12 @@ case "$TOOL" in
     ;;
 esac
 
-# intent_tags が存在するか確認。
-# null / 存在しない = block、[] または配列 = pass
+# Check whether intent_tags is present.
+# null or absent = block; [] or non-empty array = pass
 HAS_TAGS=$(printf '%s' "$INPUT" | jq '(.tool_input.intent_tags // null) == null')
 
 if [ "$HAS_TAGS" = "true" ]; then
-  REASON="PreToolUse(aegis_compile_context): intent_tags is missing. Per CLAUDE.md / AGENTS.md, omitting intent_tags is forbidden in this repo (the SLM tagger is disabled, so omission yields empty expanded). To explicitly skip expanded context, pass intent_tags: []. To use intent_tags, call aegis_get_known_tags first to load the catalog, then pass 1–3 relevant tags."
+  REASON="PreToolUse(aegis_compile_context): intent_tags is missing. Per CLAUDE.md / AGENTS.md, omitting intent_tags is not allowed. Pass intent_tags: [] to explicitly skip expanded context, or call aegis_get_known_tags first and provide 1-3 relevant tags."
   jq -n --arg reason "$REASON" '{
     decision: "block",
     reason: $reason

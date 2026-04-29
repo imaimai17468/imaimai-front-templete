@@ -1,37 +1,99 @@
 #!/usr/bin/env bash
 # PostToolUse(mcp__aegis__aegis_compile_context) hook:
-# aegis_compile_context の返り値に glob_no_match の near_miss_edges が
-# 含まれていたら、additionalContext で強い warning を注入する。
+# When the aegis_compile_context response contains glob_no_match near_miss_edges,
+# cross-match those patterns against target_files using bash extglob + globstar.
+# Inject an additionalContext warning only for patterns that bash matches but
+# Aegis reports as glob_no_match (suspicious — likely an Aegis glob bug).
 #
-# 目的: knowledge graph の edge_hint が意図通りに解決されなかった場合、
-#        assistant がそれを見落とすのを防ぐ。
-#        block はしない — warning として context に注入するのみ。
+# Decision logic:
+#   A) Pattern matches a target_file via bash extglob + globstar
+#      → Divergence between Aegis and bash glob implementations = suspicious (confirmed bug)
+#   B) bash also does not match → routine no-match → skip
+#   C) reason is command_mismatch → always skip
 #
-# 例外:
-#   - tool_response に near_miss_edges がない / 空の場合 → exit 0 (無音)
-#   - glob_no_match 以外の reason のみの場合 → exit 0
-#   - jq パースエラー等の想定外状況 → exit 0 (素通り)
+# Output:
+#   - 0 suspicious entries → exit 0 (silent)
+#   - 1-3 entries → full list
+#   - 4+ entries → first 3 + "and N more" abbreviation
 
 set -euo pipefail
+shopt -s extglob globstar nullglob
 
 INPUT=$(cat)
 
-# near_miss_edges を取得して glob_no_match のみ抽出
-NEAR_MISS_LIST=$(printf '%s' "$INPUT" | jq -r '
-  .tool_response.debug_info.near_miss_edges // []
-  | map(select(.reason == "glob_no_match"))
-  | map("  - doc_id: \(.target_doc_id // "unknown") | pattern: \(.pattern // "unknown")")
-  | join("\n")
-' 2>/dev/null || true)
-
-if [ -z "$NEAR_MISS_LIST" ]; then
+# Pass through when tool_response is absent
+TOOL_RESPONSE=$(printf '%s' "$INPUT" | jq -r 'if .tool_response then "present" else "absent" end' 2>/dev/null || true)
+if [ "${TOOL_RESPONSE:-absent}" = "absent" ]; then
   exit 0
 fi
 
-CONTEXT="[Aegis near_miss_edges warning] The following edge_hints had glob_no_match (the registered glob pattern did not match any file in target_files). If a pattern looks like it SHOULD have matched a target you cared about, this likely indicates a knowledge-graph maintenance issue: report via \`aegis_observe({event_type: \"compile_miss\", ...})\` or fix the edge_hint glob through the admin surface (aegis_import_doc / edge edit). Routine cases where the pattern simply does not relate to your current target_files do not need to be reported.
+# Extract target_files into an array
+mapfile -t TARGET_FILES < <(printf '%s' "$INPUT" | jq -r '.tool_input.target_files // [] | .[]' 2>/dev/null || true)
 
-Near-miss edges:
-${NEAR_MISS_LIST}"
+# Extract near_miss_edges that are glob_no_match and not command_mismatch
+NEAR_MISS_JSON=$(printf '%s' "$INPUT" | jq -c '
+  .tool_response.debug_info.near_miss_edges // []
+  | map(select(.reason == "glob_no_match"))
+' 2>/dev/null || true)
+
+EDGE_COUNT=$(printf '%s' "$NEAR_MISS_JSON" | jq 'length' 2>/dev/null || true)
+
+if [ -z "$EDGE_COUNT" ] || [ "$EDGE_COUNT" -eq 0 ]; then
+  exit 0
+fi
+
+# Pass through when target_files is empty
+if [ "${#TARGET_FILES[@]}" -eq 0 ]; then
+  exit 0
+fi
+
+# Collect suspicious near_miss entries
+SUSPICIOUS_ITEMS=()
+
+while IFS= read -r EDGE; do
+  PATTERN=$(printf '%s' "$EDGE" | jq -r '.pattern // ""')
+  DOC_ID=$(printf '%s' "$EDGE" | jq -r '.target_doc_id // "unknown"')
+
+  if [ -z "$PATTERN" ]; then
+    continue
+  fi
+
+  # Test each target_file against the pattern using bash extglob + globstar
+  MATCHED=false
+  for TARGET in "${TARGET_FILES[@]}"; do
+    # shellcheck disable=SC2053
+    if [[ "$TARGET" == $PATTERN ]]; then
+      MATCHED=true
+      break
+    fi
+  done
+
+  if [ "$MATCHED" = "true" ]; then
+    SUSPICIOUS_ITEMS+=("  - pattern: ${PATTERN} → doc_id: ${DOC_ID}")
+  fi
+done < <(printf '%s' "$NEAR_MISS_JSON" | jq -c '.[]' 2>/dev/null || true)
+
+SUSPICIOUS_COUNT="${#SUSPICIOUS_ITEMS[@]}"
+
+if [ "$SUSPICIOUS_COUNT" -eq 0 ]; then
+  exit 0
+fi
+
+# Build the warning message
+if [ "$SUSPICIOUS_COUNT" -le 3 ]; then
+  LIST=$(printf '%s\n' "${SUSPICIOUS_ITEMS[@]}")
+  SUFFIX=""
+else
+  LIST=$(printf '%s\n' "${SUSPICIOUS_ITEMS[0]}" "${SUSPICIOUS_ITEMS[1]}" "${SUSPICIOUS_ITEMS[2]}")
+  REMAINING=$(( SUSPICIOUS_COUNT - 3 ))
+  SUFFIX="
+  ...and ${REMAINING} more (see debug_info.near_miss_edges for the full list)"
+fi
+
+CONTEXT="[Aegis near_miss_edges warning] The following edge_hints match target_files in bash (extglob + globstar) but are reported as glob_no_match by Aegis. This is likely an Aegis glob implementation bug. Report via \`aegis_observe({event_type: \"compile_miss\", ...})\` or fix the glob pattern in the admin surface (aegis_import_doc / edge edit).
+
+Affected edge_hints:
+${LIST}${SUFFIX}"
 
 jq -n --arg ctx "$CONTEXT" '{
   hookSpecificOutput: {
