@@ -28,13 +28,14 @@ You MUST consult Aegis for every coding-related interaction — implementation t
    - `target_files`: the files you plan to edit
    - `plan`: your natural-language plan (optional but recommended)
    - `command`: the type of operation (scaffold, refactor, review, etc.)
-   - `intent_tags` (recommended): tags chosen from the step-2 catalog — drives `expanded` context deterministically. Use `[]` to skip expanded context without using the server-side SLM tagger. Omit `intent_tags` only if you want the server SLM tagger (when enabled) to infer tags from `plan` instead (see ADR-004).
+   - `intent_tags` (**required in this repo**): tags chosen from the step-2 catalog — drives `expanded` context deterministically. **The SLM tagger is disabled in this Aegis instance (verified empirically), so omitting `intent_tags` means expanded is empty.** Always pass 1–3 relevant tags. Use `[]` only when you intentionally want to skip expanded.
 4. **Read and follow** the returned architecture guidelines.
    - `delivery: "inline"` — content is included; read it directly.
    - `delivery: "deferred"` — content is NOT included. You MUST Read the file via `source_path` before proceeding. Prioritize by `relevance` score (high first); skip only documents with very low relevance (< 0.25) unless specifically needed.
    - `delivery: "omitted"` — excluded by budget or policy. Increase `max_inline_bytes` or use `content_mode: "always"` if needed.
 5. **Self-Review** — After writing code, check your implementation against the returned guidelines.
-6. **Report Compile Misses** — If Aegis failed to provide a needed guideline:
+6. **Inspect `debug_info.near_miss_edges`** — Every compile result includes `debug_info.near_miss_edges`. If an entry's `pattern` looks like it *should* have matched a target you cared about (e.g. you targeted `package.json` but `package.json → adr-0002-direct-audit` is in near_miss with `glob_no_match`), file a `compile_miss` (or `doc_gap_detected`) observation. Routine "I didn't include that file in target_files" cases need not be reported. Do NOT silently move on after seeing a suspicious near_miss.
+7. **Report Compile Misses** — If Aegis failed to provide a needed guideline:
    ```
    aegis_observe({
      event_type: "compile_miss",
@@ -64,10 +65,26 @@ If the user asks about architecture, patterns, conventions, or how to write code
    - `intent_tags` (optional): when `expanded` context is useful, call `aegis_get_known_tags` first, then pass a subset of tags (or `[]` to skip expanded).
 3. **Answer using Aegis context** — Base your answer on the guidelines returned by Aegis, supplemented by your own knowledge. Cite specific guidelines when relevant. When documents include a `relevance` score, prioritize high-scoring documents and skim or skip low-scoring ones.
 
+### When Importing Documents (admin surface)
+
+When you call `aegis_import_doc` (whether populating the empty KB, adding a new ADR / rule, or re-importing an existing doc), you MUST always provide:
+
+- `edge_hints[]` — at least one `path` / `layer` / `command` / `doc` source so the doc is reachable from `aegis_compile_context`. A doc with no edges is unreachable and effectively dead weight.
+- `tags[]` — **mandatory, never empty**. Without tags the doc cannot be picked up by `intent_tags` (the deterministic expanded-context lookup), so it never participates in expanded context. A doc imported with `tags: []` is a silent regression even if `edge_hints` is set.
+
+Tag selection guidelines:
+
+- 3–5 tags per doc is the target. Fewer than 2 reduces discoverability; more than 6 dilutes relevance.
+- Prefer reusing existing tags — call `aegis_get_known_tags` first to see the catalog. Only invent a new tag when no existing one fits.
+- Mix tag categories: at least one **technology** tag (e.g. `tailwind`, `nextjs`, `vitest`), at least one **role / topic** tag (e.g. `architecture`, `testing`, `dependencies`), and a **pattern / decision** tag where applicable (e.g. `colocation`, `subagent-driven`, `permission-deny`).
+- Lowercase, hyphen-separated, single-token-ish (`container-presenter`, not `Container/Presenter Pattern`).
+
+If you import without tags, immediately follow up with a re-import (or admin tag-only update tool when one exists) — do NOT leave the doc tagless.
+
 ### When Knowledge Base Is Empty
 
 If `aegis_compile_context` returns no documents, the knowledge base has not been populated yet.
-Ask the user to run initial setup using the **admin surface** with `aegis_import_doc` to add architecture documents with `edge_hints`.
+Ask the user to run initial setup using the **admin surface** with `aegis_import_doc` to add architecture documents with `edge_hints` and `tags` (see *When Importing Documents* above).
 
 ### Rules
 
