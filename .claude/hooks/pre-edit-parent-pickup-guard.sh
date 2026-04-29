@@ -35,6 +35,13 @@ if [ -z "$TRANSCRIPT" ] || [ ! -f "$TRANSCRIPT" ]; then
   exit 0
 fi
 
+# Skip in subagent (sidechain) sessions — this guard is a parent-only workflow check.
+# Subagents are the dispatched executor, so the "parent picking up after partial" rule
+# does not apply to them.
+if head -1 "$TRANSCRIPT" 2>/dev/null | grep -q '"isSidechain":true'; then
+  exit 0
+fi
+
 # Extract the window since the last real user message (same logic as pre-agent-aegis-guard.sh).
 # WINDOW_LINES=300 is larger than the 200 used in pre-edit-brainstorming-guard.sh because
 # a single turn with subagent dispatch + completion + other tool uses can exceed 200 lines.

@@ -28,6 +28,14 @@ if [ "$TOOL" != "Bash" ]; then
   exit 0
 fi
 
+# Skip in subagent (sidechain) sessions — review-before-commit is parent's responsibility.
+TRANSCRIPT_FOR_SIDECHAIN=$(printf '%s' "$INPUT" | jq -r '.transcript_path // ""' 2>/dev/null || true)
+if [ -n "$TRANSCRIPT_FOR_SIDECHAIN" ] && [ -f "$TRANSCRIPT_FOR_SIDECHAIN" ]; then
+  if head -1 "$TRANSCRIPT_FOR_SIDECHAIN" 2>/dev/null | grep -q '"isSidechain":true'; then
+    exit 0
+  fi
+fi
+
 COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""')
 
 # Check whether the command contains git commit

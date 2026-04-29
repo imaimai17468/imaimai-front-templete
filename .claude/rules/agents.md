@@ -1,6 +1,15 @@
 # Agent Dispatch
 
-## Delegation default
+## Audience: parent only
+
+The dispatch / delegation rules below apply to the **parent session**. If you are reading this rule from inside a dispatched subagent invocation (your top-level task came in as a briefing from a parent), ignore the "dispatch to subagent" guidance — *you* are the dispatched agent, and your job is to execute the briefing directly using `Edit` / `Write` / `Bash`. Do not attempt to dispatch further subagents (the `Agent` tool is typically not available to you, and re-dispatching from a subagent would create infinite recursion).
+
+How to tell which side you are on:
+
+- **You are the parent** if the user prompt is a free-form chat message (typical interactive turn).
+- **You are a subagent** if the user prompt is a long, structured briefing that names you as the executor and lists files / acceptance criteria. In that case, follow only the rules below that apply to "the subagent" (mostly the *Before reporting done* section).
+
+## Delegation default (parent)
 
 Tasks at the granularity of "implement a component", "fix a bug", or "refactor this module" should be **dispatched to a subagent** rather than implemented in the parent session. The parent's job is:
 

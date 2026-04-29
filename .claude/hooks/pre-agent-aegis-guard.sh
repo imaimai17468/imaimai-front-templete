@@ -18,6 +18,14 @@ if [ "$TOOL" != "Agent" ]; then
   exit 0
 fi
 
+# Skip in subagent (sidechain) sessions — this guard is a parent-only workflow check.
+TRANSCRIPT_FOR_SIDECHAIN=$(printf '%s' "$INPUT" | jq -r '.transcript_path // ""' 2>/dev/null || true)
+if [ -n "$TRANSCRIPT_FOR_SIDECHAIN" ] && [ -f "$TRANSCRIPT_FOR_SIDECHAIN" ]; then
+  if head -1 "$TRANSCRIPT_FOR_SIDECHAIN" 2>/dev/null | grep -q '"isSidechain":true'; then
+    exit 0
+  fi
+fi
+
 SUBTYPE=$(printf '%s' "$INPUT" | jq -r '.tool_input.subagent_type // ""')
 case "$SUBTYPE" in
   claude-code-guide|Explore|statusline-setup|keybindings-help)
