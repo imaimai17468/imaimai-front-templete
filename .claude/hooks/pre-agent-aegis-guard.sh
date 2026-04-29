@@ -58,7 +58,7 @@ if printf '%s' "$WINDOW" | grep -q 'aegis_compile_context'; then
   exit 0
 fi
 
-REASON="PreToolUse(Agent): 最後のユーザー入力以降に aegis_compile_context の呼び出しが見つかりません。subagent dispatch の前に必ず aegis_compile_context を target_files / plan / command 付きで呼んでください (CLAUDE.md / .claude/rules/agents.md \"Before each dispatch — Aegis is mandatory\" 参照)。read-only search なら subagent_type を Explore にしてください。"
+REASON="PreToolUse(Agent): No aegis_compile_context call found since the last user message. Every subagent dispatch MUST be preceded by aegis_compile_context with target_files / plan / command (see CLAUDE.md and .claude/rules/agents.md \"Before each dispatch — Aegis is mandatory\"). For read-only search, set subagent_type to Explore (which is exempt from this guard)."
 
 jq -n --arg reason "$REASON" '{
   decision: "block",

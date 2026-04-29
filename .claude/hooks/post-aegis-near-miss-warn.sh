@@ -28,9 +28,9 @@ if [ -z "$NEAR_MISS_LIST" ]; then
   exit 0
 fi
 
-CONTEXT="[Aegis near_miss_edges 警告] 以下の edge_hint は glob_no_match でした（ターゲットファイルに一致するファイルが見つからない）。knowledge graph のメンテナンスが必要です。\`aegis_observe({event_type: \"compile_miss\", ...})\` で報告するか、admin surface (aegis_import_doc / edge 編集) で edge_hint の glob パターンを修正してください。
+CONTEXT="[Aegis near_miss_edges warning] The following edge_hints had glob_no_match (the registered glob pattern did not match any file in target_files). If a pattern looks like it SHOULD have matched a target you cared about, this likely indicates a knowledge-graph maintenance issue: report via \`aegis_observe({event_type: \"compile_miss\", ...})\` or fix the edge_hint glob through the admin surface (aegis_import_doc / edge edit). Routine cases where the pattern simply does not relate to your current target_files do not need to be reported.
 
-該当 edge_hint:
+Near-miss edges:
 ${NEAR_MISS_LIST}"
 
 jq -n --arg ctx "$CONTEXT" '{

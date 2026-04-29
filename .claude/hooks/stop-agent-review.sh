@@ -25,24 +25,24 @@ DIFF=$(git diff HEAD 2>&1 || true)
 
 # プロンプト（厳密な出力形式で返させる）
 read -r -d '' PROMPT <<'EOP' || true
-あなたはコードレビュワーです。このリポジトリの `.claude/rules/*.md` (style / architecture / testing / dependencies / tools) を Read してから、以下の未コミット変更が規約に従っているかレビューしてください。
+You are a code reviewer. Read this repo's `.claude/rules/*.md` (style / architecture / testing / dependencies / tools), then review whether the following uncommitted changes comply with those rules.
 
-**規約の要点**:
-- Coding Style: ループ禁止 / Tailwind arbitrary value 禁止 / 色の透明度修飾子禁止
-- Architecture: Directory-First Layout / Container-Presenter 分離 / One Component Per File / Props-Driven Design / Pure Function 抽出
-- Dependencies: package.json は exact version pinning
-- 例外領域: `src/components/ui/*` と `src/lib/utils.ts` (shadcn 由来、page-level ルール適用外)
+**Rule highlights**:
+- Coding Style: no loops; no Tailwind arbitrary values; no color-opacity modifiers.
+- Architecture: directory-first layout; Container/Presenter separation; one component per file; props-driven design; extract pure functions.
+- Dependencies: package.json must use exact version pinning (no ^ / ~).
+- Exempt areas: `src/components/ui/*` and `src/lib/utils.ts` (shadcn-derived; page-level rules do not apply).
 
-**出力形式 (厳守)**:
-違反が 1 件でもあれば 1 行目に `BLOCK: <違反ファイル・規約名・直し方の要約>` とだけ書く。
-違反なしなら 1 行目に `APPROVE` とだけ書く。
-それ以外の説明・前置き・マークダウン装飾は一切書かない。
+**Output format (strict)**:
+- If there is at least one violation, write only `BLOCK: <file · rule · how to fix (one-line summary)>` as the first line.
+- If there are no violations, write only `APPROVE` as the first line.
+- No explanations, preambles, or markdown decoration are allowed.
 EOP
 
 # headless Claude 起動
 RESULT=$(printf '%s\n\n=== git status ===\n%s\n\n=== git diff HEAD ===\n%s\n' "$PROMPT" "$STATUS" "$DIFF" \
   | CLAUDE_STOP_HOOK_RECURSION=1 claude -p --model "$MODEL" --output-format json 2>&1) || {
-    echo '{"systemMessage":"⚠️ Stop agent review: claude -p 起動失敗（スキップ）"}'
+    echo '{"systemMessage":"⚠️ Stop agent review: claude -p failed to start (skipped)"}'
     exit 0
   }
 
@@ -57,14 +57,14 @@ FIRST_LINE=$(printf '%s' "$TEXT" | head -n 1)
 if printf '%s' "$FIRST_LINE" | grep -q '^BLOCK'; then
   REASON=$(printf '%s' "$FIRST_LINE" | sed 's/^BLOCK:[[:space:]]*//')
   jq -n --arg r "$REASON" '{
-    systemMessage: ("⛔ Stop agent review: coding-guide 違反 — " + $r),
+    systemMessage: ("⛔ Stop agent review: coding-guide violation — " + $r),
     decision: "block",
-    reason: ("Stop agent review で coding-guide 違反を検出しました:\n\n" + $r)
+    reason: ("Stop agent review detected a coding-guide violation:\n\n" + $r)
   }'
 elif printf '%s' "$FIRST_LINE" | grep -q '^APPROVE'; then
-  echo '{"systemMessage":"✅ Stop agent review: coding-guide 準拠"}'
+  echo '{"systemMessage":"✅ Stop agent review: coding-guide OK"}'
 else
-  jq -n --arg r "$FIRST_LINE" '{systemMessage: ("⚠️ Stop agent review: 予期しない応答 — " + $r)}'
+  jq -n --arg r "$FIRST_LINE" '{systemMessage: ("⚠️ Stop agent review: unexpected response — " + $r)}'
 fi
 
 exit 0

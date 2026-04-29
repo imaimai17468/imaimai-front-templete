@@ -112,7 +112,7 @@ if printf '%s' "$WINDOW" | grep -q 'superpowers:requesting-code-review'; then
   exit 0
 fi
 
-REASON="PreToolUse(Bash/git commit): subagent からの成果物がコミット直前に独立 code-review を経ていません。git commit の前に Skill('superpowers:requesting-code-review') を invoke してください (.claude/rules/agents.md \"Before reporting done\" 参照)。trivial な docs-only / config-only / 1 行修正なら例外的に許容されるが、その場合は本フックが pass するはずです。pass しないなら trivial 判定に当てはまらない変更が含まれている可能性があります。"
+REASON="PreToolUse(Bash/git commit): subagent output is about to be committed without an independent code review. Invoke Skill('superpowers:requesting-code-review') before git commit (see .claude/rules/agents.md \"Before reporting done\"). Trivial docs-only / config-only / single-line changes are exempted automatically; if this guard fires, the staged diff likely contains non-trivial changes that should go through review."
 
 jq -n --arg reason "$REASON" '{
   decision: "block",

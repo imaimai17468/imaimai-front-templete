@@ -63,11 +63,11 @@ esac
 
 if [ -n "$REASONS" ]; then
   printf '%s' "$REASONS" | jq -Rs --arg file "$FILE" '{
-    systemMessage: ("⛔ PreToolUse deny: coding-guide 違反 — " + $file + "\n" + .),
+    systemMessage: ("⛔ PreToolUse deny: coding-guide violation — " + $file + "\n" + .),
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
       permissionDecision: "deny",
-      permissionDecisionReason: ("coding-guide 違反を検出しました。以下を修正してから再度書いてください:\n\n" + .)
+      permissionDecisionReason: ("Coding-guide violations detected. Fix the following before writing again:\n\n" + .)
     }
   }'
 fi

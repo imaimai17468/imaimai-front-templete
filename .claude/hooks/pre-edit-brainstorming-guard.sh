@@ -97,7 +97,7 @@ if printf '%s' "$WINDOW" | grep -q 'superpowers:brainstorming'; then
 fi
 
 # brainstorming が起動されていない → block
-REASON="PreToolUse(Edit/Write): creative work を検知しているのに superpowers:brainstorming skill が起動されていません。Edit/Write の前に Skill('superpowers:brainstorming') を invoke してください (CLAUDE.md / superpowers ルール参照)。"
+REASON="PreToolUse(Edit/Write): creative work was detected in the latest user prompt, but Skill('superpowers:brainstorming') has not been invoked since. Invoke superpowers:brainstorming before any Edit/Write/MultiEdit (see CLAUDE.md and the superpowers rules). If this is bug-fix work, the prompt should make that explicit (the guard exempts prompts containing bug/fix/hotfix/バグ)."
 
 jq -n --arg reason "$REASON" '{
   decision: "block",

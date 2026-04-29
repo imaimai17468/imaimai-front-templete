@@ -125,7 +125,7 @@ else
 fi
 
 # 全条件を満たした → block
-REASON='PreToolUse(Edit|Write|MultiEdit): subagent が partial completion で返ってきた直後に parent が直接編集しようとしています。.claude/rules/agents.md "When a subagent returns incomplete" の規定により、残作業は新しい subagent をディスパッチして委譲してください。明示的に parent で巻き取りたい場合はユーザーに確認のうえ、ユーザー側から「parent でやって」等の指示を出してもらってください。'
+REASON='PreToolUse(Edit|Write|MultiEdit): a subagent returned partial completion in the recent window and the parent is now attempting a direct edit. Per .claude/rules/agents.md "When a subagent returns incomplete", the remaining work MUST be delegated to a new subagent dispatch. If you genuinely need the parent to take it over, ask the user explicitly and have them issue an override (e.g. "parent でやって" / "do it yourself"); the guard will then pass.'
 
 jq -n --arg reason "$REASON" '{
   decision: "block",

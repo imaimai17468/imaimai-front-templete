@@ -44,15 +44,15 @@ fi
 REMINDERS=()
 
 if [ $is_planning -eq 1 ]; then
-  REMINDERS+=("計画立案の指示を検知。**EnterPlanMode に入る前に** Skill(\"superpowers:writing-plans\") を invoke してフォーマットを取得し、aegis_compile_context を target_files で呼び、関連 ADR (docs/adr/) を参照してから ExitPlanMode で plan を提示すること。plan は ./.claude/plans/ に保存される。")
+  REMINDERS+=("Planning request detected. **Before entering EnterPlanMode**, invoke Skill(\"superpowers:writing-plans\") to load the canonical plan format, call aegis_compile_context with the target_files, and check docs/adr/ for relevant ADRs. Only then present the plan via ExitPlanMode. Plans are persisted under ./.claude/plans/.")
 fi
 
 if [ $is_creative -eq 1 ]; then
-  REMINDERS+=("創作・設計系の指示を検知。CLAUDE.md ルールに従い、コード変更前に **必ず Skill(\"superpowers:brainstorming\") を invoke** して要件を発散・確認すること。「自分で決められる」と思った瞬間が skill 違反のサイン。")
+  REMINDERS+=("Creative / design request detected. Per CLAUDE.md, you MUST invoke Skill(\"superpowers:brainstorming\") before any code change to elicit and confirm requirements. The moment you feel you can decide on your own is the moment you are skipping the skill.")
 fi
 
 if [ $is_implementation -eq 1 ]; then
-  REMINDERS+=("実装系の指示を検知。コード編集に着手する前に: (1) **aegis_compile_context** を target_files / plan / command / **intent_tags 明示** で呼ぶ (このリポでは SLM tagger 無効なので intent_tags 省略 = expanded スキップ。aegis_get_known_tags で catalog を引いてから関連タグを 1〜3 個渡すこと)、(2) チケット粒度なら parent で書かず **subagent ディスパッチ** (model 明示)、(3) subagent が未完了で返ってきたら parent で巻き取らず **新しい subagent を再ディスパッチ**、(4) Presenter / pure function を追加するなら **Skill(\"superpowers:test-driven-development\")** を経由。")
+  REMINDERS+=("Implementation request detected. Before any code edit: (1) call **aegis_compile_context** with target_files / plan / command / **explicit intent_tags** (the SLM tagger is disabled in this repo, so omitting intent_tags means expanded is empty — call aegis_get_known_tags first and pass 1–3 relevant tags); (2) for ticket-granularity work, do NOT write in the parent — **dispatch a subagent** (with explicit model); (3) if a subagent returns incomplete, do NOT pick up the remainder in the parent — **dispatch a new subagent**; (4) when adding a Presenter or pure function, go through **Skill(\"superpowers:test-driven-development\")**.")
 fi
 
 # additionalContext として返す（ユーザーには見せず assistant context に注入）

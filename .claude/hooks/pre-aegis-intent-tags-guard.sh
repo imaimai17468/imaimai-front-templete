@@ -30,7 +30,7 @@ esac
 HAS_TAGS=$(printf '%s' "$INPUT" | jq '(.tool_input.intent_tags // null) == null')
 
 if [ "$HAS_TAGS" = "true" ]; then
-  REASON="PreToolUse(aegis_compile_context): intent_tags が指定されていません。CLAUDE.md / AGENTS.md の規則により、intent_tags の省略は禁止です。expanded context を明示的にスキップしたい場合は intent_tags: [] を渡してください。intent_tags を使うには先に aegis_get_known_tags でカタログを取得し、関連タグを 1〜3 個選んで渡してください。"
+  REASON="PreToolUse(aegis_compile_context): intent_tags is missing. Per CLAUDE.md / AGENTS.md, omitting intent_tags is forbidden in this repo (the SLM tagger is disabled, so omission yields empty expanded). To explicitly skip expanded context, pass intent_tags: []. To use intent_tags, call aegis_get_known_tags first to load the catalog, then pass 1–3 relevant tags."
   jq -n --arg reason "$REASON" '{
     decision: "block",
     reason: $reason

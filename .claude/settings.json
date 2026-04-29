@@ -215,7 +215,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "F=$(jq -r '.tool_input.file_path // \"\"'); case \"$F\" in *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs) ;; *) exit 0 ;; esac; cd $CLAUDE_PROJECT_DIR && OUT=$(bun run lint 2>&1 && bun run typecheck 2>&1); RC=$?; if [ $RC -ne 0 ]; then printf '%s' \"$OUT\" | jq -Rs --arg file \"$F\" '{systemMessage:(\"⛔ PostToolUse block: lint/typecheck 失敗 — \" + $file), decision:\"block\", reason:(\"PostToolUse: 編集後の lint / typecheck が失敗しました。次のツール呼び出し前に直してください。\\n\\n\" + .)}'; fi; exit 0",
+            "command": "F=$(jq -r '.tool_input.file_path // \"\"'); case \"$F\" in *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs) ;; *) exit 0 ;; esac; cd $CLAUDE_PROJECT_DIR && OUT=$(bun run lint 2>&1 && bun run typecheck 2>&1); RC=$?; if [ $RC -ne 0 ]; then printf '%s' \"$OUT\" | jq -Rs --arg file \"$F\" '{systemMessage:(\"⛔ PostToolUse block: lint / typecheck failed — \" + $file), decision:\"block\", reason:(\"PostToolUse: lint / typecheck failed after the edit. Fix this before the next tool call.\\n\\n\" + .)}'; fi; exit 0",
             "timeout": 60,
             "statusMessage": "Per-edit check: lint + typecheck..."
           }
