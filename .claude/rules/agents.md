@@ -25,16 +25,6 @@ Exception: trivial one-liners, typo fixes, and config tweaks are done directly i
 
 **Every** subagent dispatch MUST be preceded by a fresh `aegis_compile_context` call whose `target_files` and `plan` reflect the briefing you are about to send. One call per session is NOT enough — Aegis must be re-consulted whenever the target file set or the intent changes (i.e., before every `Agent` tool call). The returned guidelines MUST be quoted into the briefing so the subagent does not need to re-derive them.
 
-## When a subagent returns incomplete
-
-If a dispatched subagent reports partial completion, gives up, errors out, or otherwise leaves work undone, the parent MUST NOT pick up the remaining implementation in-session. Instead:
-
-1. Read the subagent's diff and summary, and identify exactly what is left.
-2. Write a new self-contained briefing for the missing slice (include the prior subagent's diff as context, and the explicit slice that is still missing).
-3. **Dispatch a new subagent** for that slice. Re-consult `aegis_compile_context` first.
-
-The parent only intervenes directly for the trivial-edit exception above (one-liners / typo / config). Anything else is delegated. Parent-side implementation after a subagent stall is the anti-pattern this rule exists to block — do not rationalize past it.
-
 ## Model selection for subagents
 
 When dispatching a subagent, **always set `model` explicitly**. Omitting it means inheriting the parent (often Opus), which is expensive for most work.

@@ -164,29 +164,6 @@
         ]
       },
       {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-use-guard.sh",
-            "timeout": 10,
-            "statusMessage": "Pre-edit guard: checking for coding-guide violations..."
-          },
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-edit-brainstorming-guard.sh",
-            "timeout": 5,
-            "statusMessage": "Pre-edit brainstorming guard: confirming brainstorming was invoked for creative work..."
-          },
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-edit-parent-pickup-guard.sh",
-            "timeout": 5,
-            "statusMessage": "Pre-edit parent-pickup guard: checking parent pickup after subagent partial completion..."
-          }
-        ]
-      },
-      {
         "matcher": "Agent",
         "hooks": [
           {
