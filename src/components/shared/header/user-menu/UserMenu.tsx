@@ -1,7 +1,5 @@
-"use client";
-
+import { Link } from "@tanstack/react-router";
 import { LogOut, User as UserIcon } from "lucide-react";
-import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -50,7 +48,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/profile" className="cursor-pointer">
+          <Link to="/profile" className="cursor-pointer">
             <UserIcon className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </Link>

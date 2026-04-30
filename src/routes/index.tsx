@@ -1,7 +1,12 @@
+import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { ClockContainer } from "./components/Clock/Clock.container";
+import { ClockContainer } from "./-components/Clock/Clock.container";
 
-export default function Home() {
+export const Route = createFileRoute("/")({
+  component: HomeComponent,
+});
+
+function HomeComponent() {
   return (
     <div className="space-y-16">
       <h1 className="font-bold text-4xl">Hello World</h1>

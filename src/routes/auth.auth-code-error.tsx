@@ -1,8 +1,12 @@
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { AlertTriangle } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-export default function AuthCodeErrorPage() {
+export const Route = createFileRoute("/auth/auth-code-error")({
+  component: AuthCodeErrorComponent,
+});
+
+function AuthCodeErrorComponent() {
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-6">
       <div className="flex flex-col items-center gap-4">
@@ -16,10 +20,10 @@ export default function AuthCodeErrorPage() {
       </div>
       <div className="flex gap-4">
         <Button asChild>
-          <Link href="/login">Go to Login</Link>
+          <Link to="/login">Go to Login</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href="/">Return to Home</Link>
+          <Link to="/">Return to Home</Link>
         </Button>
       </div>
     </div>

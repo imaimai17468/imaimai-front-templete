@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { Clock } from "./Clock";
 import { formatJapanTime } from "./utils";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import type { UserWithEmail } from "@/entities/user";
 import { UserMenu } from "../user-menu/UserMenu";
@@ -14,7 +14,7 @@ export const AuthNavigation = ({ user }: AuthNavigationProps) => {
 
   return (
     <Button asChild size="sm" className="text-sm">
-      <Link href="/login">Sign In</Link>
+      <Link to="/login">Sign In</Link>
     </Button>
   );
 };

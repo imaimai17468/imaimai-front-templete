@@ -3,21 +3,13 @@
   "entry": [
     "src/client.tsx",
     "src/router.tsx",
-    "src/app/**/{page,layout,loading,error,not-found,route}.{ts,tsx}",
+    "src/routes/**/*.{ts,tsx}",
+    "src/server/fn/**/*.ts",
     "scripts/**/*.{ts,js,sh}",
     "src/components/ui/**/*.{ts,tsx}",
     "src/lib/utils.ts"
   ],
   "project": ["src/**/*.{ts,tsx}"],
-  "ignore": [
-    "src/actions/**",
-    "src/middleware.ts",
-    "src/app/**",
-    "src/components/shared/header/**",
-    "src/gateways/**",
-    "src/lib/auth/session.ts",
-    "src/lib/drizzle/db.ts",
-    "src/lib/storage/r2.ts"
-  ],
-  "ignoreDependencies": ["lefthook", "tailwindcss", "tw-animate-css", "@tailwindcss/postcss"]
+  "ignoreDependencies": ["lefthook", "tailwindcss", "tw-animate-css"],
+  "ignore": ["src/server/cloudflare.ts"]
 }

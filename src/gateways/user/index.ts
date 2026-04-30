@@ -1,13 +1,12 @@
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 import {
   type UpdateUser,
   type UserWithEmail,
   UserWithEmailSchema,
 } from "@/entities/user";
+import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/drizzle/db";
 import { users } from "@/lib/drizzle/schema";
-import { getSession } from "@/lib/auth/session";
 import { uploadToR2 } from "@/lib/storage/r2";
 
 export const fetchCurrentUser = async (): Promise<UserWithEmail | null> => {
@@ -17,7 +16,7 @@ export const fetchCurrentUser = async (): Promise<UserWithEmail | null> => {
     return null;
   }
 
-  const db = await getDb();
+  const db = getDb();
   const authUser = session.user;
 
   const profile = await db
@@ -47,16 +46,11 @@ export const updateUser = async (
   data: UpdateUser
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    const db = await getDb();
+    const db = getDb();
     await db
       .update(users)
-      .set({
-        name: data.name,
-        updatedAt: new Date(),
-      })
+      .set({ name: data.name, updatedAt: new Date() })
       .where(eq(users.id, userId));
-
-    revalidatePath("/profile");
     return { success: true };
   } catch {
     return { success: false, error: "Failed to update profile" };
@@ -73,16 +67,12 @@ export const updateUserAvatar = async (
   try {
     const publicUrl = await uploadToR2(key, file, file.type);
 
-    const db = await getDb();
+    const db = getDb();
     await db
       .update(users)
-      .set({
-        image: publicUrl,
-        updatedAt: new Date(),
-      })
+      .set({ image: publicUrl, updatedAt: new Date() })
       .where(eq(users.id, userId));
 
-    revalidatePath("/profile");
     return { success: true, avatarUrl: publicUrl };
   } catch {
     return { success: false, error: "Failed to upload avatar" };

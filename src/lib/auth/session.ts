@@ -1,8 +1,8 @@
-import { headers } from "next/headers";
-import { auth } from "./auth";
+import { getRequest } from "@tanstack/react-start/server";
+import { getAuth } from "./auth";
 
 export const getSession = async () => {
-  return await auth.api.getSession({ headers: await headers() });
+  return await getAuth().api.getSession({ headers: getRequest().headers });
 };
 
 /** @public セッションから User を取り出すヘルパー。テンプレ用途で公開、派生実装で使う想定。 */
