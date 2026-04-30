@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "start": "node .output/server/index.mjs",
     "lint": "oxlint src",
     "lint:fix": "oxlint --fix src",
     "format": "oxfmt --check src",
@@ -23,7 +22,7 @@
     "db:pull": "drizzle-kit pull",
     "db:push:local": "bash scripts/setup-local-db.sh",
     "db:seed:local": "bun run scripts/seed-local.ts",
-    "preview": "vite build && wrangler dev",
+    "preview": "vite build && vite preview",
     "deploy": "vite build && wrangler deploy"
   },
   "dependencies": {

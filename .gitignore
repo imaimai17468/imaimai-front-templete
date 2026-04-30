@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+# next.js (legacy — keep until all clones are clean)
+.next/
+
 # tanstack start (vite)
 .output/
 .tanstack/
