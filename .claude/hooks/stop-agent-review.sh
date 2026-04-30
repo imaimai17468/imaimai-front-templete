@@ -6,7 +6,6 @@
 set -uo pipefail
 
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-MODEL="gpt-4.1"
 TMPOUT=$(mktemp)
 
 cd "$ROOT"
@@ -35,7 +34,7 @@ EOP
 FULL_PROMPT=$(printf '%s\n%s\n\n=== git diff HEAD ===\n%s\n' "$PROMPT" "$STATUS" "$DIFF")
 
 printf '%s' "$FULL_PROMPT" \
-  | codex exec --ephemeral -m "$MODEL" -s read-only -o "$TMPOUT" - 2>/dev/null
+  | codex exec --ephemeral -s read-only -o "$TMPOUT" - >/dev/null 2>&1
 RC=$?
 
 TEXT=$(cat "$TMPOUT" 2>/dev/null || true)
