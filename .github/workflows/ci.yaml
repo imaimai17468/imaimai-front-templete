@@ -29,6 +29,9 @@ jobs:
     - name: Install dependencies
       run: bun install --frozen-lockfile
 
+    - name: Generate route tree
+      run: bun run generate-routes
+
     - name: Generate Cloudflare env types
       run: bun run cf-typegen
 

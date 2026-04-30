@@ -7,6 +7,7 @@ import { getCloudflareEnv } from "@/server/cloudflare";
 const buildAuth = () => {
   const env = getCloudflareEnv() as unknown as Record<string, string>;
   return betterAuth({
+    baseURL: env.BETTER_AUTH_URL,
     database: drizzleAdapter(getDb(), {
       provider: "sqlite",
       schema: {

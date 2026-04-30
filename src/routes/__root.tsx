@@ -23,6 +23,7 @@ export const Route = createRootRoute({
     return { user };
   },
   component: RootComponent,
+  notFoundComponent: () => <p>ページが見つかりません</p>,
 });
 
 function RootComponent() {
