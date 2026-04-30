@@ -1,58 +1,58 @@
-# Architecture Decision Records
+# Architecture Decision Records (ADR)
 
-Long-lived rationale records for non-obvious decisions. Plans / commit messages capture *what* changed; ADRs capture **why** the team chose this path over alternatives, so future readers can re-litigate the decision when context shifts.
+自明でない設計判断の根拠を長期保存するための記録。プランやコミットメッセージは「何を変えたか」を記録するが、ADR は **なぜその選択肢を選んだか** を記録する。将来の読者が状況変化時に判断を再検討できるようにするためのもの。
 
-## When to write an ADR
+## ADR を書くとき
 
-Write one when **all** of the following apply:
+以下の **すべて** に該当する場合に書く：
 
-- The decision is hard to reverse without coordinated effort
-- The right answer wasn't obvious — there were credible alternatives
-- The reason will be forgotten within 6 months without writing it down
+- 協調的な作業なしには巻き戻しが難しい判断
+- 正解が自明ではなく、有力な代替案が存在した
+- 6 か月後には理由が忘れられている
 
-If a future reader can re-derive the decision from the code or commit message alone, no ADR needed.
+コードやコミットメッセージだけで判断を再導出できる場合は ADR 不要。
 
-## Format
+## フォーマット
 
-Use MADR-lite. Each ADR is one Markdown file at `docs/adr/NNNN-kebab-title.md` with this skeleton:
+MADR-lite を使用。各 ADR は `docs/adr/NNNN-kebab-title.md` に以下の骨格で作成する：
 
 ```markdown
-# NNNN. Title
+# NNNN. タイトル
 
 - Status: proposed | accepted | superseded by NNNN | deprecated
 - Date: YYYY-MM-DD
 
 ## Context
 
-What problem are we solving? What constraints / forces apply?
+どんな問題を解決するのか？ どんな制約・力学があるか？
 
 ## Decision
 
-What did we decide? One paragraph, declarative.
+何を決定したか。1 段落、宣言的に書く。
 
 ## Alternatives considered
 
-- **Alt A**: why rejected
-- **Alt B**: why rejected
+- **案 A**: 却下理由
+- **案 B**: 却下理由
 
 ## Consequences
 
-What does this make easier? Harder? What follow-up is implied?
+何が容易になるか？ 何が難しくなるか？ どんなフォローアップが必要か？
 ```
 
-Keep each ADR under ~80 lines. If it's getting longer, split it.
+各 ADR は約 80 行以内に収める。長くなる場合は分割する。
 
-## Numbering
+## 番号付け
 
-Strictly sequential, zero-padded to 4 digits. Never renumber. When an ADR is superseded, mark old as `superseded by NNNN` and create a new one — do not edit the old decision in place.
+厳密に連番、4 桁ゼロ埋め。絶対に振り直さない。ADR が置き換えられた場合は旧 ADR を `superseded by NNNN` にマークし、新しい ADR を作成する。旧 ADR の Decision を書き換えてはならない。
 
-## Index
+## 一覧
 
-| # | Title | Status |
+| # | タイトル | Status |
 |---|---|---|
-| [0001](0001-coding-rules-via-claude-rules-include.md) | Coding rules live in `.claude/rules/` and load via `AGENTS.md` `@include` | accepted |
-| [0002](0002-direct-deps-only-audit.md) | `bun audit` blocks only on direct-dep vulnerabilities | accepted |
-| [0003](0003-subagent-driven-implementation.md) | Ticket-granularity implementation is delegated to subagents | accepted |
-| [0004](0004-permission-deny-as-security-boundary.md) | `permissions.deny` is the security boundary, not `ask` | accepted |
-| [0005](0005-wrangler-types-for-cloudflare-env.md) | Generate `CloudflareEnv` via `wrangler types`, not hand-written | accepted |
-| [0006](0006-orchestration-layering.md) | `/start-workflow` is the single orchestration entry; aegis / superpowers / custom skills are sub-steps | accepted |
+| [0001](0001-coding-rules-via-claude-rules-include.md) | コーディングルールは `.claude/rules/` に配置し `AGENTS.md` の `@include` でロード | accepted |
+| [0002](0002-direct-deps-only-audit.md) | `bun audit` は直接依存の脆弱性のみブロック | accepted |
+| [0003](0003-subagent-driven-implementation.md) | チケット粒度の実装は subagent に委譲 | accepted |
+| [0004](0004-permission-deny-as-security-boundary.md) | `permissions.deny` がセキュリティ境界（`ask` ではない） | accepted |
+| [0005](0005-wrangler-types-for-cloudflare-env.md) | `CloudflareEnv` は `wrangler types` で生成（手書き禁止） | accepted |
+| [0006](0006-orchestration-layering.md) | `/start-workflow` が唯一のオーケストレーション入口。aegis / superpowers / カスタムスキルはサブステップ | accepted |

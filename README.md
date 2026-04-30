@@ -55,7 +55,21 @@ http://localhost:5173 でアクセス。`@cloudflare/vite-plugin` により、`b
 - **[oxfmt](https://oxc.rs/docs/guide/usage/formatter)** — Formatter (`.oxfmtrc.json`)
 - **[lefthook](https://github.com/evilmartians/lefthook)** — Git hooks (`lefthook.yml`)
 - **[knip](https://knip.dev/)** — Unused deps/exports/files detection (`knip.json`)
-- **[similarity-ts](https://github.com/mizchi/similarity)** — Code similarity detector (Rust の `cargo install similarity-ts` で別途インストール)
+- **[similarity-ts](https://github.com/mizchi/similarity)** — Code similarity detector
+
+### similarity-ts のインストール
+
+`similarity-ts` は Rust 製のため `cargo` が必要です。別途インストールしてプロジェクトルートから実行：
+
+```bash
+cargo install similarity-ts
+
+similarity-ts ./src                  # デフォルト
+similarity-ts ./src --print          # マッチしたコードを表示
+similarity-ts ./src --threshold 0.7  # デフォルトは 0.85
+```
+
+Stop quality gate hook が自動実行するので、手動実行は調査時のみ。
 
 ## プロジェクト構成
 
@@ -95,15 +109,14 @@ src/
 - **[AGENTS.md](./AGENTS.md)** — 常時ロードされるコーディング規約 (`@include` 経由で `.claude/rules/*.md` を読み込み)
 - **[docs/adr/README.md](./docs/adr/README.md)** — 主要設計判断の長期記録 (なぜ今こう決まっているのか)
 
-普段使う slash コマンドは 3 つだけ:
+普段使う slash コマンドは 2 つだけ:
 
-| Command           | When                                 |
-| ----------------- | ------------------------------------ |
-| `/start-workflow` | ticket 粒度の作業を始める時           |
-| `/commit`         | コミット境界で                       |
-| `/pr`             | PR 作成時                            |
+| Command    | When           |
+| ---------- | -------------- |
+| `/commit`  | コミット境界で |
+| `/pr`      | PR 作成時      |
 
-trivial な 1 行修正・config 1 値・docs only な変更はこのフローに乗せず直接編集します。
+`/start-workflow` は ticket 粒度の作業をエージェントが検知して自律的に invoke します（手動でも呼べます）。trivial な 1 行修正・config 1 値・docs only な変更はこのフローに乗せず直接編集します。
 
 ## shadcn/ui
 
