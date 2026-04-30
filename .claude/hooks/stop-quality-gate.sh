@@ -30,7 +30,22 @@ SIM_BIN="$HOME/.cargo/bin/similarity-ts"
 SIM=$( ([ -x "$SIM_BIN" ] && "$SIM_BIN" ./src 2>&1) || true)
 
 KNIP_HAS=$(printf '%s' "$KNIP" | grep -cE '^(Unused |Duplicate |Configuration |Unresolved )' || true)
-SIM_HAS=$(printf '%s' "$SIM" | grep -cE 'Total similar (type pairs|functions) found: [1-9]' || true)
+
+# Filter out similarity findings where the source line has a similarity-ignore comment
+SIM_UNIGNORED=0
+if printf '%s' "$SIM" | grep -qE 'Total similar (type pairs|functions) found: [1-9]'; then
+  while IFS= read -r loc; do
+    file=$(printf '%s' "$loc" | sed 's/\.\///' | cut -d: -f1)
+    line=$(printf '%s' "$loc" | cut -d: -f2)
+    prev=$((line - 1))
+    if [ "$prev" -ge 1 ] && [ -f "$file" ]; then
+      prev_content=$(sed -n "${prev}p" "$file")
+      case "$prev_content" in *similarity-ignore*) continue ;; esac
+    fi
+    SIM_UNIGNORED=$((SIM_UNIGNORED + 1))
+  done <<< "$(printf '%s' "$SIM" | grep -oE '\./[^ ]+:[0-9]+' | sort -u)"
+fi
+SIM_HAS=$SIM_UNIGNORED
 
 if [ "$KNIP_HAS" -gt 0 ] || [ "$SIM_HAS" -gt 0 ]; then
   # Summary
