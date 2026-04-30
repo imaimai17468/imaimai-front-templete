@@ -147,6 +147,12 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/stop-component-verify.sh",
             "timeout": 300,
             "statusMessage": "Stop component verify: chrome-devtools MCP component verification..."
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/stop-aegis-sync-check.sh",
+            "timeout": 10,
+            "statusMessage": "Aegis sync check: verifying knowledge base is up to date with rule/ADR changes..."
           }
         ]
       }
@@ -160,29 +166,6 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-aegis-intent-tags-guard.sh",
             "timeout": 5,
             "statusMessage": "Pre-aegis intent_tags guard: confirming intent_tags is specified..."
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-use-guard.sh",
-            "timeout": 10,
-            "statusMessage": "Pre-edit guard: checking for coding-guide violations..."
-          },
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-edit-brainstorming-guard.sh",
-            "timeout": 5,
-            "statusMessage": "Pre-edit brainstorming guard: confirming brainstorming was invoked for creative work..."
-          },
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-edit-parent-pickup-guard.sh",
-            "timeout": 5,
-            "statusMessage": "Pre-edit parent-pickup guard: checking parent pickup after subagent partial completion..."
           }
         ]
       },

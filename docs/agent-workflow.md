@@ -1,216 +1,265 @@
-# Agent Workflow
+# エージェントワークフロー
 
-This document is the working manual for using Claude Code (or other AI coding agents) on this repository. It describes the orchestration entry point, the layers that run automatically, the maintenance loops, and edge-case flows.
+Claude Code（や他の AI コーディングエージェント）でこのリポジトリを開発するための作業マニュアルです。オーケストレーションの入口、自動で動くレイヤー、メンテナンスループ、構成要素の役割を説明します。
 
-For the *why* behind these decisions, see the [ADR index](./adr/README.md). The single-source coding rules live under [`.claude/rules/`](../.claude/rules/) and load into every session via [`AGENTS.md`](../AGENTS.md) `@include`.
+判断の「なぜ」は [ADR 一覧](./adr/README.md) を参照。コーディングルールの原本は [`.claude/rules/`](../.claude/rules/) にあり、[`AGENTS.md`](../AGENTS.md) の `@include` で毎セッションにロードされます。
 
 ---
 
 ## TL;DR
 
-> **`/start-workflow` → aegis narrows context → subagent (sonnet) writes → parent reviews → `/commit` → `/pr`**.
-> Permissions, hooks, and rule files keep the work safe and conformant in the background.
+> **`/start-workflow` → Aegis がコンテキスト絞り込み → subagent (sonnet) が実装 → parent がレビュー → `/commit` → `/pr`**
+> パーミッション・hooks・ルールファイルが安全性と品質を自動で担保。
 
-For the user, the active controls are three slash commands:
+ユーザーが能動的に使うコマンドは 2 つだけ：
 
-1. `/start-workflow` — start of any non-trivial task
-2. `/commit` — at each commit boundary
-3. `/pr` — when ready to publish
+1. `/commit` — コミット境界で
+2. `/pr` — PR 作成時
 
-Everything else is automated or invoked from inside `/start-workflow`.
+`/start-workflow` はエージェントが ticket 粒度の作業を検知して自律的に invoke する（手動でも呼べる）。
 
 ---
 
-## (A) Per-task flow
+## タスクフロー
 
 ```
-incoming request
+リクエスト受信
   │
-  ├─ trivial? (one-line fix · typo · single config value · docs only)
-  │   └─ YES → handle directly → /commit
+  ├─ trivial? (1 行修正 · typo · config 1 値 · docs のみ)
+  │   └─ YES → 直接対応 → /commit
   │
-  ↓ NO (= ticket-granularity)
+  ↓ NO (= チケット粒度の作業)
 
 /start-workflow
   ├ 1. Clarify
-  │     If acceptance criteria are ambiguous, ask one focused question.
+  │     受入基準が曖昧なら 1 つだけ質問する。
   │
-  ├ 2. Compile context (aegis)
-  │     aegis_compile_context({ target_files, plan })
-  │     → returns relevant rule / ADR docs with relevance scores.
+  ├ 2. コンテキスト収集 (Aegis)
+  │     aegis_compile_context({ target_files, plan, intent_tags })
+  │     → 関連するルール / ADR を relevance スコア付きで返す。
   │
-  ├ 3. ADR check
-  │     Non-obvious design choice? Draft docs/adr/NNNN-*.md before dispatch.
-  │     Pure mechanical work? Skip.
+  ├ 3. ADR チェック
+  │     非自明な設計判断？ → docs/adr/NNNN-*.md を先に起票。
+  │     純粋な機械作業？ → スキップ。
   │
   ├ 4. Plan
-  │     Short briefing: goal · files · acceptance criteria · verification.
-  │     Complex work → delegate to superpowers:writing-plans.
-  │     Fuzzy requirements → use superpowers:brainstorming first.
+  │     短いブリーフィング: 目的 · 対象ファイル · 受入基準 · 検証手順。
+  │     複雑な作業 → superpowers:writing-plans に委譲。
+  │     要件があいまい → superpowers:brainstorming を先に実行。
   │
-  ├ 5. (optional) Worktree
-  │     Big refactor / parallel branches only.
-  │     superpowers:using-git-worktrees automates the setup.
+  ├ 5. (任意) Worktree
+  │     大規模リファクタ / 並行ブランチの場合のみ。
+  │     superpowers:using-git-worktrees でセットアップ。
   │
   ├ 6. Dispatch
-  │     Agent({ subagent_type: "general-purpose", model: "sonnet", prompt: <briefing> }).
-  │     Independent sub-tasks → multiple Agent calls in one message (parallel).
-  │     TDD-appropriate work → superpowers:test-driven-development.
+  │     Agent({ subagent_type: "general-purpose", model: "sonnet", prompt: <briefing> })
+  │     独立サブタスク → 複数 Agent を 1 メッセージで並列 dispatch。
+  │     TDD 対象 → superpowers:test-driven-development。
   │
-  ├ 7. Review (Before-reporting-done pass)
-  │     Read the diff. Run typecheck / test. Check for missing branch coverage,
-  │     dead code, null/off-by-one bug patterns. Fix via another subagent if
-  │     needed — do NOT write code in the parent.
+  ├ 7. レビュー (Before-reporting-done)
+  │     diff を読む。typecheck / test 実行。ブランチ網羅漏れ、
+  │     dead code、null/off-by-one バグパターンをチェック。
   │
   ├ 8. /commit
-  │     Split by purpose (one commit = one revertible intent).
+  │     目的ごとに分割 (1 コミット = 1 つの revert 可能な意図)。
   │
   └ 9. /pr
-        English summary + chrome-devtools demo GIF for UI changes.
+        サマリー + UI 変更時は chrome-devtools でデモ GIF。
 ```
 
-Anchors:
-- The orchestration sequence and rationale: [ADR-0006](./adr/0006-orchestration-layering.md).
-- Subagent dispatch rules and model selection: [`.claude/rules/agents.md`](../.claude/rules/agents.md), [ADR-0003](./adr/0003-subagent-driven-implementation.md).
-- Commit splitting discipline: [`/commit` skill](../.claude/skills/commit/SKILL.md).
-- PR format including demo GIF: [`/pr` skill](../.claude/skills/pr/SKILL.md).
+参照：
+- オーケストレーション設計と根拠: [ADR-0006](./adr/0006-orchestration-layering.md)
+- subagent dispatch ルール: [`.claude/rules/agents.md`](../.claude/rules/agents.md), [ADR-0003](./adr/0003-subagent-driven-implementation.md)
+- コミット分割規律: [`/commit` skill](../.claude/skills/commit/SKILL.md)
+- PR フォーマット: [`/pr` skill](../.claude/skills/pr/SKILL.md)
 
 ---
 
-## (B) Always-on layers — no manual action needed
+## 構成要素
 
-```
-[Permission gates] — physically refuse destructive actions
-  · deny: rm -rf / git push --force / git reset --hard / .env access / sudo
-  · ask:  git commit / git push / gh pr create / deploy / rm / mv / cp / bun add (no -E)
-  · allow: read-only git/gh/bun, tree/find/grep/cat, wrangler types, ffmpeg
+### Rules (`.claude/rules/`)
 
-[Pre-edit hook] — pre-tool-use-guard.sh
-  · Blocks: for/while loops, Tailwind arbitrary [...], color-opacity modifiers,
-    package.json range specifiers (^, ~, major-only)
+エージェントが毎セッションでロードするコーディング規約。`AGENTS.md` の `@include` で自動注入される。
 
-[Post-edit hook] — runs lint + typecheck per .ts/.tsx/.js/.jsx/.mjs/.cjs edit
-  · Blocks the next tool call on failure.
+| ファイル | 内容 |
+|----------|------|
+| `style.md` | ループ禁止 (`for`/`while` → `map`/`filter`等)、Tailwind arbitrary value 禁止、色の透明度修飾子禁止 |
+| `architecture.md` | ディレクトリファースト配置、Container/Presenter 分離、1 ファイル 1 コンポーネント、Props-Driven Design |
+| `testing.md` | 純粋関数は必ずテスト、AAA パターン、1 テスト 1 expect、White-Box Testing |
+| `dependencies.md` | `package.json` は完全 exact pinning (`^`/`~` 禁止)、`bun add -E` 必須 |
+| `tools.md` | tsgo / oxlint / oxfmt / knip / similarity / wrangler types の使い方 |
+| `agents.md` | subagent dispatch ルール、モデル選択テーブル、レビュー完了チェック |
 
-[Stop hook chain]
-  1. stop-quality-gate.sh:  typecheck + lint + format + knip + similarity (all blocking)
-  2. stop-agent-review.sh:  headless Claude (Opus) reviews diff against .claude/rules/*.md
-  3. stop-component-verify.sh: chrome-devtools MCP smoke-tests new components
+参照: [ADR-0001](./adr/0001-coding-rules-via-claude-rules-include.md)
 
-[Always-loaded prompt]
-  · AGENTS.md @includes .claude/rules/*.md (style/architecture/testing/dependencies/tools/agents)
-  · CLAUDE.md @AGENTS.md + aegis section
-```
+### Hooks (`.claude/hooks/`)
 
-Source of truth: [`.claude/settings.json`](../.claude/settings.json), [`.claude/hooks/*`](../.claude/hooks/).
+Claude Code のイベントに応じて自動実行されるシェルスクリプト。
 
-ADR references:
-- Permission boundary design: [ADR-0004](./adr/0004-permission-deny-as-security-boundary.md).
-- Rules file layout and `@include` strategy: [ADR-0001](./adr/0001-coding-rules-via-claude-rules-include.md).
+| Hook | イベント | 役割 |
+|------|---------|------|
+| `user-prompt-skill-reminder.sh` | UserPromptSubmit | 毎プロンプトで planning / brainstorming / implementation のリマインダーを注入 |
+| `pre-aegis-intent-tags-guard.sh` | PreToolUse (aegis_compile_context) | `intent_tags` が指定されていなければブロック |
+| `pre-agent-aegis-guard.sh` | PreToolUse (Agent) | subagent dispatch 前に aegis_compile_context が呼ばれていなければブロック |
+| `pre-commit-review-guard.sh` | PreToolUse (Bash: git commit) | subagent 成果物が code-review を通っていなければブロック |
+| `post-aegis-near-miss-warn.sh` | PostToolUse (aegis_compile_context) | `near_miss_edges` の `glob_no_match` を警告 |
+| `stop-quality-gate.sh` | Stop | typecheck + lint + format + knip + similarity を実行、失敗でブロック |
+| `stop-agent-review.sh` | Stop | Codex (gpt-5.4) で diff をルールに照合レビュー |
+| `stop-component-verify.sh` | Stop | chrome-devtools MCP で新コンポーネントの表示確認 |
+| `stop-aegis-sync-check.sh` | Stop | `.claude/rules/` や `docs/adr/` に差分があるのに `aegis_sync_docs` / `aegis_import_doc` が未実行なら警告 |
+
+### Skills (`.claude/skills/`)
+
+`/skill-name` で明示呼び出しするタスクテンプレート。
+
+| スキル | 説明 |
+|--------|------|
+| `/start-workflow` | チケット粒度の作業開始。clarify → Aegis → plan → dispatch → review → commit の全フロー |
+| `/commit` | 目的ごとのコミット分割を強制する規律 |
+| `/pr` | PR 作成フォーマット |
+| `/remove-db` | DB / 認証 / ストレージの外科的除去 |
+| `/empirical-prompt-tuning` | スキル / プロンプトの反復改善 |
+| `/aegis-setup` | Aegis ナレッジベースの初期構築 |
+| `/aegis-bulk-import` | ルール / ADR の一括インポート |
+| `/aegis-triage` | pending observations の分析・proposal 生成 |
+
+### Plugins
+
+Claude Code のプラグインとして有効化されている拡張。
+
+| プラグイン | 役割 |
+|-----------|------|
+| `superpowers` | brainstorming / writing-plans / test-driven-development / code-review 等のスキル群 |
+| `figma` | Figma URL からデザインコンテキスト取得・コード生成 |
+| `typescript-lsp` | LSP 連携（型情報・シンボル検索） |
+
+### MCP サーバー (`.mcp.json`)
+
+外部ツールとの接続。
+
+| サーバー | 役割 |
+|----------|------|
+| `aegis` | コンテキストコンパイラ（ルール / ADR の決定論的絞り込み） |
+| `aegis-admin` | Aegis 管理操作（import / triage / proposal 承認） |
+| `context7` | ライブラリドキュメント取得（React, TanStack, Tailwind 等） |
+| `chrome-devtools` | ブラウザ操作（スクリーンショット・クリック・フォーム入力・Lighthouse） |
+
+### パーミッション (`.claude/settings.json`)
+
+| レベル | 対象 | 例 |
+|--------|------|-----|
+| `deny` | 破壊的操作 | `rm -rf`, `git push --force`, `git reset --hard`, `.env` アクセス |
+| `ask` | 確認が必要な操作 | `git commit`, `git push`, `gh pr create`, `deploy`, `rm`, `mv` |
+| `allow` | 自由に実行可能 | read-only git/gh, `bun run`, `bun add -E`, `tree`/`find`/`grep` |
+
+参照: [ADR-0004](./adr/0004-permission-deny-as-security-boundary.md)
 
 ---
 
-## (C) Maintenance loops
+## 自動レイヤー（手動操作不要）
 
-### Dependencies
+```
+[パーミッション] — 破壊的操作を物理的に拒否
+[Pre-edit hooks] — Aegis / subagent dispatch の前提条件を強制
+[Post-edit hook] — 編集ごとに lint + typecheck
+[Stop hook チェーン]
+  1. stop-quality-gate.sh:    typecheck + lint + format + knip + similarity
+  2. stop-agent-review.sh:    Codex (gpt-5.4) が diff をルールに照合レビュー
+  3. stop-component-verify.sh: chrome-devtools で新コンポーネントの表示確認
+[常時ロードされるプロンプト]
+  · AGENTS.md → @include .claude/rules/*.md
+  · CLAUDE.md → @AGENTS.md + Aegis セクション
+```
+
+---
+
+## メンテナンスループ
+
+### 依存関係
 
 ```
 [Dependabot]  weekly
-  · npm:           versioning-strategy: increase (preserves exact pinning)
-  · github-actions: SHA pin updates included
-[CI on every PR/push to main]
+  · npm:           versioning-strategy: increase (exact pinning 維持)
+  · github-actions: SHA pin 更新も含む
+[CI (PR/push to main)]
   · bun install --frozen-lockfile
-  · scripts/audit-direct.sh:  direct deps blocking, transitive informational
+  · scripts/audit-direct.sh:  直接依存はブロック、推移的依存は情報のみ
   · check + test + typecheck + build
 ```
 
-Direct-dep audit policy: [ADR-0002](./adr/0002-direct-deps-only-audit.md). Audit script: [`scripts/audit-direct.sh`](../scripts/audit-direct.sh).
+参照: [ADR-0002](./adr/0002-direct-deps-only-audit.md), [`scripts/audit-direct.sh`](../scripts/audit-direct.sh)
 
-### Aegis knowledge base
+### Aegis ナレッジベース
 
 ```
-[Adding a new rule or ADR]
+[新しいルール / ADR の追加]
   aegis_import_doc({ file_path, doc_id, kind, edge_hints, tags })
-  → individual proposal IDs returned → approve via aegis_approve_proposal
+  → proposal 生成 → aegis_approve_proposal で承認
 
-[Editing an existing rule]
+[既存ルールの編集]
   aegis_sync_docs()
-  → detects content_hash drift, generates update_doc proposals → approve
+  → content_hash の差分検出 → update_doc proposals → 承認
 
-[Compile miss feedback]
-  aegis_observe({ event_type: "compile_miss", related_compile_id, related_snapshot_id, payload })
-  → triage later via the aegis-triage skill → proposals → approve
+[compile miss フィードバック]
+  aegis_observe({ event_type: "compile_miss", ... })
+  → /aegis-triage で分析 → proposals → 承認
 ```
 
-### ADRs
+### ADR
 
-Add a new ADR when a non-obvious design decision is made. Use the MADR-lite template documented in [`docs/adr/README.md`](./adr/README.md). Numbering is strictly sequential — never renumber.
+非自明な設計判断がされたら新しい ADR を追加。MADR-lite テンプレートを使用（[`docs/adr/README.md`](./adr/README.md) 参照）。番号は厳密に連番、絶対に振り直さない。
 
-### Skill / prompt tuning
+### スキル / プロンプトのチューニング
 
-Use [`/empirical-prompt-tuning`](../.claude/skills/empirical-prompt-tuning/SKILL.md) when creating or substantially editing a skill. Iterate against fresh subagents until convergence (zero new ambiguities for two consecutive iterations).
-
----
-
-## Special-case flows
-
-| Situation | What to do |
-|---|---|
-| Figma URL or design implementation request | Dispatch a subagent that uses `figma:figma-implement-design` (calls `mcp__plugin_figma_figma__get_design_context` internally). |
-| Anthropic SDK / Claude API code edit | The `claude-api` skill triggers from imports of `anthropic` / `@anthropic-ai/sdk`. |
-| Bug with unclear root cause | Insert `superpowers:systematic-debugging` before `/start-workflow` step 4. |
-| True parallel multi-agent work (independent branches of one effort) | Use `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`. Single-task offloads stay as single subagent dispatches. |
-| Editing `start-workflow` itself or other load-bearing skills | Run `/empirical-prompt-tuning` against the change; merge only after convergence. |
-| Removing DB / auth / storage to repurpose the template | `/remove-db` skill performs the surgical removal in one pass. |
-| Vulnerability surfaces in transitive dep | Track upstream; do not add `package.json` overrides (per ADR-0002). |
+スキルを新規作成または大幅編集する場合は [`/empirical-prompt-tuning`](../.claude/skills/empirical-prompt-tuning/SKILL.md) を使う。新しい subagent で反復テストし、2 回連続で新たな曖昧さが出なくなるまで改善。
 
 ---
 
-## Active vs passive — what the user actually does
+## 特殊フロー
 
-**Active** (you type these):
-- `/start-workflow` to start
-- `/commit` at boundaries
-- `/pr` when shipping
-
-**Confirmation-only** (the agent asks, you answer):
-- "Should I write an ADR for this decision?"
-- "Compile-miss observed — triage now or later?"
-- Dependabot PR approvals on GitHub
-
-**Fully automated** (you ignore these unless they fail):
-- All hooks (pre/post-tool, stop chain)
-- CI gates
-- Permission denials
+| 状況 | 対応 |
+|------|------|
+| Figma URL やデザイン実装リクエスト | `figma:figma-implement-design` を使う subagent を dispatch |
+| 原因不明のバグ | `/start-workflow` ステップ 4 の前に `superpowers:systematic-debugging` を挿入 |
+| 真の並列マルチエージェント作業 | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` を使用。単一タスクは単一 subagent で |
+| `start-workflow` 自体の編集 | `/empirical-prompt-tuning` で検証してからマージ |
+| テンプレートから DB/認証/ストレージを除去 | `/remove-db` スキルで一括除去 |
+| 推移的依存の脆弱性 | upstream を追跡。`package.json` overrides は追加しない (ADR-0002) |
 
 ---
 
-## Where things live
+## ユーザーの操作レベル
 
-| Concern | Location |
-|---|---|
-| Coding rules | [`.claude/rules/`](../.claude/rules/) (loaded via [`AGENTS.md`](../AGENTS.md) `@include`) |
-| Skills | [`.claude/skills/`](../.claude/skills/) |
-| Hooks | [`.claude/hooks/`](../.claude/hooks/) and [`.claude/settings.json`](../.claude/settings.json) `hooks` |
-| Permissions | [`.claude/settings.json`](../.claude/settings.json) `permissions` |
-| MCP servers | [`.mcp.json`](../.mcp.json), enabled in [`.claude/settings.json`](../.claude/settings.json) `enabledMcpjsonServers` |
-| Plugins | [`.claude/settings.json`](../.claude/settings.json) `enabledPlugins` |
-| ADRs | [`docs/adr/`](./adr/) |
+**能動的**（自分で入力）:
+- `/commit` — 境界で
+- `/pr` — 公開時
+
+**エージェントが自律判断**:
+- `/start-workflow` — ticket 粒度の作業を検知したら自動 invoke（ユーザーが明示的に呼ばなくてもよい）
+
+**確認のみ**（エージェントが聞く）:
+- 「この判断に ADR を書きますか？」
+- compile-miss の triage
+- GitHub の Dependabot PR 承認
+
+**完全自動**（失敗しない限り意識不要）:
+- 全 hooks (pre/post/stop)
+- CI ゲート
+- パーミッション拒否
+
+---
+
+## ファイル配置一覧
+
+| 関心事 | 場所 |
+|--------|------|
+| コーディングルール | [`.claude/rules/`](../.claude/rules/) (via [`AGENTS.md`](../AGENTS.md) `@include`) |
+| スキル | [`.claude/skills/`](../.claude/skills/) |
+| Hooks | [`.claude/hooks/`](../.claude/hooks/) + [`.claude/settings.json`](../.claude/settings.json) `hooks` |
+| パーミッション | [`.claude/settings.json`](../.claude/settings.json) `permissions` |
+| MCP サーバー | [`.mcp.json`](../.mcp.json), [`.claude/settings.json`](../.claude/settings.json) `enabledMcpjsonServers` |
+| プラグイン | [`.claude/settings.json`](../.claude/settings.json) `enabledPlugins` |
+| ADR | [`docs/adr/`](./adr/) |
 | CI | [`.github/workflows/ci.yaml`](../.github/workflows/ci.yaml) + [`scripts/audit-direct.sh`](../scripts/audit-direct.sh) |
-| Dependency automation | [`.github/dependabot.yml`](../.github/dependabot.yml) |
+| 依存自動更新 | [`.github/dependabot.yml`](../.github/dependabot.yml) |
 
----
-
-## similarity install
-
-`similarity-ts` requires Rust's `cargo`. Install separately, then run from the project root:
-
-```bash
-cargo install similarity-ts
-
-similarity-ts ./src                  # default
-similarity-ts ./src --print          # show matched code
-similarity-ts ./src --threshold 0.7  # default is 0.85
-```
-
-The Stop quality gate hook runs this automatically; the manual command is for ad-hoc investigation.

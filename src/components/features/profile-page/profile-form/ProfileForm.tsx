@@ -1,12 +1,9 @@
-"use client";
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Camera, Loader2 } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
-import { updateProfile, uploadAvatar } from "@/actions/profile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import type { UserWithEmail } from "@/entities/user";
 import { UpdateUserSchema } from "@/entities/user";
+import { updateProfileFn, uploadAvatarFn } from "@/server/fn/profile";
 
 // similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
 type ProfileFormProps = {
@@ -64,8 +62,8 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
       if (pendingFile) {
         const avatarData = new globalThis.FormData();
         avatarData.append("avatar", pendingFile);
-        const avatarResult = await uploadAvatar(avatarData);
-        if (avatarResult.error) {
+        const avatarResult = await uploadAvatarFn({ data: avatarData });
+        if ("error" in avatarResult && avatarResult.error) {
           toast.error(avatarResult.error);
           return;
         }
@@ -75,8 +73,8 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
       const formData = new globalThis.FormData();
       formData.append("name", data.name);
 
-      const result = await updateProfile(formData);
-      if (result.error) {
+      const result = await updateProfileFn({ data: formData });
+      if ("error" in result && result.error) {
         toast.error(result.error);
       } else {
         toast.success("Profile updated successfully");

@@ -13,9 +13,14 @@
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
+# next.js (legacy — keep until all clones are clean)
+.next/
+
+# tanstack start (vite)
+.output/
+.tanstack/
+.vite/
+src/routeTree.gen.ts
 
 # production
 /build
@@ -35,13 +40,11 @@ yarn-error.log*
 !.env.local.example
 
 # cloudflare
-.open-next
 .wrangler
 worker-configuration.d.ts
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
 *storybook.log
 storybook-static

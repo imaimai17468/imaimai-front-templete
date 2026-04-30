@@ -1,24 +1,27 @@
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { ModeToggle } from "@/components/shared/mode-toggle/ModeToggle";
-import { fetchCurrentUser } from "@/gateways/user";
+import type { UserWithEmail } from "@/entities/user";
 import { AuthNavigation } from "./auth-navigation/AuthNavigation";
 
-export const Header = async () => {
-  const user = await fetchCurrentUser();
+// similarity-ignore: Header と AuthNavigation はそれぞれ独立した責務（レイアウト vs 認証ナビ）の Props 契約。構造が偶然一致しているだけで共通化しない。
+type HeaderProps = {
+  user: UserWithEmail | null;
+};
 
+export const Header = ({ user }: HeaderProps) => {
   return (
     <header className="sticky top-0 z-50 bg-transparent backdrop-blur-md">
       <div className="flex items-center justify-between px-6 py-6">
         <div>
           <h1 className="font-medium text-2xl">
-            <Link href="/">Title</Link>
+            <Link to="/">Title</Link>
           </h1>
         </div>
         <div className="flex items-center gap-5">
-          <Link href="/link1" className="text-gray-400 text-sm">
+          <Link to="/" className="text-gray-400 text-sm">
             Link1
           </Link>
-          <Link href="/link2" className="text-gray-400 text-sm">
+          <Link to="/" className="text-gray-400 text-sm">
             Link2
           </Link>
           <ModeToggle />

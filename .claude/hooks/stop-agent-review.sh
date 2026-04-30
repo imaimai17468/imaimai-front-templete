@@ -1,55 +1,48 @@
 #!/usr/bin/env bash
-# Stop hook: run a coding-guide review using headless Claude.
-# Agent-type hooks are not available on the Stop event, so we work around it by calling `claude -p` from a command-type hook.
+# Stop hook: run a coding-guide review using Codex CLI (codex exec).
+# Codex automatically reads AGENTS.md which references .claude/rules/*.md.
+# The model is expected to read those rule files via its sandbox shell access.
 
 set -uo pipefail
 
-# Recursion guard: prevent the inner `claude -p` from re-invoking this hook
-if [ "${CLAUDE_STOP_HOOK_RECURSION:-}" = "1" ]; then
-  exit 0
-fi
-
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-MODEL="claude-opus-4-7"
+TMPOUT=$(mktemp)
 
 cd "$ROOT"
 
-# Skip immediately when there are no changes (do not fire on conversation turns)
+# Skip when there are no changes
 if [ -z "$(git status --porcelain)" ]; then
   exit 0
 fi
 
-
 STATUS=$(git status --porcelain 2>&1 || true)
 DIFF=$(git diff HEAD 2>&1 || true)
 
-# Prompt (force a strict output format)
 read -r -d '' PROMPT <<'EOP' || true
-You are a code reviewer. Read this repository's `.claude/rules/*.md` (style / architecture / testing / dependencies / tools), then review whether the following uncommitted changes follow the rules.
-
-**Rule highlights**:
-- Coding Style: no loops / no Tailwind arbitrary values / no color-opacity modifier
-- Architecture: Directory-First Layout / Container-Presenter separation / One Component Per File / Props-Driven Design / pure-function extraction
-- Dependencies: package.json must use exact version pinning
-- Exception areas: `src/components/ui/*` and `src/lib/utils.ts` (shadcn-derived, page-level rules do not apply)
+You are a code reviewer for this repository.
+Read the coding rules in .claude/rules/*.md (style.md, architecture.md, testing.md, dependencies.md, tools.md).
+Then review whether the following uncommitted changes follow those rules.
 
 **Output format (strict)**:
 If there is even one violation, write only `BLOCK: <violating file / rule name / brief fix>` on the first line.
 If there are no violations, write only `APPROVE` on the first line.
 Do not write any other explanation, preamble, or markdown decoration.
+
+=== git status ===
 EOP
 
-# Launch headless Claude
-RESULT=$(printf '%s\n\n=== git status ===\n%s\n\n=== git diff HEAD ===\n%s\n' "$PROMPT" "$STATUS" "$DIFF" \
-  | CLAUDE_STOP_HOOK_RECURSION=1 claude -p --model "$MODEL" --output-format json 2>&1) || {
-    echo '{"systemMessage":"⚠️ Stop agent review: claude -p launch failed (skipped)"}'
-    exit 0
-  }
+FULL_PROMPT=$(printf '%s\n%s\n\n=== git diff HEAD ===\n%s\n' "$PROMPT" "$STATUS" "$DIFF")
 
-# Extract result
-TEXT=$(printf '%s' "$RESULT" | jq -r '.result // empty' 2>/dev/null)
-if [ -z "$TEXT" ]; then
-  TEXT="$RESULT"
+printf '%s' "$FULL_PROMPT" \
+  | codex exec --ephemeral -s read-only -o "$TMPOUT" - >/dev/null 2>&1
+RC=$?
+
+TEXT=$(cat "$TMPOUT" 2>/dev/null || true)
+rm -f "$TMPOUT"
+
+if [ $RC -ne 0 ] || [ -z "$TEXT" ]; then
+  echo '{"systemMessage":"⚠️  Stop agent review: codex exec failed (skipped)"}'
+  exit 0
 fi
 
 FIRST_LINE=$(printf '%s' "$TEXT" | head -n 1)
