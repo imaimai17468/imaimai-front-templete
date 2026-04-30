@@ -1,17 +1,17 @@
 # My App
 
-Next.js 16 + TypeScript + Tailwind CSS + shadcn/ui を使用したモダンな Web アプリケーションテンプレートです。
+TanStack Start + TypeScript + Tailwind CSS + shadcn/ui を使用したモダンな Web アプリケーションテンプレートです。
 
 ## 技術スタック
 
-- **Framework**: Next.js 16 (App Router)
+- **Framework**: TanStack Start (TanStack Router + Vite)
 - **Language**: TypeScript (tsgo)
 - **Styling**: Tailwind CSS v4
 - **UI Components**: shadcn/ui (Radix UI primitives)
 - **Authentication**: Better Auth (Google OAuth)
 - **Database**: Cloudflare D1 (SQLite) + Drizzle ORM
 - **Storage**: Cloudflare R2
-- **Hosting**: Cloudflare Workers (@opennextjs/cloudflare)
+- **Hosting**: Cloudflare Workers (@cloudflare/vite-plugin)
 - **Code Quality**: oxlint (linting) + oxfmt (formatting)
 - **Testing**: Vitest + Testing Library
 - **Package Manager**: Bun
@@ -27,23 +27,25 @@ cp .env.local.example .env.local
 bun run dev
 ```
 
-http://localhost:3000 でアクセス。`next.config.mjs` の `initOpenNextCloudflareForDev` により、`bun run dev` でも Cloudflare D1 / R2 バインディングが有効です。
+http://localhost:5173 でアクセス。`@cloudflare/vite-plugin` により、`bun run dev` でも Cloudflare D1 / R2 バインディングが有効です。
 
 データベース・認証・ストレージのセットアップ手順は [docs/DATABASE_SETUP.md](./docs/DATABASE_SETUP.md) を参照。
 
 ## Scripts
 
-| Command              | Description                      |
-| -------------------- | -------------------------------- |
-| `bun run dev`        | Start dev server                 |
-| `bun run build`      | Production build                 |
-| `bun run typecheck`  | Type check with tsgo             |
-| `bun run lint`       | Run oxlint                       |
-| `bun run format`     | Check formatting with oxfmt      |
-| `bun run format:fix` | Format with oxfmt                |
-| `bun run knip`       | Detect unused deps/exports/files |
-| `bun run test`       | Run tests with Vitest            |
-| `bun run cf-typegen` | Generate `CloudflareEnv` from `wrangler.toml` |
+| Command              | Description                                    |
+| -------------------- | ---------------------------------------------- |
+| `bun run dev`        | Start dev server (with CF bindings via workerd) |
+| `bun run build`      | Production build                               |
+| `bun run preview`    | Build & preview in local workerd               |
+| `bun run deploy`     | Build & deploy to Cloudflare Workers           |
+| `bun run typecheck`  | Type check with tsgo                           |
+| `bun run lint`       | Run oxlint                                     |
+| `bun run format`     | Check formatting with oxfmt                    |
+| `bun run format:fix` | Format with oxfmt                              |
+| `bun run knip`       | Detect unused deps/exports/files               |
+| `bun run test`       | Run tests with Vitest                          |
+| `bun run cf-typegen` | Generate `CloudflareEnv` from `wrangler.toml`  |
 
 ## Tools
 
@@ -59,22 +61,31 @@ http://localhost:3000 でアクセス。`next.config.mjs` の `initOpenNextCloud
 
 ```
 src/
-├── app/                    # Next.js App Router
-│   ├── api/                # API routes (auth, avatars, ...)
-│   ├── components/         # ページ横断で共有する UI primitives
-│   ├── globals.css         # Tailwind v4 トークン
-│   ├── layout.tsx
-│   └── page.tsx
-├── components/             # shadcn/ui プリミティブ等
-│   └── ui/
-└── lib/
-    ├── auth/               # Better Auth 設定
-    ├── drizzle/            # Drizzle ORM スキーマ
-    ├── storage/            # R2 ストレージ
-    └── utils.ts
+├── routes/                 # TanStack Router file-based routes
+│   ├── __root.tsx          # Root layout (ThemeProvider, Header, Toaster)
+│   ├── index.tsx           # Home page
+│   ├── login.tsx           # Login page
+│   ├── profile.tsx         # Profile page (auth guard via beforeLoad)
+│   └── api/                # API routes (auth catch-all, avatars)
+├── server/
+│   ├── cloudflare.ts       # CloudflareEnv helper (cloudflare:workers)
+│   └── fn/                 # Server functions (createServerFn)
+├── components/             # Shared UI components
+│   ├── ui/                 # shadcn/ui primitives
+│   ├── shared/             # Cross-page shared components
+│   └── features/           # Feature-specific components
+├── lib/
+│   ├── auth/               # Better Auth 設定
+│   ├── drizzle/            # Drizzle ORM スキーマ
+│   ├── storage/            # R2 ストレージ
+│   └── utils.ts
+├── router.tsx              # TanStack Router definition
+├── client.tsx              # Browser entry (hydrateRoot)
+├── ssr.tsx                 # Server entry (Cloudflare Worker handler)
+└── styles.css              # Tailwind v4 tokens
 ```
 
-各ページの機能別コンポーネントは `src/app/<route>/components/<Component>/` にコロケーションします (詳細は [`.claude/rules/architecture.md`](./.claude/rules/architecture.md))。
+各ページの機能別コンポーネントは `src/components/features/<feature>/` にコロケーションします (詳細は [`.claude/rules/architecture.md`](./.claude/rules/architecture.md))。
 
 ## AI エージェントで開発する
 
@@ -102,12 +113,13 @@ bunx shadcn@latest add [component-name]
 
 ## 参考リンク
 
-- [Next.js Documentation](https://nextjs.org/docs)
+- [TanStack Start](https://tanstack.com/start/)
+- [TanStack Router](https://tanstack.com/router/)
 - [Tailwind CSS](https://tailwindcss.com/docs)
 - [shadcn/ui](https://ui.shadcn.com/)
 - [Better Auth](https://www.better-auth.com/)
 - [Cloudflare D1](https://developers.cloudflare.com/d1/)
 - [Cloudflare R2](https://developers.cloudflare.com/r2/)
-- [@opennextjs/cloudflare](https://opennext.js.org/cloudflare)
+- [@cloudflare/vite-plugin](https://developers.cloudflare.com/workers/vite-plugin/)
 - [oxc (oxlint/oxfmt)](https://oxc.rs/)
 - [Vitest](https://vitest.dev/)
