@@ -2,7 +2,6 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
-  "plansDirectory": "./.claude/plans",
   "permissions": {
     "allow": [
       "mcp__*",
@@ -138,12 +137,6 @@
           },
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/stop-agent-review.sh",
-            "timeout": 300,
-            "statusMessage": "Stop agent review: headless Claude (Opus) coding-guide check..."
-          },
-          {
-            "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/stop-component-verify.sh",
             "timeout": 300,
             "statusMessage": "Stop component verify: chrome-devtools MCP component verification..."
@@ -188,6 +181,12 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-commit-review-guard.sh",
             "timeout": 5,
             "statusMessage": "Pre-commit review guard: confirming subagent output passed code-review..."
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-commit-code-review.sh",
+            "timeout": 300,
+            "statusMessage": "Pre-commit code review: code-reviewer agent checking staged changes..."
           }
         ]
       }
@@ -221,5 +220,6 @@
     "figma@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true
-  }
+  },
+  "plansDirectory": "./.claude/plans"
 }
