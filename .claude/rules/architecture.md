@@ -44,17 +44,21 @@ components/
     └── StatsCard.tsx              # Presenter (main component)
 ```
 
-**When children are added** — place them as siblings in the same directory (do not nest `components/` inside):
+**When children are added** — place them as siblings in the same directory. Do not create a `components/` subdirectory inside a component directory. All child components follow directory-first layout (each gets its own subdirectory).
 
 ```
 components/
 └── StatsCard/
     ├── StatsCard.tsx              # Presenter (main component)
     ├── StatsCard.container.tsx    # Container
-    └── TrendBadge.tsx             # Child component
+    ├── TrendBadge/                # Child component (directory-first)
+    │   └── TrendBadge.tsx
+    └── StatsChart/                # Child component (directory-first)
+        ├── StatsChart.tsx
+        └── StatsChart.test.tsx
 ```
 
-When to split an internal sub-component into its own sibling file:
+**When to split an internal sub-component into its own sibling directory:**
 
 - Sub-component exceeds ~30 lines
 - Sub-component needs its own props type definition

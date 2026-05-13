@@ -73,13 +73,20 @@ EOP
 
 FULL_PROMPT=$(printf '%s\n%s' "$PROMPT" "$DIFF")
 
-TEXT=$(printf '%s' "$FULL_PROMPT" \
-  | claude -p \
-      --model haiku \
-      --max-turns 3 \
-      --allowedTools "Bash(cat:*)" "Read" \
-      2>/dev/null)
+TMPFILE=$(mktemp)
+trap 'rm -f "$TMPFILE"' EXIT
+
+printf '%s' "$FULL_PROMPT" \
+  | codex exec \
+      -m gpt-5.3-codex \
+      --ephemeral \
+      -s read-only \
+      -o "$TMPFILE" \
+      - \
+      2>/dev/null
 RC=$?
+
+TEXT=$(cat "$TMPFILE" 2>/dev/null || true)
 
 if [ $RC -ne 0 ] || [ -z "$TEXT" ]; then
   echo '{"systemMessage":"⚠️  Pre-commit code review: agent failed (skipped)"}'
@@ -99,7 +106,7 @@ elif printf '%s' "$FIRST_LINE" | grep -q '^BLOCK'; then
     reason: ("Code reviewer agent detected a coding-guide violation:\n\n" + $r)
   }'
 else
-  echo '{"systemMessage":"✅ Pre-commit code review: approved"}'
+  jq -n '{statusMessage: "✅ Pre-commit code review: approved"}'
 fi
 
 exit 0
