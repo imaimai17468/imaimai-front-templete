@@ -163,3 +163,130 @@ const Dialog = ({ isOpen, onClose }: DialogProps) => {
   );
 };
 ```
+
+## No Appearance-Driven Packaging
+
+Do not organize files by "what the code looks like." Splitting directories by implementation artifact (`hooks/`, `contexts/`, `providers/`) scatters a single feature's code across multiple directories. In cohesion terms, this produces **coincidental cohesion** — the worst level.
+
+```
+// NG — appearance-driven (Toast feature scattered across 4 directories)
+src/
+├── components/
+│   └── Toast.tsx
+├── providers/
+│   └── ToastProvider.tsx
+├── contexts/
+│   └── toastContext.ts
+└── hooks/
+    └── useToast.ts
+
+// OK — co-located by feature
+src/
+├── components/        # shared components
+├── hooks/             # shared custom hooks
+└── features/
+    └── toast/         # everything for Toast lives here
+        ├── Toast.tsx
+        ├── toastContext.tsx
+        ├── ToastProvider.tsx
+        └── useToast.ts
+```
+
+Co-location provides confidence that related code won't scatter, encouraging aggressive decomposition into small pieces. When a feature lives in one directory, you can assess its blast radius at a glance.
+
+## Component Coupling
+
+Aim for **data coupling** between components — pass only the scalar values needed via props. Coupling worsens in this order:
+
+| Coupling level | Pattern | Mitigation |
+|----------------|---------|------------|
+| Data coupling (ideal) | Pass only needed scalar values via props | Target state |
+| Stamp coupling | Pass objects with unused properties | Separate types at scale |
+| Control coupling (dangerous) | Flag props that dictate child's control flow | Use Composition instead |
+| External coupling | Call child methods via ref | Avoid as a rule |
+| Common coupling (tight) | Share Context or global variables | Use sparingly |
+
+Avoiding control coupling:
+
+```tsx
+// NG — flag controls rendering (leads to logical cohesion)
+<VideoList videos={videos} showAuthor={false} />
+
+// OK — Composition separates concerns
+<VideoList>
+  {videos.map(item => (
+    <VideoItem key={item.id} title={item.title} />
+  ))}
+</VideoList>
+```
+
+If prop drilling becomes cumbersome, revisit component design. Do not reach for Context as a shortcut.
+
+## No Size Props on Components
+
+Do not add `width` / `height` props to components. Control size **externally via the parent's CSS layout**. Turning dimensions into props removes CSS expressiveness (`max-content`, `minmax()`, etc.).
+
+```tsx
+// NG — component decides its own size
+<Card width={250} />
+
+// OK — parent layout controls size
+<div className="w-62">
+  <Card />
+</div>
+```
+
+## No Margin on Components
+
+Do not apply margin to a component itself. Margin is a layout concern, not the component's responsibility. Built-in margins require overrides or resets when reusing the component in a different layout.
+
+Control spacing via the parent's `gap`, `space-y-*`, `space-x-*`, or other layout utilities.
+
+## Component Purity
+
+React components must be **pure functions**. Given the same inputs (props + hook return values), they must always return the same JSX and must not produce side effects during rendering. React does not guarantee how many times a component will execute, so breaking purity causes unpredictable behavior with React Compiler optimizations, Suspense, and transitions.
+
+Where side effects are allowed:
+
+| Location | Side effects | Reason |
+|----------|-------------|--------|
+| Component body | Forbidden | Affects return value computation |
+| Event handlers | OK | Runs on user action, outside return value |
+| useEffect | OK | Runs after render, outside return value |
+| Inside useMemo | Forbidden | Part of return value computation |
+
+```tsx
+// NG — side effect during render
+const MyPage = ({ user }: { user: User }) => {
+  fetch("/api/log/pageview", { method: "POST", body: JSON.stringify({ userId: user.id }) });
+  return <section>My Page</section>;
+};
+
+// NG — reading external state
+const UserInfo = () => {
+  const userId = localStorage.getItem("userId");
+  return <p>ID: {userId}</p>;
+};
+
+// NG — non-deterministic
+const Lottery = () => {
+  if (Math.random() < 0.1) return <p>Winner</p>;
+  return <p>Try again</p>;
+};
+
+// OK — side effect in event handler
+const LoginButton = () => (
+  <button onClick={() => fetch("/api/login", { method: "POST" })}>
+    Log in
+  </button>
+);
+```
+
+## Server Components and the 'use client' Boundary
+
+`'use client'` is not just an "execute in the browser" marker — it declares the **data handoff boundary** between Server Components and Client Components.
+
+Key properties:
+- Components imported inside a Client Component are automatically treated as Client Components even without a marker (domino-effect propagation).
+- Data passed from Server Components to Client Components must be serializable (RSC Payload format).
+- Aim for an **island architecture**: place `'use client'` only where needed. Do not make the entire page a Client Component.

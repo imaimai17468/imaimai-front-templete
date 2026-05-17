@@ -51,3 +51,11 @@ For multi-file implementations, added branches, or new pure functions: re-read t
 After self-review, **invoke `Skill("superpowers:requesting-code-review")` and run an independent reviewer pass** before claiming the work is complete. Self-review alone is not enough for ticket-granularity work: the reviewer must be a fresh agent without your context so it can spot blind spots, missed regressions, and conventions you forgot to apply. Only mark the work as done after the reviewer's findings have been addressed (or explicitly justified as out of scope).
 
 Skip the independent review only for the same trivial scope where the self-review pass is skipped (one-liner / config-only / docs-only). Anything that touches more than one file, adds a new branch, or introduces a new pure function MUST go through review.
+
+### Handling review findings (parent)
+
+When the reviewer (or the user) reports findings, the parent MUST NOT dismiss them without verification:
+
+- **Never assume "pre-existing"**: If the finding targets a file in the diff, the change introduced or surfaced it. Do not dismiss it as someone else's problem.
+- **Apply rules literally**: If a coding rule says "name booleans by purpose," apply it to every boolean in the diff — props, options, state, return values. Do not narrow the rule's scope by analogy or interpretation.
+- **When in doubt, fix**: If unsure whether a finding is valid, fix it. The cost of an unnecessary minor fix is far lower than the cost of arguing incorrectly and eroding trust.

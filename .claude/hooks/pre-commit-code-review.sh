@@ -83,7 +83,7 @@ printf '%s' "$FULL_PROMPT" \
       -s read-only \
       -o "$TMPFILE" \
       - \
-      2>/dev/null
+      >/dev/null 2>/dev/null
 RC=$?
 
 TEXT=$(cat "$TMPFILE" 2>/dev/null || true)
