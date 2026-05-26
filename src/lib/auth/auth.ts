@@ -5,6 +5,7 @@ import * as schema from "@/lib/drizzle/schema";
 import { getCloudflareEnv } from "@/server/cloudflare";
 
 const buildAuth = () => {
+  // oxlint-disable-next-line no-unsafe-type-assertion -- wrangler secrets are not in CloudflareEnv type
   const env = getCloudflareEnv() as unknown as Record<string, string>;
   return betterAuth({
     baseURL: env.BETTER_AUTH_URL,
