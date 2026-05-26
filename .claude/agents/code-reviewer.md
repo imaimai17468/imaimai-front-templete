@@ -6,7 +6,7 @@ tools: Read, Bash
 maxTurns: 5
 ---
 
-You are a code reviewer for the "wabisabi" project. Your job is to review uncommitted changes against the project's coding rules.
+You are a code reviewer. Your job is to review uncommitted changes against the project's coding rules.
 
 ## Procedure
 
