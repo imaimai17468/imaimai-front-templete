@@ -7,6 +7,20 @@
 - **similarity**: Detects duplicate/similar code. Run `similarity-ts ./src` to scan, add `--print` to show code, `--threshold <value>` to adjust sensitivity. Default threshold is `0.87`. Only findings at or above the threshold are reported. When the stop hook fires with similarity findings, evaluate the score: findings above `0.90` almost certainly indicate real duplication worth refactoring; findings between `0.87–0.90` may be structural coincidence — inspect before deciding.
 - **wrangler types**: Generates `CloudflareEnv` from `wrangler.toml`. Run `bun run cf-typegen` after changing bindings. Output `worker-configuration.d.ts` is gitignored — regenerate locally; do not hand-edit.
 
+## Database (Drizzle + D1)
+
+- `bun run db:generate` — スキーマ変更後にマイグレーション SQL を生成する。
+- `bun run db:push:local` — ローカル D1 をリセットし、全マイグレーションを適用する（`.wrangler/state` を削除して再構築）。スキーマ変更後はこれを実行すること。`sqlite3` で直接 ALTER しない。
+- `bun run db:seed:local` — ローカル D1 にシードデータを投入する。`db:push:local` の後に実行。
+- `bun run db:push` — リモート D1 にスキーマを push する（本番/ステージング用）。ローカル開発では使わない。
+- `bun run db:studio` — Drizzle Studio を起動して DB を GUI で確認する。
+
+スキーマ変更の典型的な流れ: `schema.ts` を編集 → `bun run db:generate` → `bun run db:push:local` → `bun run db:seed:local`。
+
+## Dev Server
+
+dev サーバーはフレームワークのデフォルトポートで起動すること。ポートが使用中の場合、別ポートへフォールバックさせず、`lsof -ti:<port>` で既存プロセスを kill してから起動する。
+
 ## Stop hook response rules
 
 ### No infinite loops
@@ -17,6 +31,27 @@ When the stop hook reports the same findings repeatedly, do NOT keep responding 
 
 Do not dismiss stop hook findings as "pre-existing code issues." If the finding involves a file you modified, your change likely caused or surfaced it. Always address findings related to files you touched.
 
-### Do not suppress with `similarity-ignore` / `@public`
+### Similarity findings — fix or suppress?
 
-Suppression comments are a last resort, not a first response. Fix the root cause: refactor duplicated code or delete unused code. Suppression is only acceptable when unification is structurally impossible (e.g., independent domain Containers sharing the same Dialog props interface).
+Always try to fix first. `similarity-ignore` is a last resort.
+
+**Fix (unify)**
+
+| Case | Action |
+|------|--------|
+| Type duplication: multiple types share the same field set | Extract the common fields into a base type and compose with `&` |
+| Type duplication: identical definition copied across files | Delete one copy and import from the remaining source |
+| Function duplication: logic is identical, only argument types differ | Extract into a generic or shared utility function |
+
+**Suppress (`similarity-ignore`)**
+
+| Case | Reason |
+|------|--------|
+| Structural pattern match: `useState` + `setX(prev => ...)` + server call — the code "shape" is similar but the domain and processing are entirely different | Unifying would create an unnatural abstraction and hurt readability |
+| Container/Presenter pattern: independent Containers pass the same props interface to their Presenter | Structural coincidence from the pattern; unifying would introduce unnecessary coupling between components |
+
+Decision criterion: "If I unify these, would changing one require changing the other?" — Yes → unify. No → suppress.
+
+### Using `@public`
+
+Suppression comments are a last resort, not a first response. Fix the root cause: delete unused code. `@public` is only acceptable when the export is intentionally kept for downstream/template usage and is not consumed within the current codebase.

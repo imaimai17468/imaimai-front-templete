@@ -59,3 +59,11 @@ When the reviewer (or the user) reports findings, the parent MUST NOT dismiss th
 - **Never assume "pre-existing"**: If the finding targets a file in the diff, the change introduced or surfaced it. Do not dismiss it as someone else's problem.
 - **Apply rules literally**: If a coding rule says "name booleans by purpose," apply it to every boolean in the diff — props, options, state, return values. Do not narrow the rule's scope by analogy or interpretation.
 - **When in doubt, fix**: If unsure whether a finding is valid, fix it. The cost of an unnecessary minor fix is far lower than the cost of arguing incorrectly and eroding trust.
+
+### Review quality (reviewer)
+
+Reviewers MUST follow these rules when reporting findings:
+
+- **No finding without a concrete alternative.** Every violation report must include a specific code change or refactoring step the author can apply. "Remove internal `useState`" is not actionable if the reviewer cannot explain where the state should live instead. If you cannot propose a better design, do not report the finding.
+- **Read the full rule, not just the heading.** If a rule has scope qualifiers (e.g., "Applies to Presenters only"), respect them. Do not apply the rule to code that falls outside its stated scope.
+- **Do not re-report dismissed findings.** If a finding was already reviewed and justified as out of scope or a false positive, do not raise the same finding again on subsequent attempts.

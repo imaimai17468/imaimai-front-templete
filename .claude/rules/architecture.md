@@ -139,7 +139,9 @@ Pure function requirements:
 
 ## Props-Driven Design
 
-Components must be controllable from the outside via props. Do not branch on internal state.
+**Applies to Presenters only.** Containers are expected to hold `useState` / hooks and pass derived values to Presenters — that is their role (see Container / Presenter Pattern above).
+
+Presenters must be controllable from the outside via props. Do not branch on internal state.
 
 ```tsx
 // NG — closed internal state
@@ -238,7 +240,7 @@ Do not add `width` / `height` props to components. Control size **externally via
 
 ## No Margin on Components
 
-Do not apply margin to a component itself. Margin is a layout concern, not the component's responsibility. Built-in margins require overrides or resets when reusing the component in a different layout.
+Do not apply margin to a component's **root element**. Margin is a layout concern, not the component's responsibility. Built-in margins require overrides or resets when reusing the component in a different layout. Internal elements (`ml-*`, `mt-*` etc. inside the component) are not subject to this rule — they are part of the component's internal layout.
 
 Control spacing via the parent's `gap`, `space-y-*`, `space-x-*`, or other layout utilities.
 
