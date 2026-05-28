@@ -107,12 +107,7 @@
     ]
   },
   "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [
-    "context7",
-    "chrome-devtools",
-    "aegis",
-    "aegis-admin"
-  ],
+  "enabledMcpjsonServers": ["context7", "aegis", "aegis-admin"],
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -217,10 +212,10 @@
     ]
   },
   "enabledPlugins": {
-    "figma@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true,
-    "frontend-design@claude-plugins-official": true
+    "frontend-design@claude-plugins-official": true,
+    "chrome-devtools-mcp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true
   },
   "plansDirectory": "./.claude/plans"
 }

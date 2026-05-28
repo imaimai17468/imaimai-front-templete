@@ -17,6 +17,10 @@
 
 スキーマ変更の典型的な流れ: `schema.ts` を編集 → `bun run db:generate` → `bun run db:push:local` → `bun run db:seed:local`。
 
+## Chrome DevTools MCP
+
+`chrome-devtools-mcp` はセッションごとにプロセスが残りやすい。ツール呼び出しが "browser is already running" で失敗した場合、`pkill -f chrome-devtools-mcp` で古いプロセスを全て kill してからリトライする。`ps aux | grep chrome-devtools-mcp` で残存プロセスを確認できる。
+
 ## Dev Server
 
 dev サーバーはフレームワークのデフォルトポートで起動すること。ポートが使用中の場合、別ポートへフォールバックさせず、`lsof -ti:<port>` で既存プロセスを kill してから起動する。
