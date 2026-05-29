@@ -11,15 +11,18 @@ How to tell which side you are on:
 
 ## Delegation default (parent)
 
-Tasks at the granularity of "implement a component", "fix a bug", or "refactor this module" should be **dispatched to a subagent** rather than implemented in the parent session. The parent's job is:
+Tasks at the granularity of "implement a component", "fix a bug", or "refactor this module" should be **dispatched to subagents** rather than implemented in the parent session. The parent does not write implementation code — it **decomposes, orchestrates, verifies, and commits**.
 
-1. Gather requirements and relevant context (`AGENTS.md`, related files, acceptance criteria)
-2. Write a self-contained briefing for the subagent
-3. Dispatch via the `Agent` tool
-4. Verify the returned diff and summary
-5. Handle commit / PR
+The parent's job is:
 
-Exception: trivial one-liners, typo fixes, and config tweaks are done directly in the parent — dispatch overhead isn't worth it.
+1. Gather requirements and relevant context (`AGENTS.md`, related files, acceptance criteria).
+2. **Decompose the work into the optimal set of subagents** (see *Team decomposition* below) — do **not** default to a single agent. Split the task into the smallest independent units that can run in parallel, and identify which units must run sequentially because of dependencies.
+3. Write a self-contained briefing per unit.
+4. Dispatch: independent units **in parallel** (multiple `Agent` calls in one message); dependent units **sequentially** (downstream dispatched after upstream returns).
+5. Verify each returned diff and summary; integrate.
+6. Handle commit / PR.
+
+Exception: trivial one-liners, typo fixes, and config tweaks are done directly in the parent — dispatch overhead isn't worth it. And a task that is genuinely one indivisible unit is a single subagent — decomposition means "split when splitting helps," not "always split."
 
 ## Before each dispatch — Aegis is mandatory
 
@@ -40,9 +43,26 @@ Defaults by agent type:
 
 Escalate to `opus` only when the task involves non-trivial architectural judgment, a subtle bug hunt, or the subagent came back with low-quality output on `sonnet`.
 
-## Teams
+## Team decomposition (parallel vs sequential)
 
-`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is enabled for **genuine parallel collaboration** (multiple agents working on independent branches of the same effort simultaneously). Do not use teams for simple single-task offloads — dispatch a single subagent instead.
+The parent must **actively decide how to split ticket work into a team of subagents** and run the independent parts in parallel. This is the default posture for multi-part work — not a rare exception. Reaching for a single subagent without first checking whether the work decomposes is a mistake.
+
+How to decompose:
+
+1. **List the work units.** Break the task into the smallest pieces that each have a clear, self-contained briefing (e.g., "DB schema + gateway", "component A", "wire A into pages", "docs").
+2. **Build the dependency graph.** For each pair of units, ask two questions:
+   - *Shared files?* Do they edit the same file(s)?
+   - *Output dependency?* Does one need the other's result (types, APIs, components, migrations) written first?
+3. **Decide parallel vs sequential:**
+   - **Both answers "no" → independent → run in PARALLEL** (multiple `Agent` calls in a single message, or an agent team).
+   - **Either answer "yes" → dependent → run SEQUENTIALLY** (downstream dispatched after upstream returns), or merge the two into one unit.
+4. **Never parallelize units that edit the same file** — concurrent edits conflict and silently clobber each other. If two otherwise-parallel units would touch one shared file, give exactly one unit ownership of it, or sequence them.
+
+Lean toward maximizing the parallel frontier: at each stage, dispatch every currently-unblocked independent unit at once, then sequence only across genuine dependency edges. A typical layered feature (backend → component → integration) is a sequential spine, but independent siblings within a layer (e.g., two unrelated components, or backend + an unrelated doc) should fan out in parallel.
+
+Use `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` (a real team) for genuine simultaneous collaboration on one effort needing shared coordination; use plain parallel `Agent` dispatches for independent fan-out. Either way, the decision rule above governs what runs together. A single subagent is correct only when the work is genuinely one indivisible unit.
+
+Each unit still follows every other rule here: a fresh `aegis_compile_context` before each dispatch, an explicit `model`, and the *Before reporting done* review pass.
 
 ## Before reporting done
 
