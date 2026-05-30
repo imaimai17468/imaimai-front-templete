@@ -59,3 +59,11 @@ Decision criterion: "If I unify these, would changing one require changing the o
 ### Using `@public`
 
 Suppression comments are a last resort, not a first response. Fix the root cause: delete unused code. `@public` is only acceptable when the export is intentionally kept for downstream/template usage and is not consumed within the current codebase.
+
+## Aegis maintenance (admin surface)
+
+After editing or adding files under `.claude/rules/` or `docs/adr/`, sync Canonical Knowledge with `aegis_sync_docs` (edits to existing files) / `aegis_import_doc` (new files). Pitfalls:
+
+- **Do not trust a "failure" response from the sync tools.** `aegis_sync_docs` can return an error like `Sync failed: undefined` while still having created the update proposals internally. Retrying then stacks duplicate proposals. After any `aegis_*` sync/import call, **always verify what was created with `aegis_list_proposals`** — do not blindly re-run just because it errored. (Observed: the `undefined` error happens on a full sync; scoping the call with `doc_ids` returns cleanly.)
+- **Inspect each proposal with `aegis_get_proposal` before approving.** sync / import also produce update proposals for **other stale file-anchored docs** (e.g. `rule-tools`, edited in an earlier commit and never synced) and **byte-identical duplicate** proposals. Approve the right one with `aegis_approve_proposal` and clear the rest with `aegis_reject_proposal`. Proposals sharing the same `content_hash` are byte-identical, so approving any one of them is enough.
+- **Do not judge a doc's registration / staleness state from `aegis_get_stats` alone.** A doc that is not file-anchored, or one already up to date, never shows up as stale — `stale_docs_count: 0` does NOT mean "not registered." Confirm registration via `aegis_analyze_doc`'s `overlap_warnings` (similarity to an existing `doc_id`) or `aegis_list_proposals`.
