@@ -15,6 +15,49 @@ Write tests based on "will this catch a regression if someone changes it later?"
 
 The judgment rule is: "if someone else changes this component later, will the test catch unintended changes?" Only invest in tests worth fixing with `snapshot` / `getByRole` / `getByLabelText` / etc.
 
+## Do NOT Write These Tests (Tautological / Low-Value)
+
+The following tests pass but catch no real regression — they re-assert framework behavior or hardcoded values. Do not write them; delete them when found.
+
+### Callback passthrough
+
+Firing an element and asserting that a mock passed **directly** as a prop was called, where the component just forwards it (`onClick={onX}`) with no transformation or branching. This only proves that React invokes `onClick` — framework behavior, not our logic.
+
+```tsx
+// NG — tests that React fires the handler, nothing of ours
+it("should call onSubmit when the button is clicked", () => {
+  const onSubmit = vi.fn();
+  render(<Dialog onSubmit={onSubmit} />);
+  fireEvent.click(screen.getByRole("button"));
+  expect(onSubmit).toHaveBeenCalled();
+});
+```
+
+**Exception (keep):** when the handler runs internal logic before calling out — e.g. a Container that transforms input and calls a server fn — assert the **shape of the arguments** (`expect(fn).toHaveBeenCalledWith(expect.objectContaining({ data: {...} }))`). That tests our transformation, not React.
+
+### Unconditional static render
+
+Rendering with one fixed prop set and asserting a literal string/label that the component **always** renders (no conditional path), where the asserted thing is not an a11y attribute. This just proves "the component renders the text I hardcoded."
+
+```tsx
+// NG — the label is always rendered; no branch, no a11y
+it("should render the title", () => {
+  render(<Card title="Hello" />);
+  expect(screen.getByText("Hello")).toBeInTheDocument();
+});
+```
+
+Passing an irrelevant prop (e.g. `user={null}`) does not make it a branch test if the asserted element renders regardless of that prop.
+
+### What to keep instead
+
+These DO catch regressions — keep / write them:
+
+- **Prop/state-varied rendering**: different output under different inputs (`trend="up"` → `↑`; conditional `{flag && <X/>}`).
+- **a11y attributes & link targets** that break silently: `aria-*`, `role`, `htmlFor`, `tabIndex`, `disabled` tied to a prop, and `href` route targets (a wrong link is a real bug).
+- **Mapping / derivation**: `"new" → "新機能"` label maps, formatting, computed values.
+- **Container argument shape**: the data/args passed to a server fn or to the Presenter (the transformation), not merely "it was called".
+
 ## White-Box Testing
 
 Tests must cover internal logic paths, not just inputs/outputs.

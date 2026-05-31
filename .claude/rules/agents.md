@@ -1,5 +1,9 @@
 # Agent Dispatch
 
+## Documentation language
+
+Write all agent-facing documentation in **English** — everything under `.claude/` (rules, skills, hooks, commands), `AGENTS.md`, `CLAUDE.md`, and `docs/adr/`. These docs steer AI agents, so English keeps them consistent and token-efficient. User-facing product copy (UI strings, article content, etc.) follows its own locale and is unaffected.
+
 ## Audience: parent only
 
 The dispatch / delegation rules below apply to the **parent session**. If you are reading this rule from inside a dispatched subagent invocation (your top-level task came in as a briefing from a parent), ignore the "dispatch to subagent" guidance — *you* are the dispatched agent, and your job is to execute the briefing directly using `Edit` / `Write` / `Bash`. Do not attempt to dispatch further subagents (the `Agent` tool is typically not available to you, and re-dispatching from a subagent would create infinite recursion).

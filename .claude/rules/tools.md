@@ -60,6 +60,12 @@ Decision criterion: "If I unify these, would changing one require changing the o
 
 Suppression comments are a last resort, not a first response. Fix the root cause: delete unused code. `@public` is only acceptable when the export is intentionally kept for downstream/template usage and is not consumed within the current codebase.
 
+## Pre-commit code review (codex)
+
+Before `git commit`, the PreToolUse hook `pre-commit-code-review.sh` reviews the staged diff with codex and blocks the commit on any coding-rule violation.
+
+**Run `git add` and `git commit` as separate commands (separate tool calls).** The PreToolUse hook fires *before* the command runs, so chaining them into one command (e.g. `git add x && git commit ...`) means nothing is staged at the moment the hook evaluates, and the review target is missed. The hook has a fallback that replays a chained `git add` into a throwaway index to review anyway, but staging in a prior separate step guarantees the staged diff is detected and the review runs.
+
 ## Aegis maintenance (admin surface)
 
 After editing or adding files under `.claude/rules/` or `docs/adr/`, sync Canonical Knowledge with `aegis_sync_docs` (edits to existing files) / `aegis_import_doc` (new files). Pitfalls:
