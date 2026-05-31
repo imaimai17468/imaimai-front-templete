@@ -27,11 +27,44 @@ fi
 
 cd "$PROJECT_DIR"
 
-# Skip when there are no staged changes
+# Determine the diff that WILL be committed.
+# PreToolUse runs BEFORE the command executes, so when `git add` is chained
+# with `git commit` in the same command (e.g. `git add x; git commit ...`),
+# nothing is staged yet. In that case we replay the `git add` into a throwaway
+# index so the review still runs against exactly what is about to be committed.
+# The real index is never touched.
+TMP_INDEX=""
+TMPFILE=""
+cleanup() {
+  [ -n "$TMP_INDEX" ] && rm -f "$TMP_INDEX"
+  [ -n "$TMPFILE" ] && rm -f "$TMPFILE"
+}
+trap cleanup EXIT
+
+GIT_DIFF_STAGED="git diff --staged"
 STAGED_STAT=$(git diff --staged --stat 2>/dev/null || true)
+
 if [ -z "$STAGED_STAT" ]; then
-  exit 0
+  # Nothing staged. Replay a chained `git add` (up to the next ; && || |) into a
+  # throwaway index copied from the real one.
+  ADD_ARGS=$(printf '%s' "$COMMAND" | grep -oE 'git add [^;&|)]*' | head -1 | sed -E 's/^git add[[:space:]]+//')
+  if [ -z "$ADD_ARGS" ]; then
+    # No staged changes and no `git add` to simulate — nothing to review.
+    exit 0
+  fi
+  GIT_DIR_PATH=$(git rev-parse --git-dir 2>/dev/null || echo ".git")
+  TMP_INDEX=$(mktemp)
+  cp "$GIT_DIR_PATH/index" "$TMP_INDEX" 2>/dev/null || : >"$TMP_INDEX"
+  eval "GIT_INDEX_FILE='$TMP_INDEX' git add $ADD_ARGS" >/dev/null 2>&1 || true
+  GIT_DIFF_STAGED="GIT_INDEX_FILE='$TMP_INDEX' git diff --staged"
+  STAGED_STAT=$(eval "$GIT_DIFF_STAGED --stat" 2>/dev/null || true)
+  if [ -z "$STAGED_STAT" ]; then
+    echo '{"systemMessage":"⚠️ Pre-commit code review: レビューをスキップしました（`git add` が `git commit` と同一コマンドで連結されており、対象を特定できませんでした）。`git add` を別ステップで実行すると codex レビューが走ります。"}'
+    exit 0
+  fi
 fi
+
+NAME_ONLY=$(eval "$GIT_DIFF_STAGED --name-only" 2>/dev/null || true)
 
 CHANGED_FILES=$(printf '%s' "$STAGED_STAT" | grep -c '|' || true)
 INSERTIONS=$(printf '%s' "$STAGED_STAT" | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' | head -1 || echo 0)
@@ -44,19 +77,19 @@ if [ "$CHANGED_FILES" -le 1 ] && [ "$TOTAL_LINES" -le 5 ]; then
 fi
 
 # Trivial: all files are docs/config
-ALL_NON_CONFIG=$(git diff --staged --name-only 2>/dev/null | grep -vE '\.(md|json|toml|yaml|yml)$|^\.gitignore$' | wc -l | tr -d ' ' || echo 1)
+ALL_NON_CONFIG=$(printf '%s' "$NAME_ONLY" | grep -vE '\.(md|json|toml|yaml|yml)$|^\.gitignore$' | wc -l | tr -d ' ' || echo 1)
 if [ "$ALL_NON_CONFIG" -eq 0 ]; then
   exit 0
 fi
 
 # Exclude shadcn UI primitives from review (auto-generated, not project code)
-REVIEW_FILES=$(git diff --staged --name-only 2>/dev/null | grep -v '^src/components/ui/' || true)
+REVIEW_FILES=$(printf '%s' "$NAME_ONLY" | grep -v '^src/components/ui/' || true)
 if [ -z "$REVIEW_FILES" ]; then
   exit 0
 fi
 
-# Run code-reviewer agent on staged diff (excluding shadcn UI files)
-DIFF=$(git diff --staged -- $REVIEW_FILES 2>&1 || true)
+# Run code-reviewer agent on the to-be-committed diff (excluding shadcn UI files)
+DIFF=$(eval "$GIT_DIFF_STAGED -- $REVIEW_FILES" 2>&1 || true)
 
 read -r -d '' PROMPT <<'EOP' || true
 You are a code reviewer for this repository.
@@ -74,7 +107,6 @@ EOP
 FULL_PROMPT=$(printf '%s\n%s' "$PROMPT" "$DIFF")
 
 TMPFILE=$(mktemp)
-trap 'rm -f "$TMPFILE"' EXIT
 
 printf '%s' "$FULL_PROMPT" \
   | codex exec \
@@ -106,7 +138,7 @@ elif printf '%s' "$FIRST_LINE" | grep -q '^BLOCK'; then
     reason: ("Code reviewer agent detected a coding-guide violation:\n\n" + $r)
   }'
 else
-  jq -n '{statusMessage: "✅ Pre-commit code review: approved"}'
+  jq -n '{systemMessage: "✅ Pre-commit code review: approved (codex)"}'
 fi
 
 exit 0
