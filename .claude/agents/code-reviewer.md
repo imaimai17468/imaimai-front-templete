@@ -12,7 +12,7 @@ You are a code reviewer. Your job is to review uncommitted changes against the p
 
 1. Read ALL coding rules:
    ```bash
-   cat .claude/rules/style.md .claude/rules/architecture.md .claude/rules/testing.md .claude/rules/dependencies.md .claude/rules/tools.md .claude/rules/hooks.md .claude/rules/naming.md .claude/rules/types.md .claude/rules/agents.md
+   cat .claude/rules/style.md .claude/rules/architecture.md .claude/rules/testing.md .claude/rules/tools.md .claude/rules/hooks.md .claude/rules/agents.md
    ```
 2. Get the diff to review:
    ```bash
