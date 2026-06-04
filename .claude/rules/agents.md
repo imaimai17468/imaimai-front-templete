@@ -91,3 +91,44 @@ Reviewers MUST follow these rules when reporting findings:
 - **No finding without a concrete alternative.** Every violation report must include a specific code change or refactoring step the author can apply. "Remove internal `useState`" is not actionable if the reviewer cannot explain where the state should live instead. If you cannot propose a better design, do not report the finding.
 - **Read the full rule, not just the heading.** If a rule has scope qualifiers (e.g., "Applies to Presenters only"), respect them. Do not apply the rule to code that falls outside its stated scope.
 - **Do not re-report dismissed findings.** If a finding was already reviewed and justified as out of scope or a false positive, do not raise the same finding again on subsequent attempts.
+
+## Stop hook response rules
+
+### No infinite loops
+
+When the stop hook reports the same findings repeatedly, do NOT keep responding "Pre-existing." That wastes tokens. After the second occurrence, move to actually fixing the issue.
+
+### Assume your changes caused the finding
+
+Do not dismiss stop hook findings as "pre-existing code issues." If the finding involves a file you modified, your change likely caused or surfaced it. Always address findings related to files you touched.
+
+### Similarity findings — fix or suppress?
+
+Always try to fix first. `similarity-ignore` is a last resort.
+
+**Fix (unify)**
+
+| Case | Action |
+|------|--------|
+| Type duplication: multiple types share the same field set | Extract the common fields into a base type and compose with `&` |
+| Type duplication: identical definition copied across files | Delete one copy and import from the remaining source |
+| Function duplication: logic is identical, only argument types differ | Extract into a generic or shared utility function |
+
+**Suppress (`similarity-ignore`)**
+
+| Case | Reason |
+|------|--------|
+| Structural pattern match: `useState` + `setX(prev => ...)` + server call — the code "shape" is similar but the domain and processing are entirely different | Unifying would create an unnatural abstraction and hurt readability |
+| Container/Presenter pattern: independent Containers pass the same props interface to their Presenter | Structural coincidence from the pattern; unifying would introduce unnecessary coupling between components |
+
+Decision criterion: "If I unify these, would changing one require changing the other?" — Yes → unify. No → suppress.
+
+### Using `@public`
+
+Suppression comments are a last resort, not a first response. Fix the root cause: delete unused code. `@public` is only acceptable when the export is intentionally kept for downstream/template usage and is not consumed within the current codebase.
+
+## Pre-commit code review (codex)
+
+Before `git commit`, the PreToolUse hook `pre-commit-code-review.sh` reviews the staged diff with codex and blocks the commit on any coding-rule violation.
+
+**Run `git add` and `git commit` as separate commands (separate tool calls).** The PreToolUse hook fires *before* the command runs, so chaining them into one command (e.g. `git add x && git commit ...`) means nothing is staged at the moment the hook evaluates, and the review target is missed. The hook has a fallback that replays a chained `git add` into a throwaway index to review anyway, but staging in a prior separate step guarantees the staged diff is detected and the review runs.

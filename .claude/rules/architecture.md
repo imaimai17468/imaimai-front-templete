@@ -32,6 +32,8 @@ src/
             └── Sidebar.tsx
 ```
 
+Non-page files (helpers, tests, utils) placed directly alongside a page file must not conflict with the router's file-based routing. Files inside a subdirectory that is not itself a route (e.g., `components/`) do **not** need special naming — the parent directory's non-route nature already excludes the entire subtree from the router.
+
 ## Directory-First Component Layout
 
 **Every component lives in its own directory from day one.** Do not create a flat `Component.tsx` and promote it later when children appear — start with `Component/Component.tsx` even when there are no child components yet.
@@ -117,6 +119,35 @@ export const StatsCardContainer = ({ statId }: { statId: string }) => {
 | ----------------------------- | --------- |
 | `ComponentName.tsx`           | Presenter |
 | `ComponentName.container.tsx` | Container |
+
+### Prefer Leaf Containers Over Root Hook Extraction
+
+When a parent Container manages state for multiple independent child sections, **push the state into each child as its own Container** rather than extracting hooks at the root.
+
+```
+// NG — root Container calls 5 hooks, pipes everything through a 30-prop Presenter
+SettingsPageContainer (useSeoSettings + useBlockedUsers + useKarma + …)
+  └─ SettingsPage (30+ props → distributes to children)
+       ├─ SeoSection (receives 3 props)
+       ├─ BlockListSection (receives 10 props)
+       └─ KarmaSection (receives 6 props)
+
+// OK — each section owns its own state; parent is layout-only
+SettingsPage
+  ├─ SeoSectionContainer → SeoSection
+  ├─ BlockListSectionContainer → BlockListSection
+  └─ KarmaSectionContainer → KarmaSection
+```
+
+Benefits:
+
+- **Narrow re-render scope**: toggling a SEO switch doesn't re-render the Karma section.
+- **Smaller prop surface**: each Presenter receives only the props it uses; the parent passes none through.
+- **Independent testability**: each leaf Container can be tested in isolation.
+
+When two children genuinely share state (e.g., voting updates a shared `userVotes` map that both a feed list and a sidebar display), keep the shared state in the **lowest common ancestor** and push only the unshared parts down. Hook extraction at the ancestor is appropriate for the shared slice; leaf Containers handle the rest.
+
+The decision rule: "Does this child read or write state that another sibling also reads or writes?" Yes → keep at ancestor. No → push down into a leaf Container.
 
 ## Extract Logic into Pure Functions
 

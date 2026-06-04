@@ -13,6 +13,8 @@ Write tests based on "will this catch a regression if someone changes it later?"
 - **Container**: mock data fetching and verify the props passed to the Presenter.
 - **Presenter**: follow the "Components" criteria above. A single static render with no a11y attributes needs no test.
 
+- **Route / page files** (`page.tsx`, `route.tsx`): **do not test directly**. Route files depend on router context which requires full router mocking — test the components they render (Container / Presenter) instead. Inline CSS-class ternaries in route files (e.g., active tab styling) do not warrant extraction solely for testability; extracting a utility that mirrors a ternary produces tautological tests.
+
 The judgment rule is: "if someone else changes this component later, will the test catch unintended changes?" Only invest in tests worth fixing with `snapshot` / `getByRole` / `getByLabelText` / etc.
 
 ## Do NOT Write These Tests (Tautological / Low-Value)
@@ -54,7 +56,7 @@ Passing an irrelevant prop (e.g. `user={null}`) does not make it a branch test i
 These DO catch regressions — keep / write them:
 
 - **Prop/state-varied rendering**: different output under different inputs (`trend="up"` → `↑`; conditional `{flag && <X/>}`).
-- **a11y attributes & link targets** that break silently: `aria-*`, `role`, `htmlFor`, `tabIndex`, `disabled` tied to a prop, and `href` route targets (a wrong link is a real bug).
+- **a11y attributes & link targets** that break silently: `aria-*`, `role`, `htmlFor`, `tabIndex`, `disabled` tied to a prop, and `href` / `to` route targets (a wrong link is a real bug).
 - **Mapping / derivation**: `"new" → "新機能"` label maps, formatting, computed values.
 - **Container argument shape**: the data/args passed to a server fn or to the Presenter (the transformation), not merely "it was called".
 

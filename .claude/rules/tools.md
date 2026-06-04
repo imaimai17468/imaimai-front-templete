@@ -17,59 +17,52 @@
 
 スキーマ変更の典型的な流れ: `schema.ts` を編集 → `bun run db:generate` → `bun run db:push:local` → `bun run db:seed:local`。
 
-## Chrome DevTools MCP
-
-`chrome-devtools-mcp` はセッションごとにプロセスが残りやすい。ツール呼び出しが "browser is already running" で失敗した場合、`pkill -f chrome-devtools-mcp` で古いプロセスを全て kill してからリトライする。`ps aux | grep chrome-devtools-mcp` で残存プロセスを確認できる。
-
 ## Dev Server
 
 dev サーバーはフレームワークのデフォルトポートで起動すること。ポートが使用中の場合、別ポートへフォールバックさせず、`lsof -ti:<port>` で既存プロセスを kill してから起動する。
 
-## Stop hook response rules
+## Chrome DevTools MCP
 
-### No infinite loops
+`chrome-devtools-mcp` はセッションごとにプロセスが残りやすい。ツール呼び出しが "browser is already running" で失敗した場合、`pkill -f chrome-devtools-mcp` で古いプロセスを全て kill してからリトライする。`ps aux | grep chrome-devtools-mcp` で残存プロセスを確認できる。
 
-When the stop hook reports the same findings repeatedly, do NOT keep responding "Pre-existing." That wastes tokens. After the second occurrence, move to actually fixing the issue.
+## Dependencies — Exact Version Pinning
 
-### Assume your changes caused the finding
+Dependency versions in `package.json` must be **fully pinned**. Do not use range specifiers (`^`, `~`) or major-only notation (`"4"`, `"^20"`) — always write exact versions like `"1.2.3"`.
 
-Do not dismiss stop hook findings as "pre-existing code issues." If the finding involves a file you modified, your change likely caused or surfaced it. Always address findings related to files you touched.
+**NG**
 
-### Similarity findings — fix or suppress?
+```json
+{
+  "dependencies": {
+    "next": "^16.1.1",
+    "react": "^19.2.3"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^20"
+  }
+}
+```
 
-Always try to fix first. `similarity-ignore` is a last resort.
+**OK**
 
-**Fix (unify)**
+```json
+{
+  "dependencies": {
+    "next": "16.1.1",
+    "react": "19.2.3"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3",
+    "@types/node": "20.19.9"
+  }
+}
+```
 
-| Case | Action |
-|------|--------|
-| Type duplication: multiple types share the same field set | Extract the common fields into a base type and compose with `&` |
-| Type duplication: identical definition copied across files | Delete one copy and import from the remaining source |
-| Function duplication: logic is identical, only argument types differ | Extract into a generic or shared utility function |
+**When adding or updating:**
 
-**Suppress (`similarity-ignore`)**
+- Add as exact: `bun add -E <pkg>` / `bun add -E -d <pkg>`.
+- When updating an existing dependency, check that no `^` / `~` / major-only notation remains in `package.json` after the update. If a range crept in, fix it manually to exact.
+- To see the currently installed versions, use `bun pm ls`.
 
-| Case | Reason |
-|------|--------|
-| Structural pattern match: `useState` + `setX(prev => ...)` + server call — the code "shape" is similar but the domain and processing are entirely different | Unifying would create an unnatural abstraction and hurt readability |
-| Container/Presenter pattern: independent Containers pass the same props interface to their Presenter | Structural coincidence from the pattern; unifying would introduce unnecessary coupling between components |
-
-Decision criterion: "If I unify these, would changing one require changing the other?" — Yes → unify. No → suppress.
-
-### Using `@public`
-
-Suppression comments are a last resort, not a first response. Fix the root cause: delete unused code. `@public` is only acceptable when the export is intentionally kept for downstream/template usage and is not consumed within the current codebase.
-
-## Pre-commit code review (codex)
-
-Before `git commit`, the PreToolUse hook `pre-commit-code-review.sh` reviews the staged diff with codex and blocks the commit on any coding-rule violation.
-
-**Run `git add` and `git commit` as separate commands (separate tool calls).** The PreToolUse hook fires *before* the command runs, so chaining them into one command (e.g. `git add x && git commit ...`) means nothing is staged at the moment the hook evaluates, and the review target is missed. The hook has a fallback that replays a chained `git add` into a throwaway index to review anyway, but staging in a prior separate step guarantees the staged diff is detected and the review runs.
-
-## Aegis maintenance (admin surface)
-
-After editing or adding files under `.claude/rules/` or `docs/adr/`, sync Canonical Knowledge with `aegis_sync_docs` (edits to existing files) / `aegis_import_doc` (new files). Pitfalls:
-
-- **Do not trust a "failure" response from the sync tools.** `aegis_sync_docs` can return an error like `Sync failed: undefined` while still having created the update proposals internally. Retrying then stacks duplicate proposals. After any `aegis_*` sync/import call, **always verify what was created with `aegis_list_proposals`** — do not blindly re-run just because it errored. (Observed: the `undefined` error happens on a full sync; scoping the call with `doc_ids` returns cleanly.)
-- **Inspect each proposal with `aegis_get_proposal` before approving.** sync / import also produce update proposals for **other stale file-anchored docs** (e.g. `rule-tools`, edited in an earlier commit and never synced) and **byte-identical duplicate** proposals. Approve the right one with `aegis_approve_proposal` and clear the rest with `aegis_reject_proposal`. Proposals sharing the same `content_hash` are byte-identical, so approving any one of them is enough.
-- **Do not judge a doc's registration / staleness state from `aegis_get_stats` alone.** A doc that is not file-anchored, or one already up to date, never shows up as stale — `stale_docs_count: 0` does NOT mean "not registered." Confirm registration via `aegis_analyze_doc`'s `overlap_warnings` (similarity to an existing `doc_id`) or `aegis_list_proposals`.
+Rationale: this is a template repository, so derivative projects must not see environment drift. Updates are intentional, and `package.json` must always match the lockfile.
