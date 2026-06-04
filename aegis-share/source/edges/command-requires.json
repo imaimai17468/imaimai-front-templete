@@ -1,0 +1,65 @@
+[
+  {
+    "edge_id": "125e6deb-4a13-4cda-a738-86337efaae6f",
+    "source_value": "scaffold",
+    "target_doc_id": "rule-tools",
+    "priority": 100,
+    "specificity": 0
+  },
+  {
+    "edge_id": "3ba0648c-af49-41c7-a59e-736fc4d51358",
+    "source_value": "scaffold",
+    "target_doc_id": "rule-agents",
+    "priority": 100,
+    "specificity": 0
+  },
+  {
+    "edge_id": "708dda36-b4d2-40fc-ba5b-50388a27ab6a",
+    "source_value": "scaffold",
+    "target_doc_id": "adr-0006",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "813e1efe-aafb-4957-9a45-4f145ec785ca",
+    "source_value": "review",
+    "target_doc_id": "rule-tools",
+    "priority": 100,
+    "specificity": 0
+  },
+  {
+    "edge_id": "9840a836-6b3e-4ca5-bf3d-bb2b63fdcf65",
+    "source_value": "scaffold",
+    "target_doc_id": "adr-0003",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "affd6605-13ce-42a1-a2a6-b7afe442bb89",
+    "source_value": "refactor",
+    "target_doc_id": "adr-0003",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "b82c2d61-ac67-4330-8ec9-7e3d0cbab4f9",
+    "source_value": "refactor",
+    "target_doc_id": "rule-tools",
+    "priority": 100,
+    "specificity": 0
+  },
+  {
+    "edge_id": "be06b124-b411-4126-b0f9-4c5f20a1bc4c",
+    "source_value": "refactor",
+    "target_doc_id": "adr-0006",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "e20c03d8-a407-4646-9fdf-e7f78f2b06b2",
+    "source_value": "refactor",
+    "target_doc_id": "rule-agents",
+    "priority": 100,
+    "specificity": 0
+  }
+]

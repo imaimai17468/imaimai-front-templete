@@ -1,0 +1,72 @@
+[
+  {
+    "edge_id": "16173796-b133-4656-8584-7a7458c63dcc",
+    "source_value": "src/**/*.{ts,tsx,test.ts,test.tsx}",
+    "target_doc_id": "rule-testing",
+    "priority": 100,
+    "specificity": 0
+  },
+  {
+    "edge_id": "21bfc2cc-5920-49a9-9cd5-19bff776d58f",
+    "source_value": "src/**/*.{ts,tsx}",
+    "target_doc_id": "rule-architecture",
+    "priority": 100,
+    "specificity": 0
+  },
+  {
+    "edge_id": "34cada58-64d3-4c8b-8e88-1ebf7e64362a",
+    "source_value": "package.json",
+    "target_doc_id": "rule-tools",
+    "priority": 100,
+    "specificity": 0
+  },
+  {
+    "edge_id": "8be7feb0-54ac-46f5-b468-b5610f963488",
+    "source_value": "wrangler.toml",
+    "target_doc_id": "adr-0005",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "c422ac78-dbc0-4f11-820b-ec7c555a1e2b",
+    "source_value": "src/**/*.{ts,tsx}",
+    "target_doc_id": "rule-style",
+    "priority": 100,
+    "specificity": 0
+  },
+  {
+    "edge_id": "de4c4d45-63fd-48a2-afc3-b25b3aae3628",
+    "source_value": "src/**/*",
+    "target_doc_id": "adr-0007",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "ebfed048-ad79-4520-80c5-4da63a06a0f5",
+    "source_value": "src/**/*.{ts,tsx}",
+    "target_doc_id": "rule-hooks",
+    "priority": 100,
+    "specificity": 0
+  },
+  {
+    "edge_id": "ef2671ae-5eda-4a4e-af15-8db9e802bd90",
+    "source_value": "package.json",
+    "target_doc_id": "adr-0002",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "fde58d18-83c2-4964-9051-1421337d76e3",
+    "source_value": "src/**/*",
+    "target_doc_id": "adr-0004",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "ff76afcf-f1f6-42d4-a52b-1c29373abfa9",
+    "source_value": "src/**/*",
+    "target_doc_id": "adr-0001",
+    "priority": -1,
+    "specificity": 0
+  }
+]
