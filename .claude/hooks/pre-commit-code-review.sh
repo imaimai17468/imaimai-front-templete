@@ -59,7 +59,7 @@ if [ -z "$STAGED_STAT" ]; then
   GIT_DIFF_STAGED="GIT_INDEX_FILE='$TMP_INDEX' git diff --staged"
   STAGED_STAT=$(eval "$GIT_DIFF_STAGED --stat" 2>/dev/null || true)
   if [ -z "$STAGED_STAT" ]; then
-    echo '{"systemMessage":"⚠️ Pre-commit code review: レビューをスキップしました（`git add` が `git commit` と同一コマンドで連結されており、対象を特定できませんでした）。`git add` を別ステップで実行すると codex レビューが走ります。"}'
+    echo '{"systemMessage":"⛔ Pre-commit code review: `git add` と `git commit` が同一コマンドで連結されており、staged diff を特定できません。`git add` を別の tool call で実行してから `git commit` してください。","decision":"block","reason":"git add と git commit を別々の tool call で実行してください（.claude/rules/tools.md 参照）。同一コマンド内の連結は codex レビューを迂回するためブロックします。"}'
     exit 0
   fi
 fi
@@ -93,7 +93,7 @@ DIFF=$(eval "$GIT_DIFF_STAGED -- $REVIEW_FILES" 2>&1 || true)
 
 read -r -d '' PROMPT <<'EOP' || true
 You are a code reviewer for this repository.
-Read the coding rules by running: cat .claude/rules/style.md .claude/rules/architecture.md .claude/rules/testing.md .claude/rules/dependencies.md .claude/rules/tools.md
+Read the coding rules by running: cat .claude/rules/style.md .claude/rules/architecture.md .claude/rules/testing.md .claude/rules/tools.md .claude/rules/hooks.md
 Then review whether the following staged changes follow those rules.
 
 **Output format (strict)**:
@@ -110,7 +110,6 @@ TMPFILE=$(mktemp)
 
 printf '%s' "$FULL_PROMPT" \
   | codex exec \
-      -m gpt-5.3-codex \
       --ephemeral \
       -s read-only \
       -o "$TMPFILE" \
