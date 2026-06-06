@@ -9,6 +9,10 @@
     "import",
     "jsx-a11y"
   ],
+  "jsPlugins": [
+    "./tools/oxlint-plugins/style-rules.js",
+    "./tools/oxlint-plugins/arch-rules.js"
+  ],
   "categories": {
     "correctness": "error",
     "suspicious": "error"
@@ -22,7 +26,15 @@
     "prefer-readonly": "error",
     "@typescript-eslint/no-explicit-any": "error",
     "react/react-in-jsx-scope": "off",
-    "import/no-unassigned-import": "off"
+    "import/no-unassigned-import": "off",
+    "style-rules/no-loops": "error",
+    "style-rules/no-tailwind-arbitrary": "error",
+    "style-rules/no-tailwind-opacity": "error",
+    "arch-rules/no-size-props": "error",
+    "arch-rules/one-component-per-file": "error",
+    "arch-rules/component-file-naming": "error",
+    "arch-rules/test-naming-format": "error",
+    "arch-rules/single-expect": "error"
   },
   "env": {
     "builtin": true,

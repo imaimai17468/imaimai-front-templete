@@ -64,11 +64,11 @@ These DO catch regressions — keep / write them:
 
 Tests must cover internal logic paths, not just inputs/outputs.
 
-## AAA Pattern + 1 Test = 1 Expect
+## AAA Pattern
 
-All tests follow **Arrange / Act / Assert**. Each test case has exactly one `expect`.
+**Linter-enforced:** test-naming-format (`should...when...`), single-expect (`tools/oxlint-plugins/arch-rules.js`)
 
-Test names must follow the format: `"should [expected behavior] when [condition]"`.
+All tests follow **Arrange / Act / Assert**.
 
 **Pure function tests** — cover all branches:
 
