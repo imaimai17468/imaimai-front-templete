@@ -54,8 +54,11 @@ chore(deps): bump 5 dependencies
 fix: ModeToggle の h-[1.2rem] を h-5 に置換
 refactor: commit skill の内容を rules に移動
 
-# OK — 改善点が主語
+# NG — 一見目的風だが中身がない（「何の」バグ？「何の」安定性？）
 chore(deps): 既知のバグ修正と安定性向上を取り込む
+
+# OK — 具体的に何が良くなるかが伝わる
+chore(deps): Cloudflare Workers の型定義を最新 API に追従させる
 fix: ModeToggle のアイコンサイズをコーディング規約に準拠させる
 refactor: commit 規約の重複を解消し常時参照可能にする
 ```
