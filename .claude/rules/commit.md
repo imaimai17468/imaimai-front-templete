@@ -44,16 +44,34 @@ Prefer more commits over fewer. A reviewer can always `git log --oneline` to col
 
 ## Message Format
 
+### First line = 目的・改善点
+
+第一行には「何をしたか（作業内容）」ではなく「何が良くなるか・なぜやったか（目的）」を書く。`git log --oneline` だけでプロジェクトの改善履歴が読めることがゴール。
+
+```
+# NG — 作業の記録（diff を見ればわかる）
+chore(deps): bump 5 dependencies
+fix: ModeToggle の h-[1.2rem] を h-5 に置換
+refactor: commit skill の内容を rules に移動
+
+# OK — 改善点が主語
+chore(deps): 既知のバグ修正と安定性向上を取り込む
+fix: ModeToggle のアイコンサイズをコーディング規約に準拠させる
+refactor: commit 規約の重複を解消し常時参照可能にする
+```
+
+作業内容の詳細は body（3行目以降）に書く。第一行は「このコミットで何が改善されたか」を一文で。
+
 ### Prefixes
 
-| prefix     | Use for                                         | Example                                    |
-| ---------- | ----------------------------------------------- | ------------------------------------------ |
-| `feat`     | New feature or user-visible behavior change     | `feat: ログインダイアログ追加`             |
-| `chore`    | Config, dependencies, CI, non-code housekeeping | `chore: eslint 設定更新`                   |
-| `test`     | Adding or fixing tests only                     | `test: ArticleCard テスト追加`             |
-| `docs`     | Documentation only                              | `docs: README 更新`                        |
-| `refactor` | Internal improvement, no behavior change        | `refactor: formatTimeAgo を共通関数に抽出` |
-| `fix`      | Bug fix (unintended prior behavior)             | `fix: ダイアログが閉じない問題`            |
+| prefix     | Use for                                         | Example                                           |
+| ---------- | ----------------------------------------------- | ------------------------------------------------- |
+| `feat`     | New feature or user-visible behavior change     | `feat: ワンクリックでテーマを切り替え可能にする`   |
+| `chore`    | Config, dependencies, CI, non-code housekeeping | `chore: CI の実行時間を短縮するためキャッシュ追加` |
+| `test`     | Adding or fixing tests only                     | `test: ArticleCard の分岐網羅率を100%にする`       |
+| `docs`     | Documentation only                              | `docs: 新規参加者向けにセットアップ手順を明確化`   |
+| `refactor` | Internal improvement, no behavior change        | `refactor: 日時フォーマットの重複を共通関数に集約` |
+| `fix`      | Bug fix (unintended prior behavior)             | `fix: ダイアログが閉じない問題を解消`              |
 
 Pick by *intent*. A file move may be `refactor` or `chore` depending on whether it changes the module surface.
 
