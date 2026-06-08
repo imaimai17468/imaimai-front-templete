@@ -91,7 +91,7 @@ DIFF=$(eval "$GIT_DIFF_STAGED -- $REVIEW_FILES" 2>&1 || true)
 
 read -r -d '' PROMPT <<'EOP' || true
 You are a code reviewer for this repository.
-Read the coding rules by running: cat .claude/rules/style.md .claude/rules/architecture.md .claude/rules/testing.md .claude/rules/tools.md .claude/rules/hooks.md
+Read the coding rules by running: cat .claude/rules/style.md .claude/rules/architecture.md .claude/rules/testing.md .claude/rules/tools.md .claude/rules/hooks.md .claude/rules/agents.md
 Then review whether the following staged changes follow those rules.
 
 **Output format (strict)**:
