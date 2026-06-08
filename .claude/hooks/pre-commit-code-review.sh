@@ -34,10 +34,8 @@ cd "$PROJECT_DIR"
 # index so the review still runs against exactly what is about to be committed.
 # The real index is never touched.
 TMP_INDEX=""
-TMPFILE=""
 cleanup() {
   [ -n "$TMP_INDEX" ] && rm -f "$TMP_INDEX"
-  [ -n "$TMPFILE" ] && rm -f "$TMPFILE"
 }
 trap cleanup EXIT
 
@@ -106,18 +104,14 @@ EOP
 
 FULL_PROMPT=$(printf '%s\n%s' "$PROMPT" "$DIFF")
 
-TMPFILE=$(mktemp)
-
-printf '%s' "$FULL_PROMPT" \
+TEXT=$(printf '%s' "$FULL_PROMPT" \
   | codex exec \
       --ephemeral \
       -s read-only \
-      -o "$TMPFILE" \
+      -m gpt-5.4-mini \
       - \
-      >/dev/null 2>/dev/null
+      2>/dev/null)
 RC=$?
-
-TEXT=$(cat "$TMPFILE" 2>/dev/null || true)
 
 if [ $RC -ne 0 ] || [ -z "$TEXT" ]; then
   echo '{"systemMessage":"⚠️  Pre-commit code review: agent failed (skipped)"}'
