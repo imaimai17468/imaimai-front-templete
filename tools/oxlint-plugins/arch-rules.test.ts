@@ -424,6 +424,46 @@ describe("test-naming-format", () => {
     // Assert
     expect(context.report).not.toHaveBeenCalled();
   });
+
+  it("should report when it.only() test name does not follow should...when... format", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const node = {
+      callee: {
+        type: "MemberExpression",
+        object: { type: "Identifier", name: "it" },
+        property: { name: "only" },
+      },
+      arguments: [{ type: "Literal", value: "bad name" }],
+    };
+
+    // Act
+    visitors.CallExpression(node);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when test.only() test name does not follow should...when... format", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const node = {
+      callee: {
+        type: "MemberExpression",
+        object: { type: "Identifier", name: "test" },
+        property: { name: "only" },
+      },
+      arguments: [{ type: "Literal", value: "bad name" }],
+    };
+
+    // Act
+    visitors.CallExpression(node);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
 });
 
 describe("component-file-naming", () => {
@@ -626,6 +666,101 @@ describe("single-expect", () => {
     // Act
     visitors.CallExpression(eachNode);
     visitors["CallExpression:exit"](eachNode);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when it.only() has more than one expect", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const onlyNode = {
+      type: "CallExpression",
+      callee: {
+        type: "MemberExpression",
+        object: { type: "Identifier", name: "it" },
+        property: { name: "only" },
+      },
+      arguments: [
+        { type: "Literal", value: "should do X when Y" },
+        { type: "ArrowFunctionExpression" },
+      ],
+    };
+    const expectNode = {
+      type: "CallExpression",
+      callee: { type: "Identifier", name: "expect" },
+      arguments: [],
+    };
+
+    // Act
+    visitors.CallExpression(onlyNode);
+    visitors.CallExpression(expectNode);
+    visitors.CallExpression(expectNode);
+    visitors["CallExpression:exit"](onlyNode);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when it.skip() is used", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const skipNode = {
+      type: "CallExpression",
+      callee: {
+        type: "MemberExpression",
+        object: { type: "Identifier", name: "it" },
+        property: { name: "skip" },
+      },
+      arguments: [
+        { type: "Literal", value: "should do X when Y" },
+        { type: "ArrowFunctionExpression" },
+      ],
+    };
+    const expectNode = {
+      type: "CallExpression",
+      callee: { type: "Identifier", name: "expect" },
+      arguments: [],
+    };
+
+    // Act
+    visitors.CallExpression(skipNode);
+    visitors.CallExpression(expectNode);
+    visitors.CallExpression(expectNode);
+    visitors["CallExpression:exit"](skipNode);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when test.todo() is used", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const todoNode = {
+      type: "CallExpression",
+      callee: {
+        type: "MemberExpression",
+        object: { type: "Identifier", name: "test" },
+        property: { name: "todo" },
+      },
+      arguments: [
+        { type: "Literal", value: "should do X when Y" },
+        { type: "ArrowFunctionExpression" },
+      ],
+    };
+    const expectNode = {
+      type: "CallExpression",
+      callee: { type: "Identifier", name: "expect" },
+      arguments: [],
+    };
+
+    // Act
+    visitors.CallExpression(todoNode);
+    visitors.CallExpression(expectNode);
+    visitors["CallExpression:exit"](todoNode);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();

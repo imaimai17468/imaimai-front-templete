@@ -38,13 +38,16 @@ const noTailwindArbitrary = {
         if (!val) return;
         if (val.type === "Literal" || val.type === "StringLiteral") {
           checkString(String(val.value), node);
-        } else if (
-          val.type === "JSXExpressionContainer" &&
-          val.expression.type === "TemplateLiteral"
-        ) {
-          val.expression.quasis.forEach((quasi) =>
-            checkString(quasi.value.raw, node)
-          );
+        } else if (val.type === "JSXExpressionContainer") {
+          const expr = val.expression;
+          if (expr.type === "TemplateLiteral") {
+            expr.quasis.forEach((quasi) => checkString(quasi.value.raw, node));
+          } else if (
+            (expr.type === "Literal" || expr.type === "StringLiteral") &&
+            typeof expr.value === "string"
+          ) {
+            checkString(expr.value, node);
+          }
         }
       },
     };
@@ -52,7 +55,7 @@ const noTailwindArbitrary = {
 };
 
 const OPACITY_RE =
-  /\b(?:text|bg|border|ring|shadow|accent|caret|fill|stroke|outline|decoration)-\w+-\d+\/\d+/g;
+  /\b(?:text|bg|border|ring|shadow|accent|caret|fill|stroke|outline|decoration)-[\w-]+\/\d+/g;
 
 const noTailwindOpacity = {
   create(context) {
@@ -74,13 +77,16 @@ const noTailwindOpacity = {
         if (!val) return;
         if (val.type === "Literal" || val.type === "StringLiteral") {
           checkString(String(val.value), node);
-        } else if (
-          val.type === "JSXExpressionContainer" &&
-          val.expression.type === "TemplateLiteral"
-        ) {
-          val.expression.quasis.forEach((quasi) =>
-            checkString(quasi.value.raw, node)
-          );
+        } else if (val.type === "JSXExpressionContainer") {
+          const expr = val.expression;
+          if (expr.type === "TemplateLiteral") {
+            expr.quasis.forEach((quasi) => checkString(quasi.value.raw, node));
+          } else if (
+            (expr.type === "Literal" || expr.type === "StringLiteral") &&
+            typeof expr.value === "string"
+          ) {
+            checkString(expr.value, node);
+          }
         }
       },
     };

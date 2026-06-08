@@ -32,6 +32,28 @@ const makeClassNameTemplateNode = (raw: string) => ({
   },
 });
 
+const makeClassNameExpressionLiteralNode = (value: string) => ({
+  name: { name: "className" },
+  value: {
+    type: "JSXExpressionContainer" as const,
+    expression: {
+      type: "Literal" as const,
+      value,
+    },
+  },
+});
+
+const makeClassNameExpressionStringLiteralNode = (value: string) => ({
+  name: { name: "className" },
+  value: {
+    type: "JSXExpressionContainer" as const,
+    expression: {
+      type: "StringLiteral" as const,
+      value,
+    },
+  },
+});
+
 const makeNonClassNameNode = (attrName: string, value: string) => ({
   name: { name: attrName },
   value: {
@@ -135,6 +157,45 @@ describe("no-tailwind-arbitrary", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
+  it("should report when className JSXExpressionContainer string literal contains an arbitrary value", () => {
+    // Arrange
+    const context = createMockContext();
+    const visitors = rule.create(context);
+    const node = makeClassNameExpressionLiteralNode("p-[20px] flex");
+
+    // Act
+    visitors.JSXAttribute(node);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when className JSXExpressionContainer string literal contains no arbitrary values", () => {
+    // Arrange
+    const context = createMockContext();
+    const visitors = rule.create(context);
+    const node = makeClassNameExpressionLiteralNode("flex items-center");
+
+    // Act
+    visitors.JSXAttribute(node);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when className JSXExpressionContainer StringLiteral contains an arbitrary value", () => {
+    // Arrange
+    const context = createMockContext();
+    const visitors = rule.create(context);
+    const node = makeClassNameExpressionStringLiteralNode("m-[10px]");
+
+    // Act
+    visitors.JSXAttribute(node);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
   it("should not report when the JSXAttribute is not className", () => {
     const context = createMockContext();
     const visitors = rule.create(context);
@@ -193,6 +254,60 @@ describe("no-tailwind-opacity", () => {
     const node = makeClassNameTemplateNode("flex items-center gap-4");
     visitors.JSXAttribute(node);
     expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when className contains a hyphenated utility with opacity modifier", () => {
+    // Arrange
+    const context = createMockContext();
+    const visitors = rule.create(context);
+    const node = makeClassNameNode("bg-gradient-to-r/50");
+
+    // Act
+    visitors.JSXAttribute(node);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when className JSXExpressionContainer string literal contains an opacity modifier", () => {
+    // Arrange
+    const context = createMockContext();
+    const visitors = rule.create(context);
+    const node = makeClassNameExpressionLiteralNode("text-gray-800/80");
+
+    // Act
+    visitors.JSXAttribute(node);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when className JSXExpressionContainer string literal contains no opacity modifier", () => {
+    // Arrange
+    const context = createMockContext();
+    const visitors = rule.create(context);
+    const node = makeClassNameExpressionLiteralNode(
+      "text-gray-800 bg-blue-600"
+    );
+
+    // Act
+    visitors.JSXAttribute(node);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when className JSXExpressionContainer StringLiteral contains an opacity modifier", () => {
+    // Arrange
+    const context = createMockContext();
+    const visitors = rule.create(context);
+    const node = makeClassNameExpressionStringLiteralNode("border-red-500/30");
+
+    // Act
+    visitors.JSXAttribute(node);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
   });
 
   it("should not report when the JSXAttribute is not className", () => {

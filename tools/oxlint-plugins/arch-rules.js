@@ -110,12 +110,13 @@ const testNamingFormat = {
         } else if (
           callee.type === "MemberExpression" &&
           callee.object &&
+          callee.object.type === "Identifier" &&
           (callee.object.name === "it" || callee.object.name === "test")
         ) {
           if (callee.property && SKIP_METHODS.has(callee.property.name)) {
             return;
           }
-          return;
+          calleeName = callee.object.name;
         }
         if (calleeName !== "it" && calleeName !== "test") return;
         const firstArg = node.arguments[0];
@@ -171,8 +172,21 @@ const singleExpect = {
       CallExpression(node) {
         if (isEachCall(node)) return;
         const callee = node.callee;
-        const calleeName =
+        let calleeName =
           callee && callee.type === "Identifier" ? callee.name : null;
+        if (
+          calleeName === null &&
+          callee &&
+          callee.type === "MemberExpression" &&
+          callee.object &&
+          callee.object.type === "Identifier" &&
+          (callee.object.name === "it" || callee.object.name === "test")
+        ) {
+          if (callee.property && SKIP_METHODS.has(callee.property.name)) {
+            return;
+          }
+          calleeName = callee.object.name;
+        }
         if (calleeName === "it" || calleeName === "test") {
           const secondArg = node.arguments[1];
           if (
@@ -192,8 +206,21 @@ const singleExpect = {
       "CallExpression:exit"(node) {
         if (isEachCall(node)) return;
         const callee = node.callee;
-        const calleeName =
+        let calleeName =
           callee && callee.type === "Identifier" ? callee.name : null;
+        if (
+          calleeName === null &&
+          callee &&
+          callee.type === "MemberExpression" &&
+          callee.object &&
+          callee.object.type === "Identifier" &&
+          (callee.object.name === "it" || callee.object.name === "test")
+        ) {
+          if (callee.property && SKIP_METHODS.has(callee.property.name)) {
+            return;
+          }
+          calleeName = callee.object.name;
+        }
         if (calleeName !== "it" && calleeName !== "test") return;
         const secondArg = node.arguments[1];
         if (
