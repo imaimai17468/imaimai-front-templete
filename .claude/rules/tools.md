@@ -2,7 +2,7 @@
 
 - **tsgo**: Type checker. Run `bun run typecheck`.
 - **oxlint**: Linter. Run `bun run lint`. Config: `.oxlintrc.json`. Type-aware linting is enabled (`--type-aware` flag) — rules that require type information (e.g., `no-unsafe-type-assertion`, `no-unnecessary-template-expression`) are active.
-- **oxfmt**: Formatter. Run `bun run format` to fix, `bun run format:check` to verify.
+- **oxfmt**: Formatter. Run `bun run format:fix` to fix, `bun run format` to verify (check-only).
 - **knip**: Detects unused dependencies, exports, and files. Run `bun run knip`. Config: `knip.json`.
 - **similarity**: Detects duplicate/similar code. Run `similarity-ts ./src` to scan, add `--print` to show code, `--threshold <value>` to adjust sensitivity. Default threshold is `0.87`. Only findings at or above the threshold are reported. When the stop hook fires with similarity findings, evaluate the score: findings above `0.90` almost certainly indicate real duplication worth refactoring; findings between `0.87–0.90` may be structural coincidence — inspect before deciding.
 - **wrangler types**: Generates `CloudflareEnv` from `wrangler.toml`. Run `bun run cf-typegen` after changing bindings. Output `worker-configuration.d.ts` is gitignored — regenerate locally; do not hand-edit.
