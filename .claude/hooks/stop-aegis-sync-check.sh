@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Stop hook: warn if .claude/rules/ or docs/adr/ files were changed but
-# aegis_sync_docs / aegis_import_doc was likely not called.
+# Stop hook: warn if .claude/rules/ or docs/adr/ files were changed but the
+# Aegis knowledge base was likely not updated.
 #
-# Detection: scan the conversation transcript for aegis_sync_docs or
-# aegis_import_doc tool calls. If absent and the diff touches those dirs,
-# emit a non-blocking warning so the agent remembers to sync.
+# Detection: scan the conversation transcript for aegis_sync_docs,
+# aegis_import_doc, or share-materialize (source-native lane: update
+# aegis-share/source/ then materialize). If absent and the diff touches those
+# dirs, emit a non-blocking warning so the agent remembers to sync.
 
 set -uo pipefail
 
@@ -26,7 +27,7 @@ TRANSCRIPT=$(printf '%s' "$INPUT" | jq -r '.transcript_path // ""' 2>/dev/null |
 
 AEGIS_CALLED=false
 if [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ]; then
-  if grep -q '"aegis_sync_docs\|aegis_import_doc"' "$TRANSCRIPT" 2>/dev/null; then
+  if grep -q 'aegis_sync_docs\|aegis_import_doc\|share-materialize' "$TRANSCRIPT" 2>/dev/null; then
     AEGIS_CALLED=true
   fi
 fi
@@ -36,7 +37,7 @@ if [ "$AEGIS_CALLED" = true ]; then
 fi
 
 jq -n '{
-  systemMessage: "⚠️ Aegis sync check: .claude/rules/ or docs/adr/ files were modified but aegis_sync_docs / aegis_import_doc was not detected in this session. Run aegis_sync_docs (for edits) or aegis_import_doc (for new files) to keep the knowledge base current."
+  systemMessage: "⚠️ Aegis sync check: .claude/rules/ or docs/adr/ files were modified but no knowledge-base update was detected in this session. Sync the matching aegis-share/source/documents/*.md body, then run `share-format` -> `share-lint` -> `share-materialize` -> `share-export` with `npx -y @fuwasegu/aegis@<pin in .mcp.json>` (preferred), or use aegis_sync_docs / aegis_import_doc."
 }'
 
 exit 0
