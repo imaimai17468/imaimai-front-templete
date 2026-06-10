@@ -31,6 +31,8 @@ http://localhost:5173 でアクセス。`@cloudflare/vite-plugin` により、`b
 
 データベース・認証・ストレージのセットアップ手順は [docs/DATABASE_SETUP.md](./docs/DATABASE_SETUP.md) を参照。
 
+AI エージェント用の Aegis ナレッジベース（`.aegis/`、gitignore 済み）は、初回の Claude Code セッション開始時に SessionStart フックが `aegis-share/`（git 管理のバンドル）から自動構築します。手動で構築する場合: `npx -y @fuwasegu/aegis share-hydrate`
+
 ## Scripts
 
 | Command              | Description                                    |

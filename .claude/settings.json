@@ -118,6 +118,18 @@
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": ["context7", "aegis", "aegis-admin"],
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start-aegis-hydrate.sh",
+            "timeout": 120,
+            "statusMessage": "Aegis hydrate: building local knowledge base from aegis-share/source if missing..."
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [

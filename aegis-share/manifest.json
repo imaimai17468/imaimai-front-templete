@@ -1,0 +1,8 @@
+{
+  "format_version": 1,
+  "bundle_file": "canonical.json",
+  "snapshot_id": "7bece632da1854f258d2c0a68ec8d39b799d5eff0e77425a1be3745e5c3cc147",
+  "knowledge_version": 54,
+  "bundle_sha256": "953c097cdaa094561c5e167926db68247b9e46dbe217141b983709470165acd0",
+  "includes_tag_mappings": false
+}
