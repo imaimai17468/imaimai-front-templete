@@ -132,3 +132,11 @@ Suppression comments are a last resort, not a first response. Fix the root cause
 Before `git commit`, the PreToolUse hook `pre-commit-code-review.sh` reviews the staged diff with codex and blocks the commit on any coding-rule violation.
 
 **Run `git add` and `git commit` as separate commands (separate tool calls).** The PreToolUse hook fires *before* the command runs, so chaining them into one command (e.g. `git add x && git commit ...`) means nothing is staged at the moment the hook evaluates, and the review target is missed. The hook has a fallback that replays a chained `git add` into a throwaway index to review anyway, but staging in a prior separate step guarantees the staged diff is detected and the review runs.
+
+### Pre-commit code review findings
+
+Every finding from the codex pre-commit review is a legitimate coding-rule violation. Fix the code — never bypass, exclude, weaken the prompt, or skip the hook.
+
+When repeated commits are blocked with different findings each time, that means each fix exposes the next issue. Work through them one by one until the review passes. Do not interpret successive distinct findings as a "loop" — a loop is the **same** finding repeating, not new ones appearing.
+
+When fixing a codex finding requires touching additional files or adding tests, **commit the fix immediately** before attempting the original commit again. Do not accumulate fixes from multiple review rounds into a single staging area — each fix is its own commit with its own purpose. This prevents unrelated changes from merging into one commit and violating split discipline.
