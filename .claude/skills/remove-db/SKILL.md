@@ -1,80 +1,48 @@
 ---
 name: remove-db
-description: DB・認証・ストレージ機能をテンプレートから除去する。Cloudflare D1 / R2 / Better Auth / Drizzle ORM を使わないプロジェクトに転用する際に使用。
+description: Use when forking this template for a project that does not need a database, auth, or file storage — removes Cloudflare D1 / R2 / Better Auth / Drizzle ORM and the Cloudflare Workers deployment wiring.
 user_invocable: true
 ---
 
 # Remove DB / Auth / Storage
 
-このテンプレートから以下の機能を完全に除去する手順:
+Strips the template down to a pure frontend (TanStack Start + Vite) by removing:
 
-- Cloudflare D1 (Drizzle ORM)
-- Cloudflare R2 (ストレージ)
+- Cloudflare D1 + Drizzle ORM (database)
+- Cloudflare R2 (avatar storage)
 - Better Auth (Google OAuth)
-- `@opennextjs/cloudflare` (Cloudflare Workers デプロイ)
+- Cloudflare Workers deployment wiring (`@cloudflare/vite-plugin`, `wrangler`)
 
-`docs/DATABASE_SETUP.md` で入れた構成をまるごと巻き戻すイメージ。フロントだけのテンプレートとして使いたい時に実行する。
+What stays: the TanStack Start app shell, shared UI (`src/components/ui`, header, mode-toggle, theme-provider), the Clock sample, and the oxlint / oxfmt / tsgo / knip / vitest toolchain.
 
----
+## Preconditions
 
-## 前提確認
+- `git status` is clean; work on a dedicated branch (the change set is large).
 
-- 対象ブランチに重要な未コミット変更がないこと (`git status` でクリーン)
-- 変更範囲が広いため、作業前にブランチを切ることを推奨
-
----
-
-## 1. ソースコードを削除
-
-### ディレクトリ削除
+## 1. Delete source code
 
 ```bash
-rm -rf src/lib/auth
-rm -rf src/lib/drizzle
-rm -rf src/lib/storage
-rm -rf src/actions
-rm -rf src/entities
-rm -rf src/gateways
-rm -rf src/repositories 2>/dev/null || true
-rm -rf src/app/api/auth
-rm -rf src/app/api/avatars
-rm -rf src/app/auth
-rm -rf src/app/login
-rm -rf src/app/profile
-rm -rf src/components/features/profile-page
-```
-
-### 単一ファイル削除
-
-```bash
+rm -rf src/lib/auth src/lib/drizzle src/lib/storage
 rm -f src/lib/auth.ts
-rm -f src/middleware.ts
-rm -f src/env.d.ts
+rm -rf src/entities src/gateways src/server
+rm -rf src/routes/api
+rm -f src/routes/login.tsx src/routes/profile.tsx src/routes/auth.auth-code-error.tsx
+rm -rf src/components/features/profile-page
+rmdir src/components/features 2>/dev/null || true
+rm -rf src/components/shared/header/auth-navigation src/components/shared/header/user-menu
+rm -f src/test/cloudflare-workers-stub.ts
 ```
 
-### `src/app/api/` が空になれば削除
+`src/routeTree.gen.ts` is gitignored and generated — refresh it with `bun run generate-routes` after deleting route files.
 
-```bash
-rmdir src/app/api 2>/dev/null || true
-```
+## 2. Fix auth-dependent UI
 
----
+### `src/components/shared/header/Header.tsx`
 
-## 2. 認証依存の UI を修正
-
-### Header 配下の auth 関連を削除
-
-```bash
-rm -rf src/components/shared/header/auth-navigation
-rm -rf src/components/shared/header/user-menu
-```
-
-### `src/components/shared/header/Header.tsx` を修正
-
-`async` / `fetchCurrentUser` / `AuthNavigation` を除去し、同期コンポーネントに戻す:
+Remove the `user` prop, the `UserWithEmail` / `AuthNavigation` imports, and the `similarity-ignore` comment:
 
 ```tsx
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { ModeToggle } from "@/components/shared/mode-toggle/ModeToggle";
 
 export const Header = () => {
@@ -83,14 +51,14 @@ export const Header = () => {
       <div className="flex items-center justify-between px-6 py-6">
         <div>
           <h1 className="font-medium text-2xl">
-            <Link href="/">Title</Link>
+            <Link to="/">Title</Link>
           </h1>
         </div>
         <div className="flex items-center gap-5">
-          <Link href="/link1" className="text-gray-400 text-sm">
+          <Link to="/" className="text-gray-400 text-sm">
             Link1
           </Link>
-          <Link href="/link2" className="text-gray-400 text-sm">
+          <Link to="/" className="text-gray-400 text-sm">
             Link2
           </Link>
           <ModeToggle />
@@ -101,130 +69,128 @@ export const Header = () => {
 };
 ```
 
-### `src/app/layout.tsx` を確認
+### `src/routes/__root.tsx`
 
-現テンプレートの `layout.tsx` は auth 関連 Provider を含んでいないため修正不要。`SessionProvider` 等を追加で導入していた場合は外す。Header を `async` から同期に戻したので import 部分もそのままでよい。
+- Delete the `getCurrentUserFn` import and the `loader` option.
+- Delete `const { user } = Route.useLoaderData();` and render `<Header />` without props.
 
-### `src/app/page.tsx` を確認
-
-ログイン状態での分岐・`fetchCurrentUser` 呼び出しがあれば削除し、静的な内容に置き換える:
+### Residual auth references
 
 ```bash
-grep -n "fetchCurrentUser\|session\|auth" src/app/page.tsx
+grep -rn "signIn\|signOut\|session\|getCurrentUserFn\|AuthNavigation\|UserMenu\|UserWithEmail" src/
 ```
 
-### 残りの auth 参照を網羅的に確認
+Remove every hit individually.
 
-```bash
-grep -rn "auth\|signIn\|signOut\|session\|fetchCurrentUser\|AuthNavigation\|UserMenu" src/
+## 3. Update build / test config
+
+### `vite.config.ts` — drop the Cloudflare plugin
+
+```ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import tailwindcss from "@tailwindcss/vite";
+
+export default defineConfig({
+  resolve: {
+    tsconfigPaths: true,
+  },
+  plugins: [tanstackStart(), react(), tailwindcss()],
+});
 ```
 
-ヒットした箇所を個別に除去する。
+### `vitest.config.mts` — drop the `cloudflare:workers` alias
 
----
+Remove the `alias` block and the now-unused `resolve` / `node:path` import:
 
-## 3. 設定ファイルを削除 / 更新
+```ts
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
 
-### 削除
+export default defineConfig({
+  resolve: {
+    tsconfigPaths: true,
+  },
+  plugins: [react()],
+  test: {
+    environment: "jsdom",
+    passWithNoTests: true,
+    isolate: false,
+    setupFiles: ["./src/test-setup.ts"],
+  },
+});
+```
+
+### `knip.json`
+
+- Remove `"src/server/fn/**/*.ts"` from `entry`.
+- Remove `"src/server/cloudflare.ts"` from `ignore`.
+
+## 4. Delete config files
 
 ```bash
-rm -f wrangler.toml
-rm -f drizzle.config.ts
-rm -f open-next.config.ts
-rm -rf scripts
+rm -f wrangler.toml drizzle.config.ts worker-configuration.d.ts
 rm -rf .wrangler
+rm -f scripts/setup-local-db.sh scripts/seed-local.ts   # keep scripts/audit-direct.sh
 rm -f docs/DATABASE_SETUP.md
-rm -f .env.local.example
-rm -f .env.local
+rm -f .env.local .env.local.example
 ```
 
-`docs/` が空になれば `rmdir docs`。
+Optionally remove the `# cloudflare` block (`.wrangler`, `worker-configuration.d.ts`) from `.gitignore`.
 
-### `next.config.mjs` を更新
-
-`initOpenNextCloudflareForDev()` 呼び出しを削除し、素の Next.js 設定に戻す:
-
-```js
-/** @type {import('next').NextConfig} */
-const nextConfig = {};
-
-export default nextConfig;
-```
-
----
-
-## 4. `package.json` を更新
-
-### 依存関係を削除
+## 5. Update `package.json`
 
 ```bash
-bun remove \
-  better-auth \
-  drizzle-orm \
-  drizzle-kit \
-  @opennextjs/cloudflare \
-  wrangler \
-  dotenv
+bun remove better-auth drizzle-orm drizzle-kit wrangler @cloudflare/vite-plugin @cloudflare/workers-types dotenv
 ```
 
-### scripts から以下を削除
+Remove these scripts: `cf-typegen`, `db:generate`, `db:push`, `db:studio`, `db:pull`, `db:push:local`, `db:seed:local`, `deploy`.
 
-- `db:generate`, `db:push`, `db:studio`, `db:pull`, `db:push:local`, `db:seed:local`
-- `preview`, `deploy`
+Keep: `generate-routes`, `dev`, `build`, `preview`, `lint*`, `format*`, `check*`, `typecheck`, `test`, `knip`.
 
-`dev` / `build` / `start` / `lint` / `format*` / `typecheck` / `test` / `knip` のみ残す。
+After the knip run in step 8, remove any dependencies it now flags as unused. Expected: `zod` and `@hookform/resolvers` (their last consumers were `src/entities/user` and the profile form). `react-hook-form`, `sonner`, and `@radix-ui/react-avatar` stay — `src/components/ui/` still uses them.
 
----
+## 6. Update docs / settings
 
-## 5. README / AGENTS.md / CLAUDE.md を更新
+- **`README.md`**: remove Better Auth / Cloudflare D1 / R2 from the tech stack, the "D1 / R2 bindings work in `bun run dev`" note, the `docs/DATABASE_SETUP.md` link, the `deploy` / `cf-typegen` command-table rows, the `entities/` / `gateways/` / `server/` / `lib/auth` / `lib/drizzle` / `lib/storage` entries in the project structure, and the Better Auth / Cloudflare D1 / R2 reference links.
+- **`.claude/rules/tools.md`**: remove the `wrangler types` bullet and the entire `## Database (Drizzle + D1)` section.
+- **`.claude/settings.json`**: remove the `wrangler *`, `drizzle-kit *`, and `bun run db:*` permission entries.
+- **`docs/adr/`**: delete `0005-wrangler-types-for-cloudflare-env.md` and its row in `docs/adr/README.md`. Skim the other ADRs for D1 / R2 / wrangler decisions that no longer apply (0007 mentions Cloudflare only as migration history — keeping it is fine).
+- If Aegis is initialized in your fork, run `aegis_sync_docs` after editing `.claude/rules/`.
 
-`README.md` から以下の記述を削除:
-
-- **技術スタック** から `Better Auth` / `Cloudflare D1` / `Cloudflare R2` / `@opennextjs/cloudflare`
-- **Cloudflare + Better Auth のセットアップ** セクション全体
-- **プロジェクト構成** の `entities/` / `gateways/` / `repositories/` / `lib/auth/` / `lib/drizzle/` / `lib/storage/`
-- **参考リンク** の Better Auth / Cloudflare 関連
-- `next.config.mjs` の Cloudflare バインディング注記
-- `bun run preview` / `bun run deploy` / `db:*` スクリプトの記載
-
-`AGENTS.md` / `CLAUDE.md` からも同様に Cloudflare D1 / Better Auth / Drizzle ORM の記述を除去。
-
----
-
-## 6. 残存参照を確認
-
-以下の検索で何もヒットしないこと:
+## 7. Residual reference check
 
 ```bash
-grep -r "better-auth\|drizzle\|wrangler\|opennextjs\|cloudflare\|D1Database\|R2Bucket" src/ next.config.mjs package.json README.md AGENTS.md CLAUDE.md
+grep -rn "better-auth\|BETTER_AUTH\|drizzle\|wrangler\|cloudflare\|CloudflareEnv\|D1Database\|R2Bucket\|AVATARS_BUCKET" \
+  src scripts package.json vite.config.ts vitest.config.mts knip.json README.md .claude/rules .claude/settings.json
 ```
 
-ヒットした場合は個別に対応する。
+Expect zero hits. Generic infra checklists (e.g. `.claude/skills/launch-checklist`) may keep their generic D1 / R2 mentions.
 
----
-
-## 7. 動作確認
+## 8. Verify
 
 ```bash
 bun install
+bun run generate-routes
 bun run typecheck
 bun run lint
+bun run test
 bun run knip
 bun run build
-bun run dev
+bun run dev   # open http://localhost:5173
 ```
 
-- `typecheck` でエラーが出る場合は削除し漏れた import を修正
-- `knip` で未使用依存が出たら `bun remove` で追加削除
-- ブラウザで `http://localhost:3000` を開きエラーなく表示されることを確認
+- `typecheck` errors point at imports of deleted modules — remove them.
+- `knip` findings point at now-unused dependencies/exports — remove them (see step 5).
 
----
+## 9. Commit
 
-## 8. コミット
+Split per `.claude/rules/commit.md` (one purpose per commit; message bodies in Japanese per that rule):
 
-機能単位に分けてコミット (`/commit` skill を使う想定):
+1. `feat:` — remove the auth / profile / DB-access features (`src/` deletions + `Header` / `__root` edits)
+2. `chore:` — remove the Cloudflare / Drizzle config and scripts (wrangler.toml / drizzle.config.ts / vite / vitest / knip / scripts / `.env*`)
+3. `chore:` — remove the DB / auth / storage dependencies (package.json / bun.lockb)
+4. `docs:` — remove DB- and auth-related documentation (README / `.claude/rules` / settings / ADR)
 
-1. `chore: DB/認証/ストレージ依存を削除` — package.json / lockfile
-2. `chore: Cloudflare/Drizzle 設定ファイルを削除` — wrangler.toml / drizzle.config.ts / open-next.config.ts / scripts / .env*
-3. `feat: 認証・プロフィール機能を削除` — src/ 配下の削除
-4. `docs: DB 関連ドキュメントを削除` — DATABASE_SETUP.md / README / AGENTS.md / CLAUDE.md
+Intermediate commits are not individually buildable (e.g. commit 1 deletes the vitest stub that commit 2's config change stops referencing) — verify on the final state.
