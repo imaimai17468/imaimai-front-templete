@@ -7,6 +7,8 @@ source_path: .claude/rules/architecture.md
 ---
 # Architecture
 
+**Linter-enforced:** one-component-per-file, component-file-naming, no-size-props (`tools/oxlint-plugins/arch-rules.js`)
+
 ## Directory Structure — Colocation
 
 Place components in a `components/` directory at the same level as the page that uses them. Only promote shared components to a higher level.
@@ -74,12 +76,6 @@ components/
 - Sub-component needs its own test file
 
 Until one of the above applies, a small internal helper component may stay inside `StatsCard.tsx` (not exported).
-
-## One Component Per File
-
-- Each `.tsx` file exports exactly one component
-- File name must match the component name (`StatsCard.tsx` → `StatsCard`)
-- Internal helper functions and sub-components are OK but must not be exported
 
 ## Container / Presenter Pattern
 
@@ -261,20 +257,6 @@ Avoiding control coupling:
 ```
 
 If prop drilling becomes cumbersome, revisit component design. Do not reach for Context as a shortcut.
-
-## No Size Props on Components
-
-Do not add `width` / `height` props to components. Control size **externally via the parent's CSS layout**. Turning dimensions into props removes CSS expressiveness (`max-content`, `minmax()`, etc.).
-
-```tsx
-// NG — component decides its own size
-<Card width={250} />
-
-// OK — parent layout controls size
-<div className="w-62">
-  <Card />
-</div>
-```
 
 ## No Margin on Components
 
