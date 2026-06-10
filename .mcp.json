@@ -6,11 +6,11 @@
     },
     "aegis": {
       "command": "npx",
-      "args": ["-y", "@fuwasegu/aegis@1.3.0", "--surface", "agent"]
+      "args": ["-y", "@fuwasegu/aegis@1.6.1", "--surface", "agent"]
     },
     "aegis-admin": {
       "command": "npx",
-      "args": ["-y", "@fuwasegu/aegis@1.3.0", "--surface", "admin"]
+      "args": ["-y", "@fuwasegu/aegis@1.6.1", "--surface", "admin"]
     }
   }
 }
