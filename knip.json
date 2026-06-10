@@ -11,5 +11,5 @@
   ],
   "project": ["src/**/*.{ts,tsx}"],
   "ignoreDependencies": ["lefthook", "tailwindcss", "tw-animate-css"],
-  "ignore": ["src/server/cloudflare.ts"]
+  "ignore": ["src/server/cloudflare.ts", "src/test/**/*.{ts,tsx}"]
 }
