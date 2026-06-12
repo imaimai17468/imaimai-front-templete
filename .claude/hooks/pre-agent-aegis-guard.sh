@@ -70,7 +70,7 @@ if [ "${HIT_COUNT:-0}" -gt 0 ]; then
   exit 0
 fi
 
-REASON="PreToolUse(Agent): No aegis_compile_context call found since the last user message. Call aegis_compile_context with target_files / plan / command before dispatching a subagent (see CLAUDE.md / .claude/rules/agents.md). For read-only search, use subagent_type Explore instead."
+REASON="PreToolUse(Agent): No aegis_compile_context call found since the last user message. Call aegis_compile_context with target_files / plan / command before dispatching a subagent (see AGENTS.md). For read-only search, use subagent_type Explore instead."
 
 jq -n --arg reason "$REASON" '{
   decision: "block",

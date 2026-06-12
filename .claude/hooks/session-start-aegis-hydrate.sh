@@ -43,7 +43,7 @@ DOCTOR_OUT=$($AEGIS doctor 2>&1)
 if [ $? -ne 0 ]; then
   echo "[aegis-hydrate] Aegis doctor reports an actionable state:"
   printf '%s\n' "$DOCTOR_OUT" | tail -6
-  echo "[aegis-hydrate] If .claude/rules/ or docs/adr/ changed: sync aegis-share/source/documents/ to match, then run: $AEGIS share-format && $AEGIS share-lint && $AEGIS share-materialize && $AEGIS share-export"
+  echo "[aegis-hydrate] If docs/adr/ changed: sync aegis-share/source/documents/ to match, then run: $AEGIS share-format && $AEGIS share-lint && $AEGIS share-materialize && $AEGIS share-export"
   echo "[aegis-hydrate] If nothing changed (e.g. right after share-hydrate): call aegis_sync_docs once to re-anchor - stale warnings clear when content already matches."
 fi
 

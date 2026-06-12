@@ -62,36 +62,32 @@ Keep the plan tight — it is the subagent briefing, not a design document. If t
 
 For genuinely complex multi-step work (≥ 5 distinct edits across unrelated areas, or work requiring TDD discipline), delegate the plan-writing itself to `superpowers:writing-plans` or use `superpowers:brainstorming` first. Per ADR-0006, superpowers' methodology skills are tools called from inside this orchestration — not parallel orchestrators. Do not let them auto-trigger as independent decision-makers.
 
-### 5. Optional: worktree
+### 5. Dispatch
 
-If the change is large enough that you want isolation from the working tree (parallel branches, big refactor), create a git worktree before dispatch. For most ticket-granularity work this is overkill; default is to work on the current branch.
+Hand the plan to a `general-purpose` subagent with `model: "sonnet"` (per the AGENTS.md model table). The dispatch prompt must be self-contained — include the plan, file paths, rules to follow, and acceptance criteria. The subagent will not see the parent conversation.
 
-### 6. Dispatch
-
-Hand the plan to a `general-purpose` subagent with `model: "sonnet"` (per `.claude/rules/agents.md`). The dispatch prompt must be self-contained — include the plan, file paths, rules to follow, and acceptance criteria. The subagent will not see the parent conversation.
-
-Escalate the model to `opus` only if the task involves non-trivial design judgment that survived the planning stage, or if a previous `sonnet` dispatch returned low-quality output.
+Escalate the model to `opus` if the task involves non-trivial design judgment that survived the planning stage, or if a previous `sonnet` dispatch returned low-quality output. Escalate to `fable` for long-horizon autonomous work or after a weak `opus` result.
 
 For tasks that decompose into clearly independent sub-tasks (e.g., "add three unrelated utility functions"), dispatch them in parallel via multiple `Agent` tool calls in a single message.
 
-### 7. Review
+### 6. Review
 
 Once the subagent returns:
 
 - Read the diff (`git status` / `git diff`) — do not trust the summary alone
 - Run `bun run typecheck` and `bun run test` — the existing PostToolUse hook already does this per-edit, but a final pass at the end catches gaps
 - Verify the acceptance criteria from step 4 are met
-- Apply the "Before reporting done" pass from `.claude/rules/agents.md` (test coverage on new branches, dead code / over-abstraction, null/off-by-one/async bug patterns)
+- Self-review pass: missing test coverage on new branches, dead code / over-abstraction the task didn't require, null/undefined/off-by-one/async bug patterns types can't catch
+- **Dispatch the `code-reviewer` agent (`model: opus`) on the uncommitted diff.** Address every finding or explicitly justify it as out of scope before proceeding to commit. This replaces the former codex pre-commit hook. Skip only for the same trivial scope that skips this skill entirely.
 - If something is wrong, dispatch a corrective subagent rather than fixing in the parent
 
-### 8. Commit and PR
+### 7. Commit and PR
 
-When the diff is correct, follow the existing `commit` and `pr` skills. Do not auto-commit unless the user explicitly asked for it earlier in the session.
+When the diff is correct, propose a commit split per the Commits discipline in AGENTS.md and ask the user for confirmation — never auto-commit. Create PRs with `gh pr create` (English summary) only when the user asks.
 
 ## What this skill does not do
 
 - It does not enforce TDD on every task. TDD is appropriate for pure functions and well-specified logic; it's overhead for UI assembly. Decide per-task.
-- It does not invoke a separate "code review" agent. The parent reviews. If the work warrants a fresh-eyes review, dispatch one explicitly — don't bake it into the default flow.
 - It does not assume Superpowers, aegis, or any external workflow framework is installed. If those are added later, this skill should be re-evaluated and likely deprecated in favor of the framework's equivalent.
 
 ## Anti-patterns

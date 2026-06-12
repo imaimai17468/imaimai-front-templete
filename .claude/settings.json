@@ -182,23 +182,6 @@
             "statusMessage": "Pre-agent guard: confirming aegis_compile_context invocation..."
           }
         ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-commit-review-guard.sh",
-            "timeout": 5,
-            "statusMessage": "Pre-commit review guard: confirming subagent output passed code-review..."
-          },
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-commit-code-review.sh",
-            "timeout": 300,
-            "statusMessage": "Pre-commit code review: code-reviewer agent checking staged changes..."
-          }
-        ]
       }
     ],
     "PostToolUse": [

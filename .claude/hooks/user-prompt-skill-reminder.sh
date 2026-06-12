@@ -21,7 +21,7 @@ Before taking action, check which of these apply to the current prompt:
 - **Planning**: If the user asks for planning/design, invoke Skill("superpowers:writing-plans") and enter EnterPlanMode before implementation.
 - **Brainstorming**: If the work involves creative/design judgment (new UI, architecture decisions, approach selection), invoke Skill("superpowers:brainstorming") before any code change.
 - **Implementation** (when not using start-workflow): Before touching code: (1) call aegis_compile_context with target_files / plan / command / explicit intent_tags, (2) dispatch a subagent (specify model explicitly), (3) when adding a Presenter or pure function, use Skill("superpowers:test-driven-development").
-- **Aegis maintenance**: If you edited or created files in `.claude/rules/` or `docs/adr/`, call `aegis_sync_docs` (edits) or `aegis_import_doc` (new files) before finishing. Forgetting this makes Aegis stale.
+- **Aegis maintenance**: If you edited or created files in `docs/adr/`, call `aegis_sync_docs` (edits) or `aegis_import_doc` (new files) before finishing. Forgetting this makes Aegis stale.
 EOF
 
 jq -n --arg ctx "$REMINDERS" '{
