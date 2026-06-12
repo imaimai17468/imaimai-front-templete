@@ -1,0 +1,30 @@
+# 0008. Coding rules are condensed into AGENTS.md; detailed rule files and the codex pre-commit review are retired
+
+- Status: accepted
+- Date: 2026-06-13
+
+## Context
+
+ADR-0001 placed coding rules as seven files under `.claude/rules/`, loaded into every session via `AGENTS.md` `@include`. The rule set grew large (hooks.md alone exceeded 600 lines), so every session paid a heavy always-on token cost — the exact failure mode ADR-0001 flagged as "acceptable while the rule set is small". Meanwhile two review mechanisms enforced the rules at commit time: a `PreToolUse(Bash)` hook running a codex CLI review (`pre-commit-code-review.sh`) and a guard requiring a prior review skill invocation (`pre-commit-review-guard.sh`). The codex hook added latency (up to 300 s per commit), an external CLI dependency, and coupling to the rule-file paths.
+
+## Decision
+
+1. `.claude/rules/` is deleted. The durable essence of each rule (white-box testing, Rules of React, commit split discipline, agent dispatch) is condensed into sections of `AGENTS.md`, which becomes the single always-on instruction file alongside cross-project philosophy sections (Design Philosophy / Knowledge Currency / Code Practices). `CLAUDE.md` holds only `@AGENTS.md`.
+2. The corresponding `rule-*` documents are removed from the Aegis knowledge base; the KB carries ADRs only.
+3. The two pre-commit hooks are deleted. Code review moves into the `start-workflow` skill as an explicit step: after implementation, the parent dispatches the `code-reviewer` agent (`model: opus`) on the uncommitted diff and addresses findings before commit.
+4. The subagent model table moves from `.claude/rules/agents.md` to `AGENTS.md`: sonnet for mechanical/implementation work, opus for planning and review, fable for long-horizon or escalated work.
+
+This supersedes ADR-0001 and amends ADR-0006 (layer 3 "rules via @include" is now "condensed AGENTS.md") and ADR-0003 (model defaults now codified in AGENTS.md).
+
+## Alternatives considered
+
+- **Keep detailed rules on disk, serve them via Aegis only**: rejected — deferred delivery requires readable source files, and keeping deleted-from-prompt files on disk invites drift between the condensed and detailed versions.
+- **Keep the codex pre-commit hook**: rejected — per-commit latency and an external CLI dependency, while the same review quality is available from an opus subagent dispatched once per task instead of once per commit.
+- **Inline full rule detail into AGENTS.md**: rejected — recreates the token cost the change is meant to remove.
+
+## Consequences
+
+- Session startup context shrinks substantially; the condensed rules keep the enforceable core.
+- Detail and rationale beyond the condensed text now live only in git history and ADRs — when a condensed rule proves too terse in practice, expand it in place or record the rationale as a new ADR.
+- Commits are no longer mechanically gated by review; the review obligation lives in `start-workflow` and the AGENTS.md "Review" section. This trades hard enforcement for speed and must be watched for regressions.
+- Hooks `stop-aegis-sync-check.sh`, `session-start-aegis-hydrate.sh`, and `user-prompt-skill-reminder.sh` now reference `docs/adr/` only.

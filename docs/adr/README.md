@@ -50,9 +50,11 @@ MADR-lite を使用。各 ADR は `docs/adr/NNNN-kebab-title.md` に以下の骨
 
 | # | タイトル | Status |
 |---|---|---|
-| [0001](0001-coding-rules-via-claude-rules-include.md) | コーディングルールは `.claude/rules/` に配置し `AGENTS.md` の `@include` でロード | accepted |
+| [0001](0001-coding-rules-via-claude-rules-include.md) | コーディングルールは `.claude/rules/` に配置し `AGENTS.md` の `@include` でロード | superseded by 0008 |
 | [0002](0002-direct-deps-only-audit.md) | `bun audit` は直接依存の脆弱性のみブロック | accepted |
 | [0003](0003-subagent-driven-implementation.md) | チケット粒度の実装は subagent に委譲 | accepted |
 | [0004](0004-permission-deny-as-security-boundary.md) | `permissions.deny` がセキュリティ境界（`ask` ではない） | accepted |
 | [0005](0005-wrangler-types-for-cloudflare-env.md) | `CloudflareEnv` は `wrangler types` で生成（手書き禁止） | accepted |
 | [0006](0006-orchestration-layering.md) | `/start-workflow` が唯一のオーケストレーション入口。aegis / superpowers / カスタムスキルはサブステップ | accepted |
+| [0007](0007-tanstack-start-migration.md) | TanStack Start へ移行 | accepted |
+| [0008](0008-consolidate-rules-into-agents-md.md) | コーディングルールを AGENTS.md に集約し、rules ファイルと codex pre-commit レビューを廃止 | accepted |

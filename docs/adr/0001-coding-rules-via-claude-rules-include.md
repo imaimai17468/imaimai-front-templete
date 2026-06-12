@@ -1,6 +1,6 @@
 # 0001. Coding rules live in `.claude/rules/` and load via `AGENTS.md` `@include`
 
-- Status: accepted
+- Status: superseded by 0008
 - Date: 2026-04-23
 
 ## Context
