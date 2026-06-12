@@ -101,24 +101,17 @@ src/
 └── styles.css              # Tailwind v4 tokens
 ```
 
-各ページの機能別コンポーネントは `src/components/features/<feature>/` にコロケーションします (詳細は [`.claude/rules/architecture.md`](./.claude/rules/architecture.md))。
+各ページの機能別コンポーネントは `src/components/features/<feature>/` にコロケーションします。
 
 ## AI エージェントで開発する
 
 このリポジトリは Claude Code (および superpowers / aegis MCP) を前提に組まれています。フロー全体・hook 構成・aegis / superpowers の役割分担などは:
 
 - **[docs/agent-workflow.md](./docs/agent-workflow.md)** — タスクの流れ・常時動いている層・メンテナンスループ・特殊フローの全体像
-- **[AGENTS.md](./AGENTS.md)** — 常時ロードされるコーディング規約 (`@include` 経由で `.claude/rules/*.md` を読み込み)
+- **[AGENTS.md](./AGENTS.md)** — 常時ロードされるコーディング規約 (凝縮版を直接記載、ADR-0008)
 - **[docs/adr/README.md](./docs/adr/README.md)** — 主要設計判断の長期記録 (なぜ今こう決まっているのか)
 
-普段使う slash コマンドは 2 つだけ:
-
-| Command    | When           |
-| ---------- | -------------- |
-| `/commit`  | コミット境界で |
-| `/pr`      | PR 作成時      |
-
-`/start-workflow` は ticket 粒度の作業をエージェントが検知して自律的に invoke します（手動でも呼べます）。trivial な 1 行修正・config 1 値・docs only な変更はこのフローに乗せず直接編集します。
+`/start-workflow` は ticket 粒度の作業をエージェントが検知して自律的に invoke します（手動でも呼べます）。trivial な 1 行修正・config 1 値・docs only な変更はこのフローに乗せず直接編集します。コミット・PR はエージェントが AGENTS.md の規律に従って提案し、ユーザー確認後に実行します。
 
 ## shadcn/ui
 

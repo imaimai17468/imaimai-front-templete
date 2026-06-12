@@ -154,16 +154,16 @@ After the knip run in step 8, remove any dependencies it now flags as unused. Ex
 ## 6. Update docs / settings
 
 - **`README.md`**: remove Better Auth / Cloudflare D1 / R2 from the tech stack, the "D1 / R2 bindings work in `bun run dev`" note, the `docs/DATABASE_SETUP.md` link, the `deploy` / `cf-typegen` command-table rows, the `entities/` / `gateways/` / `server/` / `lib/auth` / `lib/drizzle` / `lib/storage` entries in the project structure, and the Better Auth / Cloudflare D1 / R2 reference links.
-- **`.claude/rules/tools.md`**: remove the `wrangler types` bullet and the entire `## Database (Drizzle + D1)` section.
+- **`AGENTS.md`**: in the `## Tools` section, remove the `cf-typegen` bullet and the DB (Drizzle + D1) bullet.
 - **`.claude/settings.json`**: remove the `wrangler *`, `drizzle-kit *`, and `bun run db:*` permission entries.
 - **`docs/adr/`**: delete `0005-wrangler-types-for-cloudflare-env.md` and its row in `docs/adr/README.md`. Skim the other ADRs for D1 / R2 / wrangler decisions that no longer apply (0007 mentions Cloudflare only as migration history — keeping it is fine).
-- If Aegis is initialized in your fork, run `aegis_sync_docs` after editing `.claude/rules/`.
+- If Aegis is initialized in your fork, sync `aegis-share/source/` and run `share-materialize` after editing `docs/adr/`.
 
 ## 7. Residual reference check
 
 ```bash
 grep -rn "better-auth\|BETTER_AUTH\|drizzle\|wrangler\|cloudflare\|CloudflareEnv\|D1Database\|R2Bucket\|AVATARS_BUCKET" \
-  src scripts package.json vite.config.ts vitest.config.mts knip.json README.md .claude/rules .claude/settings.json
+  src scripts package.json vite.config.ts vitest.config.mts knip.json README.md AGENTS.md .claude/settings.json
 ```
 
 Expect zero hits. Generic infra checklists (e.g. `.claude/skills/launch-checklist`) may keep their generic D1 / R2 mentions.
@@ -186,11 +186,11 @@ bun run dev   # open http://localhost:5173
 
 ## 9. Commit
 
-Split per `.claude/rules/commit.md` (one purpose per commit; message bodies in Japanese per that rule):
+Split per the Commits discipline in `AGENTS.md` (one purpose per commit; message bodies in Japanese per that rule):
 
 1. `feat:` — remove the auth / profile / DB-access features (`src/` deletions + `Header` / `__root` edits)
 2. `chore:` — remove the Cloudflare / Drizzle config and scripts (wrangler.toml / drizzle.config.ts / vite / vitest / knip / scripts / `.env*`)
 3. `chore:` — remove the DB / auth / storage dependencies (package.json / bun.lockb)
-4. `docs:` — remove DB- and auth-related documentation (README / `.claude/rules` / settings / ADR)
+4. `docs:` — remove DB- and auth-related documentation (README / `AGENTS.md` / settings / ADR)
 
 Intermediate commits are not individually buildable (e.g. commit 1 deletes the vitest stub that commit 2's config change stops referencing) — verify on the final state.
