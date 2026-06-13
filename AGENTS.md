@@ -69,27 +69,33 @@ Write all agent-facing docs (`.claude/`, AGENTS.md, CLAUDE.md, `docs/adr/`) in E
 
 ### Delegation
 
-The parent session orchestrates; ticket-granularity implementation is dispatched to subagents (ADR-0003). Trivial one-liners, typo fixes, and config tweaks stay in the parent. Decompose work into the smallest independent units: units with no shared files and no output dependency run **in parallel** (multiple Agent calls in one message); dependent units run sequentially. Never parallelize units that edit the same file. Briefings must be self-contained — goal, file paths, acceptance criteria, and the relevant guidelines quoted in (consult Aegis before every dispatch).
+The parent session implements directly by default (ADR-0013). Delegate by **context impact, not task size**:
+
+- **Parent edits directly**: normal implementation, fixes, integration, and post-review follow-ups — whenever the scope is understood. The per-edit lint/typecheck hook applies to parent edits.
+- **Explore / research subagent**: bulk file reads, log digging, cross-cutting investigation whose raw output the parent won't reference again — only the summary should enter the parent's context.
+- **Parallel implementation subagents**: multiple independent units with no shared files and no output dependency (multiple Agent calls in one message). Dependent units run sequentially — or stay in the parent. Never parallelize units that edit the same file.
+
+Implementation dispatches run **foreground (synchronous)** — the parent waits and integrates. Background dispatch and SendMessage-based resumption are reserved for long-running independent research where mid-course correction is unnecessary. Briefings must be self-contained — goal, file paths, acceptance criteria, and the relevant guidelines quoted in (consult Aegis before every dispatch).
 
 ### Model selection — always set `model` explicitly
 
 | Role | Model |
 |---|---|
-| Simple / mechanical (search, lookups, trivial edits, Explore) | `sonnet` |
-| Implementation (ticket granularity) | `sonnet` |
-| Planning / architectural design | `opus` |
+| Implementation / integration / planning (parent session) | session model — no dispatch needed |
+| Exploration / search (Explore, scout) | `haiku` (`sonnet` when precision matters) |
+| Parallel implementation units / research | `sonnet` |
 | Code review | `opus` |
-| Long-horizon autonomous work, complex migrations, escalation after a weak result | `fable` |
+| Long-horizon autonomous workers, complex migrations, escalation after a weak result | `opus` |
 
 ### Teams & nesting
 
-- **Parallel subagent dispatch** is the default for independent fan-out.
-- **Agent Teams** (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`, experimental): only when teammates genuinely need peer-to-peer coordination — multi-dimension parallel review, competing-hypothesis debugging, cross-layer work sharing an API contract. 3–5 teammates; teammates never edit the same file.
-- **Nested subagents** (max depth 5): a dispatched worker may offload messy exploration (bulk searches, log digging) to a child scout and keep its own context clean. Default ceiling is depth 2 (parent → worker → scout); every extra level multiplies token cost, so justify deeper nesting explicitly. Never nest for sequential work — do it inline instead.
+- **Parallel subagent dispatch** is the default for independent fan-out — always cheaper and faster than a team when results only need to flow back to the parent.
+- **Agent Teams** (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`, experimental): only when **peer dialogue itself is the value** — competing-hypothesis debugging (theories refute each other to converge), multi-perspective review where perspectives challenge each other, cross-layer work negotiating a shared API contract. 3–5 teammates; teammates never edit the same file; one team at a time; no `/resume` support, so avoid teams in sessions likely to be interrupted.
+- **Nested subagents** (max depth 5): a dispatched worker may offload messy exploration (bulk searches, log digging) to a child scout and keep its own context clean — chiefly useful inside workers that own large parallel units. Models get cheaper with depth (worker `sonnet` → scout `haiku`). Default ceiling is depth 2 (parent → worker → scout); every extra level multiplies token cost, so justify deeper nesting explicitly. Never nest for sequential work — do it inline instead.
 
 ### Review
 
-After any non-trivial implementation (more than one file, a new branch, or a new pure function), dispatch the `code-reviewer` agent (`model: opus`) on the uncommitted diff **before committing**. Handle findings: never dismiss as "pre-existing" when the file is in the diff; apply rules literally; when in doubt, fix. Reviewers must propose a concrete alternative with every finding, respect rule scope qualifiers, and not re-report dismissed findings.
+Before every commit, dispatch the `code-reviewer` agent (`model: opus`) on the uncommitted diff. This matters *more* under parent-centric implementation: a fresh context that has not seen the implementation reasoning is the bias check. The parent fixes findings directly; re-review only after major rework. Handle findings: never dismiss as "pre-existing" when the file is in the diff; apply rules literally; when in doubt, fix. Reviewers must propose a concrete alternative with every finding, respect rule scope qualifiers, and not re-report dismissed findings.
 
 <!-- aegis:start -->
 ## Aegis Process Enforcement

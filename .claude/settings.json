@@ -169,6 +169,12 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-aegis-intent-tags-guard.sh",
             "timeout": 5,
             "statusMessage": "Pre-aegis intent_tags guard: confirming intent_tags is specified..."
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-aegis-clear-review-stamp.sh",
+            "timeout": 3,
+            "statusMessage": "Clearing review stamp for new implementation cycle..."
           }
         ]
       },
@@ -180,6 +186,17 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-agent-aegis-guard.sh",
             "timeout": 5,
             "statusMessage": "Pre-agent guard: confirming aegis_compile_context invocation..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-commit-review-reminder.sh",
+            "timeout": 5,
+            "statusMessage": "Review reminder: checking code-reviewer dispatch..."
           }
         ]
       }
@@ -204,6 +221,17 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-aegis-near-miss-warn.sh",
             "timeout": 3,
             "statusMessage": "Post-aegis near-miss warn: glob_no_match edge_hint を確認..."
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-agent-review-stamp.sh",
+            "timeout": 3,
+            "statusMessage": "Review stamp: checking if code-reviewer completed..."
           }
         ]
       }
