@@ -1,9 +1,5 @@
 {
   "mcpServers": {
-    "context7": {
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp@2.1.8"]
-    },
     "aegis": {
       "command": "npx",
       "args": ["-y", "@fuwasegu/aegis@1.7.0", "--surface", "agent"]

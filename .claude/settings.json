@@ -6,7 +6,7 @@
     "allow": [
       "mcp__aegis__*",
       "mcp__aegis-admin__*",
-      "mcp__context7__*",
+      "mcp__plugin_context7_context7__*",
       "mcp__pencil__*",
       "mcp__plugin_chrome-devtools-mcp_chrome-devtools__*",
       "mcp__claude_ai_Asana__*",
@@ -116,7 +116,7 @@
     ]
   },
   "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": ["context7", "aegis", "aegis-admin"],
+  "enabledMcpjsonServers": ["aegis", "aegis-admin"],
   "hooks": {
     "SessionStart": [
       {
@@ -240,7 +240,8 @@
   "enabledPlugins": {
     "superpowers@claude-plugins-official": true,
     "chrome-devtools-mcp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
+    "typescript-lsp@claude-plugins-official": true,
+    "context7@claude-plugins-official": true
   },
   "plansDirectory": "./.claude/plans"
 }
