@@ -225,6 +225,17 @@
         ]
       },
       {
+        "matcher": "mcp__aegis-admin__aegis_sync_docs|mcp__aegis-admin__aegis_import_doc",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-aegis-share-sync.sh",
+            "timeout": 120,
+            "statusMessage": "Aegis share sync: DB -> aegis-share/ (format -> lint -> materialize -> export)..."
+          }
+        ]
+      },
+      {
         "matcher": "Agent",
         "hooks": [
           {
