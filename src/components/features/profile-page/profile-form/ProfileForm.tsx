@@ -99,7 +99,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
             <button
               type="button"
               onClick={handleAvatarClick}
-              className="absolute right-0 bottom-0 cursor-pointer rounded-full bg-primary p-2 text-primary-foreground shadow-lg transition-transform hover:scale-110"
+              className="absolute right-0 bottom-0 cursor-pointer rounded-full border bg-primary p-2 text-primary-foreground transition-transform hover:scale-110"
               disabled={isPending}
             >
               <Camera className="h-4 w-4" />

@@ -37,7 +37,9 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 - Internal project patterns — read the codebase
 - General programming concepts without versioned APIs
 
-This applies everywhere — formal skill execution, casual conversation, follow-up questions, subagent prompts. No exceptions for "I'm pretty sure." If you're about to state a specific version number, flag name, import path, API signature, or behavioral detail from memory — stop and search.
+**Don't present uncertain knowledge as fact.** If you're not sure something is correct — a term, a translation, a convention, a recommendation — verify it before writing it down. Plausible-sounding but invented information reads as authoritative and propagates through docs and code. When you can't verify, say so plainly instead of filling the gap with confidence.
+
+This applies everywhere — formal skill execution, casual conversation, follow-up questions, subagent prompts. No exceptions for "I'm pretty sure." If you're about to state a specific version number, flag name, import path, API signature, translation, domain term, or behavioral detail from memory — stop and search.
 
 ## Code Practices
 
@@ -48,6 +50,13 @@ This applies everywhere — formal skill execution, casual conversation, follow-
 **Verification before completion:** Never report done without running the project's type-checker and linter, fixing ALL errors. If none configured, state that explicitly.
 
 **Never escape the type system to move on:** no `as` (except `as const`), `any`, `@ts-ignore`/`@ts-expect-error`/`@ts-nocheck`, non-null `!`, or lint-disable comments to silence an error. Fix the type (narrowing, guards, schema validation, `satisfies`). If you genuinely can't, dispatch a subagent with the right skill; if it still fails, STOP and ask — never silently cast or suppress.
+
+## Rules
+
+Path-scoped rules are auto-loaded from `.claude/rules/`:
+
+- **`.claude/rules/react.md`** (`**/*.tsx`) — Rules of React: purity, hooks, component splitting, module organization
+- **`.claude/rules/design.md`** (`src/**/*.css`, `src/**/*.tsx`) — Design system: Wairo (和色) palette, squircle corners, typography, spacing, component conventions
 
 ## Rules of React
 
