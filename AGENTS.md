@@ -104,7 +104,7 @@ Implementation dispatches run **foreground (synchronous)** — the parent waits 
 
 ### Review
 
-Before every commit, dispatch the `code-reviewer` agent (`model: opus`) on the uncommitted diff. This matters *more* under parent-centric implementation: a fresh context that has not seen the implementation reasoning is the bias check. The parent fixes findings directly; re-review only after major rework. Handle findings: never dismiss as "pre-existing" when the file is in the diff; apply rules literally; when in doubt, fix. Reviewers must propose a concrete alternative with every finding, respect rule scope qualifiers, and not re-report dismissed findings.
+Before every commit, dispatch the `code-reviewer` agent (`model: opus`) on the uncommitted diff. The dispatch prompt must include the content of `.claude/rules/` files relevant to the changed files — the reviewer runs in a fresh context and does not auto-load rules. This matters *more* under parent-centric implementation: a fresh context that has not seen the implementation reasoning is the bias check. The parent fixes findings directly; re-review only after major rework. Handle findings: never dismiss as "pre-existing" when the file is in the diff; apply rules literally; when in doubt, fix. Reviewers must propose a concrete alternative with every finding, respect rule scope qualifiers, and not re-report dismissed findings.
 
 <!-- aegis:start -->
 ## Aegis Process Enforcement
