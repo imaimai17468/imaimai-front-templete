@@ -179,6 +179,17 @@
         ]
       },
       {
+        "matcher": "Workflow",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-workflow-clear-review-stamp.sh",
+            "timeout": 3,
+            "statusMessage": "Clearing review stamp: review-diff owns the commit gate for this run..."
+          }
+        ]
+      },
+      {
         "matcher": "Agent",
         "hooks": [
           {

@@ -58,3 +58,4 @@ MADR-lite を使用。各 ADR は `docs/adr/NNNN-kebab-title.md` に以下の骨
 | [0006](0006-orchestration-layering.md) | `/start-workflow` が唯一のオーケストレーション入口。aegis / superpowers / カスタムスキルはサブステップ | accepted |
 | [0007](0007-tanstack-start-migration.md) | TanStack Start へ移行 | accepted |
 | [0008](0008-consolidate-rules-into-agents-md.md) | コーディングルールを AGENTS.md に集約し、rules ファイルと codex pre-commit レビューを廃止 | accepted |
+| [0009](0009-unified-review-workflow.md) | Pre-commit review runs as a single dynamic workflow (find → verify → stamp) | accepted |

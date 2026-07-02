@@ -1,0 +1,84 @@
+# 0009. Pre-commit review runs as a single dynamic workflow (find → verify → stamp)
+
+- Status: accepted
+- Date: 2026-07-02
+
+## Context
+
+The review step (start-workflow step 6, AGENTS.md "Review") dispatched a single
+`code-reviewer` agent (opus) that checks the uncommitted diff against AGENTS.md.
+A commit gate enforces it: `pre-commit-review-reminder.sh` blocks `git commit`
+unless `.claude/.review-stamp` exists, and `post-agent-review-stamp.sh` creates
+the stamp when a `code-reviewer` Agent dispatch completes.
+
+Claude Code's built-in `/code-review` skill demonstrated a stronger review shape:
+parallel finder agents with fixed lenses (so attention doesn't collapse onto the
+first bug class found), deduplication, then independent adversarial verifiers
+("try to refute this") that kill plausible-but-wrong findings. We want that shape
+AND the project-rules check, as one review with one report — not two parallel
+review tracks with separate dispatch points and separate outputs.
+
+Constraints discovered while designing this:
+
+- `/code-review` is a skill whose orchestration runs in the parent session via
+  the Workflow tool. Invoking it from inside a workflow agent is unverified and
+  likely degrades (workflow nesting is one level; subagents lack the Workflow tool).
+- Background workflow completion fires no hook event, so the existing
+  `PostToolUse(Agent)` stamp mechanism cannot see a workflow-based review finish.
+
+## Decision
+
+A saved dynamic workflow, `.claude/workflows/review-diff.js`, is the single
+pre-commit review. It runs finder lanes in parallel over the uncommitted diff —
+bug-hunt lenses (logic, state, integrity, cleanup; `effort: "high"` adds security
+and contracts) plus a rules lane that reuses the `code-reviewer` agent via
+`agentType` — deduplicates candidates by (file, line), adversarially verifies
+each survivor in a fresh context (CONFIRMED / PLAUSIBLE / REFUTED), ranks the
+survivors, and finally — only when every finder lane completed — has a trivial
+agent create `.claude/.review-stamp` and confirm it exists. A
+`PreToolUse(Workflow)` hook clears any pre-existing stamp when review-diff
+launches, so the gate is owned by the current run and a degenerate run (failed
+lanes, unconfirmed stamp, stale stamp from a prior cycle) fails closed. The
+parent (or user, via `/review-diff`) invokes it in start-workflow step 6 and
+fixes findings directly.
+
+A direct `code-reviewer` dispatch remains a valid fallback (it still stamps via
+`post-agent-review-stamp.sh`) for environments where the Workflow tool is
+unavailable.
+
+## Alternatives considered
+
+- **Run `/code-review` and the `code-reviewer` dispatch side by side**: rejected —
+  two review tracks, two reports, and the bug-hunt half invisible to the commit
+  gate. The user explicitly wants one integrated review.
+- **Wrap the built-in `/code-review` skill inside a workflow agent's prompt**:
+  rejected — skill availability inside workflow agents is undocumented, and the
+  skill's own Workflow orchestration cannot nest, so it would silently degrade
+  to a single-agent inline review.
+- **Re-key the gate on `PostToolUse(ReportFindings)`**: rejected — ReportFindings
+  is reserved for the built-in code-review skill's instructions; off-label use
+  couples the gate to internals we don't control.
+- **Rewrite the gate hooks around workflow launch (`PostToolUse(Workflow)`)**:
+  rejected — fires at launch, not completion; a commit could pass the gate while
+  the review is still running.
+
+## Consequences
+
+- One review entry point, one ranked report; refuted findings never reach the
+  parent. The commit-gate contract (`.review-stamp` file) is unchanged.
+- Review cost rises (5–7 finders + 1–3 verifiers per candidate vs. one agent).
+  `effort` stays an enum so intermediate tiers can be added without breaking callers.
+- The stamp is created by an agent inside the workflow, after verification —
+  the gate marks "review completed for this cycle". It is deliberately NOT
+  bound to a hash of the reviewed diff and not consumed per commit: the parent
+  fixes findings after the review and then commits (possibly split into several
+  commits), so strict diff binding would force a re-review after every fix.
+  The exposure is bounded by the clears at the next review launch and the next
+  aegis cycle.
+- `review-diff.js` is load-bearing for every commit; changes to it should go
+  through empirical tuning (ADR-0006 consequence applies to it as it does to
+  start-workflow).
+- The rules lane must explicitly load the path-scoped rule files under
+  `.claude/rules/` — subagents read AGENTS.md but do not auto-load rule files.
+- start-workflow step 6, AGENTS.md "Review", and the gate hook's message must
+  stay consistent with this ADR.

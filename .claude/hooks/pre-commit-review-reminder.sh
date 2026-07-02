@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # PreToolUse(Bash) guard:
 # When the agent runs `git commit`, block unless .review-stamp exists.
-# The stamp is created by PostToolUse(Agent) when code-reviewer completes,
-# and cleared by PreToolUse(aegis_compile_context) when a new cycle starts.
+# The stamp is created by the review-diff workflow's Stamp phase (ADR-0009),
+# or by PostToolUse(Agent) when a direct code-reviewer dispatch completes.
+# It is cleared by PreToolUse(aegis_compile_context) when a new cycle starts,
+# and by PreToolUse(Workflow) when review-diff launches (the gate is owned
+# by the current review run).
 
 set -euo pipefail
 
@@ -34,5 +37,5 @@ fi
 
 jq -n '{
   decision: "block",
-  reason: "PreToolUse(Bash): code-reviewer agent has not been dispatched. Dispatch the code-reviewer agent on the uncommitted diff before committing."
+  reason: "PreToolUse(Bash): the review gate has not been stamped. Run the review-diff workflow (Workflow({name: \"review-diff\"})) — or, if the Workflow tool is unavailable, dispatch the code-reviewer agent — on the uncommitted diff before committing."
 }'

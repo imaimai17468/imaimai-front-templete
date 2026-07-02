@@ -93,7 +93,7 @@ Implementation dispatches run **foreground (synchronous)** — the parent waits 
 | Implementation / integration / planning (parent session) | session model — no dispatch needed |
 | Exploration / search (Explore, scout) | `haiku` (`sonnet` when precision matters) |
 | Parallel implementation units / research | `sonnet` |
-| Code review | `opus` |
+| Code review — all `review-diff` lanes and direct `code-reviewer` dispatch | `sonnet` (re-run on `opus` only after a demonstrably weak result) |
 | Long-horizon autonomous workers, complex migrations, escalation after a weak result | `opus` |
 
 ### Teams & nesting
@@ -104,7 +104,7 @@ Implementation dispatches run **foreground (synchronous)** — the parent waits 
 
 ### Review
 
-Before every commit, dispatch the `code-reviewer` agent (`model: opus`) on the uncommitted diff. The dispatch prompt must include the content of `.claude/rules/` files relevant to the changed files — the reviewer runs in a fresh context and does not auto-load rules. This matters *more* under parent-centric implementation: a fresh context that has not seen the implementation reasoning is the bias check. The parent fixes findings directly; re-review only after major rework. Handle findings: never dismiss as "pre-existing" when the file is in the diff; apply rules literally; when in doubt, fix. Reviewers must propose a concrete alternative with every finding, respect rule scope qualifiers, and not re-report dismissed findings.
+Before every commit, run the unified review workflow `Workflow({name: "review-diff"})` on the uncommitted diff (ADR-0009; users invoke it as `/review-diff`, `{effort: "high"}` for a deeper pass). It combines bug-hunt finder lanes with the `code-reviewer` agent as the AGENTS.md rules lane, adversarially verifies every candidate, and stamps the commit gate on completion. This matters *more* under parent-centric implementation: fresh contexts that have not seen the implementation reasoning are the bias check. The parent fixes findings directly; re-review only after major rework. Handle findings: never dismiss as "pre-existing" when the file is in the diff; apply rules literally; when in doubt, fix. Reviewers must propose a concrete alternative with every finding, respect rule scope qualifiers, and not re-report dismissed findings. Fallback when the Workflow tool is unavailable: dispatch the `code-reviewer` agent directly (model comes from its agent definition) — include the rules content relevant to the changed files in the dispatch prompt; it stamps the gate too.
 
 <!-- aegis:start -->
 ## Aegis Process Enforcement

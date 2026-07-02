@@ -111,7 +111,7 @@ src/
 - **[AGENTS.md](./AGENTS.md)** — 常時ロードされるコーディング規約 (凝縮版を直接記載、ADR-0008)
 - **[docs/adr/README.md](./docs/adr/README.md)** — 主要設計判断の長期記録 (なぜ今こう決まっているのか)
 
-`/start-workflow` は ticket 粒度の作業をエージェントが検知して自律的に invoke します（手動でも呼べます）。trivial な 1 行修正・config 1 値・docs only な変更はこのフローに乗せず直接編集します。コミット・PR はエージェントが AGENTS.md の規律に従って提案し、ユーザー確認後に実行します。
+`/start-workflow` は ticket 粒度の作業をエージェントが検知して自律的に invoke します（手動でも呼べます）。trivial な 1 行修正・config 1 値・docs only な変更はこのフローに乗せず直接編集します。コミット前のレビューは `/review-diff`（バグハント + 規約チェックを並列展開し反証検証する dynamic workflow、ADR-0009）が担い、レビューが完走するまで `git commit` はフックでブロックされます。コミット・PR はエージェントが AGENTS.md の規律に従って提案し、ユーザー確認後に実行します。
 
 ## shadcn/ui
 

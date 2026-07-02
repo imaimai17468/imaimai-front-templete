@@ -75,7 +75,7 @@ Once implementation is complete:
 - Read the full diff (`git status` / `git diff`) — for dispatched work, do not trust the summary alone
 - Run `bun run typecheck` and `bun run test` — the PostToolUse hook already checks per-edit, but a final pass catches gaps
 - Verify the acceptance criteria from step 4 are met
-- **Dispatch the `code-reviewer` agent (`model: opus`) on the uncommitted diff.** This is the bias check: a fresh context that has not seen the implementation reasoning. Address every finding or explicitly justify it as out of scope before committing. A PreToolUse hook enforces this — `git commit` is blocked without a prior code-reviewer dispatch.
+- **Run the unified review workflow: `Workflow({name: "review-diff"})`** (users invoke it as `/review-diff`; pass `{effort: "high"}` for extra finder lanes and multi-lens verification). It fans out bug-hunt finder lanes plus the `code-reviewer` agent as the AGENTS.md rules lane, deduplicates candidates, adversarially verifies each one in a fresh context, returns CONFIRMED/PLAUSIBLE findings ranked by severity, and stamps the commit gate on completion (ADR-0009). This is the bias check: none of the reviewing contexts have seen the implementation reasoning. Address every finding or explicitly justify it as out of scope before committing. A PreToolUse hook enforces the gate — `git commit` is blocked until a review has stamped it. Fallback when the Workflow tool is unavailable: dispatch the `code-reviewer` agent directly (model comes from its agent definition) — it stamps the gate too.
 - **The parent fixes findings directly.** Re-review only after major rework.
 
 ### 7. Commit and PR
