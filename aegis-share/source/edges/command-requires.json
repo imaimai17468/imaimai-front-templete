@@ -28,6 +28,13 @@
     "specificity": 0
   },
   {
+    "edge_id": "9b3fe31e-6a7d-48c9-b244-8fa0f81b13c0",
+    "source_value": "review",
+    "target_doc_id": "adr-0009",
+    "priority": 100,
+    "specificity": 0
+  },
+  {
     "edge_id": "affd6605-13ce-42a1-a2a6-b7afe442bb89",
     "source_value": "refactor",
     "target_doc_id": "adr-0003",

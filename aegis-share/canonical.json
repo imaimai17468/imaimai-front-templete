@@ -1,7 +1,7 @@
 {
   "format_version": 1,
-  "snapshot_id": "9ee28a59fa71596402e6b5d6cb3bed407be9ed65956b0eabbc8a84f431a84e02",
-  "knowledge_version": 62,
+  "snapshot_id": "8b86cd3814868db59f4b8e6bdf90dd5e018c6e3831b816e46aa7dd89214fffd9",
+  "knowledge_version": 64,
   "documents": [
     {
       "doc_id": "adr-0001",
@@ -90,6 +90,17 @@
       "template_origin": null,
       "source_path": "docs/adr/0008-consolidate-rules-into-agents-md.md",
       "source_refs_json": null
+    },
+    {
+      "doc_id": "adr-0009",
+      "title": "Unified Review Workflow",
+      "kind": "reference",
+      "content": "# 0009. Pre-commit review runs as a single dynamic workflow (find → verify → stamp)\n\n- Status: accepted\n- Date: 2026-07-02\n\n## Context\n\nThe review step (start-workflow step 6, AGENTS.md \"Review\") dispatched a single\n`code-reviewer` agent (opus) that checks the uncommitted diff against AGENTS.md.\nA commit gate enforces it: `pre-commit-review-reminder.sh` blocks `git commit`\nunless `.claude/.review-stamp` exists, and `post-agent-review-stamp.sh` creates\nthe stamp when a `code-reviewer` Agent dispatch completes.\n\nClaude Code's built-in `/code-review` skill demonstrated a stronger review shape:\nparallel finder agents with fixed lenses (so attention doesn't collapse onto the\nfirst bug class found), deduplication, then independent adversarial verifiers\n(\"try to refute this\") that kill plausible-but-wrong findings. We want that shape\nAND the project-rules check, as one review with one report — not two parallel\nreview tracks with separate dispatch points and separate outputs.\n\nConstraints discovered while designing this:\n\n- `/code-review` is a skill whose orchestration runs in the parent session via\n  the Workflow tool. Invoking it from inside a workflow agent is unverified and\n  likely degrades (workflow nesting is one level; subagents lack the Workflow tool).\n- Background workflow completion fires no hook event, so the existing\n  `PostToolUse(Agent)` stamp mechanism cannot see a workflow-based review finish.\n\n## Decision\n\nA saved dynamic workflow, `.claude/workflows/review-diff.js`, is the single\npre-commit review. It runs finder lanes in parallel over the uncommitted diff —\nbug-hunt lenses (logic, state, integrity, cleanup; `effort: \"high\"` adds security\nand contracts) plus a rules lane that reuses the `code-reviewer` agent via\n`agentType` — deduplicates candidates by (file, line), adversarially verifies\neach survivor in a fresh context (CONFIRMED / PLAUSIBLE / REFUTED), ranks the\nsurvivors, and finally — only when every finder lane completed — has a trivial\nagent create `.claude/.review-stamp` and confirm it exists. A\n`PreToolUse(Workflow)` hook clears any pre-existing stamp when review-diff\nlaunches, so the gate is owned by the current run and a degenerate run (failed\nlanes, unconfirmed stamp, stale stamp from a prior cycle) fails closed. The\nparent (or user, via `/review-diff`) invokes it in start-workflow step 6 and\nfixes findings directly.\n\nA direct `code-reviewer` dispatch remains a valid fallback (it still stamps via\n`post-agent-review-stamp.sh`) for environments where the Workflow tool is\nunavailable.\n\n## Alternatives considered\n\n- **Run `/code-review` and the `code-reviewer` dispatch side by side**: rejected —\n  two review tracks, two reports, and the bug-hunt half invisible to the commit\n  gate. The user explicitly wants one integrated review.\n- **Wrap the built-in `/code-review` skill inside a workflow agent's prompt**:\n  rejected — skill availability inside workflow agents is undocumented, and the\n  skill's own Workflow orchestration cannot nest, so it would silently degrade\n  to a single-agent inline review.\n- **Re-key the gate on `PostToolUse(ReportFindings)`**: rejected — ReportFindings\n  is reserved for the built-in code-review skill's instructions; off-label use\n  couples the gate to internals we don't control.\n- **Rewrite the gate hooks around workflow launch (`PostToolUse(Workflow)`)**:\n  rejected — fires at launch, not completion; a commit could pass the gate while\n  the review is still running.\n\n## Consequences\n\n- One review entry point, one ranked report; refuted findings never reach the\n  parent. The commit-gate contract (`.review-stamp` file) is unchanged.\n- Review cost rises (5–7 finders + 1–3 verifiers per candidate vs. one agent).\n  `effort` stays an enum so intermediate tiers can be added without breaking callers.\n- The stamp is created by an agent inside the workflow, after verification —\n  the gate marks \"review completed for this cycle\". It is deliberately NOT\n  bound to a hash of the reviewed diff and not consumed per commit: the parent\n  fixes findings after the review and then commits (possibly split into several\n  commits), so strict diff binding would force a re-review after every fix.\n  The exposure is bounded by the clears at the next review launch and the next\n  aegis cycle.\n- `review-diff.js` is load-bearing for every commit; changes to it should go\n  through empirical tuning (ADR-0006 consequence applies to it as it does to\n  start-workflow).\n- The rules lane must explicitly load the path-scoped rule files under\n  `.claude/rules/` — subagents read AGENTS.md but do not auto-load rule files.\n- start-workflow step 6, AGENTS.md \"Review\", and the gate hook's message must\n  stay consistent with this ADR.\n",
+      "content_hash": "5d0803896fa9705e4ac53e6a454182a797552fe105f0886587bb8649b1d6cedb",
+      "ownership": "file-anchored",
+      "template_origin": null,
+      "source_path": "docs/adr/0009-unified-review-workflow.md",
+      "source_refs_json": null
     }
   ],
   "edges": [
@@ -100,6 +111,24 @@
       "target_doc_id": "adr-0008",
       "edge_type": "command_requires",
       "priority": 100,
+      "specificity": 0
+    },
+    {
+      "edge_id": "6489251a-9c13-400d-ae76-507d8fc62986",
+      "source_type": "path",
+      "source_value": ".claude/hooks/**",
+      "target_doc_id": "adr-0009",
+      "edge_type": "path_requires",
+      "priority": -1,
+      "specificity": 0
+    },
+    {
+      "edge_id": "6f36f4ae-7779-4fed-9b4e-97dc2ab14551",
+      "source_type": "path",
+      "source_value": ".claude/workflows/**",
+      "target_doc_id": "adr-0009",
+      "edge_type": "path_requires",
+      "priority": -1,
       "specificity": 0
     },
     {
@@ -136,6 +165,15 @@
       "target_doc_id": "adr-0003",
       "edge_type": "command_requires",
       "priority": -1,
+      "specificity": 0
+    },
+    {
+      "edge_id": "9b3fe31e-6a7d-48c9-b244-8fa0f81b13c0",
+      "source_type": "command",
+      "source_value": "review",
+      "target_doc_id": "adr-0009",
+      "edge_type": "command_requires",
+      "priority": 100,
       "specificity": 0
     },
     {

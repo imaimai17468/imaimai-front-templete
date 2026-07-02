@@ -1,5 +1,19 @@
 [
   {
+    "edge_id": "6489251a-9c13-400d-ae76-507d8fc62986",
+    "source_value": ".claude/hooks/**",
+    "target_doc_id": "adr-0009",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "6f36f4ae-7779-4fed-9b4e-97dc2ab14551",
+    "source_value": ".claude/workflows/**",
+    "target_doc_id": "adr-0009",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "8be7feb0-54ac-46f5-b468-b5610f963488",
     "source_value": "wrangler.toml",
     "target_doc_id": "adr-0005",
