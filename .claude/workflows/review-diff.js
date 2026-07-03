@@ -6,6 +6,11 @@ export const meta = {
     'Review step of start-workflow, or whenever the uncommitted diff needs a full review before committing. Pass {effort: "high"} for extra finder lanes and multi-lens verification.',
   phases: [
     {
+      title: "Graph",
+      detail: "extract dependency subgraph for the diff",
+      model: "haiku",
+    },
+    {
       title: "Find",
       detail: "parallel finder lanes over the uncommitted diff",
     },
@@ -93,6 +98,26 @@ const VERDICT_SCHEMA = {
   },
 };
 
+const GRAPH_SCHEMA = {
+  type: "object",
+  required: ["changed_files", "subgraph"],
+  properties: {
+    changed_files: { type: "array", items: { type: "string" } },
+    subgraph: {
+      type: "object",
+      description: "depth-1 neighborhood of changed files from code-graph.json",
+      additionalProperties: {
+        type: "object",
+        properties: {
+          layer: { type: "string" },
+          imports: { type: "array", items: { type: "string" } },
+          imported_by: { type: "array", items: { type: "string" } },
+        },
+      },
+    },
+  },
+};
+
 const BUG_LANES = [
   {
     key: "logic",
@@ -130,13 +155,36 @@ if (effort === "high") {
   );
 }
 
+// ---- Phase 0: Graph (extract dependency subgraph for the diff) ----
+phase("Graph");
+const graphResult = await agent(
+  `Extract the dependency subgraph for the current uncommitted diff.
+1. Run \`git diff --name-only HEAD\` and \`git ls-files --others --exclude-standard\` to get the list of changed/new files.
+2. Read \`.claude/code-graph.json\`. If it does not exist, run \`bun run graph\` first, then read it.
+3. For each changed file that appears in the graph's nodes, collect it plus its depth-1 neighbors (direct imports and imported_by).
+4. Return the changed_files list and the subgraph containing only those nodes.
+If there are no changed files or the graph has no matching nodes, return {"changed_files": [], "subgraph": {}}.`,
+  {
+    label: "graph",
+    phase: "Graph",
+    model: "haiku",
+    effort: "low",
+    schema: GRAPH_SCHEMA,
+  }
+);
+
+const graphContext =
+  graphResult && Object.keys(graphResult.subgraph).length > 0
+    ? `\nDependency graph for affected files (depth-1 neighborhood):\n${JSON.stringify(graphResult.subgraph)}\nChanged files: ${graphResult.changed_files.join(", ")}\nCONSTRAINT: Use this graph to understand impact. Do NOT explore or read files outside this graph unless a finding specifically requires verifying behavior in an unlisted file.\n`
+    : "";
+
 // ---- Phase 1: Find (barrier is intentional — dedup needs all lanes' output) ----
 phase("Find");
 const laneResults = await parallel([
   ...BUG_LANES.map(
     (lane) => () =>
       agent(
-        `You are one finder lane in a multi-agent code review; your ONLY lens is ${lane.focus}. ${DIFF_INSTRUCTIONS} Dig deep within your lens and ignore everything outside it. Report every issue you find in your lens, including ones you are uncertain about — do NOT filter for importance or confidence; a separate adversarial verification stage does that. Every finding still needs a concrete failure scenario and a severity estimate.`,
+        `You are one finder lane in a multi-agent code review; your ONLY lens is ${lane.focus}. ${DIFF_INSTRUCTIONS}${graphContext} Dig deep within your lens and ignore everything outside it. Report every issue you find in your lens, including ones you are uncertain about — do NOT filter for importance or confidence; a separate adversarial verification stage does that. Every finding still needs a concrete failure scenario and a severity estimate.`,
         {
           label: `find:${lane.key}`,
           phase: "Find",
@@ -147,7 +195,7 @@ const laneResults = await parallel([
   ),
   () =>
     agent(
-      `Follow your code-reviewer procedure on the uncommitted diff. In addition to AGENTS.md, read every path-scoped rule file under .claude/rules/ whose scope (listed in the AGENTS.md "Rules" section) matches files in the diff, and review against those rules too — they are NOT auto-loaded in your context. ${DIFF_INSTRUCTIONS} Map your severities to the schema: BLOCK -> critical, IMPORTANT -> major, MINOR -> minor, and set "rule" to the rule each finding violates. If you find no violations, return {"findings": []} — never output plain "APPROVE"; the structured schema replaces your usual report format.`,
+      `Follow your code-reviewer procedure on the uncommitted diff. In addition to AGENTS.md, read every path-scoped rule file under .claude/rules/ whose scope (listed in the AGENTS.md "Rules" section) matches files in the diff, and review against those rules too — they are NOT auto-loaded in your context. ${DIFF_INSTRUCTIONS}${graphContext} Map your severities to the schema: BLOCK -> critical, IMPORTANT -> major, MINOR -> minor, and set "rule" to the rule each finding violates. If you find no violations, return {"findings": []} — never output plain "APPROVE"; the structured schema replaces your usual report format.`,
       {
         label: "find:rules",
         phase: "Find",
@@ -223,7 +271,7 @@ const judged = (
           LENSES.map(
             (lens) => () =>
               agent(
-                `Adversarially verify one code-review finding through the ${lens} lens. Try to REFUTE it by reading the actual code; if it cites an AGENTS.md rule, read AGENTS.md and respect rule scope qualifiers. Finding: ${JSON.stringify(
+                `Adversarially verify one code-review finding through the ${lens} lens.${graphContext} Try to REFUTE it by reading the actual code; if it cites an AGENTS.md rule, read AGENTS.md and respect rule scope qualifiers. Finding: ${JSON.stringify(
                   finding
                 )}. Verdict: CONFIRMED only if you traced the failure or violation in the real code; PLAUSIBLE if credible but not fully traced; REFUTED if it does not hold. Default to REFUTED when uncertain.`,
                 {

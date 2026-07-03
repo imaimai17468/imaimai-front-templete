@@ -23,6 +23,7 @@
     "db:pull": "drizzle-kit pull",
     "db:push:local": "bash scripts/setup-local-db.sh",
     "db:seed:local": "bun run scripts/seed-local.ts",
+    "graph": "bun run scripts/build-graph.ts",
     "preview": "vite build && vite preview",
     "deploy": "vite build && wrangler deploy"
   },

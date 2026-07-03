@@ -92,6 +92,19 @@ const MACHINE_SCHEMA = {
         },
       },
     },
+    file_graph: {
+      type: "object",
+      description:
+        "depth-1 subgraph of source files related to the spec's states and actions, extracted from .claude/code-graph.json",
+      additionalProperties: {
+        type: "object",
+        properties: {
+          layer: { type: "string" },
+          imports: { type: "array", items: { type: "string" } },
+          imported_by: { type: "array", items: { type: "string" } },
+        },
+      },
+    },
   },
 };
 
@@ -142,7 +155,7 @@ const VERDICT_SCHEMA = {
 // ---- Phase 1: Formalize (fslc check analog) ----
 phase("Formalize");
 const machine = await agent(
-  `Read the state-machine specification at ${specPath} (format documented in specs/README.md). Normalize it into the structured machine required by the output schema: every state, the initial state, every action as a (from -> to) transition with its requires guard and ensures postcondition, every invariant, every forbidden flow, every requirement. Then flag ambiguities: undefined or unreachable states, actions that plausibly need a guard but have none, nondeterministic transitions (same state + same action -> different targets), invariants referencing undefined vocabulary, requirements with no supporting action. Report ambiguities in the dedicated field — do NOT silently repair the spec.`,
+  `Read the state-machine specification at ${specPath} (format documented in specs/README.md). Normalize it into the structured machine required by the output schema: every state, the initial state, every action as a (from -> to) transition with its requires guard and ensures postcondition, every invariant, every forbidden flow, every requirement. Then flag ambiguities: undefined or unreachable states, actions that plausibly need a guard but have none, nondeterministic transitions (same state + same action -> different targets), invariants referencing undefined vocabulary, requirements with no supporting action. Report ambiguities in the dedicated field — do NOT silently repair the spec. Also read .claude/code-graph.json (run \`bun run graph\` first if it does not exist). For each state or action in the spec that maps to a source file or module, look up that file in the graph and include its depth-1 neighborhood (the file plus its direct imports and imported_by) in the file_graph field. If no files can be mapped, return an empty file_graph object.`,
   {
     label: "formalize",
     phase: "Formalize",
@@ -181,7 +194,11 @@ consistencyIssues.forEach((description) =>
 
 // ---- Phase 2: Hunt (BMC / liveness / refinement analogs, heuristic not exhaustive) ----
 const machineJson = JSON.stringify(machine);
-const HUNT_PREAMBLE = `You are one counterexample-hunting lane in an agent-based model check of the spec at ${specPath}. The normalized machine: ${machineJson}. Search traces of at most ${depth} steps starting from the initial state "${machine.initial}". Adversarial toolkit: back navigation, cancel, retry, page reload, double-click / double-submit, concurrent tabs, permission or session change mid-flow, network failure at any step. Every step of a trace must be a legal transition whose requires guard holds. Report every candidate you find, including uncertain ones — an independent verification stage replays each trace and discards invalid ones.`;
+const fileGraphContext =
+  machine.file_graph && Object.keys(machine.file_graph).length > 0
+    ? `\nSource file dependency graph for this spec:\n${JSON.stringify(machine.file_graph)}\nUse this to ground counterexamples in actual file dependencies.\n`
+    : "";
+const HUNT_PREAMBLE = `You are one counterexample-hunting lane in an agent-based model check of the spec at ${specPath}. The normalized machine: ${machineJson}.${fileGraphContext} Search traces of at most ${depth} steps starting from the initial state "${machine.initial}". Adversarial toolkit: back navigation, cancel, retry, page reload, double-click / double-submit, concurrent tabs, permission or session change mid-flow, network failure at any step. Every step of a trace must be a legal transition whose requires guard holds. Report every candidate you find, including uncertain ones — an independent verification stage replays each trace and discards invalid ones.`;
 
 const LANES = [
   {
