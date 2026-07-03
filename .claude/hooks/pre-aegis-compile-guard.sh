@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
-# PreToolUse(mcp__aegis__aegis_compile_context) guard:
-# Block aegis_compile_context calls that omit intent_tags entirely.
-#
-# CLAUDE.md / AGENTS.md require intent_tags to always be specified.
-# Pass an empty array [] to explicitly skip expanded context.
-# Calls where intent_tags is absent or null are blocked.
-#
-# Exceptions (allowed through):
-#   - intent_tags is an empty array [] (explicit skip)
-#   - intent_tags contains one or more tags
-#   - tool_name is not the target tool
-#   - Unexpected situations (e.g. jq parse error) — prefer pass-through
+# PreToolUse(aegis_compile_context) combined guard:
+# 1. Block calls that omit intent_tags (must be [] or a tag array)
+# 2. Clear .review-stamp to start a new implementation cycle
 
 set -euo pipefail
 
@@ -25,8 +16,7 @@ case "$TOOL" in
     ;;
 esac
 
-# Check whether intent_tags is present.
-# null or absent = block; [] or non-empty array = pass
+# --- Guard: intent_tags must be present ---
 HAS_TAGS=$(printf '%s' "$INPUT" | jq '(.tool_input.intent_tags // null) == null')
 
 if [ "$HAS_TAGS" = "true" ]; then
@@ -37,5 +27,9 @@ if [ "$HAS_TAGS" = "true" ]; then
   }'
   exit 0
 fi
+
+# --- Side effect: clear review stamp for new cycle ---
+ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+rm -f "$ROOT/.claude/.review-stamp"
 
 exit 0
