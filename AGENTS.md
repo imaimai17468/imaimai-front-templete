@@ -4,7 +4,7 @@ This project runs on **TanStack Start** on Cloudflare Workers (ADR-0007) — not
 
 ## Workflow
 
-Ticket-granularity work (implement a component, fix a non-trivial bug, refactor a module, add a feature) MUST go through the `start-workflow` skill (ADR-0006).
+Ticket-granularity work (implement a component, fix a non-trivial bug, refactor a module, add a feature) MUST go through the `start-workflow` skill (ADR-0006). Interaction-complex features (wizards, auth/session flows, async guards, permission branching) additionally get a state-machine spec in `specs/` verified by the `verify-spec` workflow before implementation (ADR-0010).
 
 ## Design Philosophy
 

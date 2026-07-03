@@ -59,3 +59,4 @@ MADR-lite を使用。各 ADR は `docs/adr/NNNN-kebab-title.md` に以下の骨
 | [0007](0007-tanstack-start-migration.md) | TanStack Start へ移行 | accepted |
 | [0008](0008-consolidate-rules-into-agents-md.md) | コーディングルールを AGENTS.md に集約し、rules ファイルと codex pre-commit レビューを廃止 | accepted |
 | [0009](0009-unified-review-workflow.md) | Pre-commit review runs as a single dynamic workflow (find → verify → stamp) | accepted |
+| [0010](0010-agent-based-spec-verification.md) | Interaction-complex features get agent-based spec verification (FSL's discipline without fslc) | accepted |

@@ -58,6 +58,8 @@ Draft a short plan in the parent session. The plan should include:
 
 Keep the plan tight. For genuinely complex multi-step work (≥ 5 distinct edits across unrelated areas, or work requiring TDD discipline), delegate the plan-writing itself to `superpowers:writing-plans` or use `superpowers:brainstorming` first. Per ADR-0006, superpowers' methodology skills are tools called from inside this orchestration — not parallel orchestrators. Do not let them auto-trigger as independent decision-makers.
 
+If the feature involves non-obvious state transitions (wizards / multi-step forms, auth or session flows, async guards like disable-while-loading or unsaved-changes, permission branching), write a `specs/<feature>.spec.md` (format: `specs/README.md`) and run `Workflow({name: "verify-spec", args: {spec: "specs/<feature>.spec.md"}})` — fix the design for every CONFIRMED counterexample before implementing (ADR-0010). The deciding factor is interaction complexity, not scale.
+
 ### 5. Implement
 
 **The parent implements directly by default.** Use `superpowers:test-driven-development` for pure functions and well-specified logic. The per-edit lint/typecheck hook keeps quality continuous.
