@@ -7,6 +7,13 @@
     "specificity": 0
   },
   {
+    "edge_id": "598db62b-2580-4184-95ea-eb8522064aac",
+    "source_value": "scaffold",
+    "target_doc_id": "adr-0010",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "6f42e10e-ad42-43dc-9e97-940e3317b368",
     "source_value": "refactor",
     "target_doc_id": "adr-0008",

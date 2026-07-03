@@ -1,7 +1,7 @@
 {
   "format_version": 1,
-  "snapshot_id": "8b86cd3814868db59f4b8e6bdf90dd5e018c6e3831b816e46aa7dd89214fffd9",
-  "knowledge_version": 64,
+  "snapshot_id": "c08ab52773282874d8301d922dd10c2529e6773b908987961ea75f77e2e1059e",
+  "knowledge_version": 65,
   "documents": [
     {
       "doc_id": "adr-0001",
@@ -101,6 +101,17 @@
       "template_origin": null,
       "source_path": "docs/adr/0009-unified-review-workflow.md",
       "source_refs_json": null
+    },
+    {
+      "doc_id": "adr-0010",
+      "title": "Agent Based Spec Verification",
+      "kind": "reference",
+      "content": "# 0010. Interaction-complex features get agent-based spec verification (FSL's discipline without fslc)\n\n- Status: accepted\n- Date: 2026-07-03\n\n## Context\n\nFSL (https://ymm-oss.github.io/fsl/) verifies finite-state-machine specs with\nan SMT-backed checker (`fslc`): BMC, k-induction, liveness, and refinement.\nIts when-to-use guidance targets exactly the front-end failure modes that\nexample-based tests miss — back / cancel / retry / reload / double-submit /\npermission branching — and argues the deciding factor is interaction\ncomplexity, not scale.\n\nWe evaluated adopting fslc directly (2026-07-03): the tool is real and active\n(Apache-2.0, standalone binaries bundling Z3, v2.6.2 released 2026-07-02) but\nhas essentially zero adoption (5 stars, single org), no TypeScript integration\n(test generation emits Python; no TS types, codegen, or CI recipe), and this\ntemplate's toolchain is Bun + TS. The verifier would run fine in CI, but\nnothing would connect it to the codebase.\n\nMeanwhile the template already has a proven agent pipeline shape: review-diff's\nfind → adversarial-verify structure (ADR-0009) kills plausible-but-wrong\nfindings with independent skeptical contexts.\n\n## Decision\n\nAdopt FSL's **discipline**, not its toolchain. For features with non-obvious\nstate transitions, start-workflow step 4 requires a lightweight spec\n(`specs/<feature>.spec.md`: states, actions with requires/ensures, invariants,\nforbidden flows, requirements — format in `specs/README.md`) verified by a new\n`verify-spec` dynamic workflow before implementation:\n\n1. **Formalize** (1 agent) — normalize the spec into a structured machine and\n   flag ambiguities (undefined states, missing guards, nondeterminism,\n   unsupported requirements). The `fslc check` analog.\n2. **Hunt** (4 parallel lanes) — construct counterexample traces within a\n   step bound against invariants, forbidden flows, liveness, and requirements\n   refinement, using the adversarial toolkit (back, reload, double-submit,\n   permission change). The `fslc verify` analog, heuristic not exhaustive.\n3. **Verify** — an independent context replays each trace step by step and\n   REFUTEs illegal or non-violating traces, mirroring ADR-0009.\n\nThe workflow is design-time and advisory: it does not stamp the commit gate.\nThe parent fixes the design for every CONFIRMED counterexample and re-runs.\n\n## Alternatives considered\n\n- **Adopt fslc itself**: rejected for now — maturity risk (5 stars, bus factor\n  of one org), zero TS linkage, Python-only test generation. The spec format\n  is deliberately close to FSL's model so `.spec.md` → `.fsl` migration stays\n  cheap if fslc matures; revisit then.\n- **Do nothing (tests only)**: rejected — white-box tests verify the\n  implementation against the developer's mental model; loophole flows live in\n  the mental model itself and need adversarial search before code exists.\n- **Fold spec checking into review-diff**: rejected — wrong timing. Review\n  runs at commit time on code; counterexamples are cheapest to fix at design\n  time before implementation.\n\n## Consequences\n\n- Loophole hunting moves to design time; the spec's invariants and forbidden\n  flows double as white-box test cases after implementation.\n- Honest limitation: agent search proves nothing — it is bounded, heuristic\n  counterexample hunting. Do not present a clean run as verification of\n  correctness.\n- Cost: ~6 agents per run on sonnet, only for interaction-complex features.\n- Specs must be kept current when behavior changes; a stale spec misleads\n  every later reader. Spec upkeep is part of the feature's definition of done.\n- `verify-spec.js` shares review-diff's load-bearing status: changes should go\n  through empirical tuning (ADR-0006 consequence applies).\n",
+      "content_hash": "8116c6bf52b875dd47da00a840e7b0d774cd7e7d08f791f130f544907df83e14",
+      "ownership": "file-anchored",
+      "template_origin": null,
+      "source_path": "docs/adr/0010-agent-based-spec-verification.md",
+      "source_refs_json": null
     }
   ],
   "edges": [
@@ -111,6 +122,24 @@
       "target_doc_id": "adr-0008",
       "edge_type": "command_requires",
       "priority": 100,
+      "specificity": 0
+    },
+    {
+      "edge_id": "598db62b-2580-4184-95ea-eb8522064aac",
+      "source_type": "command",
+      "source_value": "scaffold",
+      "target_doc_id": "adr-0010",
+      "edge_type": "command_requires",
+      "priority": -1,
+      "specificity": 0
+    },
+    {
+      "edge_id": "61514188-dd0d-47e9-bbcb-b4efcb5eb6a6",
+      "source_type": "path",
+      "source_value": "specs/**",
+      "target_doc_id": "adr-0010",
+      "edge_type": "path_requires",
+      "priority": -1,
       "specificity": 0
     },
     {
@@ -208,6 +237,15 @@
       "source_type": "path",
       "source_value": "src/**/*",
       "target_doc_id": "adr-0007",
+      "edge_type": "path_requires",
+      "priority": -1,
+      "specificity": 0
+    },
+    {
+      "edge_id": "e9283ccd-9211-4970-992d-e4f096f535cc",
+      "source_type": "path",
+      "source_value": ".claude/workflows/**",
+      "target_doc_id": "adr-0010",
       "edge_type": "path_requires",
       "priority": -1,
       "specificity": 0

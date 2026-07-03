@@ -1,5 +1,12 @@
 [
   {
+    "edge_id": "61514188-dd0d-47e9-bbcb-b4efcb5eb6a6",
+    "source_value": "specs/**",
+    "target_doc_id": "adr-0010",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "6489251a-9c13-400d-ae76-507d8fc62986",
     "source_value": ".claude/hooks/**",
     "target_doc_id": "adr-0009",
@@ -24,6 +31,13 @@
     "edge_id": "de4c4d45-63fd-48a2-afc3-b25b3aae3628",
     "source_value": "src/**/*",
     "target_doc_id": "adr-0007",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "e9283ccd-9211-4970-992d-e4f096f535cc",
+    "source_value": ".claude/workflows/**",
+    "target_doc_id": "adr-0010",
     "priority": -1,
     "specificity": 0
   },
