@@ -47,7 +47,6 @@ AI エージェント用の Aegis ナレッジベース（`.aegis/`、gitignore 
 | `bun run format:fix` | Format with oxfmt                              |
 | `bun run knip`       | Detect unused deps/exports/files               |
 | `bun run test`       | Run tests with Vitest                          |
-| `bun run graph`      | Generate code dependency graph (`.claude/code-graph.json`) |
 | `bun run cf-typegen` | Generate `CloudflareEnv` from `wrangler.toml`  |
 
 ## Tools

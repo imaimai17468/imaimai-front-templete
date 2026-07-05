@@ -8,6 +8,10 @@
 #
 # Exception: subagent_type claude-code-guide / Explore does not require Aegis
 # knowledge (CLI Q&A / read-only search), so those are allowed through.
+# code-reviewer / spec-verifier are also exempt: they read AGENTS.md and the
+# path-scoped rule files directly (they do not consume aegis_compile_context
+# output), so requiring a fresh compile_context before /review-diff or
+# /verify-spec would only add friction.
 
 set -euo pipefail
 
@@ -28,7 +32,7 @@ fi
 
 SUBTYPE=$(printf '%s' "$INPUT" | jq -r '.tool_input.subagent_type // ""')
 case "$SUBTYPE" in
-  claude-code-guide|Explore|statusline-setup|keybindings-help)
+  claude-code-guide|Explore|statusline-setup|keybindings-help|code-reviewer|spec-verifier)
     exit 0
     ;;
 esac

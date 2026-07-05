@@ -1,7 +1,14 @@
 # 0010. Interaction-complex features get agent-based spec verification (FSL's discipline without fslc)
 
-- Status: accepted
+- Status: superseded by 0011
 - Date: 2026-07-03
+
+> **Superseded by [ADR-0011](0011-nested-subagent-review-and-verification.md)** (2026-07-05):
+> the formalize → hunt → verify discipline and the design-time (no-stamp) stance
+> below still hold, but the *mechanism* changed — the dynamic workflow became a
+> nested subagent orchestrator and the four parallel hunt lanes collapsed into one
+> comprehensive hunter. Read this ADR for the *why*; read ADR-0011 for the current
+> implementation.
 
 ## Context
 

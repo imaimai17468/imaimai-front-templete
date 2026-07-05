@@ -61,5 +61,12 @@
     "target_doc_id": "adr-0008",
     "priority": 100,
     "specificity": 0
+  },
+  {
+    "edge_id": "d49091c6-fbff-437c-9d05-1fa33a90c7d7",
+    "source_value": "review",
+    "target_doc_id": "adr-0011",
+    "priority": 100,
+    "specificity": 0
   }
 ]

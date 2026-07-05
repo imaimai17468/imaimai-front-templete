@@ -167,17 +167,6 @@
         ]
       },
       {
-        "matcher": "Workflow",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-workflow-clear-review-stamp.sh",
-            "timeout": 3,
-            "statusMessage": "Clearing review stamp: review-diff owns the commit gate for this run..."
-          }
-        ]
-      },
-      {
         "matcher": "Agent",
         "hooks": [
           {
@@ -185,6 +174,12 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-agent-aegis-guard.sh",
             "timeout": 5,
             "statusMessage": "Pre-agent guard: confirming aegis_compile_context invocation..."
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-agent-review-clear.sh",
+            "timeout": 3,
+            "statusMessage": "Clearing review stamp: code-reviewer owns the commit gate for this run..."
           }
         ]
       },
@@ -195,7 +190,7 @@
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-commit-guard.sh",
             "timeout": 30,
-            "statusMessage": "Pre-commit guard: review gate + graph refresh..."
+            "statusMessage": "Pre-commit guard: review gate check..."
           }
         ]
       }
