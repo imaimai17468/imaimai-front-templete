@@ -17,6 +17,8 @@ Benchmarking (2026-07-04) showed the old parallel workflow (4 hunt lanes) burned
 - **Human invoked `/verify-spec <path>` (you are the parent session):** dispatch the `spec-verifier` agent with the spec path and integrate what it returns. Do NOT run the steps below in the parent context.
 - **You are the `spec-verifier` agent (this skill is preloaded):** execute the procedure below directly on the spec path you were given.
 
+**Single pass — do NOT auto re-run.** One dispatch runs the full procedure once and returns the report. The parent MUST NOT re-dispatch the `spec-verifier` agent on its own after it finishes — not for CONFIRMED counterexamples, not on `incomplete`. Re-verification is always a fresh, explicit invocation the *user* decides on after reviewing the findings (see "After the verification").
+
 ## When to run
 
 Step 4 of `start-workflow`, for features with non-obvious state transitions: wizards / multi-step forms, auth or session flows, async guards (disable-while-loading, unsaved-changes), permission branching. The deciding factor is interaction complexity, not scale. Write the spec first (format: `specs/README.md`), then run this. Fix the design for every CONFIRMED counterexample before implementing.
@@ -53,7 +55,7 @@ Each counterexample: `{ property, trace: ["state --action--> state (why the guar
 
 ### Step 3 — Verify (dispatch a separate child — do not verify your own counterexamples)
 
-Dispatch ONE verifier child agent (`model: sonnet`, `subagent_type: general-purpose`) with a self-contained prompt containing the machine and the full counterexample list as JSON. For each, the child replays the trace step by step and checks: (1) starts in the initial state; (2) every step's action exists and its `requires` guard holds in that step's source state; (3) the claimed violation actually holds at the end (for liveness: no enabled action escapes); (4) the trace is at most `depth` steps. Verdict CONFIRMED / PLAUSIBLE / REFUTED; REFUTED if any check fails; default to REFUTED when uncertain.
+Dispatch ONE verifier child agent (`model: opus`, `subagent_type: general-purpose`) with a self-contained prompt containing the machine and the full counterexample list as JSON. For each, the child replays the trace step by step and checks: (1) starts in the initial state; (2) every step's action exists and its `requires` guard holds in that step's source state; (3) the claimed violation actually holds at the end (for liveness: no enabled action escapes); (4) the trace is at most `depth` steps. Verdict CONFIRMED / PLAUSIBLE / REFUTED; REFUTED if any check fails; default to REFUTED when uncertain.
 
 ### Step 4 — Return
 
@@ -67,6 +69,9 @@ There is NO commit-gate stamp — this is a design-time tool.
 
 ## After the verification (parent session)
 
+The agent returns once; act on the single report — do NOT auto re-dispatch it.
+
 1. Read the ambiguities first — an ambiguous spec is a design gap; fix the spec.
-2. For every CONFIRMED counterexample, fix the design (update the spec) and re-run before implementing.
-3. If `incomplete` is true, the hunt outaged — re-run; do not treat it as a clean pass.
+2. For every CONFIRMED counterexample, fix the design (update the spec) before implementing.
+3. If `incomplete` is true, the hunt outaged — do not treat it as a clean pass; tell the user so they can decide whether to re-verify.
+4. Re-verification (after fixing the design, or after an outage) is a **fresh, explicit invocation** — run it only when the user asks for another pass. Never loop automatically.

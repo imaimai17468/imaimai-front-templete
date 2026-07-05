@@ -133,8 +133,8 @@ code-reviewer agent (review-diff skill を preload):
 
 ### 2.2 `spec-verifier` — 作る前に壊す
 
-**agent**: [`.claude/agents/spec-verifier.md`](../.claude/agents/spec-verifier.md) （preload: [`verify-spec`](../.claude/skills/verify-spec/SKILL.md) skill、model: sonnet）
-**起動**: parent が spec パス付きで dispatch（ユーザーは `/verify-spec specs/x.spec.md`）。**design-time ツールなので stamp はしない**。
+**agent**: [`.claude/agents/spec-verifier.md`](../.claude/agents/spec-verifier.md) （preload: [`verify-spec`](../.claude/skills/verify-spec/SKILL.md) skill、model: opus。verifier child も opus）
+**起動**: parent が spec パス付きで dispatch（ユーザーは `/verify-spec specs/x.spec.md`）。**design-time ツールなので stamp はしない**。**単発実行** — parent は自動で再 dispatch しない。反例修正後の再検証はユーザーが明示的に行う新しい 1 パス。
 参照: [ADR-0010](./adr/0010-agent-based-spec-verification.md)（規律）, [ADR-0011](./adr/0011-nested-subagent-review-and-verification.md)（機構）
 
 仕様を状態機械として書き下し、**「戻る・リロード・二重送信・権限変更の合わせ技で壊せるか？」** をエージェントに試させる。

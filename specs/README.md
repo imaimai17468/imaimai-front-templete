@@ -23,10 +23,11 @@ CRUD.
 
 1. During start-workflow step 4 (Plan), write `specs/<feature>.spec.md` in the
    format below.
-2. Run `Workflow({name: "verify-spec", args: {spec: "specs/<feature>.spec.md"}})`
-   (optional `depth`, default 8 steps).
+2. Dispatch the `spec-verifier` agent with the spec path (users: `/verify-spec
+   specs/<feature>.spec.md`; optional `depth`, default 8 steps).
 3. Treat every reported ambiguity as a spec bug; fix the design for every
-   CONFIRMED counterexample and re-run until clean.
+   CONFIRMED counterexample. The agent runs a single pass — re-verification is a
+   fresh, explicit invocation you make after fixing, never an automatic loop.
 4. Implement. Tests still follow the white-box policy — reuse the spec's
    invariants and forbidden flows as test cases.
 5. Update the spec when behavior changes. A stale spec is worse than none.
