@@ -18,6 +18,7 @@
 
 # tanstack start (vite)
 .output/
+/dist
 .tanstack/
 .vite/
 src/routeTree.gen.ts
