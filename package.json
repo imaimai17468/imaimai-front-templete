@@ -35,7 +35,7 @@
     "@radix-ui/react-slot": "1.2.3",
     "@tanstack/react-router": "1.170.15",
     "@tanstack/react-start": "1.168.25",
-    "better-auth": "1.6.11",
+    "better-auth": "1.6.23",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "drizzle-orm": "0.45.2",
@@ -72,7 +72,7 @@
     "tailwindcss": "4.2.4",
     "tw-animate-css": "1.3.6",
     "typescript": "5.8.3",
-    "vite": "8.0.16",
+    "vite": "8.1.4",
     "vitest": "4.1.0",
     "wrangler": "4.87.0"
   }
