@@ -1,7 +1,13 @@
 # 0003. Ticket-granularity implementation is delegated to subagents
 
-- Status: accepted
+- Status: superseded by 0012
 - Date: 2026-04-24
+
+> **Superseded by [ADR-0012](0012-parent-centric-implementation.md)** (2026-07-09):
+> the parent session now implements directly by default; delegation is decided
+> by context impact (exploration and independent parallel units), not task
+> size. Read this ADR for the original rationale; read ADR-0012 for why the
+> premises no longer held.
 
 ## Context
 
