@@ -37,10 +37,17 @@ if [ -z "$(git status --porcelain)" ]; then
   exit 0
 fi
 
+# ==== Shared file lists (quality gate + aegis sync check) ====
+# Full-path, newline-delimited (porcelain + awk would truncate filenames
+# containing spaces and silently skip the gate for them). --no-renames lists
+# both sides of a rename so neither path escapes the checks.
+CHANGED=$(git diff --name-only --no-renames HEAD 2>/dev/null || true)
+UNTRACKED=$(git ls-files --others --exclude-standard 2>/dev/null || true)
+ALL_FILES=$(printf '%s\n%s' "$CHANGED" "$UNTRACKED" | sort -u)
+
 # ==== 1. Quality gate (only when code-relevant files changed) ====
 
-CHANGED_ALL=$(git status --porcelain | awk '{print $NF}')
-CODE_CHANGED=$(printf '%s\n' "$CHANGED_ALL" | grep -cE '\.(ts|tsx|js|jsx|mjs|cjs|json|css)$' || true)
+CODE_CHANGED=$(printf '%s\n' "$ALL_FILES" | grep -cE '\.(ts|tsx|js|jsx|mjs|cjs|json|css)$' || true)
 
 if [ "$CODE_CHANGED" -gt 0 ]; then
   # Layer 1: typecheck / lint / format
@@ -108,10 +115,6 @@ ${DETAIL}"
 fi
 
 # ==== 2. Aegis sync check ====
-
-CHANGED=$(git diff --name-only HEAD 2>/dev/null || true)
-UNTRACKED=$(git ls-files --others --exclude-standard 2>/dev/null || true)
-ALL_FILES=$(printf '%s\n%s' "$CHANGED" "$UNTRACKED" | sort -u)
 
 RULES_CHANGED=$(printf '%s' "$ALL_FILES" | grep -c '^docs/adr/' || true)
 
