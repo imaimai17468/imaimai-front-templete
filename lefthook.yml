@@ -1,13 +1,15 @@
+# Check-only on pre-commit (ADR-0013): auto-fix (--fix / --write + stage_fixed)
+# rewrote staged content at commit time, so the committed bytes could differ
+# from what the code-reviewer agent reviewed. A failing check tells the author
+# to run `bun run check:fix` and re-stage — the reviewed diff is what lands.
 pre-commit:
   commands:
     lint:
       glob: "*.{js,ts,jsx,tsx}"
-      run: bunx oxlint --type-aware --fix {staged_files}
-      stage_fixed: true
+      run: bunx oxlint --type-aware {staged_files}
     format:
       glob: "*.{js,ts,jsx,tsx,json}"
-      run: bunx oxfmt --write {staged_files}
-      stage_fixed: true
+      run: bunx oxfmt --check {staged_files}
 pre-push:
   commands:
     check:

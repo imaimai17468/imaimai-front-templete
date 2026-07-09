@@ -4,7 +4,24 @@ This project runs on **TanStack Start** on Cloudflare Workers (ADR-0007) — not
 
 ## Workflow
 
-Ticket-granularity work (implement a component, fix a non-trivial bug, refactor a module, add a feature) MUST go through the `start-workflow` skill (ADR-0006). Interaction-complex features (wizards, auth/session flows, async guards, permission branching) additionally get a state-machine spec in `specs/` verified by the `verify-spec` workflow before implementation (ADR-0010).
+This section is the single source of the process directives. Hooks only point back here — when a hook message and this document disagree, this document wins.
+
+Ticket-granularity work (implement a component, fix a non-trivial bug, refactor a module, add a feature) MUST go through the `start-workflow` skill (ADR-0006). Detect this yourself — the user does not need to type `/start-workflow`. Interaction-complex features (wizards, auth/session flows, async guards, permission branching) additionally get a state-machine spec in `specs/` verified by the `verify-spec` workflow before implementation (ADR-0010).
+
+Triggers that apply with or without start-workflow:
+
+- **Planning / design requests**: use `superpowers:writing-plans` and enter plan mode before implementing.
+- **Creative or architectural judgment** (new UI, architecture decisions, approach selection): run `superpowers:brainstorming` before any code change.
+- **Any code change outside start-workflow**: consult Aegis first (see "Aegis Process Enforcement"). When adding a pure function or presenter, use `superpowers:test-driven-development`.
+- **ADR maintenance**: if you edit or create files under `docs/adr/`, call `aegis_sync_docs` (edits) or `aegis_import_doc` (new files) before finishing — forgetting this makes Aegis stale.
+
+## Degraded Environments
+
+Not every session has the full toolchain — remote containers may lack MCP servers, plugin skills, or local binaries. A missing tool downgrades a step; it never silently waives it, and it never blocks unrelated work. MUST-rules elsewhere in this document are satisfied by the corresponding degraded path below:
+
+- **Aegis MCP tools absent** (`aegis_compile_context` not in the tool list): tell the user once, write `.claude/.aegis-unavailable` containing a one-line reason (the dispatch guard then admits subagents), and read the relevant `docs/adr/` files directly instead of compiling context. Never fabricate a consultation.
+- **superpowers skills absent**: carry out the step's intent manually — planning, brainstorming, and TDD are disciplines, not plugins — and note that the skill was unavailable.
+- **Gate binaries absent** (e.g. `similarity-ts`): the SessionStart env-check reports this. Treat a skipped check as "not run", never as "passed", and say so when reporting completion.
 
 ## Design Philosophy
 
@@ -78,9 +95,9 @@ Write all agent-facing docs (`.claude/`, AGENTS.md, CLAUDE.md, `docs/adr/`) in E
 
 ### Delegation
 
-The parent session implements directly by default (ADR-0013). Delegate by **context impact, not task size**:
+The parent session implements directly by default (ADR-0012). Delegate by **context impact, not task size**:
 
-- **Parent edits directly**: normal implementation, fixes, integration, and post-review follow-ups — whenever the scope is understood. The per-edit lint/typecheck hook applies to parent edits.
+- **Parent edits directly**: normal implementation, fixes, integration, and post-review follow-ups — whenever the scope is understood. The per-edit hook lints each edited file; whole-project typecheck/lint/format run in the Stop gate.
 - **Explore / research subagent**: bulk file reads, log digging, cross-cutting investigation whose raw output the parent won't reference again — only the summary should enter the parent's context.
 - **Parallel implementation subagents**: multiple independent units with no shared files and no output dependency (multiple Agent calls in one message). Dependent units run sequentially — or stay in the parent. Never parallelize units that edit the same file.
 
@@ -99,12 +116,12 @@ Implementation dispatches run **foreground (synchronous)** — the parent waits 
 ### Teams & nesting
 
 - **Parallel subagent dispatch** is the default for independent fan-out — always cheaper and faster than a team when results only need to flow back to the parent.
-- **Agent Teams** (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`, experimental): only when **peer dialogue itself is the value** — competing-hypothesis debugging (theories refute each other to converge), multi-perspective review where perspectives challenge each other, cross-layer work negotiating a shared API contract. 3–5 teammates; teammates never edit the same file; one team at a time; no `/resume` support, so avoid teams in sessions likely to be interrupted.
+- **Agent Teams** (experimental; opt in per session by setting `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` yourself — it is deliberately not preset in `.claude/settings.json`): only when **peer dialogue itself is the value** — competing-hypothesis debugging (theories refute each other to converge), multi-perspective review where perspectives challenge each other, cross-layer work negotiating a shared API contract. 3–5 teammates; teammates never edit the same file; one team at a time; no `/resume` support, so avoid teams in sessions likely to be interrupted.
 - **Nested subagents** (max depth 5): a dispatched worker may offload messy exploration (bulk searches, log digging) to a child scout and keep its own context clean — chiefly useful inside workers that own large parallel units. Models get cheaper with depth (worker `sonnet` → scout `haiku`). Default ceiling is depth 2 (parent → worker → scout); every extra level multiplies token cost, so justify deeper nesting explicitly. Never nest for sequential work — do it inline instead.
 
 ### Review
 
-Before every commit, dispatch the `code-reviewer` agent on the uncommitted diff (users trigger it as `/review-diff`; pass `high` for a deeper multi-lens pass). The agent (`.claude/agents/code-reviewer.md`, `model: sonnet`) has the `review-diff` skill preloaded via its `skills` frontmatter — its behavior is pinned, not improvised. It runs one comprehensive finder (bug hunt across all lenses + AGENTS.md + path-scoped rules), dispatches a fresh **verifier child** to adversarially refute each finding, ranks the survivors, and its completion stamps the commit gate via `post-agent-review-stamp.sh` (ADR-0009 discipline, ADR-0011 mechanism). This matters *more* under parent-centric implementation: the agent context has not seen the implementation reasoning, so it is the bias check. The parent fixes findings directly; re-review only after major rework. Handle findings: never dismiss as "pre-existing" when the file is in the diff; apply rules literally; when in doubt, fix. Findings must propose a concrete alternative, respect rule scope qualifiers, and not re-report dismissed findings.
+Before every commit, dispatch the `code-reviewer` agent on the uncommitted diff (users trigger it as `/review-diff`; pass `high` for a deeper multi-lens pass). The agent (`.claude/agents/code-reviewer.md`, `model: sonnet`) has the `review-diff` skill preloaded via its `skills` frontmatter — its behavior is pinned, not improvised. It runs one comprehensive finder (bug hunt across all lenses + AGENTS.md + path-scoped rules), dispatches a fresh **verifier child** to adversarially refute each finding, ranks the survivors, and its completion stamps the commit gate via `post-agent-review-stamp.sh` (ADR-0009 discipline, ADR-0011 mechanism). This matters *more* under parent-centric implementation: the agent context has not seen the implementation reasoning, so it is the bias check. Any `Edit`/`Write` after the review clears the stamp (ADR-0013): the parent fixes findings directly, then re-dispatches `code-reviewer` — the gate will not pass an edited-but-unreviewed diff, and a re-review costs only 2 agents (ADR-0011). Handle findings: never dismiss as "pre-existing" when the file is in the diff; apply rules literally; when in doubt, fix. Findings must propose a concrete alternative, respect rule scope qualifiers, and not re-report dismissed findings.
 
 Design-time verification of interaction-complex features uses the same pinned-agent pattern: dispatch the `spec-verifier` agent with a spec path (or `/verify-spec specs/<feature>.spec.md`). It has the `verify-spec` skill preloaded and runs formalize → hunt → verifier-child to hunt counterexamples in a state-machine spec (ADR-0010/0011).
 
@@ -149,7 +166,7 @@ You MUST consult Aegis for every coding-related interaction — implementation t
 
 If the user asks about architecture, patterns, conventions, or how to write code — even without requesting implementation:
 
-1. **Identify representative files** — Find 1–3 real file paths in the codebase that are relevant to the question (e.g. `modules/Member/Application/Member/UpdateMemberInteractor.php`). Use directory listings or search if needed. Do NOT guess paths or use directories. **Do NOT read the files** — Aegis already has the relevant guidelines; reading files wastes tokens.
+1. **Identify representative files** — Find 1–3 real file paths in the codebase that are relevant to the question (e.g. `src/gateways/user/index.ts`). Use directory listings or search if needed. Do NOT guess paths or use directories. **Do NOT read the files** — Aegis already has the relevant guidelines; reading files wastes tokens.
 2. **Consult Aegis** — Call `aegis_compile_context` with:
    - `target_files`: the real file paths from step 1
    - `plan`: the user's question in natural language
@@ -164,7 +181,7 @@ Ask the user to run initial setup using the **admin surface** with `aegis_import
 
 ### Rules
 
-- NEVER skip the Aegis consultation step — for both implementation and questions.
+- NEVER skip the Aegis consultation step — for both implementation and questions. If the Aegis MCP tools are unavailable in the session, the "Degraded Environments" path (marker file + reading `docs/adr/` directly) IS the consultation — follow it, don't fabricate one.
 - NEVER ignore guidelines returned by Aegis.
 - The compile_id and snapshot_id from the consultation are required for observation reporting.
 <!-- aegis:end -->

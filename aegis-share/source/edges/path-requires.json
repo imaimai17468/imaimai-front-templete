@@ -28,9 +28,23 @@
     "specificity": 0
   },
   {
+    "edge_id": "b26df57c-ebca-4ca7-87bb-4fcb3fca9b76",
+    "source_value": ".claude/hooks/**",
+    "target_doc_id": "adr-0013",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "b95e86e1-b34b-4caa-bab4-033b3a4531ff",
     "source_value": ".claude/skills/verify-spec/**",
     "target_doc_id": "adr-0011",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "d68106f7-d9e1-415b-b9ae-86e71ea865d7",
+    "source_value": ".claude/settings.json",
+    "target_doc_id": "adr-0013",
     "priority": -1,
     "specificity": 0
   },

@@ -18,6 +18,7 @@
 
 # tanstack start (vite)
 .output/
+/dist
 .tanstack/
 .vite/
 src/routeTree.gen.ts
@@ -56,3 +57,5 @@ storybook-static
 # claude code runtime artifacts
 .claude/scheduled_tasks.lock
 .claude/.review-stamp
+.claude/.aegis-stamp
+.claude/.aegis-unavailable

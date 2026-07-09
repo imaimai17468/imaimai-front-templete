@@ -1,7 +1,4 @@
 {
-  "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
-  },
   "permissions": {
     "allow": [
       "mcp__aegis__*",
@@ -123,6 +120,12 @@
         "hooks": [
           {
             "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start-env-check.sh",
+            "timeout": 15,
+            "statusMessage": "Env check: gate dependencies + session marker reset..."
+          },
+          {
+            "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start-aegis-hydrate.sh",
             "timeout": 120,
             "statusMessage": "Aegis hydrate: building local knowledge base from aegis-share/source if missing..."
@@ -135,9 +138,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/user-prompt-skill-reminder.sh",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/user-prompt-gate.sh",
             "timeout": 5,
-            "statusMessage": "Skill reminder: confirm brainstorming / writing-plans / aegis_compile_context as needed..."
+            "statusMessage": "Prompt gate: clearing aegis stamp + AGENTS.md pointer..."
           }
         ]
       }
@@ -188,9 +191,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-commit-guard.sh",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-guard.sh",
             "timeout": 30,
-            "statusMessage": "Pre-commit guard: review gate check..."
+            "statusMessage": "Bash guard: .env protection + review gate check..."
           }
         ]
       }
@@ -201,9 +204,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "F=$(jq -r '.tool_input.file_path // \"\"'); case \"$F\" in *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs) ;; *) exit 0 ;; esac; cd $CLAUDE_PROJECT_DIR && OUT=$(bun run lint 2>&1 && bun run typecheck 2>&1); RC=$?; if [ $RC -ne 0 ]; then printf '%s' \"$OUT\" | jq -Rs --arg file \"$F\" '{systemMessage:(\"⛔ PostToolUse block: lint/typecheck 失敗 — \" + $file), decision:\"block\", reason:(\"PostToolUse: 編集後の lint / typecheck が失敗しました。次のツール呼び出し前に直してください。\\n\\n\" + .)}'; fi; exit 0",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-edit-check.sh",
             "timeout": 60,
-            "statusMessage": "Per-edit check: lint + typecheck..."
+            "statusMessage": "Per-edit check: scoped lint + review stamp clear..."
           }
         ]
       },
@@ -212,9 +215,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-aegis-near-miss-warn.sh",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-aegis-compile.sh",
             "timeout": 3,
-            "statusMessage": "Post-aegis near-miss warn: glob_no_match edge_hint を確認..."
+            "statusMessage": "Post-aegis: gate stamp + near-miss warn..."
           }
         ]
       },

@@ -1,7 +1,12 @@
 # 0011. Review and spec verification run as nested subagent orchestrators (code graph removed)
 
-- Status: accepted
+- Status: accepted (amended by 0013)
 - Date: 2026-07-05
+
+> **Amended by [ADR-0013](0013-deterministic-enforcement-gates.md)** (2026-07-09):
+> the review stamp is no longer valid across post-review edits — any
+> `Edit`/`Write` clears it, so fixes require a re-review before committing.
+> The dispatch-clears / completion-stamps symmetry below is unchanged.
 
 ## Context
 

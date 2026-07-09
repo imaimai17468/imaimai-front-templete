@@ -1,5 +1,12 @@
 [
   {
+    "edge_id": "17202a81-b806-41de-8c8c-cd2c68b9b5a4",
+    "source_value": "scaffold",
+    "target_doc_id": "adr-0012",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "353aec4f-f43d-4b95-ad1f-92c4cf304941",
     "source_value": "scaffold",
     "target_doc_id": "adr-0008",
@@ -39,6 +46,13 @@
     "source_value": "review",
     "target_doc_id": "adr-0009",
     "priority": 100,
+    "specificity": 0
+  },
+  {
+    "edge_id": "adb8f414-b902-45cc-a695-3bc31a8c444e",
+    "source_value": "refactor",
+    "target_doc_id": "adr-0012",
+    "priority": -1,
     "specificity": 0
   },
   {

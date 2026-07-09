@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# PostToolUse(mcp__aegis__aegis_compile_context) hook:
+# PostToolUse(mcp__aegis__aegis_compile_context) hook (ADR-0013):
+# 1. Create .claude/.aegis-stamp — the deterministic artifact the
+#    pre-agent-aegis-guard keys on (cleared per prompt by user-prompt-gate.sh).
+# 2. Near-miss warning:
 # When the aegis_compile_context response contains glob_no_match near_miss_edges,
 # cross-match those patterns against target_files using bash extglob + globstar.
 # Inject an additionalContext warning only for patterns that bash matches but
@@ -21,11 +24,20 @@ shopt -s extglob globstar nullglob
 
 INPUT=$(cat)
 
-# Pass through when tool_response is absent
+# Pass through when tool_response is absent or reports an error — an attempted
+# consultation must not stamp the dispatch gate (ADR-0013).
 TOOL_RESPONSE=$(printf '%s' "$INPUT" | jq -r 'if .tool_response then "present" else "absent" end' 2>/dev/null || true)
 if [ "${TOOL_RESPONSE:-absent}" = "absent" ]; then
   exit 0
 fi
+RESPONSE_ERROR=$(printf '%s' "$INPUT" | jq -r '.tool_response.isError // .tool_response.is_error // false' 2>/dev/null || echo true)
+if [ "$RESPONSE_ERROR" != "false" ]; then
+  exit 0
+fi
+
+# --- 1. Aegis gate stamp (ADR-0013) ---
+ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+touch "$ROOT/.claude/.aegis-stamp"
 
 # Extract target_files into an array
 mapfile -t TARGET_FILES < <(printf '%s' "$INPUT" | jq -r '.tool_input.target_files // [] | .[]' 2>/dev/null || true)

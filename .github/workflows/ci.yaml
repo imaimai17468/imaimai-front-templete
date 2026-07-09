@@ -41,6 +41,9 @@ jobs:
     - name: Run oxlint and oxfmt
       run: bun run check
 
+    - name: Detect unused code (knip)
+      run: bun run knip
+
     - name: Run Tests
       run: bun run test
 
