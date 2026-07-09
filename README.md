@@ -55,7 +55,7 @@ AI エージェント用の Aegis ナレッジベース（`.aegis/`、gitignore 
 - **[tsgo](https://github.com/microsoft/typescript-go)** — Type checker (`@typescript/native-preview`)
 - **[oxlint](https://oxc.rs/docs/guide/usage/linter)** — Linter (`.oxlintrc.json`)
 - **[oxfmt](https://oxc.rs/docs/guide/usage/formatter)** — Formatter (`.oxfmtrc.json`)
-- **[lefthook](https://github.com/evilmartians/lefthook)** — Git hooks (`lefthook.yml`)
+- **[lefthook](https://github.com/evilmartians/lefthook)** — Git hooks (`lefthook.yml`、`bun install` 時に `prepare` スクリプトで自動セットアップ)
 - **[knip](https://knip.dev/)** — Unused deps/exports/files detection (`knip.json`)
 - **[similarity-ts](https://github.com/mizchi/similarity)** — Code similarity detector
 
@@ -71,7 +71,7 @@ similarity-ts ./src --print          # マッチしたコードを表示
 similarity-ts ./src --threshold 0.7  # デフォルトは 0.85
 ```
 
-Stop quality gate hook が自動実行するので、手動実行は調査時のみ。
+Stop quality gate hook が自動実行するので、手動実行は調査時のみ。未インストールの環境では SessionStart の env-check が欠落を報告し、Stop gate は「スキップした」と明示します（黙って合格扱いにはなりません）。
 
 ## プロジェクト構成
 
@@ -105,13 +105,13 @@ src/
 
 ## AI エージェントで開発する
 
-このリポジトリは Claude Code (および superpowers / aegis MCP) を前提に組まれています。フロー全体・hook 構成・aegis / superpowers の役割分担などは:
+このリポジトリは Claude Code (および superpowers / aegis MCP) を前提に組まれています。これらが使えない環境でも、AGENTS.md「Degraded Environments」の代替経路で動作は継続します（無いツールは明示的に degrade し、黙って省略はしません）。フロー全体・hook 構成・aegis / superpowers の役割分担などは:
 
 - **[docs/agent-workflow.md](./docs/agent-workflow.md)** — タスクの流れ・常時動いている層・メンテナンスループ・特殊フローの全体像
 - **[AGENTS.md](./AGENTS.md)** — 常時ロードされるコーディング規約 (凝縮版を直接記載、ADR-0008)
 - **[docs/adr/README.md](./docs/adr/README.md)** — 主要設計判断の長期記録 (なぜ今こう決まっているのか)
 
-`/start-workflow` は ticket 粒度の作業をエージェントが検知して自律的に invoke します（手動でも呼べます）。trivial な 1 行修正・config 1 値・docs only な変更はこのフローに乗せず直接編集します。コミット前のレビューは `/review-diff`（バグハント + 規約チェックを並列展開し反証検証する dynamic workflow、ADR-0009）が担い、レビューが完走するまで `git commit` はフックでブロックされます。コミット・PR はエージェントが AGENTS.md の規律に従って提案し、ユーザー確認後に実行します。
+`/start-workflow` は ticket 粒度の作業をエージェントが検知して自律的に invoke します（手動でも呼べます）。trivial な 1 行修正・config 1 値・docs only な変更はこのフローに乗せず直接編集します。コミット前のレビューは `/review-diff`（= `code-reviewer` agent の dispatch。finder が diff を 1 パスで全観点探索し、verifier child が各指摘を反証検証する。ADR-0011）が担い、レビューが完走するまで `git commit` はフックでブロックされます。レビュー後に編集すると stamp が消えるため、修正後は再レビューが必要です（ADR-0013）。コミット・PR はエージェントが AGENTS.md の規律に従って提案し、ユーザー確認後に実行します。
 
 ## shadcn/ui
 
