@@ -1,0 +1,79 @@
+# 0013. Enforcement gates are deterministic artifacts, not transcript greps
+
+- Status: accepted
+- Date: 2026-07-09
+
+## Context
+
+An audit (2026-07-09) found the enforcement layer structurally unreliable:
+
+1. **The Aegis dispatch guard was self-defeating.** `pre-agent-aegis-guard.sh`
+   grepped the session transcript for the literal string
+   `aegis_compile_context`. That string appears in the guard's own block
+   message, in the `UserPromptSubmit` reminder, and in ordinary agent prose —
+   so after the first prompt the guard always passed, whether or not the tool
+   was called. Conversely, in environments where the Aegis MCP server is
+   unavailable (e.g. remote containers), it blocked legitimate dispatches with
+   no escape hatch.
+2. **The review stamp certified nothing about the committed diff.** The stamp
+   was created when `code-reviewer` completed and survived any subsequent edit,
+   so the commit gate proved only "a review happened at some point". ADR-0009
+   explicitly rejected binding the stamp to the diff because a re-review cost
+   5–7 finder agents; ADR-0011 dropped a review to 2 agents, which removes that
+   premise.
+3. **Gates degraded silently per machine.** `similarity-ts` was skipped with
+   `|| true`, plugin-provided skills were assumed present, and nothing told the
+   agent (or user) which gates were actually active in a given session.
+4. **The `.env` deny was bypassable.** `Read`/`Write`/`Edit` of `.env*` were
+   denied (ADR-0004), but `Bash(cat:*)`, `grep`, `head`, `tail` were allowed —
+   `cat .env` walked straight through the boundary ADR-0004 claims to draw.
+
+## Decision
+
+Every gate keys on a **deterministic artifact created or destroyed by hooks**,
+never on transcript content, and every gate states its degraded mode.
+
+- **Aegis gate**: `PostToolUse(aegis_compile_context)` creates
+  `.claude/.aegis-stamp`; `UserPromptSubmit` clears it (per-prompt freshness);
+  `PreToolUse(Agent)` requires it (same agent-type exemptions as before). If
+  the Aegis MCP tools are genuinely unavailable, the agent writes
+  `.claude/.aegis-unavailable` with a one-line reason; the guard then admits
+  dispatches — an explicit, auditable degrade instead of a hard wall.
+- **Review gate**: `PostToolUse(Edit|Write|...)` deletes `.claude/.review-stamp`
+  alongside the existing clears (review launch, new Aegis cycle). Any edit
+  after a review therefore requires a re-review before committing. This amends
+  the ADR-0009 consequence ("deliberately NOT bound to the diff") — affordable
+  now that a review costs 2 agents. Commit *splitting* still works: committing
+  does not edit files, so a multi-commit sequence after one review passes.
+- **Environment check**: a `SessionStart` hook reports which optional gate
+  dependencies are missing (e.g. `similarity-ts`) so degraded sessions are
+  visible instead of silent.
+- **`.env` protection**: a `PreToolUse(Bash)` guard blocks any command
+  referencing `.env` / `.env.local` / `.env.development` / `.env.production`
+  (`.env*.example` stays readable). This amends ADR-0004: `permissions.deny`
+  remains the declared boundary for tool-level access, but Bash string-prefix
+  matching cannot express "any command touching a file", so the hook carries
+  that part of the boundary.
+
+## Alternatives considered
+
+- **Keep transcript grep but tighten the pattern**: rejected — any marker that
+  must appear in the transcript can also appear in prose about the marker;
+  the approach is unfixable by pattern choice.
+- **Warn (not block) on post-review edits**: rejected — a warning the agent may
+  ignore is not a gate; the gate's value is that it cannot be talked past.
+- **Hash the diff into the stamp instead of clearing on edit**: rejected —
+  `git diff HEAD` changes as multi-commit splits progress, breaking the
+  one-commit-one-purpose discipline; edit-triggered clearing has the same
+  honesty with none of the hash-canonicalization edge cases.
+- **Auto-detect Aegis MCP availability from shell**: rejected — hooks cannot
+  see the session's MCP tool table; a self-declared, auditable marker is the
+  most honest signal available.
+
+## Consequences
+
+- Fixing review findings now mechanically requires a re-review (2 agents).
+- The `.aegis-unavailable` marker is an honesty valve; abuse is visible in the
+  worktree and in review.
+- Gate scripts stay dumb (file existence checks), so their failure modes are
+  enumerable; the complexity lives in when artifacts are created/cleared.
