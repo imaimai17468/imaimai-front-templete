@@ -124,7 +124,10 @@ code-reviewer agent (review-diff skill を preload):
     · high:     correctness · reproduction · scope の 3 レンズ → 過半数で棄却
     CONFIRMED (追跡できた) / PLAUSIBLE (妥当だが未追跡) / REFUTED (除外)。
 
-  返り: { effort, findings[], stats }
+  返り: { effort, mode, fallback?, findings[], stats }
+    · mode: 実行したモード ("full" | "delta")。delta は同一サイクル内の再レビュー
+      (前回レポート + 差分説明を dispatch prompt で渡す。曖昧なら full へ fail-closed)
+    · fallback: delta → full へフォールバックした場合のみ、理由付きで存在
   stamp: 手動 touch はしない。agent 完走で post-agent-review-stamp.sh が自動作成。
 ```
 

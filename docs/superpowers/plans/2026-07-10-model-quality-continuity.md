@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Agent-facing docs (`.claude/`, AGENTS.md, `docs/adr/`) are written in English (AGENTS.md rule).
-- Never commit without explicit user confirmation; every commit needs a completed `code-reviewer` dispatch (commit gate). This plan commits **once per phase** to bound review cost.
+- Never commit without explicit user confirmation; every commit needs a completed `code-reviewer` dispatch (commit gate). A standing blanket approval given by the user for the plan-listed commit points satisfies the confirmation for exactly those commits — anything outside the plan still needs a fresh ask.
 - Aegis KB changes go through aegis-share: edit `aegis-share/source/` → `share-format` → `share-lint` → `share-materialize` → `share-export` (never `aegis_import_doc` directly).
 - Eval runs dispatch the real `code-reviewer` agent, which stamps `.claude/.review-stamp`; every eval session ends by deleting the stamp so an eval never unlocks an unrelated commit.
 - No new document formats: audit outputs are ADR/AGENTS.md edits or `docs/superpowers/specs/` plan docs only.
@@ -300,16 +300,21 @@ model than the strongest available (e.g. Opus instead of Fable):
 **Interfaces:**
 - Consumes: Task 4 baseline, Task 5 mode contract.
 
+- [ ] **Step 0: Phase 2 pre-run commit — skill + AGENTS.md BEFORE any run**
+  (same contamination logic as Task 4 Step 0: eval dispatches must see only
+  the fixture patch as the uncommitted diff). Ask the user, dispatch
+  `code-reviewer` on the skill/AGENTS.md/plan diff, then commit.
 - [ ] **Step 1: Quality non-regression.** Re-run fx-01…fx-04 as full reviews (protocol unchanged). Every `found` from baseline must stay `found`; new misses = regression → fix the skill wording, re-run.
 - [ ] **Step 2: Delta cost.** Run fx-05 in **delta mode** (dispatch prompt: `prior-report.md` verbatim + "delta: one edit to src/entities/user/index.ts"). Expect: the limit/message contradiction is found, no whole-project verification commands appear in the agent's tool use, tokens/time < the Task 4 fx-05 full-review numbers. Record both numbers side by side.
 - [ ] **Step 3: Fallback check.** Run fx-05 delta dispatch WITHOUT the prior report attached. Expect: the agent states fallback to full mode in its report. Record.
 - [ ] **Step 4:** `rm -f .claude/.review-stamp`. Then gate check: `git commit --allow-empty -m "gate probe"` → expect **blocked** by the pre-commit gate hook. (Do not keep any probe commit.)
 - [ ] **Step 5:** Write the results file with the baseline-vs-delta table and fallback note.
-- [ ] **Step 6: Phase 2 commit** (ask user; `code-reviewer` on the diff first):
+- [ ] **Step 6: Phase 2 results commit** (ask the user; `code-reviewer` on
+  the results diff first):
 
 ```bash
-git add .claude/skills/review-diff/SKILL.md AGENTS.md docs/superpowers/evals/review-diff/results/2026-07-10-delta-mode.md
-git commit  # feat: review-diff にデルタ再レビューモードを追加し非Fable親の運用規則を明文化する (body: eval 結果の数値を引用; Co-Authored-By)
+git add docs/superpowers/evals/review-diff/results/2026-07-10-delta-mode.md
+git commit  # feat: デルタ再レビューモードの効果計測を記録する (body: baseline 比の数値; Co-Authored-By)
 ```
 
 ### Task 8: ADR + Aegis KB sync

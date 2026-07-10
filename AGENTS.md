@@ -113,6 +113,21 @@ Implementation dispatches run **foreground (synchronous)** — the parent waits 
 | Code review — all `review-diff` lanes and direct `code-reviewer` dispatch | `sonnet` (re-run on `opus` only after a demonstrably weak result) |
 | Long-horizon autonomous workers, complex migrations, escalation after a weak result | `opus` |
 
+### Model continuity (non-Fable parent)
+
+Review/verify quality is pinned by preloaded skills and deterministic gates
+(ADR-0011/0013) and does not depend on the parent model — never re-derive or
+second-guess a pinned procedure. When the parent session runs on a weaker
+model than the strongest available (e.g. Opus instead of Fable):
+
+- Escalate **design judgment** — architecture choices, ADR drafting,
+  ambiguous trade-offs — to a subagent on the strongest available model, or
+  stop and ask the user. Mechanical implementation stays in the parent.
+- Knowledge Currency applies with extra force: a weaker parent verifies
+  more, not less.
+- Model-tier changes to `.claude/agents/*.md` require a scored run of the
+  review eval (`docs/superpowers/evals/review-diff/`), not a judgment call.
+
 ### Teams & nesting
 
 - **Parallel subagent dispatch** is the default for independent fan-out — always cheaper and faster than a team when results only need to flow back to the parent.

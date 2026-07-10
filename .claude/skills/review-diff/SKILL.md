@@ -26,6 +26,29 @@ Benchmarking (2026-07-04) showed the old parallel workflow (5–7 finder lanes �
 - **standard** (default): verifier child uses a single reproduction lens.
 - **high**: verifier child uses three lenses (correctness, reproduction, scope) and a finding survives only if it is NOT refuted by a majority. Use for security-sensitive or high-blast-radius diffs.
 
+## Modes
+
+- **full** (default): the procedure below over the entire uncommitted diff.
+- **delta**: re-review after a completed full review in the same task cycle.
+  The dispatch prompt MUST include (i) the prior review report verbatim and
+  (ii) a delta description listing the files/edits made since that review.
+  Procedure adjustments:
+  - Scope Step 1 to the delta files and their interaction with the prior
+    findings (did a fix regress a neighbor? does a prior finding still
+    apply?).
+  - Do NOT re-run whole-project verification commands (typecheck / test /
+    build / knip) that a full review may choose to run while tracing a
+    finding — the parent's per-edit hooks and Stop gate own them. Reading
+    code and read-only git commands are still expected.
+  - The verifier child remains mandatory for new candidates (zero
+    candidates → no child, as in full mode).
+  - **Fail closed to full mode** when the prior report is missing or partial,
+    the delta description is ambiguous, or `git diff` shows changes outside
+    the declared delta plus the prior review's scope. State the fallback in
+    the report.
+  Stamp semantics are identical in both modes: completion stamps, dispatch
+  clears (ADR-0011/0013).
+
 ## Procedure (executed by the code-reviewer agent)
 
 **Target:** the uncommitted diff. Run `git status`, `git diff HEAD`, and `git ls-files --others --exclude-standard`; read untracked files directly. If there are no uncommitted changes, return an empty findings list and stop (your completion still stamps the gate).
@@ -48,7 +71,7 @@ Merge findings anchored to the same (file, line): keep the highest-severity one,
 
 ### Step 3 — Verify (dispatch a separate child — do not verify your own findings)
 
-Dispatch ONE verifier child agent (`model: sonnet`, `subagent_type: general-purpose`) with a self-contained prompt containing the full deduped findings list as JSON. Instruct it to try to REFUTE each finding by reading the actual code:
+Dispatch ONE verifier child agent (`model: sonnet`, `subagent_type: general-purpose`) with a self-contained prompt containing the full deduped findings list as JSON. **Wait for the child in the foreground — do not end your turn while it runs**; a backgrounded child's verdicts are unretrievable and force the fail-closed unverified path for no reason. Instruct it to try to REFUTE each finding by reading the actual code:
 
 - **standard**: one reproduction lens — walk the failure scenario step by step through the real code.
 - **high**: three lenses per finding — correctness (is the claimed behavior actually wrong?), reproduction (walk it step by step), scope (does the cited rule/expectation actually apply?) — refute if a majority of lenses refute.
@@ -62,8 +85,11 @@ If the verifier child fails entirely, keep the findings marked unverified rather
 Drop REFUTED findings. Sort survivors by verdict (CONFIRMED first) then severity. Return:
 
 ```
-{ effort, findings: [ { file, line, title, description, severity, verdict, verification } ], stats: { candidates, refuted } }
+{ effort, mode, fallback?, findings: [ { file, line, title, description, severity, verdict, verification } ], stats: { candidates, refuted } }
 ```
+
+`mode` is the mode actually executed (`"full"` | `"delta"`); `fallback` is
+present only when a delta dispatch fell back to full, stating the reason.
 
 Do NOT manually create `.claude/.review-stamp` — a `PostToolUse(Agent)` hook stamps it automatically when you (the `code-reviewer` agent) complete.
 
@@ -71,4 +97,6 @@ Do NOT manually create `.claude/.review-stamp` — a `PostToolUse(Agent)` hook s
 
 1. Read the findings. Never dismiss a finding as "pre-existing" when the file is in the diff. Apply rules literally; when in doubt, fix.
 2. The parent fixes findings directly.
-3. Re-review (re-dispatch `code-reviewer`) only after major rework.
+3. Re-review (re-dispatch `code-reviewer`) after fixing findings: prefer
+   **delta mode** (pass the prior report verbatim + the delta description);
+   use **full mode** after major rework.
