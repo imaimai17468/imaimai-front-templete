@@ -1,5 +1,19 @@
 [
   {
+    "edge_id": "374528df-0683-454a-9177-21555bdf8f27",
+    "source_value": ".claude/skills/review-diff/**",
+    "target_doc_id": "adr-0014",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "4826892c-ea9b-46dc-95cb-f1f8f03a0f7d",
+    "source_value": "docs/superpowers/evals/**",
+    "target_doc_id": "adr-0014",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "61514188-dd0d-47e9-bbcb-b4efcb5eb6a6",
     "source_value": "specs/**",
     "target_doc_id": "adr-0010",
@@ -21,6 +35,13 @@
     "specificity": 0
   },
   {
+    "edge_id": "906b2023-0ae5-491a-9057-5888c48d21f1",
+    "source_value": ".claude/agents/**",
+    "target_doc_id": "adr-0014",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "a16abcd6-d5e0-4dcb-8d44-3927bbeb466f",
     "source_value": ".claude/skills/review-diff/**",
     "target_doc_id": "adr-0011",
@@ -38,6 +59,13 @@
     "edge_id": "b95e86e1-b34b-4caa-bab4-033b3a4531ff",
     "source_value": ".claude/skills/verify-spec/**",
     "target_doc_id": "adr-0011",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "bdad5450-55ab-42b6-adf8-48e55b400a85",
+    "source_value": ".claude/skills/repo-audit/**",
+    "target_doc_id": "adr-0014",
     "priority": -1,
     "specificity": 0
   },

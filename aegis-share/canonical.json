@@ -1,7 +1,7 @@
 {
   "format_version": 1,
-  "snapshot_id": "07619fdd4f5771aa86564f7af6899aea5ba66d7c1d17f1bde02df1d9f0b8a5f1",
-  "knowledge_version": 82,
+  "snapshot_id": "f0ce36bbbb758c8575f8f632da7e6f981de98aed2d882b67b8d1861598c4c348",
+  "knowledge_version": 84,
   "documents": [
     {
       "doc_id": "adr-0001",
@@ -117,8 +117,8 @@
       "doc_id": "adr-0011",
       "title": "Nested Subagent Review And Verification",
       "kind": "reference",
-      "content": "# 0011. Review and spec verification run as nested subagent orchestrators (code graph removed)\n\n- Status: accepted (amended by 0013)\n- Date: 2026-07-05\n\n> **Amended by [ADR-0013](0013-deterministic-enforcement-gates.md)** (2026-07-09):\n> the review stamp is no longer valid across post-review edits — any\n> `Edit`/`Write` clears it, so fixes require a re-review before committing.\n> The dispatch-clears / completion-stamps symmetry below is unchanged.\n\n## Context\n\nADR-0009 made pre-commit review a dynamic workflow (5–7 parallel finder lanes +\nper-candidate adversarial verifiers), and ADR-0010 built verify-spec the same\nway (4 parallel hunt lanes). A companion feature injected a statically-generated\ndependency graph (`.claude/code-graph.json`, `bun run graph`) into every lane's\nprompt to eliminate redundant codebase exploration.\n\nBenchmarking the whole stack (2026-07-04) contradicted the design assumptions:\n\n| Workflow | code graph | Tokens | Agents |\n|---|---|---|---|\n| verify-spec | off | 710K | 22 |\n| verify-spec | on | 784K | 25 |\n| review-diff | off | 1.11M | 28 |\n| review-diff | on | 1.19M | 30 |\n\n- Code graph injection produced **no** token savings at this project's scale\n  (51 files) — \"graph on\" was consistently equal or worse, adding a scout agent\n  and prompt bloat that outweighed any saved exploration.\n- Parallel finders independently rediscovered the same bugs; dedup collapsed\n  many into one, so the extra lanes bought redundancy, not coverage.\n- A single comprehensive finder reading the diff once yields equivalent findings\n  at roughly 1/5 the cost.\n\n## Decision\n\nBoth reviews run as **pinned named subagents that preload a procedure skill**,\nnot dynamic workflows, and the code graph is removed entirely.\n\nEach verification is a `.claude/agents/*.md` definition (model set per agent —\nsee each `.claude/agents/*.md`) whose behavior\nis fixed by its system prompt and whose procedure is the single source of truth\nin a preloaded skill (`skills:` frontmatter injects the full skill at startup, so\nit cannot be silently ignored). The agent runs the finding pass itself and\ndispatches a **separate verifier child** (`general-purpose`, depth 2) so the\nfinder is never its own verifier:\n\n- **`code-reviewer`** (preloads `review-diff`): find all bug lenses + AGENTS.md and\n  path-scoped rules (coverage-first) → dedup by (file, line) → verifier child\n  REFUTEs each (`high` uses three lenses with majority kill) → return ranked\n  findings. Its completion stamps `.claude/.review-stamp` via the existing\n  `post-agent-review-stamp.sh` hook (matched on `subagent_type == code-reviewer`) —\n  no manual stamp step. This merges the former \"workflow\" and \"fallback dispatch\"\n  paths into one: dispatching `code-reviewer` *is* the review.\n- **`spec-verifier`** (preloads `verify-spec`): formalize the spec → hunt all four\n  lenses → verifier child replays each trace. Design-time; no stamp.\n\nThe find → adversarial-verify discipline, the commit-gate contract, and the\nfail-closed guarantees from ADR-0009/0010 are unchanged — only the mechanism is.\nSupersedes ADR-0009 and ADR-0010.\n\n## Alternatives considered\n\n- **Keep the workflows, drop only the code graph**: rejected — the parallel\n  lanes were the larger waste; graph removal alone leaves ~1.1M-token runs.\n- **Keep code graph for future scale**: rejected — it can be reintroduced from\n  git history if the codebase grows enough to make exploration dominate; carrying\n  a proven-net-negative feature speculatively violates \"don't over-engineer\".\n- **Fold both into the parent session (no dedicated agent)**: rejected — the\n  fresh, implementation-blind context is the bias check; a pinned agent preserves\n  it while keeping child token cost out of the parent's context.\n- **A `general-purpose` agent carrying the procedure inline in the dispatch\n  prompt**: rejected — an inline prompt can be varied or ignored per dispatch. A\n  named agent (`.claude/agents/*.md`) with a preloaded skill pins behavior in the\n  system prompt, reuses the existing `code-reviewer` stamp hook, and versions the\n  procedure in one file.\n\n## Consequences\n\n- Review cost drops to the agent itself (finder) + one verifier child = 2 agents\n  per run, for both review-diff and verify-spec.\n- `code-reviewer` gains the `Agent` tool (to dispatch its verifier child) and the\n  `review-diff` skill preload; `spec-verifier` is a new agent with the\n  `verify-spec` skill preload. The verifier children are `general-purpose`,\n  pinned by the preloaded skill's dispatch prompt.\n- Deleted: `scripts/build-graph.ts` (+ test), `.claude/code-graph.json`, the\n  `graph` npm script, `.gitattributes` graph rule, `.claude/workflows/`, and the\n  companion code-graph design spec + plan under `docs/superpowers/`.\n  `pre-commit-guard.sh` keeps only the gate check (no graph regeneration).\n- The `PreToolUse(Workflow)` stamp-clear (`pre-workflow-clear-review-stamp.sh`)\n  is replaced by `pre-agent-review-clear.sh` on `PreToolUse(Agent)` scoped to\n  `subagent_type == code-reviewer` (skipping sidechains). This keeps the gate\n  symmetric — dispatching `code-reviewer` clears the stamp, its completion\n  recreates it — so ADR-0009's \"cleared at the next review launch\" guarantee is\n  preserved despite the mechanism change: a stale stamp from a prior cycle cannot\n  survive a review that errors, times out, or is interrupted before\n  `post-agent-review-stamp.sh` fires. (The `aegis_compile_context` clear remains\n  as the new-cycle reset.)\n- The skill dispatch prompts are load-bearing for every commit; changes go\n  through empirical tuning (ADR-0006 consequence carries over).\n- LLM-driven dedup is non-deterministic, an accepted tradeoff: the old JS dedup\n  was also lossy (keyed on file:line, merging distinct same-line defects).\n",
-      "content_hash": "46e23d4c2ba1bf7e89efb749b936be7e95e283aa479936d4219aff4a1ea78f80",
+      "content": "# 0011. Review and spec verification run as nested subagent orchestrators (code graph removed)\n\n- Status: accepted (amended by 0013, 0014)\n- Date: 2026-07-05\n\n> **Amended by [ADR-0013](0013-deterministic-enforcement-gates.md)** (2026-07-09):\n> the review stamp is no longer valid across post-review edits — any\n> `Edit`/`Write` clears it, so fixes require a re-review before committing.\n> The dispatch-clears / completion-stamps symmetry below is unchanged.\n\n> **Amended by [ADR-0014](0014-measurement-first-model-continuity.md)** (2026-07-10):\n> `review-diff` gains a delta re-review mode (scoped re-review with the prior\n> report; fail-closed to full), and the \"changes go through empirical tuning\"\n> consequence below is superseded for `review-diff`/`verify-spec` by scored\n> golden-eval runs under `docs/superpowers/evals/`.\n\n## Context\n\nADR-0009 made pre-commit review a dynamic workflow (5–7 parallel finder lanes +\nper-candidate adversarial verifiers), and ADR-0010 built verify-spec the same\nway (4 parallel hunt lanes). A companion feature injected a statically-generated\ndependency graph (`.claude/code-graph.json`, `bun run graph`) into every lane's\nprompt to eliminate redundant codebase exploration.\n\nBenchmarking the whole stack (2026-07-04) contradicted the design assumptions:\n\n| Workflow | code graph | Tokens | Agents |\n|---|---|---|---|\n| verify-spec | off | 710K | 22 |\n| verify-spec | on | 784K | 25 |\n| review-diff | off | 1.11M | 28 |\n| review-diff | on | 1.19M | 30 |\n\n- Code graph injection produced **no** token savings at this project's scale\n  (51 files) — \"graph on\" was consistently equal or worse, adding a scout agent\n  and prompt bloat that outweighed any saved exploration.\n- Parallel finders independently rediscovered the same bugs; dedup collapsed\n  many into one, so the extra lanes bought redundancy, not coverage.\n- A single comprehensive finder reading the diff once yields equivalent findings\n  at roughly 1/5 the cost.\n\n## Decision\n\nBoth reviews run as **pinned named subagents that preload a procedure skill**,\nnot dynamic workflows, and the code graph is removed entirely.\n\nEach verification is a `.claude/agents/*.md` definition (model set per agent —\nsee each `.claude/agents/*.md`) whose behavior\nis fixed by its system prompt and whose procedure is the single source of truth\nin a preloaded skill (`skills:` frontmatter injects the full skill at startup, so\nit cannot be silently ignored). The agent runs the finding pass itself and\ndispatches a **separate verifier child** (`general-purpose`, depth 2) so the\nfinder is never its own verifier:\n\n- **`code-reviewer`** (preloads `review-diff`): find all bug lenses + AGENTS.md and\n  path-scoped rules (coverage-first) → dedup by (file, line) → verifier child\n  REFUTEs each (`high` uses three lenses with majority kill) → return ranked\n  findings. Its completion stamps `.claude/.review-stamp` via the existing\n  `post-agent-review-stamp.sh` hook (matched on `subagent_type == code-reviewer`) —\n  no manual stamp step. This merges the former \"workflow\" and \"fallback dispatch\"\n  paths into one: dispatching `code-reviewer` *is* the review.\n- **`spec-verifier`** (preloads `verify-spec`): formalize the spec → hunt all four\n  lenses → verifier child replays each trace. Design-time; no stamp.\n\nThe find → adversarial-verify discipline, the commit-gate contract, and the\nfail-closed guarantees from ADR-0009/0010 are unchanged — only the mechanism is.\nSupersedes ADR-0009 and ADR-0010.\n\n## Alternatives considered\n\n- **Keep the workflows, drop only the code graph**: rejected — the parallel\n  lanes were the larger waste; graph removal alone leaves ~1.1M-token runs.\n- **Keep code graph for future scale**: rejected — it can be reintroduced from\n  git history if the codebase grows enough to make exploration dominate; carrying\n  a proven-net-negative feature speculatively violates \"don't over-engineer\".\n- **Fold both into the parent session (no dedicated agent)**: rejected — the\n  fresh, implementation-blind context is the bias check; a pinned agent preserves\n  it while keeping child token cost out of the parent's context.\n- **A `general-purpose` agent carrying the procedure inline in the dispatch\n  prompt**: rejected — an inline prompt can be varied or ignored per dispatch. A\n  named agent (`.claude/agents/*.md`) with a preloaded skill pins behavior in the\n  system prompt, reuses the existing `code-reviewer` stamp hook, and versions the\n  procedure in one file.\n\n## Consequences\n\n- Review cost drops to the agent itself (finder) + one verifier child = 2 agents\n  per run, for both review-diff and verify-spec.\n- `code-reviewer` gains the `Agent` tool (to dispatch its verifier child) and the\n  `review-diff` skill preload; `spec-verifier` is a new agent with the\n  `verify-spec` skill preload. The verifier children are `general-purpose`,\n  pinned by the preloaded skill's dispatch prompt.\n- Deleted: `scripts/build-graph.ts` (+ test), `.claude/code-graph.json`, the\n  `graph` npm script, `.gitattributes` graph rule, `.claude/workflows/`, and the\n  companion code-graph design spec + plan under `docs/superpowers/`.\n  `pre-commit-guard.sh` keeps only the gate check (no graph regeneration).\n- The `PreToolUse(Workflow)` stamp-clear (`pre-workflow-clear-review-stamp.sh`)\n  is replaced by `pre-agent-review-clear.sh` on `PreToolUse(Agent)` scoped to\n  `subagent_type == code-reviewer` (skipping sidechains). This keeps the gate\n  symmetric — dispatching `code-reviewer` clears the stamp, its completion\n  recreates it — so ADR-0009's \"cleared at the next review launch\" guarantee is\n  preserved despite the mechanism change: a stale stamp from a prior cycle cannot\n  survive a review that errors, times out, or is interrupted before\n  `post-agent-review-stamp.sh` fires. (The `aegis_compile_context` clear remains\n  as the new-cycle reset.)\n- The skill dispatch prompts are load-bearing for every commit; changes go\n  through empirical tuning (ADR-0006 consequence carries over).\n- LLM-driven dedup is non-deterministic, an accepted tradeoff: the old JS dedup\n  was also lossy (keyed on file:line, merging distinct same-line defects).\n",
+      "content_hash": "a4a13597f88beeb7153d1a154e45982916ff490116085948ee2231f14bc4b72a",
       "ownership": "file-anchored",
       "template_origin": null,
       "source_path": "docs/adr/0011-nested-subagent-review-and-verification.md",
@@ -145,6 +145,17 @@
       "template_origin": null,
       "source_path": "docs/adr/0013-deterministic-enforcement-gates.md",
       "source_refs_json": null
+    },
+    {
+      "doc_id": "adr-0014",
+      "title": "Measurement First Model Continuity",
+      "kind": "reference",
+      "content": "# 0014. Golden evals govern the review pipeline; delta re-review mode; on-demand repo audit\n\n- Status: accepted\n- Date: 2026-07-10\n\n## Context\n\nTwo pressures surfaced together (design:\n`docs/superpowers/specs/2026-07-10-model-quality-continuity-design.md`):\n\n1. **Model continuity.** The quality *enforcement* stack (deterministic gates\n   ADR-0013, pinned review agents ADR-0011, Aegis compilation) is\n   model-independent, but the *judgment* of the strongest available model\n   (currently Fable) — design decisions, investigation playbooks — dies with\n   each session unless it happens to land in an ADR. Nothing measured whether\n   a weaker parent (e.g. Opus) plus the existing scaffolding actually holds\n   quality, and nothing systematically converts best-model judgment into\n   executable artifacts.\n2. **Review pipeline waste.** ADR-0013's stamp-clearing forces a re-review\n   after every post-review fix. Session measurements (2026-07-10) showed\n   re-reviews re-reading the full diff and re-running whole-project\n   verification the parent had already run (~40–105k tokens, 1–5 min per\n   run).\n\nThe cycle of shadcn/improve (\"audit with your best model, execute with a\ncheap one; plans are portable Markdown\") addresses (1), but importing it\nas-is would duplicate Aegis (repo-convention mapping, design-doc ingestion)\nand introduce a third artifact format beside ADRs and\n`docs/superpowers/specs/` plans.\n\n## Decision\n\n1. **Golden evals govern the review pipeline.** Seeded-defect fixtures +\n   expected findings live in `docs/superpowers/evals/review-diff/` (patch\n   files with self-declared base; run protocol and scoring in its README).\n   Any model-tier change to `.claude/agents/*.md` and any load-bearing edit\n   to `review-diff`/`verify-spec` requires a scored eval run recorded in\n   `results/` — measurement replaces judgment calls (and supersedes the\n   ad-hoc empirical-tuning obligation from ADR-0011 for these skills with a\n   repeatable, scored variant).\n2. **`review-diff` gains a delta re-review mode** (amends the ADR-0011\n   procedure; stamp semantics unchanged). A re-dispatch in the same task\n   cycle passes the prior report verbatim plus a delta description; the\n   reviewer scopes to the delta, skips whole-project verification re-runs,\n   keeps the verifier child mandatory, and **fails closed to full mode** on\n   any precondition break. The verifier child must be awaited in the\n   foreground. Measured effect (2026-07-10): quality 4/4 with 0 FP\n   preserved; −13% tokens / −19% time / −62% tool uses on the smallest\n   possible diff, with savings scaling by unchanged-diff size.\n3. **On-demand `repo-audit` skill** converts best-model judgment into the\n   existing rails only: audit lanes cover what gates cannot catch\n   (architecture drift, security posture, dependency strategy, docs/DX);\n   knowledge outputs become ADR/AGENTS.md edits shipped through aegis-share;\n   work outputs become `docs/superpowers/specs/` plans. No third format, not\n   scheduled, not CI-run. AGENTS.md gains a \"Model continuity (non-Fable\n   parent)\" section: pinned procedures are not re-derived, design judgment\n   escalates to the strongest available model, weaker parents verify more.\n\n## Alternatives considered\n\n- **Adopt shadcn/improve as-is**: rejected — its repo-mapping and doc\n  ingestion duplicate Aegis, and its plan layout adds a third artifact\n  system to keep consistent.\n- **No evals (keep tuning by judgment)**: rejected — model-tier and\n  procedure changes stay vibes-based, exactly what made ADR-0011's\n  benchmark necessary in the first place.\n- **Build-first ordering (ship delta mode, evaluate later)**: rejected —\n  ADR-0011's code-graph lesson: features justified by reasoning alone can\n  be measured net-negative. The eval was built first and the baseline\n  recorded before the mode landed.\n\n## Consequences\n\n- Re-reviews after fixes become cheap enough that ADR-0013's strictness\n  stays affordable; the delta fixture keeps this claim testable.\n- Eval fixtures rot as the codebase evolves; the run protocol requires\n  regenerating or retiring stale fixtures in the same run. The current set\n  is saturated (5/5 baseline) — it detects regression, not headroom; add\n  harder fixtures before using it to discriminate between strong models.\n- `repo-audit` earns its keep or leaves: two consecutive audits with no\n  actionable output trigger a deletion proposal (retention rule to be\n  encoded in the skill when it is created — decision 3 is accepted but not\n  yet implemented at the time of writing).\n- Wall-time comparisons against the pre-2026-07-10 baseline are skewed by\n  the foreground-wait mandate; the re-run columns in\n  `results/2026-07-10-delta-mode.md` are the cost reference.\n",
+      "content_hash": "2306de7c070323d3217c20b46be332f6b52d51c9f53bf758f8b94ce6167acb27",
+      "ownership": "file-anchored",
+      "template_origin": null,
+      "source_path": "docs/adr/0014-measurement-first-model-continuity.md",
+      "source_refs_json": null
     }
   ],
   "edges": [
@@ -164,6 +175,24 @@
       "target_doc_id": "adr-0008",
       "edge_type": "command_requires",
       "priority": 100,
+      "specificity": 0
+    },
+    {
+      "edge_id": "374528df-0683-454a-9177-21555bdf8f27",
+      "source_type": "path",
+      "source_value": ".claude/skills/review-diff/**",
+      "target_doc_id": "adr-0014",
+      "edge_type": "path_requires",
+      "priority": -1,
+      "specificity": 0
+    },
+    {
+      "edge_id": "4826892c-ea9b-46dc-95cb-f1f8f03a0f7d",
+      "source_type": "path",
+      "source_value": "docs/superpowers/evals/**",
+      "target_doc_id": "adr-0014",
+      "edge_type": "path_requires",
+      "priority": -1,
       "specificity": 0
     },
     {
@@ -216,6 +245,15 @@
       "source_type": "path",
       "source_value": "wrangler.toml",
       "target_doc_id": "adr-0005",
+      "edge_type": "path_requires",
+      "priority": -1,
+      "specificity": 0
+    },
+    {
+      "edge_id": "906b2023-0ae5-491a-9057-5888c48d21f1",
+      "source_type": "path",
+      "source_value": ".claude/agents/**",
+      "target_doc_id": "adr-0014",
       "edge_type": "path_requires",
       "priority": -1,
       "specificity": 0
@@ -284,6 +322,15 @@
       "specificity": 0
     },
     {
+      "edge_id": "bdad5450-55ab-42b6-adf8-48e55b400a85",
+      "source_type": "path",
+      "source_value": ".claude/skills/repo-audit/**",
+      "target_doc_id": "adr-0014",
+      "edge_type": "path_requires",
+      "priority": -1,
+      "specificity": 0
+    },
+    {
       "edge_id": "be06b124-b411-4126-b0f9-4c5f20a1bc4c",
       "source_type": "command",
       "source_value": "refactor",
@@ -343,6 +390,15 @@
       "source_value": "package.json",
       "target_doc_id": "adr-0002",
       "edge_type": "path_requires",
+      "priority": -1,
+      "specificity": 0
+    },
+    {
+      "edge_id": "f8c80238-a986-4f8b-90c3-6c38ecd2e610",
+      "source_type": "command",
+      "source_value": "review",
+      "target_doc_id": "adr-0014",
+      "edge_type": "command_requires",
       "priority": -1,
       "specificity": 0
     },
