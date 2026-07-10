@@ -13,7 +13,7 @@ Strips the template down to a pure frontend (TanStack Start + Vite) by removing:
 - Better Auth (Google OAuth)
 - Cloudflare Workers deployment wiring (`@cloudflare/vite-plugin`, `wrangler`)
 
-What stays: the TanStack Start app shell, shared UI (`src/components/ui`, header, mode-toggle, theme-provider), the Clock sample, and the oxlint / oxfmt / tsgo / knip / vitest toolchain.
+What stays: the TanStack Start app shell, shared UI (`src/components/ui`, header, mode-toggle, theme-provider), the Clock sample, and the oxlint / oxfmt / tsc / knip / vitest toolchain.
 
 ## Preconditions
 

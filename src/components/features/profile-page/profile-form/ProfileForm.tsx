@@ -87,7 +87,10 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form
+        onSubmit={(e) => void form.handleSubmit(onSubmit)(e)}
+        className="space-y-6"
+      >
         <div className="flex items-center gap-6">
           <div className="relative">
             <Avatar className="h-24 w-24">

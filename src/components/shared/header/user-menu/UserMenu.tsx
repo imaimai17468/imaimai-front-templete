@@ -56,9 +56,10 @@ export const UserMenu = ({ user }: UserMenuProps) => {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="cursor-pointer text-destructive focus:text-destructive"
-          onClick={async () => {
-            await signOut();
-            window.location.reload();
+          onClick={() => {
+            void signOut().then(() => {
+              window.location.reload();
+            });
           }}
         >
           <LogOut className="mr-2 h-4 w-4" />
