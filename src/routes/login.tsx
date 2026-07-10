@@ -15,7 +15,7 @@ function LoginComponent() {
           type="button"
           variant="outline"
           className="cursor-pointer"
-          onClick={signInWithGoogle}
+          onClick={() => void signInWithGoogle()}
         >
           Sign in With Google
         </Button>
