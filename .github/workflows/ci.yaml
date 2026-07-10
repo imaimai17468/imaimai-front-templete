@@ -47,7 +47,7 @@ jobs:
     - name: Run Tests
       run: bun run test
 
-    - name: Run TypeScript Type Check (tsgo)
+    - name: Run TypeScript Type Check (tsc)
       run: bun run typecheck
 
     - name: Build Project
