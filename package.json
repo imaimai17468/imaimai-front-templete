@@ -64,7 +64,7 @@
     "drizzle-kit": "0.31.4",
     "jsdom": "29.0.2",
     "knip": "6.5.0",
-    "lefthook": "1.12.2",
+    "lefthook": "2.1.10",
     "oxfmt": "0.46.0",
     "oxlint": "1.42.0",
     "oxlint-tsgolint": "0.24.0",
