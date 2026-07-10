@@ -68,7 +68,7 @@
     "oxfmt": "0.46.0",
     "oxlint": "1.42.0",
     "oxlint-tsgolint": "0.24.0",
-    "tailwindcss": "4.2.4",
+    "tailwindcss": "4.3.2",
     "tw-animate-css": "1.3.6",
     "typescript": "7.0.2",
     "vite": "8.1.4",
