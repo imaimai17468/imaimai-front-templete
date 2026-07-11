@@ -28,6 +28,13 @@
     "specificity": 0
   },
   {
+    "edge_id": "7da347a2-f629-4ab2-b583-c9f0bf7fe8ba",
+    "source_value": ".claude/agents/**",
+    "target_doc_id": "adr-0015",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "8be7feb0-54ac-46f5-b468-b5610f963488",
     "source_value": "wrangler.toml",
     "target_doc_id": "adr-0005",
@@ -38,6 +45,13 @@
     "edge_id": "906b2023-0ae5-491a-9057-5888c48d21f1",
     "source_value": ".claude/agents/**",
     "target_doc_id": "adr-0014",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "934ee0bc-ff0a-43c3-bc8d-969d47a9257f",
+    "source_value": ".claude/skills/review-diff/**",
+    "target_doc_id": "adr-0015",
     "priority": -1,
     "specificity": 0
   },
@@ -101,6 +115,13 @@
     "edge_id": "f95a502b-20d7-4073-b4ca-53885bbf933b",
     "source_value": ".claude/agents/**",
     "target_doc_id": "adr-0011",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "fbcdd272-75b0-4d15-bc1c-ae920e6ab8ad",
+    "source_value": ".claude/hooks/**",
+    "target_doc_id": "adr-0015",
     "priority": -1,
     "specificity": 0
   },

@@ -1,10 +1,12 @@
 # review-diff golden eval
 
-Seeded-defect fixtures measuring the `code-reviewer` agent (find + verify
-pipeline). Each fixture is a patch file (self-declared base) + an expected
-findings list. Scores and costs are recorded per run; model-tier changes to
-`.claude/agents/*.md` require a run recorded here (AGENTS.md, Model
-continuity).
+Seeded-defect fixtures measuring the review pipeline (`code-reviewer` finder
++ `review-verifier`, ADR-0015). Each fixture is a patch file (self-declared
+base) + an expected findings list. Scores and costs are recorded per run; a
+model-tier change to `code-reviewer` or `review-verifier`, or a load-bearing
+edit to `review-diff`, requires a run recorded here (AGENTS.md, Model
+continuity). `spec-verifier` has no fixtures yet — that eval obligation is
+scoped to the review pipeline until they exist (recorded debt).
 
 ## Layout
 
@@ -25,18 +27,23 @@ the answers.
 Per fixture:
 
 1. `git apply docs/superpowers/evals/review-diff/fx-NN/seed.patch`
-2. Dispatch the `code-reviewer` agent (model per its definition, effort
-   standard). For delta fixtures, include `prior-report.md` verbatim and the
-   delta description in the dispatch prompt.
-3. Record from the agent result: findings, subagent tokens, wall time.
+2. Dispatch the `code-reviewer` (finder) agent (model per its definition,
+   effort standard). For delta fixtures, include `prior-report.md` verbatim
+   and the delta description in the dispatch prompt. It returns candidate
+   findings (no verdicts).
+3. Dispatch the `review-verifier` agent with those candidates (mode/effort per
+   fixture). It returns the surviving findings with CONFIRMED/PLAUSIBLE/REFUTED
+   verdicts — this is what scoring runs against (ADR-0015; the two-agent flat
+   pipeline). Record from BOTH agent results combined: surviving findings,
+   subagent tokens, wall time.
 4. `git apply -R docs/superpowers/evals/review-diff/fx-NN/seed.patch`;
    verify `git status --short` is clean.
 
 Run fixtures one at a time, never in parallel — they share source files and
 there is a single review stamp.
 
-After all fixtures: `rm -f .claude/.review-stamp` (an eval run must never
-satisfy the commit gate for real work).
+After all fixtures: `rm -f .claude/.review-stamp .claude/.finder-done` (an eval
+run must never satisfy the commit gate for real work).
 
 ## Scoring
 
@@ -57,3 +64,12 @@ satisfy the commit gate for real work).
 | fx-03 | react.md purity (Math.random in render) | non-idempotent render in UserMenu |
 | fx-04 | integrity (swallowed error) | success toast on failed update |
 | fx-05 | delta scenario (zod max vs message) | limit/message contradiction; delta-scoped |
+| fx-06 | clean diff (benign constant extraction) | NONE — any confirmed finding is a false positive |
+| fx-07 | multi-file mixed (benign rename + state bug) | premature setPendingFile(null) discards avatar on failed upload; the rename must NOT be flagged |
+
+## Known coverage gaps (debt)
+
+- No large-diff fixture — delta mode's value hypothesis (savings scale with
+  the unchanged portion) is unmeasured at realistic diff sizes.
+- No fixtures for `spec-verifier` / `verify-spec` at all; ADR-0014 scopes
+  the eval obligation to `review-diff` until they exist.

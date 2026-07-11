@@ -55,7 +55,15 @@ Each counterexample: `{ property, trace: ["state --action--> state (why the guar
 
 ### Step 3 — Verify (dispatch a separate child — do not verify your own counterexamples)
 
-Dispatch ONE verifier child agent (`model: opus`, `subagent_type: general-purpose`) with a self-contained prompt containing the machine and the full counterexample list as JSON. For each, the child replays the trace step by step and checks: (1) starts in the initial state; (2) every step's action exists and its `requires` guard holds in that step's source state; (3) the claimed violation actually holds at the end (for liveness: no enabled action escapes); (4) the trace is at most `depth` steps. Verdict CONFIRMED / PLAUSIBLE / REFUTED; REFUTED if any check fails; default to REFUTED when uncertain.
+> Note (ADR-0015): review-diff flattened its verifier out of a nested child
+> for exactly the fragility this step still carries — a middle agent waiting
+> on its own child across an async boundary. verify-spec keeps the nested
+> child for now (design-time, ungated, user-watched = lower stakes); the
+> transport-file mitigation below is the interim guard. Flattening this the
+> same way (parent orchestrates formalize/hunt then a separate verifier) is
+> recorded debt.
+
+Delete any stale `.claude/.verifier-verdicts.json` first. Dispatch ONE verifier child agent (`model: opus`, `subagent_type: general-purpose`) with a self-contained prompt containing the machine and the full counterexample list as JSON; the prompt MUST instruct the child, as its final action, to WRITE its verdicts JSON to `.claude/.verifier-verdicts.json` in addition to returning them. Wait for the child in the foreground; if you are nevertheless resumed after your turn ended, read that file (then delete it) instead of treating the verdicts as lost. For each, the child replays the trace step by step and checks: (1) starts in the initial state; (2) every step's action exists and its `requires` guard holds in that step's source state; (3) the claimed violation actually holds at the end (for liveness: no enabled action escapes); (4) the trace is at most `depth` steps. Verdict CONFIRMED / PLAUSIBLE / REFUTED; REFUTED if any check fails; default to REFUTED when uncertain.
 
 ### Step 4 — Return
 

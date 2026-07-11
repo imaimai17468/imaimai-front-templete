@@ -1,6 +1,6 @@
 # 0011. Review and spec verification run as nested subagent orchestrators (code graph removed)
 
-- Status: accepted (amended by 0013, 0014)
+- Status: accepted (amended by 0013, 0014; mechanism superseded by 0015)
 - Date: 2026-07-05
 
 > **Amended by [ADR-0013](0013-deterministic-enforcement-gates.md)** (2026-07-09):

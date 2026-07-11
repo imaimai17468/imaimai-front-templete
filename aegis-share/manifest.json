@@ -1,8 +1,8 @@
 {
   "format_version": 1,
   "bundle_file": "canonical.json",
-  "snapshot_id": "f0ce36bbbb758c8575f8f632da7e6f981de98aed2d882b67b8d1861598c4c348",
-  "knowledge_version": 84,
-  "bundle_sha256": "f0749c2ae035200a5abd90d74d3d0c7f6dfe31b80af0082c868e4f32e1357698",
+  "snapshot_id": "fe48b1220d2b7ae0bacf98bebc77d6dba69856c415ff2026e1fed19d718aee9f",
+  "knowledge_version": 88,
+  "bundle_sha256": "155f406c89516d620ee189ab32892e4267be38939fa5452de06b9b889eb25076",
   "includes_tag_mappings": false
 }

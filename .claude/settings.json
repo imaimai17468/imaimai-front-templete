@@ -182,7 +182,7 @@
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-agent-review-clear.sh",
             "timeout": 3,
-            "statusMessage": "Clearing review stamp: code-reviewer owns the commit gate for this run..."
+            "statusMessage": "Clearing review stamp: finder dispatch starts a new review cycle..."
           }
         ]
       },
@@ -239,7 +239,7 @@
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-agent-review-stamp.sh",
             "timeout": 3,
-            "statusMessage": "Review stamp: checking if code-reviewer completed..."
+            "statusMessage": "Review gate: finder marker on code-reviewer, stamp on review-verifier..."
           }
         ]
       }

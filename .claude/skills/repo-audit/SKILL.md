@@ -39,6 +39,10 @@ CI gates own them.
      → export).
    - **Work** (something to fix or build) → plan doc in
      `docs/superpowers/specs/` for a later `/start-workflow` execution.
+   - **Escalation**: a High-severity security finding is ALSO reported to
+     the user immediately in the audit summary with a proposal to run
+     `/start-workflow` on it right away — filing it in a plan doc alone is
+     not sufficient.
 5. Record at the end of the produced doc(s): date, model used, lanes run,
    total subagent tokens. If nothing new: report "nothing new" to the user
    and write NOTHING.
