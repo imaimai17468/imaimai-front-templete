@@ -54,7 +54,10 @@ diff_hash() {
       | sort -z \
       | while IFS= read -r -d '' f; do
           printf '%s\n' "$f"
-          git -C "$ROOT" hash-object "$f" 2>/dev/null || true
+          # `--` terminates options: a file literally named `--stdin` (or any
+          # option-looking name) must be hashed as a path, not parsed as a
+          # flag — otherwise its content changes would not move the hash.
+          git -C "$ROOT" hash-object -- "$f" 2>/dev/null || true
         done
   } | git -C "$ROOT" hash-object --stdin
 }
