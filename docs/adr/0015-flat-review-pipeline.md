@@ -1,4 +1,4 @@
-# 0015. The pre-commit review is a flat finder → verifier pipeline (verifier unnested)
+# 0015. Review and spec verification are flat finder → verifier pipelines (verifier unnested)
 
 - Status: accepted
 - Date: 2026-07-10
@@ -63,9 +63,12 @@ find→verify discipline, commit-gate contract, and fail-closed guarantees are
 unchanged. The band-aid transport file added earlier the same day is removed
 from `review-diff` (the flat pipeline makes it unnecessary).
 
-`spec-verifier` / `verify-spec` keep the nested design for now — it is
-design-time, ungated, and user-watched, so the same fragility is lower-stakes.
-Its transport-file band-aid stays. Flattening it is recorded debt.
+The same flattening is applied to `verify-spec`: `spec-verifier` becomes the
+hunter (formalize + hunt → machine + candidate counterexamples) and a new
+`spec-checker` agent replays each candidate in a fresh, hunt-blind context.
+Same rationale, no gate (design-time), so no stamp hooks are involved — only
+`pre-agent-aegis-guard.sh` gains `spec-checker` in its exempt list. The
+nested-child transport-file band-aid is removed from `verify-spec` too.
 
 ## Alternatives considered
 
@@ -98,5 +101,7 @@ Its transport-file band-aid stays. Flattening it is recorded debt.
   load-bearing edit to `review-diff`, requires a scored eval run
   (`docs/superpowers/evals/review-diff/`, ADR-0014). This change itself is
   validated that way.
-- Debt: `spec-verifier` still nests; flatten it the same way if its child-wait
-  fragility bites.
+- `verify-spec` is flattened the same way (`spec-verifier` hunter +
+  `spec-checker`), resolving the debt this ADR would otherwise have left. A
+  seeded-counterexample fixture under `docs/superpowers/evals/verify-spec/`
+  exercises the flat spec pipeline end-to-end.

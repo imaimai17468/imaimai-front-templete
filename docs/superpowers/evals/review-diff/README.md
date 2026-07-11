@@ -5,8 +5,8 @@ Seeded-defect fixtures measuring the review pipeline (`code-reviewer` finder
 base) + an expected findings list. Scores and costs are recorded per run; a
 model-tier change to `code-reviewer` or `review-verifier`, or a load-bearing
 edit to `review-diff`, requires a run recorded here (AGENTS.md, Model
-continuity). `spec-verifier` has no fixtures yet — that eval obligation is
-scoped to the review pipeline until they exist (recorded debt).
+continuity). The spec pipeline has its own eval at
+`docs/superpowers/evals/verify-spec/`.
 
 ## Layout
 
@@ -71,5 +71,5 @@ run must never satisfy the commit gate for real work).
 
 - No large-diff fixture — delta mode's value hypothesis (savings scale with
   the unchanged portion) is unmeasured at realistic diff sizes.
-- No fixtures for `spec-verifier` / `verify-spec` at all; ADR-0014 scopes
-  the eval obligation to `review-diff` until they exist.
+- The spec pipeline's eval (`docs/superpowers/evals/verify-spec/`) has one
+  fixture so far — enough to exercise it, not to discriminate model tiers.

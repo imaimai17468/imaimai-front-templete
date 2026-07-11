@@ -125,11 +125,13 @@ model than the strongest available (e.g. Opus instead of Fable):
   stop and ask the user. Mechanical implementation stays in the parent.
 - Knowledge Currency applies with extra force: a weaker parent verifies
   more, not less.
-- Model-tier changes to `.claude/agents/*.md` require a scored eval run
-  where one exists (`code-reviewer` and `review-verifier`:
-  `docs/superpowers/evals/review-diff/`); agents without an eval yet
-  (`spec-verifier`) require empirical tuning plus explicit user sign-off
-  instead.
+- Model-tier changes to `.claude/agents/*.md` require a scored eval run:
+  `code-reviewer` / `review-verifier` against
+  `docs/superpowers/evals/review-diff/`, and `spec-verifier` / `spec-checker`
+  against `docs/superpowers/evals/verify-spec/`. The verify-spec eval is
+  currently one fixture (enough to exercise the pipeline, not to discriminate
+  tiers) — pair it with empirical tuning + explicit user sign-off until more
+  fixtures exist.
 
 ### Teams & nesting
 
@@ -141,7 +143,7 @@ model than the strongest available (e.g. Opus instead of Fable):
 
 Before every commit, review the uncommitted diff (users trigger it as `/review-diff`; pass `high` for a deeper multi-lens pass). The review is a flat two-agent pipeline the parent orchestrates (ADR-0015, superseding ADR-0011's nested mechanism): dispatch the `code-reviewer` agent (finder) — it hunts across all lenses (bugs + AGENTS.md + path-scoped rules) and returns candidate findings — then dispatch the `review-verifier` agent with those candidates; it adversarially refutes each by reading the real code and its completion stamps the commit gate via `post-agent-review-stamp.sh`. Both agents (`.claude/agents/*.md`, `model: sonnet`) have the `review-diff` skill preloaded — behavior is pinned, not improvised. Both are depth-1 dispatches the parent waits on directly; there is no nested agent-waiting-on-its-child (the joint that lost verdicts under ADR-0011). find ≠ verify independence holds because finder and verifier are separate fresh contexts, and neither has seen the implementation reasoning — so the pair is the bias check. Any `Edit`/`Write` after the review clears the stamp (ADR-0013): the parent fixes findings directly, then re-reviews (prefer delta mode) — the gate will not pass an edited-but-unreviewed diff. Handle findings: never dismiss as "pre-existing" when the file is in the diff; apply rules literally; when in doubt, fix. Findings must propose a concrete alternative, respect rule scope qualifiers, and not re-report dismissed findings.
 
-Design-time verification of interaction-complex features uses the same pinned-agent pattern: dispatch the `spec-verifier` agent with a spec path (or `/verify-spec specs/<feature>.spec.md`). It has the `verify-spec` skill preloaded and runs formalize → hunt → verifier-child to hunt counterexamples in a state-machine spec (ADR-0010/0011).
+Design-time verification of interaction-complex features uses the same flat pinned-agent pattern (`/verify-spec specs/<feature>.spec.md`, ADR-0015): dispatch the `spec-verifier` agent (hunter) — it formalizes the spec and returns the machine + candidate counterexamples — then dispatch the `spec-checker` agent with the machine and candidates; it replays each in a hunt-blind context and returns the CONFIRMED survivors. Both preload the `verify-spec` skill (ADR-0010 discipline). Design-time only — no commit gate.
 
 <!-- aegis:start -->
 ## Aegis Process Enforcement

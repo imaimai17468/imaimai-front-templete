@@ -78,6 +78,8 @@ Read the diff once and hunt across ALL of these lenses at the same time. Report 
 
 Each finding: `{ file (repo-relative), line (1-indexed), title, description (failure scenario + concrete fix), severity ("critical"|"major"|"minor"), rule? }`.
 
+**Signal-to-noise on benign diffs.** Coverage-first applies fully to correctness lenses (logic/state/integrity) and to rule violations — report every candidate there. But for `cleanup` and process/style observations (naming drift, commit-split hygiene, "could centralize this constant"), calibrate to the diff: when the change is behavior-identical (a pure rename, a constant extraction, a doc reword) and carries no critical/major finding, a minor cleanup/process comment is usually noise, not a defect — a benign refactor should draw few or no findings. Raise such a comment only when it is genuinely actionable and material; otherwise omit it. This does not lower the bar on real bugs or rule breaches (those are always reported); it keeps the finder from burying a clean refactor in true-but-trivial remarks. (Golden-eval fixtures fx-06/fx-07 measure exactly this over-reporting tendency — ADR-0014.)
+
 ### Step 2 — Dedup + return candidates — `code-reviewer`
 
 Merge findings anchored to the same (file, line): keep the highest-severity one, fold the others into its description. Sort by severity. Return `{ mode, fallback?, candidates: [ ... ], stats: { candidates } }` as your final message. Stop here — you do not verify or stamp.

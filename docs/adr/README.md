@@ -64,4 +64,4 @@ Strictly sequential, four zero-padded digits. Never renumber. When an ADR is rep
 | [0012](0012-parent-centric-implementation.md) | The parent session implements directly; delegation is decided by context impact | accepted |
 | [0013](0013-deterministic-enforcement-gates.md) | Enforcement gates are deterministic artifacts, not transcript greps | accepted |
 | [0014](0014-measurement-first-model-continuity.md) | Golden evals govern the review pipeline; delta re-review mode; on-demand repo audit | accepted |
-| [0015](0015-flat-review-pipeline.md) | Pre-commit review is a flat finder → verifier pipeline (verifier unnested) | accepted |
+| [0015](0015-flat-review-pipeline.md) | Review and spec verification are flat finder → verifier pipelines (verifier unnested) | accepted |
