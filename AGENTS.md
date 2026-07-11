@@ -13,7 +13,7 @@ Triggers that apply with or without start-workflow:
 - **Planning / design requests**: use `superpowers:writing-plans` and enter plan mode before implementing.
 - **Creative or architectural judgment** (new UI, architecture decisions, approach selection): run `superpowers:brainstorming` before any code change.
 - **Any code change outside start-workflow**: consult Aegis first (see "Aegis Process Enforcement"). When adding a pure function or presenter, use `superpowers:test-driven-development`.
-- **ADR maintenance**: if you edit or create files under `docs/adr/`, call `aegis_sync_docs` (edits) or `aegis_import_doc` (new files) before finishing — forgetting this makes Aegis stale.
+- **ADR maintenance**: if you edit or create files under `docs/adr/`, mirror the change into `aegis-share/source/documents/` (plus `source/edges/` for new docs) and run the share pipeline (`share-format` → `share-lint` → `share-materialize` → `share-export`) before finishing — `aegis-share/source/` is the canonical KB, and direct `aegis_import_doc` injection drifts from it. Forgetting this makes Aegis stale (`doctor` must report in_sync).
 
 ## Degraded Environments
 
