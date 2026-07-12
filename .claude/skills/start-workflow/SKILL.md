@@ -68,7 +68,7 @@ Delegate only when the delegation criteria (AGENTS.md / ADR-0012) are met:
 
 - **Heavy exploration** (bulk file reads, log digging, cross-cutting investigation): dispatch an Explore/research subagent so the raw output never enters the parent's context — only the summary returns.
 - **Independent parallel units** (no shared files, no output dependency): dispatch parallel `general-purpose` subagents (`model: "sonnet"`) via multiple Agent calls in one message. Dispatch prompts must be self-contained — plan, file paths, rules, acceptance criteria; the subagent will not see the parent conversation. Escalate to `opus` for non-trivial design judgment, after a weak `sonnet` result, or for long-horizon autonomous work.
-- Implementation dispatches run **foreground (synchronous)** — wait and integrate. Do not rely on background dispatch + SendMessage resumption for implementation.
+- Implementation dispatches **block the next step** — the platform runs subagents in the background and notifies on completion; wait for that completion and integrate before proceeding. Do not fire-and-forget implementation work or rely on SendMessage resumption for it.
 
 ### 6. Review
 

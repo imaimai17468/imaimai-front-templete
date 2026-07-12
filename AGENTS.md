@@ -101,7 +101,7 @@ The parent session implements directly by default (ADR-0012). Delegate by **cont
 - **Explore / research subagent**: bulk file reads, log digging, cross-cutting investigation whose raw output the parent won't reference again — only the summary should enter the parent's context.
 - **Parallel implementation subagents**: multiple independent units with no shared files and no output dependency (multiple Agent calls in one message). Dependent units run sequentially — or stay in the parent. Never parallelize units that edit the same file.
 
-Implementation dispatches run **foreground (synchronous)** — the parent waits and integrates. Background dispatch and SendMessage-based resumption are reserved for long-running independent research where mid-course correction is unnecessary. Briefings must be self-contained — goal, file paths, acceptance criteria, and the relevant guidelines quoted in (consult Aegis before every dispatch).
+Implementation dispatches **block the parent's next step**: the platform runs subagents in the background and notifies on completion (default since Claude Code 2.1.198) — the parent MUST wait for that completion and integrate the result before building anything on it. Fire-and-forget dispatch and SendMessage-based resumption are reserved for long-running independent research where mid-course correction is unnecessary. Briefings must be self-contained — goal, file paths, acceptance criteria, and the relevant guidelines quoted in (consult Aegis before every dispatch).
 
 ### Model selection — always set `model` explicitly
 
