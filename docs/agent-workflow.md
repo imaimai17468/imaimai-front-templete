@@ -325,7 +325,7 @@ canonical は aegis-share/source/（import_doc の直接投入は乖離を生む
 [新しい ADR の追加]  docs/adr/NNNN-*.md を書く
                      → aegis-share/source/documents/adr-NNNN.md（frontmatter+本文ミラー）
                        + source/edges/*.json に必要な edge を追加
-                     → npx aegis share-format / share-lint / share-materialize / share-export
+                     → npx aegis share-format → share-lint → share-materialize → share-export（4 コマンドを順に実行）
 [既存 ADR の編集]    docs/adr/ を編集 → source/documents/ のミラー本文を同期
                      → 同上の share パイプライン（doctor で in_sync を確認）
 [hydrate 直後]       aegis_sync_docs() で file-anchored ドキュメントを再アンカー
