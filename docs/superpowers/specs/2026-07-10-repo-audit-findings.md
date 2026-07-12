@@ -4,6 +4,9 @@
 - Model: parent Fable (synthesis) + 4 read-only Explore lanes (sonnet ×3,
   haiku ×1). Total subagent tokens ≈ 84k.
 - Lanes: architecture-drift, security-posture, dependency-strategy, docs-dx.
+- Baseline commit: `a7e1112` (added retroactively — the tree state the audit
+  examined). Before executing any W-item, diff this baseline against current
+  HEAD for the files it cites; if they changed, re-verify the finding first.
 
 Findings below are **Explore output, not adversarially verified** — each is
 a candidate to confirm before execution (via `/start-workflow` for the Work
