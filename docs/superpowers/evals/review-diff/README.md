@@ -29,8 +29,10 @@ Per fixture:
 1. `git apply docs/superpowers/evals/review-diff/fx-NN/seed.patch`
 2. Dispatch the `code-reviewer` (finder) agent (model per its definition,
    effort standard). For delta fixtures, include `prior-report.md` verbatim
-   and the delta description in the dispatch prompt. It returns candidate
-   findings (no verdicts).
+   and the delta description in the dispatch prompt. (Exception: fx-08 has
+   no committed `prior-report.md` — its delta half runs immediately after
+   its full half, using the full run's actual verifier report as the prior;
+   see `fx-08/expected.md`.) It returns candidate findings (no verdicts).
 3. Dispatch the `review-verifier` agent with those candidates (mode/effort per
    fixture). It returns the surviving findings with CONFIRMED/PLAUSIBLE/REFUTED
    verdicts — this is what scoring runs against (ADR-0015; the two-agent flat
@@ -66,10 +68,10 @@ run must never satisfy the commit gate for real work).
 | fx-05 | delta scenario (zod max vs message) | limit/message contradiction; delta-scoped |
 | fx-06 | clean diff (benign constant extraction) | NONE — any confirmed finding is a false positive |
 | fx-07 | multi-file mixed (benign rename + state bug) | premature setPendingFile(null) discards avatar on failed upload; the rename must NOT be flagged |
+| fx-08 | large mixed diff, 8 files (6 benign + swallowed-error + inverted size check) | both defects found, zero FPs on the benign majority; `delta.patch` adds a delta-mode savings measurement (run full first, then delta with the full run's actual report as prior) |
 
 ## Known coverage gaps (debt)
 
-- No large-diff fixture — delta mode's value hypothesis (savings scale with
-  the unchanged portion) is unmeasured at realistic diff sizes.
-- The spec pipeline's eval (`docs/superpowers/evals/verify-spec/`) has one
-  fixture so far — enough to exercise it, not to discriminate model tiers.
+- fx-08's delta scenario uses the same-session full-run report as its prior
+  (no committed `prior-report.md`), so its delta half is only runnable
+  immediately after its full half.
