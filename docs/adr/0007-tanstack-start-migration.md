@@ -1,7 +1,28 @@
 # 0007. Migrate from Next.js (App Router + OpenNext) to TanStack Start
 
-- Status: accepted
+- Status: accepted (amended 2026-07-12)
 - Date: 2026-04-30
+
+> **Amendment (2026-07-12, audit finding K1):** TanStack Start dropped Nitro
+> after this ADR was written, so the deployment mechanism described below no
+> longer matches the code. The current mechanism:
+>
+> - The Worker integration is **`@cloudflare/vite-plugin`**
+>   (`vite.config.ts`: `cloudflare({ viteEnvironment: { name: "ssr" } })`),
+>   not a Nitro preset.
+> - `wrangler.toml#main` points at the **source entry `./src/ssr.tsx`** (the
+>   plugin builds and serves it); there is no `.output/server/index.mjs` and
+>   no `[assets]` section.
+> - Bindings are read via **`import { env } from "cloudflare:workers"`**
+>   (wrapped by `getCloudflareEnv()` in `src/server/cloudflare.ts`), not
+>   Nitro's `getEvent().context.cloudflare.env`.
+> - HTTP endpoints use **`createFileRoute` with `server.handlers`**, not the
+>   `createServerFileRoute(...).methods(...)` API named below.
+> - Build/deploy remains `vite build && wrangler deploy`; dev is `vite dev`
+>   with the plugin providing workerd bindings.
+>
+> The rationale, alternatives, and the rest of the decision stand. The dead
+> `.output/` entry has been removed from `.gitignore` in the same change.
 
 ## Context
 

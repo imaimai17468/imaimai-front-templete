@@ -17,7 +17,6 @@
 .next/
 
 # tanstack start (vite)
-.output/
 /dist
 .tanstack/
 .vite/
@@ -39,6 +38,8 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.local.example
+# Wrangler local secrets (not covered by the .env* glob)
+.dev.vars
 
 # cloudflare
 .wrangler
