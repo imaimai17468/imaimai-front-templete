@@ -1,0 +1,22 @@
+diff --git a/src/components/shared/header/user-menu/UserMenu.tsx b/src/components/shared/header/user-menu/UserMenu.tsx
+index c2a9894..bceb994 100644
+--- a/src/components/shared/header/user-menu/UserMenu.tsx
++++ b/src/components/shared/header/user-menu/UserMenu.tsx
+@@ -21,6 +21,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
+   const avatarUrl = user.avatarUrl;
+   const name = user.name || "User";
+   const email = user.email;
++  const sessionLabel = `Session ${Math.random().toString(36).slice(2, 7)}`;
+ 
+   return (
+     <DropdownMenu>
+@@ -44,6 +45,9 @@ export const UserMenu = ({ user }: UserMenuProps) => {
+                 {email}
+               </p>
+             )}
++            <p className="text-muted-foreground text-xs leading-none">
++              {sessionLabel}
++            </p>
+           </div>
+         </DropdownMenuLabel>
+         <DropdownMenuSeparator />

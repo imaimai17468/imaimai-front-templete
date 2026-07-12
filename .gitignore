@@ -57,5 +57,6 @@ storybook-static
 # claude code runtime artifacts
 .claude/scheduled_tasks.lock
 .claude/.review-stamp
+.claude/.finder-done
 .claude/.aegis-stamp
 .claude/.aegis-unavailable

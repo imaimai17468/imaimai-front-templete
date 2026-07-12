@@ -1,0 +1,19 @@
+diff --git a/src/components/features/profile-page/profile-form/ProfileForm.tsx b/src/components/features/profile-page/profile-form/ProfileForm.tsx
+index 37d6c8d..fcd5698 100644
+--- a/src/components/features/profile-page/profile-form/ProfileForm.tsx
++++ b/src/components/features/profile-page/profile-form/ProfileForm.tsx
+@@ -73,12 +73,8 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
+       const formData = new globalThis.FormData();
+       formData.append("name", data.name);
+ 
+-      const result = await updateProfileFn({ data: formData });
+-      if ("error" in result && result.error) {
+-        toast.error(result.error);
+-      } else {
+-        toast.success("Profile updated successfully");
+-      }
++      await updateProfileFn({ data: formData });
++      toast.success("Profile updated successfully");
+     });
+   };
+ 
