@@ -7,6 +7,7 @@ import {
 import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/drizzle/db";
 import { users } from "@/lib/drizzle/schema";
+import { avatarExtensionForMime } from "@/lib/storage/avatar-validation";
 import { uploadToR2 } from "@/lib/storage/r2";
 
 export const fetchCurrentUser = async (): Promise<UserWithEmail | null> => {
@@ -61,7 +62,10 @@ export const updateUserAvatar = async (
   userId: string,
   file: File
 ): Promise<{ success: boolean; error?: string; avatarUrl?: string }> => {
-  const fileExt = file.name.split(".").pop();
+  const fileExt = avatarExtensionForMime(file.type);
+  if (!fileExt) {
+    return { success: false, error: "Unsupported image type" };
+  }
   const key = `${userId}/avatar.${fileExt}`;
 
   try {
