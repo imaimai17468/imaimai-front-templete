@@ -38,6 +38,12 @@ describe("isValidAvatarKey", () => {
     "aB0_-x/avatar.jpg",
     "u/avatar.webp",
     "u/avatar.gif",
+    // legacy variants tolerated on read (written before the hardening)
+    "user-123/avatar.jpeg",
+    "user-123/avatar.PNG",
+    "user-123/avatar.JPG",
+    // uppercase + jpeg together (both tolerances at once)
+    "user-123/avatar.JPEG",
   ])("accepts well-formed key %s", (key) => {
     expect(isValidAvatarKey(key)).toBe(true);
   });
@@ -53,7 +59,7 @@ describe("isValidAvatarKey", () => {
     ["html extension", "user-123/avatar.html"],
     ["trailing garbage", "user-123/avatar.png.html"],
     ["prefix with dot", "user.123/avatar.png"],
-    ["uppercase extension", "user-123/avatar.PNG"],
+    ["no extension", "user-123/avatar"],
   ])("rejects %s: %j", (_label, key) => {
     expect(isValidAvatarKey(key)).toBe(false);
   });
