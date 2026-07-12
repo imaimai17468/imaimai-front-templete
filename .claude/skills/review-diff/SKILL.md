@@ -42,6 +42,11 @@ Benchmarking (2026-07-04) already collapsed the old 5–7-lane parallel workflow
 - **delta**: re-review after a completed full review in the same task cycle.
   The finder dispatch prompt MUST include (i) the prior review report verbatim
   and (ii) a delta description listing the files/edits made since that review.
+  Describe the delta **relative to the resulting diff**, not just the edit:
+  when a fix reverts a file to HEAD it drops out of `git diff` entirely, so
+  say so and enumerate the expected remaining files — otherwise the finder's
+  consistency check sees the declared-delta file missing from the diff and
+  (correctly) falls back to a full-price review (measured on fx-08).
   Adjustments:
   - Scope the find pass to the delta files and their interaction with the prior
     findings (did a fix regress a neighbor? does a prior finding still apply?).
