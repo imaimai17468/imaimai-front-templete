@@ -22,7 +22,12 @@ continuity). The spec pipeline has its own eval at
 
 The eval docs must be **committed** before any run — the reviewer's target is
 the whole uncommitted diff, and uncommitted `expected.md` files would hand it
-the answers.
+the answers. Committing is necessary but not sufficient: the `expected.md`
+files remain readable in the tree, so **every eval dispatch prompt must
+forbid reading `docs/superpowers/evals/`** (Anthropic measured
+answer-extraction contamination amplifying ~3.7× in multi-agent
+configurations — https://www.anthropic.com/engineering/eval-awareness-browsecomp
+— and frames eval integrity as adversarial, not a one-time setup).
 
 Per fixture:
 
@@ -56,6 +61,22 @@ run must never satisfy the commit gate for real work).
   not listed as acceptable-extra.
 - Staleness: if `seed.patch` no longer applies, regenerate or retire the
   fixture in the same run and note it in the results file.
+- **Close calls need repeated runs.** Environment/config variance alone can
+  exceed small deltas (Anthropic measured ~6 points of agentic-benchmark
+  variance from infrastructure config alone and advises distrusting small
+  single-run differences —
+  https://www.anthropic.com/engineering/infrastructure-noise). A single-run
+  result is decisive only when the delta is large and unanimous across
+  fixtures — e.g. a clean detection sweep vs. a miss, or a decision where
+  cost and quality point the same way. For narrow margins (one FP apart,
+  small token differences), re-run the affected fixtures across separate
+  sessions before acting.
+- **Grow the suite from real failures**: when the pipeline misses a real bug
+  or confirms a real false positive in production use, turn that case into a
+  fixture. Anthropic's eval guidance treats 20-50 tasks drawn from real
+  failures as a solid starting point
+  (https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents);
+  this suite is below that and compensates with large-delta decisions only.
 
 ## Fixture inventory
 
