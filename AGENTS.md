@@ -128,10 +128,10 @@ model than the strongest available (e.g. Opus instead of Fable):
 - Model-tier changes to `.claude/agents/*.md` require a scored eval run:
   `code-reviewer` / `review-verifier` against
   `docs/superpowers/evals/review-diff/`, and `spec-verifier` / `spec-checker`
-  against `docs/superpowers/evals/verify-spec/`. The verify-spec eval is
-  currently one fixture (enough to exercise the pipeline, not to discriminate
-  tiers) — pair it with empirical tuning + explicit user sign-off until more
-  fixtures exist.
+  against `docs/superpowers/evals/verify-spec/`. The verify-spec eval has
+  tier-discriminating fixtures (sx-01..03); the 2026-07-12 comparison kept
+  both spec agents on `opus` (sonnet lost on precision AND cost) — a future
+  downgrade needs a fresh suite run that beats that result.
 
 ### Teams & nesting
 

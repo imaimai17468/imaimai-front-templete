@@ -40,6 +40,11 @@ and introduce a third artifact format beside ADRs and
    empirical-tuning obligation for that skill). `verify-spec` /
    `spec-verifier` keep the ADR-0011 empirical-tuning obligation until a
    verify-spec eval exists — recorded debt, not an implicit waiver.
+   *(Resolved 2026-07-12: the verify-spec eval now exists with
+   tier-discriminating fixtures sx-01..03 — see
+   `docs/superpowers/evals/verify-spec/` — so the spec pipeline is under the
+   same scored-eval regime; the first tier comparison kept both spec agents
+   on opus.)*
 2. **`review-diff` gains a delta re-review mode** (amends the ADR-0011
    procedure; stamp semantics unchanged). A re-dispatch in the same task
    cycle passes the prior report verbatim plus a delta description; the
