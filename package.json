@@ -49,7 +49,7 @@
     "zod": "4.0.10"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.40.2",
+    "@cloudflare/vite-plugin": "1.44.0",
     "@tailwindcss/vite": "4.3.2",
     "@tanstack/router-cli": "1.167.17",
     "@testing-library/dom": "10.4.0",
