@@ -17,7 +17,6 @@
 .next/
 
 # tanstack start (vite)
-.output/
 /dist
 .tanstack/
 .vite/
@@ -39,6 +38,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.local.example
+# Wrangler local secrets (not covered by the .env* glob);
+# glob also catches env-specific files like .dev.vars.staging
+.dev.vars*
+!.dev.vars.example
 
 # cloudflare
 .wrangler
@@ -57,5 +60,6 @@ storybook-static
 # claude code runtime artifacts
 .claude/scheduled_tasks.lock
 .claude/.review-stamp
+.claude/.finder-done
 .claude/.aegis-stamp
 .claude/.aegis-unavailable

@@ -1,0 +1,39 @@
+diff --git a/src/components/features/profile-page/profile-form/ProfileForm.tsx b/src/components/features/profile-page/profile-form/ProfileForm.tsx
+index 37d6c8d..ba6e5bf 100644
+--- a/src/components/features/profile-page/profile-form/ProfileForm.tsx
++++ b/src/components/features/profile-page/profile-form/ProfileForm.tsx
+@@ -63,11 +63,11 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
+         const avatarData = new globalThis.FormData();
+         avatarData.append("avatar", pendingFile);
+         const avatarResult = await uploadAvatarFn({ data: avatarData });
++        setPendingFile(null);
+         if ("error" in avatarResult && avatarResult.error) {
+           toast.error(avatarResult.error);
+           return;
+         }
+-        setPendingFile(null);
+       }
+ 
+       const formData = new globalThis.FormData();
+diff --git a/src/components/shared/header/user-menu/UserMenu.tsx b/src/components/shared/header/user-menu/UserMenu.tsx
+index c2a9894..7a074c8 100644
+--- a/src/components/shared/header/user-menu/UserMenu.tsx
++++ b/src/components/shared/header/user-menu/UserMenu.tsx
+@@ -18,7 +18,7 @@ type UserMenuProps = {
+ };
+ 
+ export const UserMenu = ({ user }: UserMenuProps) => {
+-  const avatarUrl = user.avatarUrl;
++  const avatarSrc = user.avatarUrl;
+   const name = user.name || "User";
+   const email = user.email;
+ 
+@@ -30,7 +30,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
+           className="cursor-pointer rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+         >
+           <Avatar className="h-8 w-8">
+-            <AvatarImage src={avatarUrl || undefined} alt={name} />
++            <AvatarImage src={avatarSrc || undefined} alt={name} />
+             <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
+           </Avatar>
+         </button>

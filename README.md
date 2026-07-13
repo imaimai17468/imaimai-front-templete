@@ -35,19 +35,23 @@ AI エージェント用の Aegis ナレッジベース（`.aegis/`、gitignore 
 
 ## Scripts
 
-| Command              | Description                                    |
-| -------------------- | ---------------------------------------------- |
-| `bun run dev`        | Start dev server (with CF bindings via workerd) |
-| `bun run build`      | Production build                               |
-| `bun run preview`    | Build & preview in local workerd               |
-| `bun run deploy`     | Build & deploy to Cloudflare Workers           |
-| `bun run typecheck`  | Type check with tsc (TypeScript 7 native)      |
-| `bun run lint`       | Run oxlint                                     |
-| `bun run format`     | Check formatting with oxfmt                    |
-| `bun run format:fix` | Format with oxfmt                              |
-| `bun run knip`       | Detect unused deps/exports/files               |
-| `bun run test`       | Run tests with Vitest                          |
-| `bun run cf-typegen` | Generate `CloudflareEnv` from `wrangler.toml`  |
+| Command                   | Description                                     |
+| ------------------------- | ----------------------------------------------- |
+| `bun run dev`             | Start dev server (with CF bindings via workerd) |
+| `bun run build`           | Production build                                |
+| `bun run preview`         | Build & preview in local workerd                |
+| `bun run deploy`          | Build & deploy to Cloudflare Workers            |
+| `bun run typecheck`       | Type check with tsc (TypeScript 7 native)       |
+| `bun run lint`            | Run oxlint (type-aware)                         |
+| `bun run lint:fix`        | Run oxlint with auto-fix                        |
+| `bun run format`          | Check formatting with oxfmt                     |
+| `bun run format:fix`      | Format with oxfmt                               |
+| `bun run check`           | lint + format check (same as pre-push hook)     |
+| `bun run check:fix`       | lint + format with auto-fix                     |
+| `bun run generate-routes` | Regenerate TanStack Router route tree           |
+| `bun run knip`            | Detect unused deps/exports/files                |
+| `bun run test`            | Run tests with Vitest                           |
+| `bun run cf-typegen`      | Generate `CloudflareEnv` from `wrangler.toml`   |
 
 ## Tools
 
@@ -111,7 +115,7 @@ src/
 - **[AGENTS.md](./AGENTS.md)** — 常時ロードされるコーディング規約 (凝縮版を直接記載、ADR-0008)
 - **[docs/adr/README.md](./docs/adr/README.md)** — 主要設計判断の長期記録 (なぜ今こう決まっているのか)
 
-`/start-workflow` は ticket 粒度の作業をエージェントが検知して自律的に invoke します（手動でも呼べます）。trivial な 1 行修正・config 1 値・docs only な変更はこのフローに乗せず直接編集します。コミット前のレビューは `/review-diff`（= `code-reviewer` agent の dispatch。finder が diff を 1 パスで全観点探索し、verifier child が各指摘を反証検証する。ADR-0011）が担い、レビューが完走するまで `git commit` はフックでブロックされます。レビュー後に編集すると stamp が消えるため、修正後は再レビューが必要です（ADR-0013）。コミット・PR はエージェントが AGENTS.md の規律に従って提案し、ユーザー確認後に実行します。
+`/start-workflow` は ticket 粒度の作業をエージェントが検知して自律的に invoke します（手動でも呼べます）。trivial な 1 行修正・config 1 値・docs only な変更はこのフローに乗せず直接編集します。コミット前のレビューは `/review-diff` が担います — 親が `code-reviewer`（finder、候補を返す）→ `review-verifier`（候補を実コードで反証）をフラットに順次 dispatch し、finder が同一 diff で先行した場合のみ verifier の完走がコミットゲートを stamp します（ADR-0015）。レビューが完走するまで `git commit` はフックでブロックされ、レビュー後に編集すると stamp が消えるため修正後は再レビューが必要です（ADR-0013）。レビューパイプライン自体の品質は golden eval（`docs/superpowers/evals/`）で回帰計測されます（ADR-0014）。コミット・PR はエージェントが AGENTS.md の規律に従って提案し、ユーザー確認後に実行します。
 
 ## shadcn/ui
 
