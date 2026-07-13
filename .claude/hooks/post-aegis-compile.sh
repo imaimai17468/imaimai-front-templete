@@ -30,7 +30,15 @@ TOOL_RESPONSE=$(printf '%s' "$INPUT" | jq -r 'if .tool_response then "present" e
 if [ "${TOOL_RESPONSE:-absent}" = "absent" ]; then
   exit 0
 fi
-RESPONSE_ERROR=$(printf '%s' "$INPUT" | jq -r '.tool_response.isError // .tool_response.is_error // false' 2>/dev/null || echo true)
+# tool_response may be an object ({isError, content}) or a bare array of
+# content blocks (MCP delivery shape) — indexing an array with .isError is a
+# jq error, which the fail-closed fallback would misread as a failed
+# consultation. Treat ONLY the known array shape as success; any other
+# non-object shape (bare string/number/bool) is unknown territory and stays
+# fail-closed (no stamp), per ADR-0013. Note: for the array shape the
+# near-miss warning below no-ops (debug_info is not reachable on that
+# shape) — the stamp is the load-bearing part.
+RESPONSE_ERROR=$(printf '%s' "$INPUT" | jq -r '.tool_response | if type == "object" then (.isError // .is_error // false) elif type == "array" then false else true end' 2>/dev/null || echo true)
 if [ "$RESPONSE_ERROR" != "false" ]; then
   exit 0
 fi

@@ -45,8 +45,8 @@ cp .env.local.example .env.local
 
 ```env
 # Better Auth
+# (BETTER_AUTH_URL は wrangler.toml の [vars] で設定済み — 開発時は :5173)
 BETTER_AUTH_SECRET=<openssl rand -base64 32 で生成>
-NEXT_PUBLIC_BETTER_AUTH_URL=http://localhost:8787
 
 # OAuth Providers
 GOOGLE_CLIENT_ID=<your-google-client-id>
@@ -114,9 +114,9 @@ R2バケットを公開アクセス可能にする必要があります。
 2. **認証情報を作成** > **OAuthクライアントID** を選択
 3. アプリケーションの種類: **ウェブアプリケーション**
 4. **承認済みの JavaScript 生成元** に以下を追加:
-   - `http://localhost:8787`（開発時）
+   - `http://localhost:5173`（開発時）
 5. **承認済みのリダイレクト URI** に以下を追加:
-   - `http://localhost:8787/api/auth/callback/google`（開発時）
+   - `http://localhost:5173/api/auth/callback/google`（開発時）
 6. 作成後、Client ID / Client Secret を `.env.local` に設定
 
 > **本番環境**: 生成元とリダイレクト URI にデプロイ先のURLも追加してください。

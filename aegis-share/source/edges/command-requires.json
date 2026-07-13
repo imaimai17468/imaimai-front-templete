@@ -63,6 +63,13 @@
     "specificity": 0
   },
   {
+    "edge_id": "bb6905ec-c408-4892-bfc6-06f0a8bdc310",
+    "source_value": "review",
+    "target_doc_id": "adr-0015",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "be06b124-b411-4126-b0f9-4c5f20a1bc4c",
     "source_value": "refactor",
     "target_doc_id": "adr-0006",
@@ -81,6 +88,13 @@
     "source_value": "review",
     "target_doc_id": "adr-0011",
     "priority": 100,
+    "specificity": 0
+  },
+  {
+    "edge_id": "f8c80238-a986-4f8b-90c3-6c38ecd2e610",
+    "source_value": "review",
+    "target_doc_id": "adr-0014",
+    "priority": -1,
     "specificity": 0
   }
 ]

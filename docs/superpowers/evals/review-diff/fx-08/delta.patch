@@ -1,0 +1,13 @@
+diff --git a/src/gateways/user/index.ts b/src/gateways/user/index.ts
+index dab9a44..5879112 100644
+--- a/src/gateways/user/index.ts
++++ b/src/gateways/user/index.ts
+@@ -53,7 +53,7 @@ export const updateUser = async (
+       .where(eq(users.id, userId));
+     return { success: true };
+   } catch {
+-    return { success: true };
++    return { success: false, error: "Failed to update profile" };
+   }
+ };
+ 
