@@ -1,6 +1,10 @@
 version: 2
 updates:
-  - package-ecosystem: npm
+  # `bun` (not `npm`) so Dependabot regenerates bun.lock alongside package.json —
+  # with `npm` every PR fails CI's `bun install --frozen-lockfile` (see PRs #30–#34).
+  # Note: the bun ecosystem supports version updates only, not security updates;
+  # direct-dep vulnerabilities are still gated by scripts/audit-direct.sh (ADR-0002).
+  - package-ecosystem: bun
     directory: /
     schedule:
       interval: weekly
