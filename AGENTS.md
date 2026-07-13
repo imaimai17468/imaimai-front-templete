@@ -13,7 +13,7 @@ Triggers that apply with or without start-workflow:
 - **Planning / design requests**: use `superpowers:writing-plans` and enter plan mode before implementing.
 - **Creative or architectural judgment** (new UI, architecture decisions, approach selection): run `superpowers:brainstorming` before any code change.
 - **Any code change outside start-workflow**: consult Aegis first (see "Aegis Process Enforcement"). When adding a pure function or presenter, use `superpowers:test-driven-development`.
-- **ADR maintenance**: if you edit or create files under `docs/adr/`, call `aegis_sync_docs` (edits) or `aegis_import_doc` (new files) before finishing — forgetting this makes Aegis stale.
+- **ADR maintenance**: if you edit or create files under `docs/adr/`, mirror the change into `aegis-share/source/documents/` (plus `source/edges/` for new docs) and run the share pipeline (`share-format` → `share-lint` → `share-materialize` → `share-export`) before finishing — `aegis-share/source/` is the canonical KB, and direct `aegis_import_doc` injection drifts from it. Forgetting this makes Aegis stale (`doctor` must report in_sync).
 
 ## Degraded Environments
 
@@ -101,7 +101,7 @@ The parent session implements directly by default (ADR-0012). Delegate by **cont
 - **Explore / research subagent**: bulk file reads, log digging, cross-cutting investigation whose raw output the parent won't reference again — only the summary should enter the parent's context.
 - **Parallel implementation subagents**: multiple independent units with no shared files and no output dependency (multiple Agent calls in one message). Dependent units run sequentially — or stay in the parent. Never parallelize units that edit the same file.
 
-Implementation dispatches run **foreground (synchronous)** — the parent waits and integrates. Background dispatch and SendMessage-based resumption are reserved for long-running independent research where mid-course correction is unnecessary. Briefings must be self-contained — goal, file paths, acceptance criteria, and the relevant guidelines quoted in (consult Aegis before every dispatch).
+Implementation dispatches **block the parent's next step**: the platform runs subagents in the background and notifies on completion (default since Claude Code 2.1.198) — the parent MUST wait for that completion and integrate the result before building anything on it. Fire-and-forget dispatch and SendMessage-based resumption are reserved for long-running independent research where mid-course correction is unnecessary. Briefings must be self-contained — goal, file paths, acceptance criteria, and the relevant guidelines quoted in (consult Aegis before every dispatch).
 
 ### Model selection — always set `model` explicitly
 
@@ -110,8 +110,28 @@ Implementation dispatches run **foreground (synchronous)** — the parent waits 
 | Implementation / integration / planning (parent session) | session model — no dispatch needed |
 | Exploration / search (Explore, scout) | `haiku` (`sonnet` when precision matters) |
 | Parallel implementation units / research | `sonnet` |
-| Code review — all `review-diff` lanes and direct `code-reviewer` dispatch | `sonnet` (re-run on `opus` only after a demonstrably weak result) |
+| Code review — `code-reviewer` (finder) and `review-verifier` | `sonnet` (re-run on `opus` only after a demonstrably weak result) |
 | Long-horizon autonomous workers, complex migrations, escalation after a weak result | `opus` |
+
+### Model continuity (non-Fable parent)
+
+Review/verify quality is pinned by preloaded skills and deterministic gates
+(ADR-0011/0013) and does not depend on the parent model — never re-derive or
+second-guess a pinned procedure. When the parent session runs on a weaker
+model than the strongest available (e.g. Opus instead of Fable):
+
+- Escalate **design judgment** — architecture choices, ADR drafting,
+  ambiguous trade-offs — to a subagent on the strongest available model, or
+  stop and ask the user. Mechanical implementation stays in the parent.
+- Knowledge Currency applies with extra force: a weaker parent verifies
+  more, not less.
+- Model-tier changes to `.claude/agents/*.md` require a scored eval run:
+  `code-reviewer` / `review-verifier` against
+  `docs/superpowers/evals/review-diff/`, and `spec-verifier` / `spec-checker`
+  against `docs/superpowers/evals/verify-spec/`. The verify-spec eval has
+  tier-discriminating fixtures (sx-01..03); the 2026-07-12 comparison kept
+  both spec agents on `opus` (sonnet lost on precision AND cost) — a future
+  downgrade needs a fresh suite run that beats that result.
 
 ### Teams & nesting
 
@@ -121,9 +141,9 @@ Implementation dispatches run **foreground (synchronous)** — the parent waits 
 
 ### Review
 
-Before every commit, dispatch the `code-reviewer` agent on the uncommitted diff (users trigger it as `/review-diff`; pass `high` for a deeper multi-lens pass). The agent (`.claude/agents/code-reviewer.md`, `model: sonnet`) has the `review-diff` skill preloaded via its `skills` frontmatter — its behavior is pinned, not improvised. It runs one comprehensive finder (bug hunt across all lenses + AGENTS.md + path-scoped rules), dispatches a fresh **verifier child** to adversarially refute each finding, ranks the survivors, and its completion stamps the commit gate via `post-agent-review-stamp.sh` (ADR-0009 discipline, ADR-0011 mechanism). This matters *more* under parent-centric implementation: the agent context has not seen the implementation reasoning, so it is the bias check. Any `Edit`/`Write` after the review clears the stamp (ADR-0013): the parent fixes findings directly, then re-dispatches `code-reviewer` — the gate will not pass an edited-but-unreviewed diff, and a re-review costs only 2 agents (ADR-0011). Handle findings: never dismiss as "pre-existing" when the file is in the diff; apply rules literally; when in doubt, fix. Findings must propose a concrete alternative, respect rule scope qualifiers, and not re-report dismissed findings.
+Before every commit, review the uncommitted diff (users trigger it as `/review-diff`; pass `high` for a deeper multi-lens pass). The review is a flat two-agent pipeline the parent orchestrates (ADR-0015, superseding ADR-0011's nested mechanism): dispatch the `code-reviewer` agent (finder) — it hunts across all lenses (bugs + AGENTS.md + path-scoped rules) and returns candidate findings — then dispatch the `review-verifier` agent with those candidates; it adversarially refutes each by reading the real code and its completion stamps the commit gate via `post-agent-review-stamp.sh`. Both agents (`.claude/agents/*.md`, `model: sonnet`) have the `review-diff` skill preloaded — behavior is pinned, not improvised. Both are depth-1 dispatches the parent waits on directly; there is no nested agent-waiting-on-its-child (the joint that lost verdicts under ADR-0011). find ≠ verify independence holds because finder and verifier are separate fresh contexts, and neither has seen the implementation reasoning — so the pair is the bias check. Any `Edit`/`Write` after the review clears the stamp (ADR-0013): the parent fixes findings directly, then re-reviews (prefer delta mode) — the gate will not pass an edited-but-unreviewed diff. Handle findings: never dismiss as "pre-existing" when the file is in the diff; apply rules literally; when in doubt, fix. Findings must propose a concrete alternative, respect rule scope qualifiers, and not re-report dismissed findings.
 
-Design-time verification of interaction-complex features uses the same pinned-agent pattern: dispatch the `spec-verifier` agent with a spec path (or `/verify-spec specs/<feature>.spec.md`). It has the `verify-spec` skill preloaded and runs formalize → hunt → verifier-child to hunt counterexamples in a state-machine spec (ADR-0010/0011).
+Design-time verification of interaction-complex features uses the same flat pinned-agent pattern (`/verify-spec specs/<feature>.spec.md`, ADR-0015): dispatch the `spec-verifier` agent (hunter) — it formalizes the spec and returns the machine + candidate counterexamples — then dispatch the `spec-checker` agent with the machine and candidates; it replays each in a hunt-blind context and returns the CONFIRMED survivors. Both preload the `verify-spec` skill (ADR-0010 discipline). Design-time only — no commit gate.
 
 <!-- aegis:start -->
 ## Aegis Process Enforcement

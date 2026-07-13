@@ -28,8 +28,8 @@ if [ "$HAS_TAGS" = "true" ]; then
   exit 0
 fi
 
-# --- Side effect: clear review stamp for new cycle ---
+# --- Side effect: clear review stamp + finder marker for new cycle ---
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-rm -f "$ROOT/.claude/.review-stamp"
+rm -f "$ROOT/.claude/.review-stamp" "$ROOT/.claude/.finder-done"
 
 exit 0

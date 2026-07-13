@@ -14,9 +14,11 @@
 
 set -uo pipefail
 
+INPUT="$(cat 2>/dev/null || true)"
+
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 
-rm -f "$ROOT/.claude/.aegis-stamp" "$ROOT/.claude/.aegis-unavailable" "$ROOT/.claude/.review-stamp"
+rm -f "$ROOT/.claude/.aegis-stamp" "$ROOT/.claude/.aegis-unavailable" "$ROOT/.claude/.review-stamp" "$ROOT/.claude/.finder-done"
 
 MISSING=()
 
@@ -33,5 +35,23 @@ else
 fi
 
 echo "[env-check] Note: MCP tools (aegis) and plugin skills (superpowers) cannot be probed from shell. If aegis_compile_context is not in your tool list, follow AGENTS.md 'Degraded environments' (.claude/.aegis-unavailable marker)."
+
+# Model continuity (AGENTS.md, ADR-0014): surface the session model so a
+# non-strongest parent is visible from turn one. SessionStart is the only
+# hook event that receives `model`, and it is optional; mid-session model
+# switches fire no hook at all — this check catches session start only.
+MODEL=""
+if command -v jq >/dev/null 2>&1 && [ -n "$INPUT" ]; then
+  MODEL="$(printf '%s' "$INPUT" | jq -r '.model // empty' 2>/dev/null)"
+fi
+if [ -n "$MODEL" ]; then
+  echo "[env-check] Session model: $MODEL"
+  case "$(printf '%s' "$MODEL" | tr '[:upper:]' '[:lower:]')" in
+    *fable*) : ;;
+    *) echo "[env-check] Parent model is not the strongest tier — AGENTS.md 'Model continuity (non-Fable parent)' applies: escalate design judgment, verify more. Mid-session model switches are NOT detectable by hooks; re-check /model if in doubt." ;;
+  esac
+else
+  echo "[env-check] Session model not reported by the harness. If this session is not on the strongest available model, AGENTS.md 'Model continuity (non-Fable parent)' applies."
+fi
 
 exit 0

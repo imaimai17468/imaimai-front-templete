@@ -1,12 +1,18 @@
 # 0011. Review and spec verification run as nested subagent orchestrators (code graph removed)
 
-- Status: accepted (amended by 0013)
+- Status: accepted (amended by 0013, 0014; mechanism superseded by 0015)
 - Date: 2026-07-05
 
 > **Amended by [ADR-0013](0013-deterministic-enforcement-gates.md)** (2026-07-09):
 > the review stamp is no longer valid across post-review edits — any
 > `Edit`/`Write` clears it, so fixes require a re-review before committing.
 > The dispatch-clears / completion-stamps symmetry below is unchanged.
+
+> **Amended by [ADR-0014](0014-measurement-first-model-continuity.md)** (2026-07-10):
+> `review-diff` gains a delta re-review mode (scoped re-review with the prior
+> report; fail-closed to full), and the "changes go through empirical tuning"
+> consequence below is superseded for `review-diff`/`verify-spec` by scored
+> golden-eval runs under `docs/superpowers/evals/`.
 
 ## Context
 

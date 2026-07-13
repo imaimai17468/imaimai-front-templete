@@ -1,0 +1,13 @@
+diff --git a/src/entities/user/index.ts b/src/entities/user/index.ts
+index 1dc3c72..9d73500 100644
+--- a/src/entities/user/index.ts
++++ b/src/entities/user/index.ts
+@@ -25,7 +25,7 @@ export type UserWithEmail = z.infer<typeof UserWithEmailSchema>;
+ export const UpdateUserSchema = z.object({
+   name: z
+     .string()
+-    .min(1, "Name is required")
++    .min(0, "Name is required")
+     .max(50, "Name must be 50 characters or less"),
+ });
+ 
