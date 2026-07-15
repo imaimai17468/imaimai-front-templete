@@ -6,6 +6,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-palette-ring: var(--palette-ring);
   --font-sans: "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
   --font-mono: "Menlo", monospace;
   --color-sidebar-ring: var(--sidebar-ring);
@@ -46,6 +47,15 @@
 }
 
 :root {
+  /* Fixed light-mode Wairo named colors — intentionally NOT theme-flipped.
+     Cloned from the :root semantic tokens; update together if palette changes. */
+  --palette-shikkoku: oklch(0.08 0.04 265);
+  --palette-nibiiro: oklch(0.55 0.005 90);
+  --palette-ginnezumi: oklch(0.88 0.005 90);
+  --palette-shironezumi: oklch(0.95 0.005 90);
+  --palette-unohana: oklch(0.993 0.003 90);
+  /* Swatch ring — themed to contrast against the page background, unlike the swatches above. */
+  --palette-ring: oklch(0.08 0.04 265 / 20%);
   --radius: 8px;
   --background: oklch(0.993 0.003 90);
   --foreground: oklch(0.08 0.04 265);
@@ -81,6 +91,7 @@
 }
 
 .dark {
+  --palette-ring: oklch(0.993 0.003 90 / 20%);
   --background: oklch(0.08 0.04 265);
   --foreground: oklch(0.993 0.003 90);
   --card: oklch(0.14 0.03 265);

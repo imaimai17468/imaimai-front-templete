@@ -5,11 +5,11 @@ export const Route = createFileRoute("/")({
 });
 
 const PALETTE = [
-  { name: "漆黒", cssVar: "var(--foreground)" },
-  { name: "鈍色", cssVar: "var(--muted-foreground)" },
-  { name: "銀鼠", cssVar: "var(--border)" },
-  { name: "白鼠", cssVar: "var(--secondary)" },
-  { name: "卯の花", cssVar: "var(--background)" },
+  { name: "漆黒", cssVar: "var(--palette-shikkoku)" },
+  { name: "鈍色", cssVar: "var(--palette-nibiiro)" },
+  { name: "銀鼠", cssVar: "var(--palette-ginnezumi)" },
+  { name: "白鼠", cssVar: "var(--palette-shironezumi)" },
+  { name: "卯の花", cssVar: "var(--palette-unohana)" },
 ] as const;
 
 const STACK = [
@@ -82,7 +82,7 @@ bun run dev`}</code>
             {PALETTE.map((color) => (
               <div key={color.name} className="flex items-center gap-1.5">
                 <div
-                  className="size-5 rounded-md border border-border"
+                  className="size-5 rounded-md ring-1 ring-palette-ring"
                   style={{ background: color.cssVar }}
                 />
                 <span className="text-xs text-muted-foreground">
