@@ -31,9 +31,12 @@ rm -rf src/components/features/profile-page
 rmdir src/components/features 2>/dev/null || true
 rm -rf src/components/shared/header/auth-navigation src/components/shared/header/user-menu
 rm -f src/test/cloudflare-workers-stub.ts
+rm -f src/ssr.tsx
 ```
 
 `src/routeTree.gen.ts` is gitignored and generated — refresh it with `bun run generate-routes` after deleting route files.
+
+`src/ssr.tsx` is the Cloudflare Worker entry (`export default {...} satisfies ExportedHandler<CloudflareEnv>`, referenced by `wrangler.toml#main`). Once the Cloudflare plugin and `wrangler` are removed it is dead code that also breaks `typecheck` (its `ExportedHandler` / `CloudflareEnv` types no longer exist) — the `@tanstack/react-start` Vite plugin falls back to its own bundled default server entry (`src/server.{ts,tsx}` convention → internal default), so deleting it is safe and the build is unchanged.
 
 ## 2. Fix auth-dependent UI
 
@@ -73,6 +76,10 @@ export const Header = () => {
 
 - Delete the `getCurrentUserFn` import and the `loader` option.
 - Delete `const { user } = Route.useLoaderData();` and render `<Header />` without props.
+
+### `src/routes/index.tsx`
+
+The sample home page hardcodes the stack and setup commands. Remove the `Better Auth` and `Drizzle ORM` entries from the `STACK` array, and drop the `cp .env.local.example .env.local` line from the "Get started" code snippet (the env example file is deleted in step 4). Note: the step 7 residual grep will **not** catch these — `"Better Auth"` has a space and `"Drizzle ORM"` is capitalized, neither matches the `better-auth` / `drizzle` (lowercase, case-sensitive) patterns — so fix them here explicitly.
 
 ### Residual auth references
 
@@ -154,9 +161,9 @@ After the knip run in step 8, remove any dependencies it now flags as unused. Ex
 ## 6. Update docs / settings
 
 - **`README.md`**: remove Better Auth / Cloudflare D1 / R2 from the tech stack, the "D1 / R2 bindings work in `bun run dev`" note, the `docs/DATABASE_SETUP.md` link, the `deploy` / `cf-typegen` command-table rows, the `entities/` / `gateways/` / `server/` / `lib/auth` / `lib/drizzle` / `lib/storage` entries in the project structure, and the Better Auth / Cloudflare D1 / R2 reference links.
-- **`AGENTS.md`**: in the `## Tools` section, remove the `cf-typegen` bullet and the DB (Drizzle + D1) bullet.
+- **`AGENTS.md`**: the intro line states the project "runs on **TanStack Start** on Cloudflare Workers" — drop the "on Cloudflare Workers" clause (a pure-frontend fork no longer deploys there). (There is no `## Tools` section; if your fork still has one with `cf-typegen` / Drizzle+D1 bullets, remove those too.)
 - **`.claude/settings.json`**: remove the `wrangler *`, `drizzle-kit *`, and `bun run db:*` permission entries.
-- **`docs/adr/`**: delete `0005-wrangler-types-for-cloudflare-env.md` and its row in `docs/adr/README.md`. Skim the other ADRs for D1 / R2 / wrangler decisions that no longer apply (0007 mentions Cloudflare only as migration history — keeping it is fine).
+- **`docs/adr/`**: mark `0005-wrangler-types-for-cloudflare-env.md` as `Status: deprecated` (add a one-line note: the D1 / wrangler subsystem it governs was removed, no successor) and set its `docs/adr/README.md` row status to `deprecated` — do **not** delete either. `docs/adr/README.md`'s Numbering discipline keeps retired ADRs on disk (marked `superseded by NNNN` or `deprecated`), never deletes them. Skim the other ADRs for D1 / R2 / wrangler decisions that no longer apply (0007 mentions Cloudflare only as migration history — keeping it is fine).
 - If Aegis is initialized in your fork, sync `aegis-share/source/` and run `share-materialize` after editing `docs/adr/`.
 
 ## 7. Residual reference check
@@ -190,7 +197,7 @@ Split per the Commits discipline in `AGENTS.md` (one purpose per commit; message
 
 1. `feat:` — remove the auth / profile / DB-access features (`src/` deletions + `Header` / `__root` edits)
 2. `chore:` — remove the Cloudflare / Drizzle config and scripts (wrangler.toml / drizzle.config.ts / vite / vitest / knip / scripts / `.env*`)
-3. `chore:` — remove the DB / auth / storage dependencies (package.json / bun.lockb)
+3. `chore:` — remove the DB / auth / storage dependencies (package.json / bun.lock)
 4. `docs:` — remove DB- and auth-related documentation (README / `AGENTS.md` / settings / ADR)
 
 Intermediate commits are not individually buildable (e.g. commit 1 deletes the vitest stub that commit 2's config change stops referencing) — verify on the final state.
