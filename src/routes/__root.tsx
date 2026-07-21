@@ -42,8 +42,8 @@ function RootComponent() {
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="light"
+          enableSystem={false}
           disableTransitionOnChange
         >
           <div className="flex min-h-dvh flex-col gap-16">
