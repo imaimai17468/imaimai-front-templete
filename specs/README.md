@@ -1,7 +1,8 @@
 # Specs — lightweight state-machine specifications
 
 Machine-checkable-by-agents specifications for interaction-complex features,
-verified by the `verify-spec` dynamic workflow (ADR-0010). The discipline is
+verified by the `verify-spec` flat two-agent pipeline — `spec-verifier` (hunter)
+→ `spec-checker` (checker) — per ADR-0010/0015. The discipline is
 borrowed from [FSL](https://ymm-oss.github.io/fsl/): model the feature as a
 finite state machine and hunt for counterexample traces **before implementing**.
 
