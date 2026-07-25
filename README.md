@@ -52,6 +52,12 @@ AI エージェント用の Aegis ナレッジベース（`.aegis/`、gitignore 
 | `bun run knip`            | Detect unused deps/exports/files                |
 | `bun run test`            | Run tests with Vitest                           |
 | `bun run cf-typegen`      | Generate `CloudflareEnv` from `wrangler.toml`   |
+| `bun run db:generate`     | Generate Drizzle migrations from the schema     |
+| `bun run db:push`         | Push the schema to the remote D1 database       |
+| `bun run db:push:local`   | Set up / migrate the local D1 database          |
+| `bun run db:seed:local`   | Seed the local D1 database with dev data        |
+| `bun run db:studio`       | Open Drizzle Studio                             |
+| `bun run db:pull`         | Introspect the remote D1 schema                 |
 
 ## Tools
 
