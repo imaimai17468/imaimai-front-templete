@@ -1,6 +1,6 @@
 # データベースセットアップ
 
-> テンプレートは初期状態で `wrangler.toml` にローカル開発用のダミー値 (`local-db` / `local-avatars` / ゼロ UUID) が入っています。`bun run dev` はこのまま起動でき、`initOpenNextCloudflareForDev()` がローカル D1/R2 バインディングを提供します。**本番 Cloudflare にデプロイする場合**のみ、以下の手順で実リソースに差し替えてください。
+> テンプレートは初期状態で `wrangler.toml` にローカル開発用のダミー値 (`local-db` / `local-avatars` / ゼロ UUID) が入っています。`bun run dev` はこのまま起動でき、`@cloudflare/vite-plugin` がローカル D1/R2 バインディングを提供します。**本番 Cloudflare にデプロイする場合**のみ、以下の手順で実リソースに差し替えてください。
 
 ## 1. Cloudflareリソースを作成
 
@@ -162,7 +162,7 @@ bun run db:seed:local
 bun run dev
 ```
 
-`next.config.mjs` の `initOpenNextCloudflareForDev()` により、`bun run dev` でもローカルの D1/R2 バインディングが使えます。HMR が有効なので日常的な開発にはこちらを使用してください。
+`vite.config.ts` の `@cloudflare/vite-plugin` により、`bun run dev` でもローカルの D1/R2 バインディングが使えます。HMR が有効なので日常的な開発にはこちらを使用してください。
 
 ### プレビュー（デプロイ前確認）
 
@@ -174,8 +174,8 @@ Cloudflare Workers ランタイムをエミュレートして実行します。�
 
 | コマンド | ポート | DB/ストレージ | HMR | 用途 |
 |---------|--------|-------------|-----|------|
-| `bun run dev` | 3000 | ローカルD1/R2 | ○ | 日常的な開発 |
-| `bun run preview` | 8787 | ローカルD1/R2 | × | デプロイ前確認 |
+| `bun run dev` | 5173 | ローカルD1/R2 | ○ | 日常的な開発 |
+| `bun run preview` | 4173 | ローカルD1/R2 | × | デプロイ前確認 |
 
 ### ローカルデータのリセット
 
@@ -211,4 +211,12 @@ Cloudflare Workersへのデプロイ：
 bun run deploy
 ```
 
-本番環境の環境変数は Cloudflare Dashboard > Pages > Settings > Environment variables で設定してください。
+このプロジェクトのデプロイ先は Cloudflare **Workers** です（Pages ではありません）。本番環境の値は種類で置き場所が変わります。
+
+- **秘密でない値**（`BETTER_AUTH_URL` など）: `wrangler.toml` の `[vars]` に置き、コミットする。
+- **秘密の値**（`BETTER_AUTH_SECRET` / `GOOGLE_CLIENT_SECRET` など）: `wrangler secret put <NAME>` で登録する。ファイルには絶対に書かない — `.env*` は `.gitignore` 済みかつエージェントからの読み取りも拒否設定です（ADR-0004）。
+
+```bash
+wrangler secret put BETTER_AUTH_SECRET
+wrangler secret list
+```
