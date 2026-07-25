@@ -1,6 +1,6 @@
 # 0004. `permissions.deny` is the security boundary, not `ask`
 
-- Status: accepted (amended by 0013)
+- Status: accepted (amended by 0013; amended 2026-07-25)
 - Date: 2026-04-23
 
 > **Amended by [ADR-0013](0013-deterministic-enforcement-gates.md)** (2026-07-09):
@@ -8,6 +8,10 @@
 > (`cat`, `grep`, `head`, `tail`). A `PreToolUse(Bash)` guard hook now blocks
 > commands referencing `.env` files; the deny entries below remain for
 > tool-level access.
+
+> **Amended 2026-07-25** (repo audit): that guard is a *lexical* filter, so it
+> only stops commands that spell the filename. The breadth of the `allow` list
+> is therefore part of the boundary too — see the amendment section at the end.
 
 ## Context
 
@@ -46,3 +50,46 @@ This relies on the user actually reading and refusing the prompt. In practice:
 - `ask` bucket stays focused on operations a user genuinely should approve case-by-case.
 - New tools added to the project may need explicit `allow` entries; otherwise they fall through to the default `ask`. This is a feature — it forces conscious decision-making about new tooling.
 - When this list needs to evolve (new bypass techniques, new tools), edit `.claude/settings.json` directly.
+
+## Amendment 2026-07-25 — the `allow` list is part of the boundary
+
+The 2026-07-25 repo audit found that `deny` plus the ADR-0013 guard did not
+hold. The guard (`.claude/hooks/pre-bash-guard.sh`) matches the literal token
+`.env` in the *command text*, so any command that reaches a protected file
+without naming it slips through. With `Bash(find:*)` and `Bash(cat:*)` both in
+`allow`, `find . -maxdepth 1 -type f -exec cat {} \;` printed protected files
+with **no confirmation prompt at all**. The same breadth reopened denied
+classes by other spellings: `find . -delete` and `find . -exec rm -rf {} +`
+bypass the `Bash(rm -rf:*)` deny entries, while `Bash(bunx:*)` executed any
+published package and `Bash(bun run:*)` executed any file path — all
+unconfirmed.
+
+**Decision.** An `allow` entry that can invoke an arbitrary reader, an
+arbitrary executor, or an arbitrary path voids the deny list for everything it
+can reach. Allow-list entries are therefore evaluated as security decisions,
+not convenience decisions:
+
+- `Bash(find:*)` and `Bash(bunx:*)` move to `ask`.
+- `Bash(bun run:*)` is replaced by explicit per-script entries (`lint`,
+  `lint:fix`, `format`, `format:fix`, `check`, `check:fix`, `typecheck`,
+  `test`, `knip`, `generate-routes`). Any other `bun run` target falls through
+  to the default `ask`, which is the safe failure mode.
+- A pre-execution lexical hook is defense-in-depth. It is never the boundary.
+
+**Rejected: scanning command output.** Adding a `PostToolUse(Bash)` hook that
+greps command *output* for secret-shaped strings was considered and rejected.
+It is lexical in the same way the pre-execution guard is (trivially defeated by
+encoding), and it fires after the value has already entered the transcript —
+detection, not prevention.
+
+**Residual risk, accepted knowingly.** Narrowing `allow` removes arbitrary
+execution and the direct enumeration path, but it does not make the working
+tree unreadable. `Bash(cat:*)` / `Bash(grep:*)` / `Bash(head:*)` /
+`Bash(tail:*)` remain allowed, and a dotfile glob (`cat .*`) or a recursive
+grep (`grep -r . .`) still reaches protected files without naming them.
+Extending the guard to block those patterns was rejected as a poor trade: it
+would misfire on ordinary work (`grep -rn foo .` is routine) for an attacker
+cost of one more spelling. The honest boundary is therefore: **do not keep
+production secrets in the working tree of an agent-driven session.** Local
+`.env.local` holds development dummies; real values live in
+`wrangler secret put` (never on disk).
