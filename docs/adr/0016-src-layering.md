@@ -1,0 +1,76 @@
+# 0016. `src/` is layered: routes → server functions → gateways → entities
+
+- Status: accepted
+- Date: 2026-07-25
+
+## Context
+
+The repository already had a consistent layering — routes call server
+functions, server functions call gateways, gateways own persistence — and the
+2026-07-25 repo audit found **zero** violations of it. It also found that the
+layering is documented nowhere: no ADR, no AGENTS.md section, no rule file. The
+only occurrence of `gateways` in AGENTS.md is an example path inside the Aegis
+instructions.
+
+That makes the architecture invisible to the next contributor. An agent adding
+a feature cannot tell whether a shortcut — a route importing a gateway
+directly, a gateway reading the request context — is forbidden or merely
+unused so far. Worse, the one document that did discuss module organization
+(`.claude/rules/react.md`) named shared directories that do not exist in this
+repo (`_ui/`, `_utils/`, `_repositories/`), so following it produced wrong
+placements.
+
+## Decision
+
+`src/` has the following layers. Imports flow **downward only**; same-layer
+imports are allowed, upward imports are not.
+
+- **`src/routes/**`** — TanStack Router route modules and plain API routes. May
+  import server functions, components, and entities. Must not import gateways
+  or `src/lib/drizzle/**` directly.
+- **`src/server/fn/**`** — server functions (`createServerFn`). This is the
+  **authorization boundary**: resolve the session here and pass a
+  server-derived user id downward. Never accept a caller-supplied identity.
+- **`src/gateways/**`** — the only layer that touches persistence (D1 via
+  Drizzle, R2). Takes ids and values as parameters; never reads the request
+  context; never imports components.
+- **`src/entities/**`** — domain types and Zod schemas. Imports nothing from
+  the layers above.
+- **`src/components/**`** — presentation. `features/<feature>/` for domain UI,
+  `shared/<name>/` for cross-feature UI, `ui/` for shadcn CLI output (which
+  must not be renamed — `components.json` aliases resolve to it).
+- **`src/lib/**`** — framework and infrastructure adapters (auth, drizzle,
+  storage) plus generic values with no component affinity.
+
+`.claude/rules/react.md` carries the module-placement rules that agents read
+per-file; this ADR carries the layer contract and the rationale.
+
+## Alternatives considered
+
+- **Leave it implicit**: rejected — an unwritten convention holds only while
+  authorship stays consistent. The audit confirmed compliance today, which is
+  evidence the convention is good, not evidence it is safe unwritten.
+- **Record it only in AGENTS.md**: rejected — the Aegis knowledge base carries
+  ADRs (ADR-0008), so an ADR with a `path_requires` edge on `src/**/*` is what
+  actually surfaces to an agent editing those files. AGENTS.md gets a pointer,
+  not the contract.
+- **Enforce it with a lint rule**: not now — this needs an import-boundary rule
+  wired into the oxlint config, and the convention has never been tested
+  against a case that wants to bend. Deferred; the review pipeline is the check
+  until then.
+- **Collapse `server/fn` into `gateways`**: rejected — merging them would put
+  session resolution next to SQL, and the audit's strongest positive finding
+  was precisely that every mutation derives its user id from the session in a
+  layer above persistence.
+
+## Consequences
+
+- The authorization boundary has a documented home, so a reviewer can name a
+  violation instead of arguing style.
+- New features have an unambiguous placement answer, and `react.md`'s examples
+  now match reality.
+- Cost: a genuine need to bypass a layer requires amending this ADR rather than
+  just writing the import.
+- The layering is **not** mechanically enforced. Nothing fails if it is
+  violated; only the review pipeline catches drift. If a violation is ever
+  found in review, that is the signal to revisit the lint-rule alternative.
