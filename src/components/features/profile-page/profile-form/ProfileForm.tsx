@@ -18,6 +18,10 @@ import {
 import { Input } from "@/components/ui/input";
 import type { UserWithEmail } from "@/entities/user";
 import { UpdateUserSchema } from "@/entities/user";
+import {
+  avatarSizeRejection,
+  MAX_AVATAR_BYTES,
+} from "@/lib/storage/avatar-validation";
 import { updateProfileFn, uploadAvatarFn } from "@/server/fn/profile";
 
 // similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
@@ -48,8 +52,10 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Please keep file size under 5MB");
+    if (avatarSizeRejection(file.size) !== null) {
+      toast.error(
+        `Please keep file size under ${MAX_AVATAR_BYTES / 1024 / 1024}MB`
+      );
       return;
     }
 
@@ -120,7 +126,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
             <div>
               <p className="font-medium text-sm">Profile Image</p>
               <p className="text-muted-foreground text-sm">
-                Click to change image (max 5MB)
+                {`Click to change image (max ${MAX_AVATAR_BYTES / 1024 / 1024}MB)`}
               </p>
             </div>
             {pendingFile && (
