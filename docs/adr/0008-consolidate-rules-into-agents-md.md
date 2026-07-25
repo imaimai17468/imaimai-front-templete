@@ -1,7 +1,20 @@
 # 0008. Coding rules are condensed into AGENTS.md; detailed rule files and the codex pre-commit review are retired
 
-- Status: accepted
+- Status: accepted (amended 2026-07-25)
 - Date: 2026-06-13
+
+> **Amended 2026-07-25** (repo audit): decision item 1 below says
+> "`.claude/rules/` is deleted". That held for one day. `.claude/rules/react.md`
+> was added 2026-06-14 and `.claude/rules/design.md` on 2026-06-27, and both are
+> loaded every session as **path-scoped** rules (`paths:` frontmatter matching
+> `**/*.tsx` and `src/**/*.css`) — a mechanism ADR-0001's always-on `@include`
+> did not have. The reversal is narrower than it looks: what ADR-0008 removed
+> was seven always-on rule files costing full token weight in every session;
+> what came back is two files that load only when a matching file is touched.
+> Decision items 2–4 (KB carries ADRs only, codex pre-commit hooks retired,
+> model table in AGENTS.md) stand unchanged. Module-placement rules live in
+> `react.md`; the layer contract they refer to is
+> [ADR-0016](0016-src-layering.md).
 
 ## Context
 
