@@ -45,7 +45,8 @@ Claude Code でこのリポジトリを開発するための作業マニュア�
   │     短いブリーフィング: 目的 · 対象ファイル · 受入基準 · 検証手順。
   │     複雑な作業 → superpowers:writing-plans。要件があいまい → brainstorming。
   │     非自明な状態遷移 (ウィザード · 認証フロー · 非同期ガード · 権限分岐)
-  │     → specs/<feature>.spec.md を書いて spec-verifier agent で反例探索 (ADR-0010/0011)。
+  │     → specs/<feature>.spec.md を書いて spec-verifier (hunter) → spec-checker
+  │       (checker) のフラット2エージェントで反例探索 (ADR-0010/0015)。
   │       CONFIRMED の反例を設計に反映してから実装へ。
   │
   ├ 5. Implement                                ← Superpowers + Aegis
