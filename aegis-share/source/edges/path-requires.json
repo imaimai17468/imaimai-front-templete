@@ -84,6 +84,13 @@
     "specificity": 0
   },
   {
+    "edge_id": "d5f3e846-7b77-4403-91ab-05b11b445396",
+    "source_value": "src/**/*",
+    "target_doc_id": "adr-0016",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "d68106f7-d9e1-415b-b9ae-86e71ea865d7",
     "source_value": ".claude/settings.json",
     "target_doc_id": "adr-0013",
