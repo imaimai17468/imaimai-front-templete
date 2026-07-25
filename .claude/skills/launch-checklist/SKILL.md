@@ -150,6 +150,10 @@ For each category in scope, inspect the codebase, configuration, and running app
 | 62 | Image sizes are optimized | Check there are no images far larger than their display size |
 | 63 | The DB has appropriate indexes | Check the indexes in the schema definition |
 
+Items 59–63 are static heuristics; passing them is not a Core Web Vitals
+measurement. For real LCP / CLS / INP traces run the `/performance-audit`
+skill, the same way item 58 delegates to `/lighthouse-audit`.
+
 ### Multi-Environment
 
 | # | Item | How to verify |
