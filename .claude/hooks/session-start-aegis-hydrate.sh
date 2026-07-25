@@ -43,8 +43,16 @@ DOCTOR_OUT=$($AEGIS doctor 2>&1)
 if [ $? -ne 0 ]; then
   echo "[aegis-hydrate] Aegis doctor reports an actionable state:"
   printf '%s\n' "$DOCTOR_OUT" | tail -6
-  echo "[aegis-hydrate] If docs/adr/ changed: sync aegis-share/source/documents/ to match, then run: $AEGIS share-format && $AEGIS share-lint && $AEGIS share-materialize && $AEGIS share-export"
-  echo "[aegis-hydrate] If nothing changed (e.g. right after share-hydrate): call aegis_sync_docs once to re-anchor - stale warnings clear when content already matches."
+  # bundle_newer must be handled BEFORE any materialize/export: those derive the
+  # exported version from the local DB, so running them against a behind DB
+  # rewrites the tracked bundle at the OLDER version (silent history regression).
+  # doctor suggests plain `share-hydrate`, which fails on an initialized DB.
+  if printf '%s' "$DOCTOR_OUT" | grep -q 'bundle_newer'; then
+    echo "[aegis-hydrate] The tracked bundle is AHEAD of the local DB. Do NOT run share-materialize/share-export first - that would re-export the bundle at the local (older) version and regress it. Correct order: 1) $AEGIS share-hydrate --replace (WARNING: drops local observations/proposals/compile_log - check them first via aegis_list_observations / aegis_workspace_status), 2) call aegis_sync_docs to re-anchor, 3) only then run the share pipeline if you changed docs/adr/."
+  else
+    echo "[aegis-hydrate] If docs/adr/ changed: sync aegis-share/source/documents/ to match, then run: $AEGIS share-format && $AEGIS share-lint && $AEGIS share-materialize && $AEGIS share-export"
+    echo "[aegis-hydrate] If nothing changed (e.g. right after share-hydrate): call aegis_sync_docs once to re-anchor - stale warnings clear when content already matches."
+  fi
 fi
 
 exit 0
