@@ -42,6 +42,39 @@ export const avatarExtensionForMime = (mimeType: string): string | null =>
     : null;
 
 /**
+ * Upload size ceiling in bytes. Exported so the client-side pre-check and the
+ * server-side validator read the same number — a duplicated literal is how the
+ * two limits drift apart.
+ */
+export const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+
+// Why an upload's byte length is unacceptable, if it is. Not exported until a
+// caller needs to name it — consumers switch on the literals, and knip treats an
+// unconsumed export as dead surface.
+type AvatarSizeRejection = "empty" | "too-large";
+
+/**
+ * Classifies an upload's byte length, returning `null` when the size is
+ * acceptable. A rejection *reason* rather than a boolean so callers can keep
+ * distinct messages ("no file selected" vs "too large") and so a future limit
+ * (per-plan ceilings, minimum dimensions) can extend the union.
+ *
+ * The server is the enforcing caller; the client pre-check only spares the user
+ * a doomed upload.
+ */
+export const avatarSizeRejection = (
+  size: number
+): AvatarSizeRejection | null => {
+  if (size <= 0) {
+    return "empty";
+  }
+  if (size > MAX_AVATAR_BYTES) {
+    return "too-large";
+  }
+  return null;
+};
+
+/**
  * Whether a bucket key has the `<userId>/avatar.<ext>` shape with an
  * image extension. The extension check is case-insensitive and also accepts
  * `jpeg` so legacy avatar objects remain readable (see AVATAR_READ_EXTENSIONS).

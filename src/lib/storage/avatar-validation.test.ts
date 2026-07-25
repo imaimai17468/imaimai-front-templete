@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   avatarExtensionForMime,
+  avatarSizeRejection,
   isOwnAvatarKey,
   isValidAvatarKey,
+  MAX_AVATAR_BYTES,
 } from "./avatar-validation";
 
 describe("avatarExtensionForMime", () => {
@@ -62,6 +64,29 @@ describe("isValidAvatarKey", () => {
     ["no extension", "user-123/avatar"],
   ])("rejects %s: %j", (_label, key) => {
     expect(isValidAvatarKey(key)).toBe(false);
+  });
+});
+
+describe("avatarSizeRejection", () => {
+  it.each([
+    ["zero bytes", 0],
+    ["negative size", -1],
+  ])("rejects %s as empty", (_label, size) => {
+    expect(avatarSizeRejection(size)).toBe("empty");
+  });
+
+  it.each([
+    ["one byte over the ceiling", MAX_AVATAR_BYTES + 1],
+    ["far over the ceiling", MAX_AVATAR_BYTES * 10],
+  ])("rejects %s as too-large", (_label, size) => {
+    expect(avatarSizeRejection(size)).toBe("too-large");
+  });
+
+  it.each([
+    ["the smallest non-empty size", 1],
+    ["exactly the ceiling", MAX_AVATAR_BYTES],
+  ])("accepts %s", (_label, size) => {
+    expect(avatarSizeRejection(size)).toBeNull();
   });
 });
 

@@ -5,6 +5,10 @@ import {
   updateUser,
   updateUserAvatar,
 } from "@/gateways/user";
+import {
+  avatarSizeRejection,
+  MAX_AVATAR_BYTES,
+} from "@/lib/storage/avatar-validation";
 
 export const updateProfileFn = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => {
@@ -27,8 +31,21 @@ export const uploadAvatarFn = createServerFn({ method: "POST" })
       throw new Error("Expected FormData");
     }
     const file = data.get("avatar");
-    if (!(file instanceof File) || file.size === 0) {
+    if (!(file instanceof File)) {
       throw new Error("No file selected");
+    }
+    // Enforced here, not only in the browser: uploadAvatarFn is callable
+    // directly, so a client-side ceiling alone bounds nothing.
+    switch (avatarSizeRejection(file.size)) {
+      case "empty":
+        throw new Error("No file selected");
+      case "too-large":
+        throw new Error(
+          `Avatar must be ${MAX_AVATAR_BYTES / 1024 / 1024}MB or smaller`
+        );
+      // Exhaustive on purpose: a new rejection reason must fail this switch.
+      case null:
+        break;
     }
     return { file };
   })
