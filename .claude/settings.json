@@ -47,6 +47,7 @@
       "Bash(bun run test)",
       "Bash(bun run knip)",
       "Bash(bun run generate-routes)",
+      "Bash(bun run cf-typegen)",
       "Bash(bun add -E:*)",
       "Bash(bun remove:*)",
       "Bash(bun pm:*)",
