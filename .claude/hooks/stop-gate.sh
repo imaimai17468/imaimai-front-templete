@@ -86,18 +86,26 @@ if [ "$CODE_CHANGED" -gt 0 ]; then
   fi
 
   if [ "$KNIP_HAS" -gt 0 ] || [ "$SIM_UNIGNORED" -gt 0 ]; then
+    # Report only what actually blocks. Every similar-type pair may already
+    # carry a `similarity-ignore` comment (SIM_UNIGNORED = 0) while knip alone
+    # blocks; echoing the raw similarity total in that case sends the reader
+    # chasing findings the gate already accepted.
     KNIP_SUM=$(printf '%s' "$KNIP" | grep -E '^(Unused |Duplicate |Configuration |Unresolved )' | tr '\n' ' ' || true)
-    SIM_SUM=$(printf '%s' "$SIM" | grep -oE 'Total similar type pairs found: [0-9]+|Total similar functions found: [0-9]+' | tr '\n' ' ' || true)
+    SIM_SUM=""
+    [ "$SIM_UNIGNORED" -gt 0 ] && SIM_SUM=$(printf '%s' "$SIM" | grep -oE 'Total similar type pairs found: [0-9]+|Total similar functions found: [0-9]+' | tr '\n' ' ' || true)
     SUM=""
-    [ -n "$KNIP_SUM" ] && SUM="knip: ${KNIP_SUM}"
-    [ -n "$SIM_SUM" ] && SUM="${SUM}| similarity: ${SIM_SUM}"
+    [ "$KNIP_HAS" -gt 0 ] && [ -n "$KNIP_SUM" ] && SUM="knip: ${KNIP_SUM}"
+    if [ -n "$SIM_SUM" ]; then
+      [ -n "$SUM" ] && SUM="${SUM}| "
+      SUM="${SUM}similarity: ${SIM_SUM}(${SIM_UNIGNORED} un-ignored)"
+    fi
 
     DETAIL=""
-    [ -n "$KNIP" ] && DETAIL="${DETAIL}=== knip output ===
+    [ "$KNIP_HAS" -gt 0 ] && [ -n "$KNIP" ] && DETAIL="${DETAIL}=== knip output ===
 ${KNIP}
 
 "
-    [ -n "$SIM" ] && DETAIL="${DETAIL}=== similarity output ===
+    [ "$SIM_UNIGNORED" -gt 0 ] && [ -n "$SIM" ] && DETAIL="${DETAIL}=== similarity output ===
 ${SIM}
 "
 
