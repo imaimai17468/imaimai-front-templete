@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { signInWithGoogle } from "@/lib/auth";
+import { signInWithGoogle } from "@/lib/auth/actions";
 
 export const Route = createFileRoute("/login")({
   component: LoginComponent,

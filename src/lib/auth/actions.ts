@@ -1,4 +1,4 @@
-import { authClient } from "./auth/auth-client";
+import { authClient } from "./auth-client";
 
 export const signInWithGoogle = async () => {
   await authClient.signIn.social({ provider: "google", callbackURL: "/" });
