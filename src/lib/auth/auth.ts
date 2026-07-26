@@ -7,8 +7,26 @@ import { getCloudflareEnv } from "@/server/cloudflare";
 const buildAuth = () => {
   // oxlint-disable-next-line no-unsafe-type-assertion -- wrangler secrets are not in CloudflareEnv type
   const env = getCloudflareEnv() as unknown as Record<string, string>;
+  // better-auth resolves BETTER_AUTH_SECRET from `globalThis.process.env`,
+  // which workerd only populates when `nodejs_compat_populate_process_env` is
+  // on — default only for compatibility_date >= 2025-04-01, while this Worker
+  // is on 2024-12-01 with `nodejs_compat` alone
+  // (https://developers.cloudflare.com/workers/configuration/environment-variables/).
+  // So the secret has to be handed over explicitly, and the absence has to be
+  // fatal here: better-auth's own guard against its public default secret only
+  // fires when it believes it is in production, and it decides that from
+  // NODE_ENV — read from the same unpopulated `process.env`, so it is false in
+  // every environment. Without this throw, a missing secret silently signs
+  // sessions with a published constant.
+  if (!env.BETTER_AUTH_SECRET) {
+    throw new Error(
+      "BETTER_AUTH_SECRET is not set. Register it with `wrangler secret put BETTER_AUTH_SECRET` for a deployed Worker, or set it in .env.local for local development."
+    );
+  }
+
   return betterAuth({
     baseURL: env.BETTER_AUTH_URL,
+    secret: env.BETTER_AUTH_SECRET,
     database: drizzleAdapter(getDb(), {
       provider: "sqlite",
       schema: {
