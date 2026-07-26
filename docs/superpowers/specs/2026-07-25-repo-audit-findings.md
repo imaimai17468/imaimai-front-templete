@@ -285,10 +285,150 @@ module to something unambiguous (e.g. `src/lib/auth/actions.ts`).
 | K2 | done | `react.md`'s shared-directory examples now name `src/components/ui/` (with the shadcn no-rename note), `src/lib/`, `src/gateways/`, `src/entities/` |
 | K3 | done | New [ADR-0016](../../adr/0016-src-layering.md) + `path_requires` edge on `src/**/*` + one-line AGENTS.md pointer |
 | K4 | done | ADR-0008 amended in place (dated note; Decision untouched per the README convention), README index row updated |
-| W3 | done | `components.json`: `rsc` → `false`, `css` → `src/styles.css`. Existing `"use client"` pragmas left as harmless no-ops |
+| W3 | done | `components.json`: `rsc` → `false`, `css` → `src/styles.css`. Existing `"use client"` pragmas left as harmless no-ops. Split into two commits because the file was not formatter-conformant (see below) |
 | W4 | done | `DATABASE_SETUP.md`: `@cloudflare/vite-plugin` replaces the OpenNext/`next.config.mjs` claims; ports corrected to 5173 / 4173 (4173 verified against Vite's documented default, not memory); Pages → Workers with `wrangler secret put` |
 | W9 | done | `agent-workflow.md` and `specs/README.md` citations updated to ADR-0015; README Scripts table gained the six `db:*` rows; `launch-checklist` Performance now delegates to `/performance-audit` as prose (a numbered row would have forced a 12-item renumber and broken comparison with past reports in `docs/launch-checklist/`); the `.cursor` item was resolved as a non-finding (CLI-generated) |
-| W5, W6, W8, W10 | open | Runbooks (rollback / secret rotation, forking), gate-tool bumps, auth module rename |
+| W5 | done | New `docs/DEPLOYMENT.md`: deploy preconditions, `wrangler deployments list` / `versions list`, `wrangler rollback [<VERSION_ID>]`, and secret rotation with the ordering constraint (register new → verify → revoke old). Command surface verified against Cloudflare's current docs. Adds the caveat the lane did not raise: a Worker rollback does **not** revert D1 schema changes, so destructive migrations must be staged |
+| W6 | done | New `docs/FORKING.md`: the two mismatched name placeholders (`my-app` / `my-project`), LICENSE, resource swap, and an explicit keep-vs-prune split for the tooling layer — including the non-obvious requirement that pruning `docs/adr/` must be mirrored into `aegis-share/source/` and re-run through the pipeline, since the KB serves ADRs |
+| W8 | done | `oxlint` 1.42.0→1.75.0, `oxfmt` 0.46.0→0.60.0, `oxlint-tsgolint` 0.24.0→7.0.2001 (lockstep; the 0.x→7.0.xxxx jump was confirmed non-breaking by reading the upstream release notes for v7.0.2000), `knip` 6.5.0→6.29.0, `react-hook-form` 7.61.1→7.83.0. The bump surfaced four pre-existing lint errors, all fixed properly rather than suppressed — see below |
+| W10 | done | `src/lib/auth.ts` → `src/lib/auth/actions.ts` (client actions now unambiguous against the server `betterAuth()` instance in `src/lib/auth/auth.ts`); two importers updated |
+
+### S0. Session cookies were signed with better-auth's public default secret (High, security — found during execution, fixed)
+
+Not found by any audit lane. It surfaced because the new `docs/DEPLOYMENT.md`
+asserted that rotating `BETTER_AUTH_SECRET` invalidates sessions, and the review
+pipeline checked that claim against the code:
+
+- `src/lib/auth/auth.ts`'s `buildAuth()` passed `baseURL`, `database`,
+  `socialProviders`, and `session` to `betterAuth()` — **no `secret`**.
+- better-auth resolves the secret itself from `globalThis.process.env`
+  (`@better-auth/core`'s `env-impl`), never from the Workers `env` binding that
+  `getCloudflareEnv()` returns.
+- Cloudflare populates `process.env` from bindings only with `nodejs_compat`
+  **and** `nodejs_compat_populate_process_env`, the latter default only for
+  `compatibility_date >= 2025-04-01`. This Worker: `compatibility_date =
+  "2024-12-01"`, `compatibility_flags = ["nodejs_compat"]`.
+- With the secret unreadable, better-auth falls back to the constant
+  `"better-auth-secret-12345678901234567890"`. Its production guard cannot save
+  this deployment either, because `NODE_ENV` is read from the same empty
+  `process.env`, so `isProduction` is false and it never throws.
+
+Consequence: session cookies signed with a publicly known constant — forgeable.
+`wrangler secret put BETTER_AUTH_SECRET` had no effect.
+
+**Fixed** by passing `secret: env.BETTER_AUTH_SECRET` explicitly, mirroring how
+`GOOGLE_CLIENT_SECRET` is already passed. Chosen over bumping
+`compatibility_date` because the explicit wiring does not depend on runtime
+flags. The stale `compatibility_date` remains open (see the dependency notes).
+
+The first fix was **incomplete**, and the delta review caught it: passing the
+secret does not help if it is absent. better-auth then falls back to the default
+again, and its `isDefaultSecret && isProduction` guard cannot fire, because
+`isProduction` is a module-level constant derived from `NODE_ENV` — read from the
+same permanently-empty `process.env`, so it is `false` in *every* environment
+including production. A missing secret would therefore be silent. `buildAuth()`
+now **throws** when `BETTER_AUTH_SECRET` is unset, naming the command to fix it.
+
+**Still open in that file** — `src/lib/auth/auth.ts` reads bindings via
+`getCloudflareEnv() as unknown as Record<string, string>` with an
+`oxlint-disable-next-line no-unsafe-type-assertion`. Both are pre-existing and
+both violate AGENTS.md ("never escape the type system", no lint-disable to
+silence an error). The file is now in the diff, so this is disclosed rather than
+dismissed: fixing it properly means deciding how `wrangler secret` names reach
+the type system (ADR-0005 says `CloudflareEnv` is generated, never
+hand-written), which is an ADR-level decision and its own ticket.
+
+The delta review proposed dropping the cast, on the grounds that
+`worker-configuration.d.ts` already declares `BETTER_AUTH_SECRET: string`.
+**Refuted** — and the refutation is itself a finding:
+
+### S1. The generated env type is environment-dependent, so the cast cannot simply be deleted (Medium, open)
+
+**Observed behaviour, stated without the mechanism.** Three successive drafts of
+this paragraph asserted a causal chain for *why* `wrangler types` emits the
+secret keys, and reviewers refuted the mechanism each time — once by reading
+wrangler's source, once by running the generator, once by tracing
+`getVarsForDev`/`loadDotEnv` and reproducing both outcomes with wrangler's own
+`CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV` flag. The conclusion survived all three
+passes unchanged; only the explanation kept being wrong. So this record keeps the
+measurements and drops the explanation — wrangler's var-resolution internals are
+that tool's business, not this repo's durable knowledge.
+
+What is established by measurement:
+
+- On a developer machine set up per the README, `bun run cf-typegen` emits a
+  `CloudflareEnv` that **does** declare `BETTER_AUTH_SECRET`,
+  `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` — which is why the cast looks
+  removable there.
+- Suppress wrangler's dotenv-based var loading
+  (`CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false bun run cf-typegen`) and those
+  three keys disappear from the generated file. That is the reproduction command
+  for the CI-shaped environment.
+- `.github/workflows/ci.yaml` runs `bun run cf-typegen` (line 36) and
+  `bun run typecheck` (line 51) with no `env:` block, and `.env.local` is
+  gitignored, so CI has no on-disk source for those names.
+
+Conclusion: **the generated type depends on the environment that generated it.**
+Deleting the cast would typecheck on every developer machine and fail in CI.
+
+The real fix is to make the declaration deterministic instead of dependent on
+whoever ran the generator: commit a `.dev.vars.example` (or declare the secret
+names in `wrangler.toml`) so local and CI agree, then drop both the
+`as unknown as Record<string, string>` cast and its `oxlint-disable-next-line`.
+`.gitignore:44` already anticipates that file with a `!.dev.vars.example`
+negation. This is the ADR-0005-level ticket described above, now with a concrete
+direction and a real acceptance test: **CI typechecks with no cast.**
+
+**Resolved in passing:** the local `worker-configuration.d.ts` really was a
+pre-migration artifact (generated 2026-04-25, declaring
+`mainModule: typeof import("./.open-next/worker")`, a
+`NEXT_PUBLIC_BETTER_AUTH_URL` key, and `BETTER_AUTH_URL:
+"http://localhost:8787"` — the Next.js-era port), so this session's earlier
+typechecks ran against pre-migration types. The reviewer's experiment
+regenerated it. Nothing to commit; the file is gitignored.
+
+The Cloudflare date threshold asserted in the new comment
+(`nodejs_compat_populate_process_env` defaulting on for compatibility dates on or
+after 2025-04-01) was verified against Cloudflare's environment-variables
+documentation, which is cited inline at the call site. The delta reviewer flagged
+it as unverifiable only because that agent has no doc-fetch tool.
+
+### Surfaced while executing, not in the original findings
+
+- **Four pre-existing lint errors newly caught by oxlint 1.75** (`correctness`/`suspicious` gained the rules): a no-op `String()` conversion in `ui/form.tsx`; an `as React.CSSProperties` assertion in `ui/sonner.tsx` that also carried an `oxlint-disable-line` comment AGENTS.md forbids — replaced with a declared `React.CSSProperties & Record<`--${string}`, string>` type so the value stays checked with no assertion and no suppression; and a jsx-a11y pair on the landing page's scrollable code block. The a11y pair is a genuine **rule conflict**: `prefer-tag-over-role` wants the redundant `role="region"` gone (done), while `no-noninteractive-tabindex` wants `tabIndex` gone — but axe's `scrollable-region-focusable` *requires* a focusable scroll container (WCAG 2.1.1). Resolved by configuring the rule's documented `tags: ["pre"]` option rather than removing keyboard access.
+- **`components.json` was never formatter-conformant** (tab-indented). It sits outside `bun run format`'s `src` scope, so only lefthook's staged-file check catches it — which means any commit touching it fails the gate. Normalized as its own commit, separate from the content fix.
+- **`knip.json` had two entry patterns** the newer knip reports as redundant (`src/client.tsx`, `src/router.tsx` — covered by its TanStack plugin). Removed; findings unchanged. One advisory hint remains (`.css` not followed) and was deliberately left alone: silencing it means changing what knip analyses.
+- **`bun run cf-typegen` was missing from the narrowed allow-list.** The verifier raised it as optional; added, since ADR-0005 instructs agents to run it whenever `wrangler.toml` changes.
+- **`node_modules` held `oxlint-tsgolint` 0.23.0 while `package.json` pinned 0.24.0** — the installed tree had drifted from the manifest. Resolved by the bump.
+- **An accessibility regression I introduced and the review caught.** Silencing
+  `prefer-tag-over-role` by deleting `role="region"` from the scrollable `<pre>`
+  removed the block's accessible name: `pre`'s implicit role is `generic`, which
+  *prohibits* naming from `aria-label` (`nameFrom: ['prohibited']`), so the
+  comment I wrote ("the aria-label names it") was false. Final shape: a
+  `<section aria-label>` scroll container — a `section` with an accessible name
+  maps to the `region` role — wrapping a plain `<pre>`. Both lint rules and
+  axe's focusability requirement are satisfied without losing the name.
+- **The `no-noninteractive-tabindex` exemption was repo-wide.** Moved from the
+  global `rules` block into an `overrides` entry scoped to
+  `src/routes/index.tsx`, matching the existing `**/*.d.ts` precedent, so a
+  stray `tabIndex` on a non-interactive element elsewhere still fails. (oxlint's
+  `overrides[].rules` accepts full rule options, not just severity — verified
+  against `configuration_schema.json`.) Note `overrides` entries reject a
+  `comment` field, so the rationale lives at the usage site in JSX.
+- **The knip `.css` hint was blocking, not advisory.** `stop-gate.sh:72` counts
+  any line matching `^Configuration `, so the single hint introduced by the knip
+  bump failed the Stop gate. Resolved by adding `css` to `project` so knip
+  follows the stylesheet's imports — which in turn made both
+  `ignoreDependencies` entries (`tailwindcss`, `tw-animate-css`) unnecessary.
+  knip now reports nothing at all, and the config is smaller than before.
+- **The Stop gate reported similarity findings it had already accepted.**
+  `SIM_SUM` was computed regardless of `SIM_UNIGNORED`, so a knip-only failure
+  still printed "Total similar type pairs found: 4" even though all five type
+  locations carry `similarity-ignore` comments. This cost real time in this
+  session — it sent the audit chasing a non-issue and produced a wrong
+  recommendation to the user before the gate's own logic was read. Fixed: the
+  summary and the raw output are each gated on their own blocking condition, and
+  the similarity line now states the un-ignored count.
 
 ## Retention
 
