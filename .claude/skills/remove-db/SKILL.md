@@ -23,7 +23,6 @@ What stays: the TanStack Start app shell, shared UI (`src/components/ui`, header
 
 ```bash
 rm -rf src/lib/auth src/lib/drizzle src/lib/storage
-rm -f src/lib/auth.ts
 rm -rf src/entities src/gateways src/server
 rm -rf src/routes/api
 rm -f src/routes/login.tsx src/routes/profile.tsx src/routes/auth.auth-code-error.tsx
