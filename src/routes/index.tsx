@@ -48,18 +48,25 @@ function HomeComponent() {
         <h2 className="text-sm font-medium text-muted-foreground">
           Get started
         </h2>
-        <pre
-          className="overflow-x-auto rounded-lg bg-muted px-4 py-3 font-mono text-sm leading-relaxed text-foreground"
+        {/* The scroll container is focusable so keyboard users can pan the
+            overflowing command line (axe scrollable-region-focusable, WCAG
+            2.1.1), and it is a `section` with an aria-label so the block has a
+            real accessible name: `pre`'s implicit role is `generic`, which
+            prohibits naming from aria-label, and `role="region"` on it would
+            trip prefer-tag-over-role. */}
+        <section
+          className="overflow-x-auto rounded-lg bg-muted px-4 py-3"
           tabIndex={0}
-          role="region"
           aria-label="Getting started commands"
         >
-          <code>{`git clone https://github.com/imaimai17468/imaimai-front-templete.git
+          <pre className="font-mono text-sm leading-relaxed text-foreground">
+            <code>{`git clone https://github.com/imaimai17468/imaimai-front-templete.git
 cd imaimai-front-templete
 bun install
 cp .env.local.example .env.local
 bun run dev`}</code>
-        </pre>
+          </pre>
+        </section>
         <p className="text-sm text-muted-foreground">
           <code className="rounded-lg bg-muted px-1.5 py-0.5 font-mono text-foreground">
             src/routes/index.tsx

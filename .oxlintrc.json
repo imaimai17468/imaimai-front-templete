@@ -74,6 +74,15 @@
       "rules": {
         "unicorn/require-module-specifiers": "off"
       }
+    },
+    {
+      "files": ["src/routes/index.tsx"],
+      "rules": {
+        "jsx-a11y/no-noninteractive-tabindex": [
+          "error",
+          { "tags": ["section"] }
+        ]
+      }
     }
   ]
 }
