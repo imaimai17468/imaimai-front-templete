@@ -52,11 +52,19 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (avatarSizeRejection(file.size) !== null) {
-      toast.error(
-        `Please keep file size under ${MAX_AVATAR_BYTES / 1024 / 1024}MB`
-      );
-      return;
+    // Same two reasons the server distinguishes, so the message matches what
+    // actually went wrong rather than blaming size for an empty file.
+    switch (avatarSizeRejection(file.size)) {
+      case "empty":
+        toast.error("That file is empty. Please select another one.");
+        return;
+      case "too-large":
+        toast.error(
+          `Please keep file size under ${MAX_AVATAR_BYTES / 1024 / 1024}MB`
+        );
+        return;
+      case null:
+        break;
     }
 
     setPendingFile(file);
