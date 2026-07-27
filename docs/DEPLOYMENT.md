@@ -51,7 +51,7 @@ wrangler rollback <VERSION_ID>     # 指定バージョンへ戻す
 
 ## シークレットのローテーション
 
-秘密情報はファイルに置かず `wrangler secret` で管理する（ADR-0004）。
+秘密情報はファイルに置かず `wrangler secret` で管理する（ADR-0017）。
 
 ```bash
 wrangler secret list                        # 登録済みの名前を確認（値は出ない）
