@@ -227,8 +227,8 @@ ADR とルールを管理する **コンテキストコンパイラ**。全ド�
 | レベル | 対象 | 例 |
 |--------|------|-----|
 | `deny` | 破壊的操作 | `rm -rf`, `git push --force`, `git reset --hard`, `.env` アクセス |
-| `ask` | 確認が必要な操作 | `git commit`, `git push`, `gh pr create`, `deploy` |
-| `allow` | 自由に実行可能 | read-only git/gh, `bun run`, `bun add -E`, `tree`/`find`/`grep` |
+| `ask` | 確認が必要な操作 | `git commit`, `git push`, `gh pr create`, `deploy`, `find`, `bunx`, 未登録の `bun run` |
+| `allow` | 自由に実行可能 | read-only git/gh, ゲート用の個別 `bun run` スクリプト (lint/check/typecheck/test/knip 等), `bun add -E`, `tree`/`ls`/`grep` |
 
 参照: [ADR-0004](./adr/0004-permission-deny-as-security-boundary.md)
 
