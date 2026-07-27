@@ -62,7 +62,7 @@ Strictly sequential, four zero-padded digits. Never renumber. When an ADR is rep
 | [0010](0010-agent-based-spec-verification.md) | Interaction-complex features get agent-based spec verification (FSL's discipline without fslc) | superseded by 0011 |
 | [0011](0011-nested-subagent-review-and-verification.md) | Review and spec verification run as nested subagent orchestrators (code graph removed) | accepted (amended by 0013, 0014; mechanism superseded by 0015) |
 | [0012](0012-parent-centric-implementation.md) | The parent session implements directly; delegation is decided by context impact | accepted |
-| [0013](0013-deterministic-enforcement-gates.md) | Enforcement gates are deterministic artifacts, not transcript greps | accepted |
+| [0013](0013-deterministic-enforcement-gates.md) | Enforcement gates are deterministic artifacts, not transcript greps | accepted (amended by 0017) |
 | [0014](0014-measurement-first-model-continuity.md) | Golden evals govern the review pipeline; delta re-review mode; on-demand repo audit | accepted |
 | [0015](0015-flat-review-pipeline.md) | Review and spec verification are flat finder → verifier pipelines (verifier unnested) | accepted |
 | [0016](0016-src-layering.md) | `src/` is layered: routes → server functions → gateways → entities | accepted |

@@ -1,7 +1,17 @@
 # 0013. Enforcement gates are deterministic artifacts, not transcript greps
 
-- Status: accepted
+- Status: accepted (amended by 0017)
 - Date: 2026-07-09
+
+> **Amended by [ADR-0017](0017-secret-value-boundary.md)** (2026-07-25): the
+> `.env` protection bullet below says "`permissions.deny` remains the declared
+> boundary for tool-level access", with the guard hook carrying the part that
+> prefix matching cannot express. ADR-0017 withdrew that framing after three
+> subagents reached the protected files in one session: the boundary is now the
+> secret's *value* (production secrets are never in the working tree), and the
+> deny entries plus this guard are defense-in-depth against accidental exposure
+> rather than a barrier against a determined path. Everything else in this ADR —
+> gates as artifacts rather than transcript greps — stands.
 
 ## Context
 
@@ -53,7 +63,8 @@ never on transcript content, and every gate states its degraded mode.
   (`.env*.example` stays readable). This amends ADR-0004: `permissions.deny`
   remains the declared boundary for tool-level access, but Bash string-prefix
   matching cannot express "any command touching a file", so the hook carries
-  that part of the boundary.
+  that part of the boundary. *(Amended by ADR-0017 — the hook stays; what changed
+  is that it is no longer treated as the boundary. See the note at the top.)*
 
 ## Alternatives considered
 
