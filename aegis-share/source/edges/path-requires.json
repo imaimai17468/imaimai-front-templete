@@ -63,6 +63,13 @@
     "specificity": 0
   },
   {
+    "edge_id": "b10f5f2b-e23f-4855-a669-ed74caad1977",
+    "source_value": "drizzle.config.ts",
+    "target_doc_id": "adr-0017",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "b26df57c-ebca-4ca7-87bb-4fcb3fca9b76",
     "source_value": ".claude/hooks/**",
     "target_doc_id": "adr-0013",
@@ -108,6 +115,13 @@
     "edge_id": "e88cc770-b1d1-42a6-80a0-fbdb96622d6f",
     "source_value": ".claude/hooks/**",
     "target_doc_id": "adr-0011",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "ed6cdd58-a007-467f-8a74-51b363705038",
+    "source_value": ".claude/settings.json",
+    "target_doc_id": "adr-0017",
     "priority": -1,
     "specificity": 0
   },
