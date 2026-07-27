@@ -32,8 +32,13 @@ imports are allowed, upward imports are not.
   **authorization boundary**: resolve the session here and pass a
   server-derived user id downward. Never accept a caller-supplied identity.
 - **`src/gateways/**`** — the only layer that touches persistence (D1 via
-  Drizzle, R2). Takes ids and values as parameters; never reads the request
-  context; never imports components.
+  Drizzle, R2). Never imports components. **Every mutation takes the identity
+  as a parameter** — `updateUser` and `updateUserAvatar` receive a `userId`, and
+  no gateway function accepts a caller-supplied one; that is the part the
+  security property depends on. Reads are not there yet:
+  `fetchCurrentUser()` calls `getSession()` itself, so the request context does
+  reach this layer today. Stated as it is rather than as intended — see the
+  Consequences.
 - **`src/entities/**`** — domain types and Zod schemas. Imports nothing from
   the layers above.
 - **`src/components/**`** — presentation. `features/<feature>/` for domain UI,
@@ -74,3 +79,15 @@ per-file; this ADR carries the layer contract and the rationale.
 - The layering is **not** mechanically enforced. Nothing fails if it is
   violated; only the review pipeline catches drift. If a violation is ever
   found in review, that is the signal to revisit the lint-rule alternative.
+- **One known gap, recorded rather than smoothed over.** An earlier draft of this
+  ADR claimed gateways never read the request context. They do:
+  `fetchCurrentUser()` resolves the session inside `src/gateways/user/`, so the
+  read path couples that layer to the request. An external reviewer caught the
+  overstatement — and the audit that produced this ADR had missed it, because it
+  checked import direction (no route imports a gateway, no gateway imports a
+  component) and never asked whether a gateway reads the session.
+  Closing it means moving session resolution into `src/server/fn/` and passing
+  the resolved user downward, which is a refactor with its own review rather
+  than an edit to this ADR. Acceptance test: `src/gateways/` contains no import
+  of `@/lib/auth/session`. Until then the boundary is real for mutations and
+  aspirational for reads, and this ADR says so.
