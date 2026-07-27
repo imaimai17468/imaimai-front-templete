@@ -55,7 +55,6 @@
       "Bash(wrangler types:*)",
       "Bash(wrangler d1 list:*)",
       "Bash(wrangler tail:*)",
-      "Bash(drizzle-kit generate:*)",
       "Bash(ffmpeg:*)"
     ],
     "deny": [
@@ -108,6 +107,7 @@
       "Bash(bun run preview:*)",
       "Bash(bun run db:push:*)",
       "Bash(bun run db:generate:*)",
+      "Bash(drizzle-kit generate:*)",
       "Bash(wrangler deploy:*)",
       "Bash(wrangler d1 execute:*)",
       "Bash(wrangler r2:*)",
