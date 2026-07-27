@@ -72,7 +72,12 @@ over it. Conditions:
   mitigation *is* the scope, so the scope has to be real rather than asserted.
 - The four scripts are never unattended: `db:push` and `db:generate` have
   explicit `ask` entries; `db:pull` / `db:studio` reach `ask` through the default
-  fallthrough for unlisted `bun run` targets.
+  fallthrough for unlisted `bun run` targets. Gating the `bun run` wrapper is not
+  enough on its own — `Bash(drizzle-kit generate:*)` was allow-listed, so the
+  underlying binary ran unconfirmed and made this condition false for the
+  equivalent command. It is in `ask` now. The general rule from ADR-0004's
+  amendment applies: an entry that reaches the same capability by another
+  spelling voids the gate on the first one.
 - Its presence is temporary — remove or rotate the token when the remote-schema
   work is done, rather than leaving it in place between tasks.
 - Closing the exception means not needing a static token. Direction, not a
