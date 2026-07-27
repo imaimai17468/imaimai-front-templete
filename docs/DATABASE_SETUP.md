@@ -91,9 +91,13 @@ wrangler d1 list
 
 1. [Cloudflare Dashboard](https://dash.cloudflare.com/profile/api-tokens) でAPIトークンを作成
 2. 「カスタムトークンを作成」を選択
-3. 必要な権限:
-   - **Account > D1 > Edit**
-   - **Account > Workers R2 Storage > Edit**
+3. 必要な権限は **Account > D1 > Edit** のみ。
+
+このトークンを使うのは drizzle-kit の `d1-http` ドライバ (`db:push` /
+`db:generate` / `db:pull` / `db:studio`) だけで、D1 以外の権限は不要。R2 の
+バケット作成と公開 URL 設定は下記の通り Dashboard で行い、このトークンを
+使わない。権限を最小に保つこと自体がこのトークンをディスクに置く唯一の
+緩和策になっている (ADR-0017 の例外条項)。
 
 ### R2_PUBLIC_URL の取得
 
