@@ -1,6 +1,6 @@
 # 0004. `permissions.deny` is the security boundary, not `ask`
 
-- Status: accepted (amended by 0013; amended 2026-07-25)
+- Status: accepted (amended by 0013, 0017; amended 2026-07-25)
 - Date: 2026-04-23
 
 > **Amended by [ADR-0013](0013-deterministic-enforcement-gates.md)** (2026-07-09):
@@ -12,6 +12,15 @@
 > **Amended 2026-07-25** (repo audit): that guard is a *lexical* filter, so it
 > only stops commands that spell the filename. The breadth of the `allow` list
 > is therefore part of the boundary too — see the amendment section at the end.
+
+> **Amended by [ADR-0017](0017-secret-value-boundary.md)** (2026-07-25, later the
+> same day): the "residual risk, accepted knowingly" paragraph at the end of this
+> file accepted the file-level porosity. Three subagents reached the protected
+> files within one session, so that acceptance is withdrawn — the boundary is now
+> the secret's *value* (production secrets are never in the working tree), not
+> access to the file. The deny entries and the guard hook below stay as
+> defense-in-depth. Read ADR-0017 for the incidents and the one standing
+> exception.
 
 ## Context
 
