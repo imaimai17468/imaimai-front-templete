@@ -337,14 +337,15 @@ same permanently-empty `process.env`, so it is `false` in *every* environment
 including production. A missing secret would therefore be silent. `buildAuth()`
 now **throws** when `BETTER_AUTH_SECRET` is unset, naming the command to fix it.
 
-**Still open in that file** — `src/lib/auth/auth.ts` reads bindings via
+**Left open in that file at the time, resolved later as S1 below** —
+`src/lib/auth/auth.ts` read bindings via
 `getCloudflareEnv() as unknown as Record<string, string>` with an
-`oxlint-disable-next-line no-unsafe-type-assertion`. Both are pre-existing and
-both violate AGENTS.md ("never escape the type system", no lint-disable to
-silence an error). The file is now in the diff, so this is disclosed rather than
-dismissed: fixing it properly means deciding how `wrangler secret` names reach
+`oxlint-disable-next-line no-unsafe-type-assertion`. Both were pre-existing and
+both violated AGENTS.md ("never escape the type system", no lint-disable to
+silence an error). The file was in the diff, so this was disclosed rather than
+dismissed: fixing it properly meant deciding how `wrangler secret` names reach
 the type system (ADR-0005 says `CloudflareEnv` is generated, never
-hand-written), which is an ADR-level decision and its own ticket.
+hand-written), which was an ADR-level decision and became its own ticket.
 
 The delta review proposed dropping the cast, on the grounds that
 `worker-configuration.d.ts` already declares `BETTER_AUTH_SECRET: string`.
