@@ -78,12 +78,21 @@ You are given the candidate list as JSON plus `effort`. Try to REFUTE each candi
 
 If a finding cites an AGENTS.md rule, read AGENTS.md and respect rule scope qualifiers. Verdict per finding: CONFIRMED (traced the failure/violation in real code), PLAUSIBLE (credible but not fully traced), REFUTED (does not hold). Default to REFUTED when uncertain. You may regrade severity. Never add findings the finder did not raise.
 
+**For every finding you do not refute, also decide the fix.** The review is one pass (ADR-0019): the parent applies what you return and commits, so a finding you leave without a fix is a finding whose remedy nobody judged. Two fields per surviving finding:
+
+- `fix` — the concrete change. Which file, what it should say instead, and why that shape rather than the alternative you considered. Not a restatement of the problem: "validate the size server-side" is not a fix, "add `avatarSizeRejection(file.size)` to `uploadAvatarFn`'s `inputValidator`, sharing `MAX_AVATAR_BYTES` with the client so the two cannot drift" is.
+- `acceptance` — how the parent confirms it landed, checkable without re-running this review: a command, or a specific observable in the code.
+
+The finder's embedded fix suggestion (inside its `description`) is input, not the answer — it was written before anyone established the finding was real. Read it, adopt it if it holds up, but the `fix` you return is the authoritative one.
+
+When a finding cannot be fixed without a decision that is not yours to make — an ADR-level choice, a genuine trade-off, a question for the repository owner — put that in `fix` explicitly and say what the options are. Do **not** invent a fix to fill the field; an honest "this needs a decision, here are the two credible options" is the useful answer and tells the parent to ask rather than guess. For such a finding `acceptance` states what the parent will be able to observe once the owner has picked — which file or section will name the chosen option. Never leave it blank, and never assert a false certainty to fill it.
+
 ### Step 4 — Return — `review-verifier`
 
 Drop REFUTED findings. Sort survivors by verdict (CONFIRMED first) then severity. Return:
 
 ```
-{ effort, findings: [ { file, line, title, description, severity, verdict, verification } ], stats: { candidates, refuted } }
+{ effort, findings: [ { file, line, title, description, severity, verdict, verification, fix, acceptance } ], stats: { candidates, refuted } }
 ```
 
 Do NOT manually create `.claude/.review-stamp` — the `PostToolUse(Agent)` hook stamps it when you (the `review-verifier` agent) complete.
@@ -96,5 +105,5 @@ Do NOT manually create `.claude/.review-stamp` — the `PostToolUse(Agent)` hook
 ## After the review (parent session)
 
 1. Read the surviving findings. Never dismiss a finding as "pre-existing" when the file is in the diff. Apply rules literally; when in doubt, fix.
-2. The parent fixes findings directly. **This is the end of the review** (ADR-0019) — those edits keep the stamp, so commit once every finding is addressed or explicitly justified as out of scope.
-3. Commit. Running this skill again is a fresh review of a fresh diff, not a follow-up on this one.
+2. **Apply each finding's `fix` and check its `acceptance`.** The fix was judged by a context that did not write the code; that is the point of it arriving with the finding. Departing from it is allowed — you can see things the verifier could not — but then say so and why, in the commit message or to the user. Where `fix` says the finding needs a decision, ask the user rather than picking for them.
+3. That is **the end of the review** (ADR-0019). Those edits keep the stamp, so commit once every finding is addressed or explicitly justified as out of scope. Running this skill again is a fresh review of a fresh diff, not a follow-up on this one.

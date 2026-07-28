@@ -69,3 +69,4 @@ Strictly sequential, four zero-padded digits. Never renumber. When an ADR is rep
 | [0017](0017-secret-value-boundary.md) | The boundary is the secret's value, not access to the file holding it | accepted |
 | [0018](0018-compatibility-date-tracks-installed-workerd.md) | `compatibility_date` tracks the installed workerd, not today's date | accepted |
 | [0019](0019-single-pass-review.md) | The review is one pass: find → verify → fix → done | accepted |
+| [0020](0020-verifier-returns-the-fix.md) | The verifier returns the fix, not just the finding | accepted |
