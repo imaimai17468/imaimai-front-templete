@@ -319,7 +319,15 @@ Consequence: session cookies signed with a publicly known constant — forgeable
 **Fixed** by passing `secret: env.BETTER_AUTH_SECRET` explicitly, mirroring how
 `GOOGLE_CLIENT_SECRET` is already passed. Chosen over bumping
 `compatibility_date` because the explicit wiring does not depend on runtime
-flags. The stale `compatibility_date` remains open (see the dependency notes).
+flags. The stale `compatibility_date` was **resolved 2026-07-28**: it now tracks
+the newest date the installed workerd supports (`2026-07-15`) rather than the
+calendar, because a date past that ceiling makes the local runtime refuse to
+start — see [ADR-0018](../../adr/0018-compatibility-date-tracks-installed-workerd.md).
+The bump crossed `nodejs_compat_populate_process_env`, so the analysis below —
+which turns on `process.env` being unpopulated — describes the pre-bump state.
+`process.env` now carries the text bindings; `NODE_ENV` is not among them, so
+better-auth's `isProduction` is still false everywhere and the `buildAuth()`
+throw is still the only guard.
 
 The first fix was **incomplete**, and the delta review caught it: passing the
 secret does not help if it is absent. better-auth then falls back to the default
