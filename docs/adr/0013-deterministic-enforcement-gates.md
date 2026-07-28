@@ -1,6 +1,6 @@
 # 0013. Enforcement gates are deterministic artifacts, not transcript greps
 
-- Status: accepted (amended by 0017)
+- Status: accepted (amended by 0017, 0019)
 - Date: 2026-07-09
 
 > **Amended by [ADR-0017](0017-secret-value-boundary.md)** (2026-07-25): the
@@ -12,6 +12,16 @@
 > deny entries plus this guard are defense-in-depth against accidental exposure
 > rather than a barrier against a determined path. Everything else in this ADR —
 > gates as artifacts rather than transcript greps — stands.
+
+> **Amended by [ADR-0019](0019-single-pass-review.md)** (2026-07-28): the review-gate
+> bullet below makes every `Edit`/`Write` clear `.review-stamp`, so fixing a finding
+> required another review. ADR-0014 measured that cost and tried to make the second
+> review cheap; two sessions showed the cheap mode does not get chosen and that the
+> loop itself is the objection. `post-edit-check.sh` no longer clears the stamp — the
+> review is one pass, find → verify → fix → done. So that the stamp cannot then
+> authorise a later task, it is consumed when a commit leaves the working tree
+> clean. The diff-hash pairing that makes the stamp meaningful (ADR-0015) and
+> everything else in this ADR still stand.
 
 ## Context
 
