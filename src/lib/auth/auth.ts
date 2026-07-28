@@ -5,8 +5,7 @@ import * as schema from "@/lib/drizzle/schema";
 import { getCloudflareEnv } from "@/server/cloudflare";
 
 const buildAuth = () => {
-  // oxlint-disable-next-line no-unsafe-type-assertion -- wrangler secrets are not in CloudflareEnv type
-  const env = getCloudflareEnv() as unknown as Record<string, string>;
+  const env = getCloudflareEnv();
   // better-auth resolves BETTER_AUTH_SECRET from `globalThis.process.env`,
   // which workerd only populates when `nodejs_compat_populate_process_env` is
   // on — default only for compatibility_date >= 2025-04-01, while this Worker

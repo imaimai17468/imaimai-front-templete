@@ -49,6 +49,31 @@ wrangler rollback <VERSION_ID>     # 指定バージョンへ戻す
 
 という順序に分けること。切り戻しが必要になった時点で選択肢を残すのが目的。
 
+## 秘密の初期登録（デプロイより先に）
+
+`wrangler.toml` の `[secrets]` に列挙した名前は `required` 扱いなので、未登録の
+まま `wrangler deploy` すると失敗する。名前を宣言する前に登録を済ませる、という
+順序を守れば済む。
+
+Worker がまだ存在しない場合も同じ順序でよい。`wrangler secret put` は登録先が
+無いことを検出すると、プレースホルダの Worker を作ってよいか尋ね、承諾すれば
+それを作ってから登録する。デプロイを先に済ませる必要はない。
+
+```bash
+wrangler secret put BETTER_AUTH_SECRET     # 値は対話的に入力する
+wrangler secret put GOOGLE_CLIENT_ID
+wrangler secret put GOOGLE_CLIENT_SECRET
+bun run deploy
+```
+
+**値をコマンドラインに書かないこと。** `wrangler secret put` は値を対話的に受け取り
+エコーもしない。`wrangler secret bulk` に JSON をパイプする形は、既定のシェルでは
+実値がヒストリファイルに残るので使わない (ADR-0017: 秘密は一時的にもファイルへ
+書かない)。同じ理由で `wrangler deploy --secrets-file <path>` も使わない。
+
+秘密を**後から追加**する場合も順序は同じ。`[secrets]` に名前を足す前に登録する。
+逆順にすると、既存 Worker のデプロイが必須チェックで失敗する。
+
 ## シークレットのローテーション
 
 秘密情報はファイルに置かず `wrangler secret` で管理する（ADR-0017）。
