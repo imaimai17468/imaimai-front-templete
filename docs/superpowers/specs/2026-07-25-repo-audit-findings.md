@@ -31,13 +31,13 @@ Consequences:
   but that was luck, not containment.
 - Its Finding 1 was therefore re-derived by the parent from static reading of
   `.claude/hooks/pre-bash-guard.sh` alone (no execution). The conclusion holds
-  on the regex as written; see S1.
+  on the regex as written; see K1.
 - Its report also mis-stated `.env.local` as git-tracked in one place while
   correctly finding it untracked elsewhere. Treat unverified LANE claims from
   this lane with extra suspicion.
 
 Process consequence worth recording: a read-only briefing that forbids reading
-a file is not a control. Only the deny rules and hooks are, and S1 shows those
+a file is not a control. Only the deny rules and hooks are, and K1 shows those
 have a hole.
 
 ## Routed to knowledge (ADR / AGENTS.md / rules)
@@ -342,7 +342,27 @@ The delta review proposed dropping the cast, on the grounds that
 `worker-configuration.d.ts` already declares `BETTER_AUTH_SECRET: string`.
 **Refuted** — and the refutation is itself a finding:
 
-### S1. The generated env type is environment-dependent, so the cast cannot simply be deleted (Medium, open)
+### S1. The generated env type is environment-dependent, so the cast cannot simply be deleted (Medium, **resolved 2026-07-28**)
+
+> **Resolved 2026-07-28.** The cast and its `oxlint-disable` are gone. The fix is
+> a `[secrets] required = [...]` block in `wrangler.toml`: `wrangler types` emits
+> those names on `CloudflareEnv` from the config rather than from whatever local
+> env file it happens to find, so the generated type is identical on a developer
+> machine and in CI. ADR-0005 needs no amendment — this stays inside its
+> "generated, never hand-written" rule.
+>
+> Worth recording because it was nearly missed: the first attempt declared the
+> three names by hand in a `src/worker-secrets.d.ts` that declaration-merged into
+> the generated interface, and amended ADR-0005 to carve out an exception for
+> secrets. That worked, but it was the wrong shape — and the reason it was chosen
+> is that "is this declarable in `wrangler.toml`?" was checked against Cloudflare's
+> `wrangler types` docs page and `--help`, neither of which mentions `[secrets]`,
+> instead of against wrangler's own config schema. A reviewer found the field and
+> demonstrated it. Checking the documentation is not the same as checking the tool.
+>
+> The acceptance test below — CI typechecks with no cast — is met, verified with
+> the secret names present and absent from the local environment. The analysis
+> that follows is left as written.
 
 **Observed behaviour, stated without the mechanism.** Three successive drafts of
 this paragraph asserted a causal chain for *why* `wrangler types` emits the
