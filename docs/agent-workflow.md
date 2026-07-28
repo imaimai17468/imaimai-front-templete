@@ -60,8 +60,8 @@ Claude Code でこのリポジトリを開発するための作業マニュア�
   │     親が code-reviewer(finder)を dispatch → 候補を受け取り →
   │     review-verifier を dispatch → 実コードで反証 → 重大度順 survivors →
   │     verifier 完走でコミットゲートを stamp(finder が同一 diff で先行した
-  │     場合のみ)。指摘は parent が直接修正 → 編集で stamp が消えるので
-  │     再レビュー(ADR-0013。delta モードで安価)。
+  │     場合のみ)。指摘は parent が直接修正 → そこで終了(ADR-0019。
+  │     修正編集では stamp は消えない。再レビュー工程は無い)。
   │
   ├ 7. commit (ユーザー確認後)
   │     目的ごとに分割 (1 コミット = 1 つの revert 可能な意図)。
@@ -136,7 +136,7 @@ spec 検証も同じフラット2段（design-time / 非ゲートなので stamp
 **補足**:
 - **なぜフラット**: 両 agent とも depth-1 で親が直接待つ。ネスト（agent が自分の子を待つ）は 2026-07-10 に評決ロストを2回起こした関節で、それを構造ごと撤去（ADR-0015）。独立性は finder / verifier が別 context である事実で担保。
 - **fail-closed**: verifier が候補を確証できなくても unverified として残す（カバレッジは落とさない）。verifier が完走しなければ stamp は付かず commit はブロック。
-- **mode/delta**: delta は同一サイクル内の再レビュー（finder に前回レポート + 差分説明を渡す。曖昧なら full へ fail-closed）。前回クリーンだった箇所への回帰は delta では見えないので、前提が変わる修正の後は full。
+- **モードは1つ**: 未コミット diff 全体を1回見て終わり（ADR-0019）。部分再走の delta モードは撤去済み。
 - **findings の消費者**: agent は報告まで。修正は parent が直接行う。
 
 ### 2.2 spec 検証 — 作る前に壊す（hunter + checker、ADR-0015）
@@ -261,7 +261,8 @@ Claude Code のイベントに応じて自動実行されるシェルスクリ�
 | `post-agent-review-stamp.sh` | Agent 完了 | `code-reviewer`(finder)完走時に diff ハッシュを `.finder-done` に記録; `review-verifier` 完走時に `.finder-done` が有り同一 diff ハッシュのときのみ `.review-stamp` を作成し `.finder-done` を消費（ADR-0015 決定論ゲート） |
 | `post-aegis-compile.sh` | aegis_compile_context | `.aegis-stamp` を作成（dispatch ゲートの成果物）+ エッジの glob がファイルにマッチしなかった場合に警告 |
 | `post-aegis-share-sync.sh` | aegis_sync_docs / import_doc | DB → `aegis-share/` を同期 |
-| `post-edit-check.sh` | Edit / Write | `.review-stamp` をクリア（レビュー後の編集を無効化）+ 編集ファイル単体を lint（全体チェックは Stop gate に集約） |
+| `post-edit-check.sh` | Edit / Write | 編集ファイル単体を lint（全体チェックは Stop gate に集約）。`.review-stamp` は消さない — 所見の修正で再レビューを起こさないため（ADR-0019） |
+| `post-bash-stamp-consume.sh` | Bash | `git commit` 後にツリーがクリーンなら `.review-stamp` を消費（ADR-0019。1スタンプで分割コミットは通し、タスク越えはさせない） |
 
 **セッション終了時 (Stop)** — 最終ゲート:
 
@@ -284,8 +285,10 @@ Claude Code のイベントに応じて自動実行されるシェルスクリ�
           (post-agent-review-stamp.sh)
     削除: code-reviewer dispatch 時 (pre-agent-review-clear.sh)
           / aegis_compile_context 呼び出し時（新実装サイクル）
-          / Edit・Write 実行時 (post-edit-check.sh) — レビュー後の編集は再レビュー必須 (ADR-0013)
           / セッション開始時 (session-start-env-check.sh)
+          / git commit 後にツリーがクリーンなとき (post-bash-stamp-consume.sh)
+          ※ Edit・Write では消えない — 所見の修正で再レビューを起こさないため
+            (ADR-0019 が ADR-0013 の該当判断を amend)
 
   → stamp は「finder が先行し、verifier が同一 diff を検証した」ことの証明。
     verifier 単独 dispatch や finder→verifier 間の編集では stamp が付かない（C1/C2）
@@ -370,7 +373,7 @@ canonical は aegis-share/source/（import_doc の直接投入は乖離を生む
 | 状況 | 対応 |
 |------|------|
 | 原因不明のバグ | `superpowers:systematic-debugging` を挿入 |
-| レビューだけ再実行 | `/review-diff`（= 親が `code-reviewer` finder → `review-verifier` を順に dispatch、`high` で深掘り、ADR-0015）。修正後は **delta モード**推奨（finder に前回レポート + 差分説明を渡し差分のみ精査、ADR-0014） |
+| レビューを走らせる | `/review-diff`（= 親が `code-reviewer` finder → `review-verifier` を順に dispatch、`high` で深掘り、ADR-0015）。所見を修正したらそこで終わり、再実行は不要（ADR-0019） |
 | リポジトリ健全性の点検 | `/repo-audit` — ゲートが拾えない領域を最良モデルで監査し既存レールへ (ADR-0014) |
 | 設計の状態遷移だけ検証 | `spec-verifier` agent を dispatch (= `/verify-spec specs/<feature>.spec.md`) |
 | 並列マルチエージェント | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` をセッション単位で自分でセット（settings.json ではデフォルト無効） |

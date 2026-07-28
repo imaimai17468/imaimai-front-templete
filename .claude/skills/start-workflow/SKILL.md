@@ -78,7 +78,7 @@ Once implementation is complete:
 - Run `bun run typecheck` and `bun run test` — the PostToolUse hook already checks per-edit, but a final pass catches gaps
 - Verify the acceptance criteria from step 4 are met
 - **Review the uncommitted diff** (users can also trigger it as `/review-diff`; pass `high` for a deeper multi-lens verification). Per ADR-0015 this is a flat two-agent pipeline you orchestrate: dispatch the `code-reviewer` agent (finder) → it returns candidate findings across all lenses (bug hunt + AGENTS.md and path-scoped rules) → dispatch the `review-verifier` agent with those candidates (even if zero) → it adversarially refutes each and returns CONFIRMED/PLAUSIBLE survivors, and its completion stamps the commit gate via a `PostToolUse(Agent)` hook. This is the bias check: neither agent's context has seen the implementation reasoning. Both are depth-1 dispatches you wait on directly. Address every finding or explicitly justify it as out of scope before committing. A PreToolUse hook enforces the gate — `git commit` is blocked until the verifier has stamped it.
-- **The parent fixes findings directly.** Re-review only after major rework.
+- **The parent fixes findings directly, and that ends the review** (ADR-0019) — the stamp survives those edits, so commit next. There is no re-review step.
 
 ### 7. Commit and PR
 
