@@ -42,6 +42,13 @@
     "specificity": 0
   },
   {
+    "edge_id": "8f2f1800-4798-49b4-b5fe-95b53503a4c5",
+    "source_value": "wrangler.toml",
+    "target_doc_id": "adr-0018",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "906b2023-0ae5-491a-9057-5888c48d21f1",
     "source_value": ".claude/agents/**",
     "target_doc_id": "adr-0014",

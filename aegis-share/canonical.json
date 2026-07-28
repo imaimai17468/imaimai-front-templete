@@ -1,7 +1,7 @@
 {
   "format_version": 1,
-  "snapshot_id": "e388243814cf9b107cf44450f2195f67ce125a89ccfc680fd4a22dca5b138a1b",
-  "knowledge_version": 106,
+  "snapshot_id": "28b8072a93439ee7d7e25e9825f362c2fadb6d92677742dccd82f90c67a1aa45",
+  "knowledge_version": 108,
   "documents": [
     {
       "doc_id": "adr-0001",
@@ -189,6 +189,17 @@
       "template_origin": null,
       "source_path": "docs/adr/0017-secret-value-boundary.md",
       "source_refs_json": null
+    },
+    {
+      "doc_id": "adr-0018",
+      "title": "Compatibility Date Tracks Installed Workerd",
+      "kind": "reference",
+      "content": "# 0018. `compatibility_date` tracks the installed workerd, not today's date\n\n- Status: accepted\n- Date: 2026-07-28\n\n## Context\n\n`compatibility_date` in `wrangler.toml` selects the Workers runtime behaviour\nthis project opts into. Cloudflare's guidance is to set it to the current date\nwhen starting a project and to update it occasionally, and it holds old dates\nforever — so a stale date is not a fault that any gate reports. This project's\ndate sat at `2024-12-01` from the Next.js era through the TanStack Start\nmigration ([ADR-0007](0007-tanstack-start-migration.md)), which the 2026-07-25\nrepo audit recorded as its last open item.\n\nThe obvious reading of \"set it to the current date\" is wrong here, and the\nfailure is not graceful. The local runtime is the `workerd` binary that comes in\nwith `wrangler`, and it refuses to start when the config asks for a date newer\nthan that binary supports:\n\n```\nservice core:user:t: This Worker requires compatibility date \"2026-07-28\",\nbut the newest date supported by this server binary is \"2026-07-15\".\n```\n\nThat is an error, not a warning — `vite dev` dies for everyone on the project,\nwhile `wrangler deploy` would have been fine, because Cloudflare's edge runs a\ncurrent runtime. So the ceiling is a property of the installed toolchain, and it\ndoes not track the calendar: with `wrangler` 4.110.0 / `workerd` 1.20260708.1 it\nis `2026-07-15`, ahead of the workerd package's own version date.\n\nThe bump also flips every compatibility flag whose default date falls in the\nskipped window: 44 flags carrying their own date, plus 27 that `nodejs_compat`\nimplies, which this project enables. Most are inert here (no Durable Objects, Queues,\nWorkflows, Containers, or Python; the app code uses no WebSocket, Cache API,\n`URLPattern`, timers, `node:` imports, or `AsyncLocalStorage`), and\n`assets_navigation_prefers_asset_serving` needs an `assets.not_found_handling`\nthat the generated deploy config does not set. The one flag that reaches this\ncodebase is `nodejs_compat_populate_process_env` (default from 2025-04-01),\nwhich is why `src/lib/auth/auth.ts` and `docs/DEPLOYMENT.md` had to be corrected\nalongside the date.\n\n## Decision\n\n`compatibility_date` is pinned to **the newest date the installed `workerd`\nsupports**, not to today's date. Raising it is part of raising `wrangler` — the\ntwo move together, and the ceiling is discovered from the runtime rather than\nassumed: set the date, run `bun run dev`, and read the error, which names the\nsupported date. `bun run cf-typegen` follows every change per\n[ADR-0005](0005-wrangler-types-for-cloudflare-env.md), and the flag deltas for\nthe skipped window are enumerated from `compatibility-date.capnp` in\n`cloudflare/workerd`, which carries every flag's `compatEnableDate` and\n`impliedByAfterDate` annotation in one machine-readable file. Cloudflare's flags\npage documents the same flags, but one prose section per flag — which answers\n\"what does this flag do\", not \"what changed between these two dates\".\n\n## Alternatives considered\n\n- **Today's date, per Cloudflare's starting-a-project guidance**: rejected — it\n  breaks the local runtime, and the breakage is invisible until someone runs\n  `dev`. The guidance is written for the case where the toolchain is current.\n- **Bump `wrangler` first so the ceiling reaches today**: rejected as part of\n  this change, not in general. `@cloudflare/vite-plugin`'s `peerDependencies`\n  pin a `wrangler` floor that climbs with each plugin release, so the two are\n  bumped in lockstep as their own ticket.\n- **Leave the date alone, since Cloudflare supports old dates forever**:\n  rejected — new features are gated on a current date, and the gap only ever\n  grows, so the eventual bump reviews more flag changes at once.\n- **Pin flags explicitly instead of leaning on the date's defaults**: rejected —\n  it duplicates the runtime's own defaults into config that then needs its own\n  maintenance, for a project whose surface the flags do not touch.\n\n## Consequences\n\n- The date is bounded by the toolchain, so it can lag the calendar. That is\n  intended: the number states which runtime the project has actually been run\n  against, which a calendar date does not.\n- A `wrangler` bump now has a second step (re-check the ceiling, move the date)\n  and a review obligation (the flags in the newly crossed window).\n- `process.env` is populated from text bindings from now on. Nothing in the app\n  reads it, and better-auth's secret still arrives explicitly, but code that\n  starts depending on `process.env` would be depending on a flag default.\n- Verified for this bump: `typecheck`, 135 tests, `build`, and a `dev` smoke\n  test of `/`, `/profile`, and better-auth's session endpoint.\n",
+      "content_hash": "b95d4a43adf5daf6b7b0d822b9da54d0deaee6c9e59fd5ac83ba0c6c061a787e",
+      "ownership": "file-anchored",
+      "template_origin": null,
+      "source_path": "docs/adr/0018-compatibility-date-tracks-installed-workerd.md",
+      "source_refs_json": null
     }
   ],
   "edges": [
@@ -287,6 +298,15 @@
       "source_type": "path",
       "source_value": "wrangler.toml",
       "target_doc_id": "adr-0005",
+      "edge_type": "path_requires",
+      "priority": -1,
+      "specificity": 0
+    },
+    {
+      "edge_id": "8f2f1800-4798-49b4-b5fe-95b53503a4c5",
+      "source_type": "path",
+      "source_value": "wrangler.toml",
+      "target_doc_id": "adr-0018",
       "edge_type": "path_requires",
       "priority": -1,
       "specificity": 0
