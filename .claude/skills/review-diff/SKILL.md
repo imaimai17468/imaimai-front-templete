@@ -22,6 +22,11 @@ Benchmarking (2026-07-04) already collapsed the old 5–7-lane parallel workflow
   2. Dispatch the `review-verifier` agent, passing the candidate JSON verbatim plus the `effort`. Do this **even when the finder returned zero candidates** (a clean diff still needs the verifier to run so the gate stamps). Wait for it; its completion stamps `.claude/.review-stamp`.
   3. Integrate the surviving findings it returns. Do NOT run the find/verify steps in the parent context yourself — the fresh agent contexts are the whole point.
   Pass `effort: high` through to both dispatches if the user asked for it.
+  **Neither agent has a web tool** (`tools: Read, Bash, Skill`), so neither can
+  check a claim about how an external tool behaves — a CLI flag, a config key, a
+  framework's API. When the diff makes such a claim, verify it yourself and put
+  the quote and its URL in both dispatch prompts. Without that they can only
+  report it as unverified, which is correct of them and useless to you.
 - **You are the `code-reviewer` agent** (this skill is preloaded): execute **Find** (Steps 1–2) and return the candidate JSON. Do not verify, do not stamp, do not dispatch anything.
 - **You are the `review-verifier` agent** (this skill is preloaded): execute **Verify** (Step 3) and **Return** (Step 4) against the candidates handed to you.
 
