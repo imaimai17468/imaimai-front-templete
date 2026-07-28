@@ -67,3 +67,4 @@ Strictly sequential, four zero-padded digits. Never renumber. When an ADR is rep
 | [0015](0015-flat-review-pipeline.md) | Review and spec verification are flat finder → verifier pipelines (verifier unnested) | accepted |
 | [0016](0016-src-layering.md) | `src/` is layered: routes → server functions → gateways → entities | accepted |
 | [0017](0017-secret-value-boundary.md) | The boundary is the secret's value, not access to the file holding it | accepted |
+| [0018](0018-compatibility-date-tracks-installed-workerd.md) | `compatibility_date` tracks the installed workerd, not today's date | accepted |
