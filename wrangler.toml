@@ -1,6 +1,10 @@
 name = "my-project"
 main = "./src/ssr.tsx"
-compatibility_date = "2024-12-01"
+# Pinned to the newest date the installed workerd supports, not to today's date:
+# a date beyond that ceiling makes the local runtime refuse to start, so
+# `vite dev` breaks for everyone. Raise it only together with wrangler
+# (ADR-0018).
+compatibility_date = "2026-07-15"
 compatibility_flags = ["nodejs_compat"]
 
 [[d1_databases]]

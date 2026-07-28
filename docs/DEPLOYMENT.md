@@ -93,18 +93,18 @@ wrangler secret delete <NAME>               # 不要になった名前を削除
 | `GOOGLE_CLIENT_SECRET` | Google Cloud Console | 先に新しいシークレットを発行し、登録後に旧シークレットを失効させる |
 
 `BETTER_AUTH_SECRET` は `src/lib/auth/auth.ts` で `betterAuth({ secret: ... })` に
-**明示的に渡している**。better-auth 自身のフォールバックは `process.env` を読むが、
+**明示的に渡している**。better-auth 自身のフォールバックは `process.env` を読み、
 Workers が `process.env` を埋めるのは `nodejs_compat_populate_process_env` が有効な
-場合のみ（既定になるのは `compatibility_date` が 2025-04-01 以降）で、この Worker は
-2024-12-01 + `nodejs_compat` のみ。明示的に渡さないと登録した値が読まれず、
-公開されている既定シークレットで署名され続ける。この配線を外さないこと。
+場合（既定になるのは `compatibility_date` が 2025-04-01 以降）に限られる。現在の
+`compatibility_date` はこれを満たすが、明示的な配線はそのフラグの既定値に依存しない
+（ADR-0018）ので外さないこと。
 
 値が未設定の場合、`buildAuth()` は既定シークレットにフォールバックせず**例外を
 投げる**（メッセージに `wrangler secret put BETTER_AUTH_SECRET` を明示）。
 つまり登録漏れの症状は「認証が静かに脆弱になる」ではなく「認証経路が失敗する」。
-better-auth 自身の既定シークレット検出は本番判定に `NODE_ENV` を使い、それも
-埋まらない `process.env` から読むため全環境で作動しない。この throw が唯一の
-検出手段になる。
+better-auth 自身の既定シークレット検出は本番判定に `NODE_ENV` を使うが、`NODE_ENV`
+は Worker の binding ではないため `process.env` が埋まっても現れず、全環境で作動
+しない。この throw が唯一の検出手段になる。
 
 `wrangler secret put` は即時反映される（再デプロイ不要）。手順は「新しい値を
 登録 → 動作確認 → 発行元で旧い値を失効」の順にする。逆順にすると失効から
