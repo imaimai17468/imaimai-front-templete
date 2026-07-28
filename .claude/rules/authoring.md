@@ -4,15 +4,21 @@ paths:
   - ".claude/agents/*.md"
   - ".claude/rules/*.md"
   - "AGENTS.md"
-  - "docs/*.md"
+  - "docs/**/*.md"
 ---
 
 # Authoring Instruction Documents (not caught by linters)
 
 Applies to text that **instructs** — a procedure someone executes against other
-files. ADRs and audit records describe state rather than direct action; they
-still have to be accurate, but the restatement rule below is aimed at
-procedures.
+files. ADRs and audit records describe state rather than direct action, so the
+restatement rule below is aimed at procedures rather than at them.
+
+The **verify-every-claim** rule applies to all of it, records included. An
+earlier revision scoped this file to `docs/*.md` only, on the reasoning that
+ADRs are records; an ADR amendment then shipped two invented claims — a
+cross-reference to an ADR that says nothing of the kind, and a "this already
+happened once" anecdote with no commit behind it. A reviewer caught both. The
+scope now covers `docs/**` for exactly that reason.
 
 No gate checks any of this. Typecheck, lint, knip, and tests all pass on a
 document that is confidently wrong about every file it names, so the review

@@ -74,7 +74,7 @@ Path-scoped rules are auto-loaded from `.claude/rules/`:
 
 - **`.claude/rules/react.md`** (`**/*.tsx`) — Rules of React: purity, hooks, component splitting, module organization
 - **`.claude/rules/design.md`** (`src/**/*.css`, `src/**/*.tsx`) — Design system: Wairo (和色) palette, squircle corners, typography, spacing, component conventions
-- **`.claude/rules/authoring.md`** (`.claude/skills/**/*.md`, `.claude/agents/*.md`, `.claude/rules/*.md`, `AGENTS.md`, `docs/*.md`) — Writing instruction documents: point instead of restating, verify every claim about another file before review, keep the document consistent with itself
+- **`.claude/rules/authoring.md`** (`.claude/skills/**/*.md`, `.claude/agents/*.md`, `.claude/rules/*.md`, `AGENTS.md`, `docs/**/*.md`) — Writing instruction documents: point instead of restating, verify every claim about another file before review, keep the document consistent with itself
 
 `src/` is layered — `routes/` → `server/fn/` → `gateways/` → `entities/`, imports flow downward only, and `server/fn/` is the authorization boundary. The contract is ADR-0016; Aegis serves it for any `src/**` edit.
 
