@@ -14,6 +14,13 @@
     "specificity": 0
   },
   {
+    "edge_id": "537075b8-fc8a-419b-9b22-eb4e10698637",
+    "source_value": ".claude/hooks/**",
+    "target_doc_id": "adr-0019",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "61514188-dd0d-47e9-bbcb-b4efcb5eb6a6",
     "source_value": "specs/**",
     "target_doc_id": "adr-0010",
@@ -31,6 +38,13 @@
     "edge_id": "7da347a2-f629-4ab2-b583-c9f0bf7fe8ba",
     "source_value": ".claude/agents/**",
     "target_doc_id": "adr-0015",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "83cb7757-8c82-44d0-8683-78330a74a775",
+    "source_value": ".claude/skills/review-diff/**",
+    "target_doc_id": "adr-0019",
     "priority": -1,
     "specificity": 0
   },
@@ -94,6 +108,13 @@
     "edge_id": "bdad5450-55ab-42b6-adf8-48e55b400a85",
     "source_value": ".claude/skills/repo-audit/**",
     "target_doc_id": "adr-0014",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "d420ec6b-8226-46d8-bd43-ced76392da82",
+    "source_value": ".claude/settings.json",
+    "target_doc_id": "adr-0019",
     "priority": -1,
     "specificity": 0
   },
