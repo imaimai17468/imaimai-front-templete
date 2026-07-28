@@ -71,7 +71,7 @@ Merge findings anchored to the same (file, line): keep the highest-severity one,
 
 ### Step 3 — Verify — `review-verifier`
 
-You are given the candidate list as JSON plus `mode` and `effort`. Try to REFUTE each candidate by reading the actual code (your context did not see the find pass — keep that independence):
+You are given the candidate list as JSON plus `effort`. Try to REFUTE each candidate by reading the actual code (your context did not see the find pass — keep that independence):
 
 - **standard**: one reproduction lens — walk the failure scenario step by step through the real code.
 - **high**: three lenses per finding — correctness (is the claimed behavior actually wrong?), reproduction (walk it step by step), scope (does the cited rule/expectation actually apply?) — refute if a majority of lenses refute.

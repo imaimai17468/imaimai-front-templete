@@ -129,7 +129,7 @@ spec 検証も同じフラット2段（design-time / 非ゲートなので stamp
        · high:     correctness · reproduction · scope の 3 レンズ → 過半数で棄却
        CONFIRMED / PLAUSIBLE / REFUTED（迷ったら REFUTED）
      Step 4: Return — REFUTED を落とし survivors を返す
-       { effort, mode, fallback?, findings[], stats }
+       { effort, findings[], stats }
      stamp: 手動 touch はしない。verifier 完走で post-agent-review-stamp.sh が自動作成。
 ```
 
