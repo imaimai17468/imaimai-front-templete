@@ -61,7 +61,7 @@
     "@vitejs/plugin-react": "6.0.1",
     "dotenv": "17.2.1",
     "drizzle-kit": "0.31.4",
-    "jsdom": "29.0.2",
+    "jsdom": "30.0.0",
     "knip": "6.29.0",
     "lefthook": "2.1.10",
     "oxfmt": "0.60.0",
