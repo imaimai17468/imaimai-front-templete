@@ -14,3 +14,13 @@ bucket_name = "local-avatars"
 
 [vars]
 BETTER_AUTH_URL = "http://localhost:5173"
+
+# Declared so `wrangler types` emits these on CloudflareEnv deterministically.
+# Values are never here — they are registered with `wrangler secret put`
+# (ADR-0017). Without this block the generator falls back to whatever local env
+# file it finds, so the type differs between a developer machine and CI.
+#
+# Naming a secret here also makes it required at deploy time, so register it with
+# `wrangler secret put` before adding the name — see docs/DEPLOYMENT.md.
+[secrets]
+required = ["BETTER_AUTH_SECRET", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"]
