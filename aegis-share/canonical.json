@@ -1,7 +1,7 @@
 {
   "format_version": 1,
-  "snapshot_id": "2ff5fb899c2617657b69d986ce3f59f310300f241dc94e4334283c9693da242b",
-  "knowledge_version": 113,
+  "snapshot_id": "48dd4042627de4852696653345d9533f21697278a5bd7097b1507924945dd3d1",
+  "knowledge_version": 114,
   "documents": [
     {
       "doc_id": "adr-0001",
@@ -211,6 +211,17 @@
       "template_origin": null,
       "source_path": "docs/adr/0019-single-pass-review.md",
       "source_refs_json": null
+    },
+    {
+      "doc_id": "adr-0020",
+      "title": "Verifier Returns The Fix",
+      "kind": "reference",
+      "content": "# 0020. The verifier returns the fix, not just the finding\n\n- Status: accepted\n- Date: 2026-07-28\n\n## Context\n\n[ADR-0019](0019-single-pass-review.md) made the review one pass — find → verify →\nfix → done — and recorded what that costs: \"the fix itself is no longer judged by\na fresh context.\" The shape of the pipeline made the gap precise. The finder finds,\nthe verifier refutes, and then **the parent invents the remedy**, which nothing\ndownstream examines. The Stop gate, lefthook, CI and the PR-side reviewer all\ncheck mechanics; none of them asks whether the change addresses the finding.\n\nThat gap is not theoretical. The 2026-07-25 audit's S0 entry records a first fix\nthat passed a secret explicitly but left the absent case silent — correct-looking,\nincomplete, and caught only by the re-review ADR-0019 removed.\n\nThe repository owner named the move while ADR-0019 was still being written: if the\npass happens once, invest in making that one pass right. The cheapest place to\ninvest is the step that currently has no reviewer.\n\n## Decision\n\nFor every finding it does not refute, the verifier also returns:\n\n- **`fix`** — the concrete change: which file, what it should say instead, and why\n  that shape rather than the alternative considered. A restatement of the problem\n  does not qualify.\n- **`acceptance`** — how the parent confirms the fix landed, checkable without\n  re-running the review: a command, or a specific observable in the code.\n\nThe parent applies those and commits. Departing from a returned fix is allowed —\nthe parent can see things the verifier could not — but it must say so and why.\n\n**Findings that need a decision are exempt, explicitly.** Where a remedy turns on\nan ADR-level choice or a genuine trade-off, the verifier writes that in `fix`\nalong with the credible options instead of inventing one, and the parent asks the\nuser. Forcing a fix into every field would manufacture confident answers to\nquestions that belong to the owner — the opposite of the goal.\n\nThis does not reintroduce a return arrow. Nothing re-runs; the judgement moves\n*into* the pass rather than after it.\n\n## Alternatives considered\n\n- **Re-run the verifier on the fix**: rejected in ADR-0019 and still rejected —\n  it is the loop the owner objected to, in a smaller costume.\n- **Have the finder propose fixes instead**: rejected. The finder has not\n  established the finding is real; a fix for a finding that the verifier goes on\n  to refute is waste, and proposing a remedy while hunting biases the hunt toward\n  findings that are easy to fix.\n- **Have the parent write the fix and a separate agent judge it**: rejected — a\n  third dispatch per review, for a judgement the verifier is already positioned\n  to make while it has the code loaded.\n- **Leave it to the parent and rely on the PR-side reviewer**: rejected. That\n  reviewer sees the final diff without the finding that motivated it, so it cannot\n  tell a complete fix from a plausible one.\n\n## Consequences\n\n- The verifier does more per finding, so its cost rises with the number of\n  survivors. On a clean diff nothing changes: no survivors, no fixes.\n- **The risk is attention, not correctness.** A verifier asked to design remedies\n  may refute less rigorously — the failure would show up as false positives\n  surviving, or as expected findings missed. That is exactly what the golden evals\n  measure, which is why this change is gated on a scored run rather than argued.\n- The parent's latitude is narrowed on purpose: it applies a judged fix instead of\n  authoring an unjudged one. The escape hatch is disclosure, not silence.\n- `mode` / `fallback` were already gone from the return contract (ADR-0019); this\n  adds `fix` and `acceptance` to it. Consumers of the report are the parent and\n  the human reading it, so the shape can change without a migration.\n- Under [ADR-0014](0014-measurement-first-model-continuity.md) this is a\n  load-bearing edit to `review-diff` that changes how the verifier behaves, so it\n  required a scored eval run. See the results file recorded with this change for\n  the fixtures run, the baseline compared against, and the scope of the run.\n",
+      "content_hash": "d2b681ff62fe57b167adb3b017529192d1eb410352950c87d588b971502d3dfe",
+      "ownership": "file-anchored",
+      "template_origin": null,
+      "source_path": "docs/adr/0020-verifier-returns-the-fix.md",
+      "source_refs_json": null
     }
   ],
   "edges": [
@@ -314,6 +325,15 @@
       "specificity": 0
     },
     {
+      "edge_id": "7e73ff8d-98dc-44c2-94f9-3ea80a81159b",
+      "source_type": "path",
+      "source_value": ".claude/agents/**",
+      "target_doc_id": "adr-0020",
+      "edge_type": "path_requires",
+      "priority": -1,
+      "specificity": 0
+    },
+    {
       "edge_id": "83cb7757-8c82-44d0-8683-78330a74a775",
       "source_type": "path",
       "source_value": ".claude/skills/review-diff/**",
@@ -381,6 +401,15 @@
       "source_type": "path",
       "source_value": ".claude/skills/review-diff/**",
       "target_doc_id": "adr-0011",
+      "edge_type": "path_requires",
+      "priority": -1,
+      "specificity": 0
+    },
+    {
+      "edge_id": "a609ff28-4105-4efb-b450-bbe81be0261f",
+      "source_type": "path",
+      "source_value": ".claude/skills/review-diff/**",
+      "target_doc_id": "adr-0020",
       "edge_type": "path_requires",
       "priority": -1,
       "specificity": 0

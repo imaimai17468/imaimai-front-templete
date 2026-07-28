@@ -42,6 +42,13 @@
     "specificity": 0
   },
   {
+    "edge_id": "7e73ff8d-98dc-44c2-94f9-3ea80a81159b",
+    "source_value": ".claude/agents/**",
+    "target_doc_id": "adr-0020",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "83cb7757-8c82-44d0-8683-78330a74a775",
     "source_value": ".claude/skills/review-diff/**",
     "target_doc_id": "adr-0019",
@@ -80,6 +87,13 @@
     "edge_id": "a16abcd6-d5e0-4dcb-8d44-3927bbeb466f",
     "source_value": ".claude/skills/review-diff/**",
     "target_doc_id": "adr-0011",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "a609ff28-4105-4efb-b450-bbe81be0261f",
+    "source_value": ".claude/skills/review-diff/**",
+    "target_doc_id": "adr-0020",
     "priority": -1,
     "specificity": 0
   },
