@@ -7,16 +7,18 @@ import { getCloudflareEnv } from "@/server/cloudflare";
 const buildAuth = () => {
   const env = getCloudflareEnv();
   // better-auth resolves BETTER_AUTH_SECRET from `globalThis.process.env`,
-  // which workerd only populates when `nodejs_compat_populate_process_env` is
-  // on — default only for compatibility_date >= 2025-04-01, while this Worker
-  // is on 2024-12-01 with `nodejs_compat` alone
+  // which workerd populates from text bindings only while
+  // `nodejs_compat_populate_process_env` is on — default for
+  // compatibility_date >= 2025-04-01
   // (https://developers.cloudflare.com/workers/configuration/environment-variables/).
-  // So the secret has to be handed over explicitly, and the absence has to be
-  // fatal here: better-auth's own guard against its public default secret only
-  // fires when it believes it is in production, and it decides that from
-  // NODE_ENV — read from the same unpopulated `process.env`, so it is false in
-  // every environment. Without this throw, a missing secret silently signs
-  // sessions with a published constant.
+  // The secret is still handed over explicitly, because explicit wiring does
+  // not depend on that runtime flag staying default (ADR-0018).
+  // The absence has to be fatal here: better-auth's own guard against its
+  // public default secret only fires when it believes it is in production, and
+  // it decides that from NODE_ENV — which is not a Worker binding, so it is
+  // absent from the populated `process.env` and the guard is false in every
+  // environment. Without this throw, a missing secret silently signs sessions
+  // with a published constant.
   if (!env.BETTER_AUTH_SECRET) {
     throw new Error(
       "BETTER_AUTH_SECRET is not set. Register it with `wrangler secret put BETTER_AUTH_SECRET` for a deployed Worker, or set it in .env.local for local development."
