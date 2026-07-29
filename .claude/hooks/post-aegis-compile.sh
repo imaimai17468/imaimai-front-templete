@@ -4,12 +4,13 @@
 #    pre-agent-aegis-guard keys on (cleared per prompt by user-prompt-gate.sh).
 # 2. Near-miss warning:
 # When the aegis_compile_context response contains glob_no_match near_miss_edges,
-# cross-match those patterns against target_files using bash extglob + globstar.
+# cross-match those patterns against target_files using bash `[[ ]]` glob
+# matching (extglob).
 # Inject an additionalContext warning only for patterns that bash matches but
 # Aegis reports as glob_no_match (suspicious — likely an Aegis glob bug).
 #
 # Decision logic:
-#   A) Pattern matches a target_file via bash extglob + globstar
+#   A) Pattern matches a target_file via bash `[[ ]]` glob matching
 #      → Divergence between Aegis and bash glob implementations = suspicious (confirmed bug)
 #   B) bash also does not match → routine no-match → skip
 #   C) reason is command_mismatch → always skip
@@ -20,7 +21,20 @@
 #   - 4+ entries → first 3 + "and N more" abbreviation
 
 set -euo pipefail
-shopt -s extglob globstar nullglob
+# macOS ships bash 3.2, which has neither `mapfile` nor `globstar`. Under
+# `set -e` an unknown shopt name aborts the script — and this line sits above
+# the stamp below, so the gate artifact was never created on such a machine and
+# every non-exempt `Agent` dispatch was blocked (the four pinned review agents
+# are exempt in pre-agent-aegis-guard.sh, which is why the review pipeline kept
+# working and this stayed invisible from 4ff5e81 until 2026-07-29). The options
+# are therefore requested, not required.
+shopt -s extglob nullglob 2>/dev/null || true
+# `globstar` was in that list and is deliberately gone. It governs pathname
+# expansion, while the cross-check below matches with `[[ str == pattern ]]`,
+# where a `*` already spans `/`. Verified on bash 3.2.57, where the option does
+# not exist at all: `[[ a/b/c/index.ts == a/**/index.ts ]]` matches, and so does
+# the same test with a single `*`. Setting it would change nothing here, and the
+# comment claiming otherwise sent a reviewer looking for a bug that was not one.
 
 INPUT=$(cat)
 
@@ -47,8 +61,15 @@ fi
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 touch "$ROOT/.claude/.aegis-stamp"
 
-# Extract target_files into an array
-mapfile -t TARGET_FILES < <(printf '%s' "$INPUT" | jq -r '.tool_input.target_files // [] | .[]' 2>/dev/null || true)
+# Extract target_files into an array. Written as a read loop rather than
+# `mapfile`, which bash 3.2 does not have — and this runs after the stamp, so a
+# failure here would surface as a hook error on an otherwise successful gate.
+# No blank-line filter: `mapfile -t` keeps an empty line as an empty element, so
+# skipping them would make the count differ from the builtin this replaces.
+TARGET_FILES=()
+while IFS= read -r LINE; do
+  TARGET_FILES+=("$LINE")
+done < <(printf '%s' "$INPUT" | jq -r '.tool_input.target_files // [] | .[]' 2>/dev/null || true)
 
 # Extract near_miss_edges that are glob_no_match and not command_mismatch
 NEAR_MISS_JSON=$(printf '%s' "$INPUT" | jq -c '
@@ -78,7 +99,7 @@ while IFS= read -r EDGE; do
     continue
   fi
 
-  # Test each target_file against the pattern using bash extglob + globstar
+  # Test each target_file against the pattern using bash `[[ ]]` glob matching
   MATCHED=false
   for TARGET in "${TARGET_FILES[@]}"; do
     # shellcheck disable=SC2053
@@ -110,7 +131,7 @@ else
   ...and ${REMAINING} more (see debug_info.near_miss_edges for the full list)"
 fi
 
-CONTEXT="[Aegis near_miss_edges warning] The following edge_hints match target_files in bash (extglob + globstar) but are reported as glob_no_match by Aegis. This is likely an Aegis glob implementation bug. Report via \`aegis_observe({event_type: \"compile_miss\", ...})\` or fix the glob pattern in the admin surface (aegis_import_doc / edge edit).
+CONTEXT="[Aegis near_miss_edges warning] The following edge_hints match target_files under bash \`[[ ]]\` glob matching but are reported as glob_no_match by Aegis. This is likely an Aegis glob implementation bug. Report via \`aegis_observe({event_type: \"compile_miss\", ...})\` or fix the glob pattern in the admin surface (aegis_import_doc / edge edit).
 
 Affected edge_hints:
 ${LIST}${SUFFIX}"

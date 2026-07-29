@@ -12,14 +12,36 @@ ever executed.
 Run it after touching pre-bash-guard.sh. Exits non-zero on a mismatch.
 """
 
+import atexit
 import json
 import os
 import pathlib
 import subprocess
 import sys
+import tempfile
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 HOOK = REPO / ".claude/hooks/pre-bash-guard.sh"
+
+# A project directory that already holds a review stamp. The guard runs its three
+# decisions in order, so a case built to probe the env or `find` decision with a
+# commit-shaped command still reaches the commit gate — and would then be judged
+# by whether this session happens to have earned a stamp. Pointing such a case at
+# this directory keeps it testing the decision it names.
+# A unique directory per run, removed at exit. A fixed shared path under the
+# system temp dir would let two concurrent runs clobber each other's fixture, and
+# the `rmtree` that kept it clean would delete whatever else happened to occupy
+# that name.
+# `atexit` runs on a normal exit and on an uncaught exception, but not on SIGKILL,
+# an OOM kill, or a segfault — a hard-killed run leaves its directory behind, and
+# no later run will match the random name to clean it. Sweeping the prefix at
+# startup would restore that self-healing and delete the live directory of a
+# concurrent run, which is the bug this replaced, so it is deliberately not done.
+_STAMPED_TMP = tempfile.TemporaryDirectory(prefix="bash-guard-stamped-")
+atexit.register(_STAMPED_TMP.cleanup)
+STAMPED = pathlib.Path(_STAMPED_TMP.name)
+(STAMPED / ".claude").mkdir(parents=True)
+(STAMPED / ".claude/.review-stamp").touch()
 
 # Split so this file's own text is not itself a commit-shaped command.
 LAND = "git " + "com" + "mit"
@@ -27,7 +49,7 @@ LAND = "git " + "com" + "mit"
 failures = []
 
 
-def decide(command):
+def decide(command, project_dir=REPO):
     """Return the hook's decision for a Bash command: 'allow', 'block', or 'ask'."""
     payload = {"tool_name": "Bash", "tool_input": {"command": command}}
     out = subprocess.run(
@@ -35,7 +57,7 @@ def decide(command):
         input=json.dumps(payload),
         capture_output=True,
         text=True,
-        env={**os.environ, "CLAUDE_PROJECT_DIR": str(REPO)},
+        env={**os.environ, "CLAUDE_PROJECT_DIR": str(project_dir)},
     ).stdout.strip()
     if not out:
         return "allow"  # the hook stayed out of the way
@@ -46,8 +68,8 @@ def decide(command):
     return decision or "allow"
 
 
-def check(command, expected, why):
-    actual = decide(command)
+def check(command, expected, why, project_dir=REPO):
+    actual = decide(command, project_dir)
     ok = actual == expected
     if not ok:
         failures.append(f"{why}: {command}")
@@ -105,6 +127,7 @@ check(
     "git add x && " + LAND + " -F - <<'MSG'\nrefuse find . -type f | xargs cat and -delete\nMSG",
     "allow",
     "a commit message describing the dangerous shapes",
+    project_dir=STAMPED,
 )
 check("cat <<'EOF'\nfind / -delete\nEOF", "allow", "heredoc body naming a dangerous find")
 

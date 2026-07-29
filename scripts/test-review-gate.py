@@ -12,6 +12,7 @@ post-bash-stamp-consume.sh. Exits non-zero on a mismatch, so it works as a
 pre-flight check rather than a report to read.
 """
 
+import atexit
 import json
 import os
 import pathlib
@@ -21,7 +22,17 @@ import sys
 import tempfile
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-WORK = pathlib.Path(tempfile.gettempdir()) / "review-gate-check"
+# A unique directory per run, removed at exit. A fixed shared path under the
+# system temp dir would let two concurrent runs clobber each other, and the
+# `rmtree` that kept it clean would delete whatever else occupied that name.
+# `atexit` runs on a normal exit and on an uncaught exception, but not on SIGKILL,
+# an OOM kill, or a segfault — a hard-killed run leaves its directory behind, and
+# no later run will match the random name to clean it. Sweeping the prefix at
+# startup would restore that self-healing and delete the live directory of a
+# concurrent run, which is the bug this replaced, so it is deliberately not done.
+_WORK_TMP = tempfile.TemporaryDirectory(prefix="review-gate-check-")
+atexit.register(_WORK_TMP.cleanup)
+WORK = pathlib.Path(_WORK_TMP.name)
 
 # Split so this file's own text cannot look like a commit to the gate that
 # matches `git <anything> commit` — see post-bash-stamp-consume.sh.
@@ -37,7 +48,6 @@ HOOKS = (
     "post-edit-check.sh",
 )
 
-shutil.rmtree(WORK, ignore_errors=True)
 (WORK / ".claude/hooks").mkdir(parents=True)
 for hook_name in HOOKS:
     shutil.copy(REPO / ".claude/hooks" / hook_name, WORK / ".claude/hooks" / hook_name)
