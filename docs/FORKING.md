@@ -46,13 +46,20 @@ clone した直後に置き換えるべき値と、残す/捨てるファイル�
 - `aegis-share/source/documents/` — テンプレート自身の意思決定記録（ADR）。
   フォーク先に関係するのは「今どう動くか」を説明する ADR だけ（例: 0004 権限境界、
   0016 レイヤ契約）。このテンプレート自身のプロセスがどう変遷したかの記録は他人の
-  歴史なので落としてよい。消す場合は
-  `source/edges/` の該当エッジも一緒に落とし、share パイプラインを回し直す
+  歴史なので落としてよい。**これはフォーク先という別リポジトリでのみ許される**
+  （このリポジトリ内では ADR を削除せず superseded にする / AGENTS.md「ADR form」）。
+  消す場合は `source/edges/` の該当エッジも一緒に落とし、share パイプラインを回し直す
 - `docs/launch-checklist/` の過去レポート（あれば）
 
 **ADR を整理する場合の必須手順**: 記録は `aegis-share/source/` にしか無い。
 `source/documents/adr-NNNN.md` を直接編集し（新規なら `source/edges/` にエッジを
 追加、削除するならそのエッジも落とす）、共有パイプラインを回す。
+
+削除する場合は、残す ADR からの参照も先に確認する。
+`grep -rn "amended by\|superseded by" aegis-share/source/documents/` で、削除対象を
+指している Status 行や本文を洗い出し、書き換えるか「参照先は削除済み」と注記する。
+放置すると、残した ADR が存在しない番号を指した状態になる（例: 0004 の Status は
+`amended by 0013, 0017`）。
 
 ```bash
 npx -y @fuwasegu/aegis@<pinned> share-format
