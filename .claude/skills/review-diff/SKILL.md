@@ -30,6 +30,21 @@ Benchmarking (2026-07-04) already collapsed the old 5–7-lane parallel workflow
 - **You are the `code-reviewer` agent** (this skill is preloaded): execute **Find** (Steps 1–2) and return the candidate JSON. Do not verify, do not stamp, do not dispatch anything.
 - **You are the `review-verifier` agent** (this skill is preloaded): execute **Verify** (Step 3) and **Return** (Step 4) against the candidates handed to you.
 
+### The briefing (parent) — required slots
+
+The procedure above is pinned; the dispatch prompt is not — it is written from scratch every time. Fill every slot below in both dispatches. A slot with nothing to say gets one line saying so: an omitted slot reads as "not applicable" when it usually means "not thought about".
+
+**No hook checks that these slots are filled** — a known limitation, not a claim of enforcement. This repo has rejected instruction-only mitigations three times (ADR-0001 on skill invocation, ADR-0013 on warn-not-block, ADR-0019 on delta mode). This one is kept anyway because it downgrades no mechanism: before it the dispatch prompt had no guidance at all.
+
+- **Diff scope.** The paths, and the command that actually shows them. `git diff` shows neither staged-only nor untracked files, so name `git diff --cached` and list new files explicitly when the change includes them. A new file the finder never saw is not a reviewed file.
+- **What changed and why.** The intent, in a few sentences. Whether the code does what was meant is only checkable by someone who was told what was meant.
+- **Out of scope.** Earlier commits on the branch, adjacent files, known debt — what must not be re-reported, and why it is out. Without this the finder either re-reports settled ground or silently treats it as fair game.
+- **Claims to check.** The two or three things you are least sure of, written as claims rather than areas: "confirm this cannot abort under `set -e`" gets checked, "review the hook" does not.
+- **External tool behaviour.** Handled by the parent routing bullet above ("Neither agent has a web tool…") — nothing to add here beyond following it.
+- **Ordering.** State that the verifier follows and that you will not edit between the two dispatches — saying it also tells the finder its report is an input, not a verdict. See "Fail-closed" below for the mechanism that enforces it either way. The constraint was already written down when it was broken on 2026-07-28 — findings fixed before the verifier ran, costing an entire extra find+verify pair (ADR-0019).
+
+The verifier's briefing carries the candidate JSON verbatim, the same slots, and one more: **what to challenge hardest.** Name the candidates whose truth would change the fix, and say plainly where a candidate contradicts something you wrote — that is the cue to re-derive it rather than defer to the finder.
+
 ## When to run
 
 - Step 6 of `start-workflow`, before proposing a commit.
