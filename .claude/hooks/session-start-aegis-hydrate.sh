@@ -35,7 +35,7 @@ if [ ! -f .aegis/aegis.db ]; then
     echo "[aegis-hydrate] share-hydrate FAILED (exit $HYDRATE_STATUS). The knowledge base is still empty - run manually: $AEGIS share-hydrate"
     exit 0
   fi
-  echo "[aegis-hydrate] Done. Note for the agent: call aegis_sync_docs once (admin surface) to re-anchor file-anchored docs - doctor reports them stale until then."
+  echo "[aegis-hydrate] Done. Note for the agent: no documents are file-anchored (ADR-0021), so aegis_sync_docs is a no-op here - doctor's remaining signal is bundle-vs-DB drift, not anchor drift."
   exit 0
 fi
 
@@ -48,10 +48,10 @@ if [ $? -ne 0 ]; then
   # rewrites the tracked bundle at the OLDER version (silent history regression).
   # doctor suggests plain `share-hydrate`, which fails on an initialized DB.
   if printf '%s' "$DOCTOR_OUT" | grep -q 'bundle_newer'; then
-    echo "[aegis-hydrate] The tracked bundle is AHEAD of the local DB. Do NOT run share-materialize/share-export first - that would re-export the bundle at the local (older) version and regress it. Correct order: 1) $AEGIS share-hydrate --replace (WARNING: drops local observations/proposals/compile_log - check them first via aegis_list_observations / aegis_workspace_status), 2) call aegis_sync_docs to re-anchor, 3) only then run the share pipeline if you changed docs/adr/."
+    echo "[aegis-hydrate] The tracked bundle is AHEAD of the local DB. Do NOT run share-materialize/share-export first - that would re-export the bundle at the local (older) version and regress it. Correct order: 1) $AEGIS share-hydrate --replace (WARNING: drops local observations/proposals/compile_log - check them first via aegis_list_observations / aegis_workspace_status), 2) only then run the share pipeline if you changed source/documents/."
   else
-    echo "[aegis-hydrate] If docs/adr/ changed: sync aegis-share/source/documents/ to match, then run: $AEGIS share-format && $AEGIS share-lint && $AEGIS share-materialize && $AEGIS share-export"
-    echo "[aegis-hydrate] If nothing changed (e.g. right after share-hydrate): call aegis_sync_docs once to re-anchor - stale warnings clear when content already matches."
+    echo "[aegis-hydrate] If source/documents/ changed, run: $AEGIS share-format && $AEGIS share-lint && $AEGIS share-materialize && $AEGIS share-export"
+    echo "[aegis-hydrate] If nothing changed (e.g. right after share-hydrate): nothing to do - no documents are file-anchored (ADR-0021)."
   fi
 fi
 

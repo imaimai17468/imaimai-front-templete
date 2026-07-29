@@ -5,7 +5,7 @@
 #    — respects stop_hook_active: if this Stop was already blocked once, a
 #      still-failing gate downgrades to a warning instead of blocking again,
 #      so a pre-existing failure the agent cannot fix does not loop forever
-# 2. Aegis sync check — warn if docs/adr/ changed without sync
+# 2. Aegis sync check — warn if aegis-share/source/ changed without running the pipeline
 
 set -uo pipefail
 
@@ -124,7 +124,7 @@ fi
 
 # ==== 2. Aegis sync check ====
 
-RULES_CHANGED=$(printf '%s' "$ALL_FILES" | grep -c '^docs/adr/' || true)
+RULES_CHANGED=$(printf '%s' "$ALL_FILES" | grep -c '^aegis-share/source/' || true)
 
 if [ "$RULES_CHANGED" -gt 0 ]; then
   TRANSCRIPT=$(printf '%s' "$INPUT" | jq -r '.transcript_path // ""' 2>/dev/null || true)
@@ -138,7 +138,7 @@ if [ "$RULES_CHANGED" -gt 0 ]; then
 
   if [ "$AEGIS_CALLED" = false ]; then
     jq -n '{
-      systemMessage: "⚠️ Aegis sync check: docs/adr/ files were modified but no knowledge-base update was detected in this session. Sync the matching aegis-share/source/documents/*.md body, then run `share-format` -> `share-lint` -> `share-materialize` -> `share-export` with `npx -y @fuwasegu/aegis@<pin in .mcp.json>` (preferred), or use aegis_sync_docs / aegis_import_doc."
+      systemMessage: "⚠️ Aegis sync check: aegis-share/source/ was modified but no knowledge-base update was detected in this session. Run `share-format` -> `share-lint` -> `share-materialize` -> `share-export` with `npx -y @fuwasegu/aegis@<pin in .mcp.json>` (preferred), or use aegis_sync_docs / aegis_import_doc."
     }'
     exit 0
   fi

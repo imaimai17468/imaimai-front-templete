@@ -220,7 +220,7 @@ workerd)" row, for instance, describes a capability this procedure removes
 without naming any of the terms. Reading is the check; the greps are a backstop.
 
 Surfaces to go through: `README.md`, `docs/DEPLOYMENT.md`, `docs/FORKING.md`,
-`.claude/settings.json`, and `docs/adr/` (amend in place — see below).
+`.claude/settings.json`, and `aegis-share/source/documents/` (amend in place — see below).
 
 **Do not strip these while you are in there.** They are the deployment, which
 this procedure keeps:
@@ -259,7 +259,7 @@ this procedure keeps:
   Section 4 (now 3) also ends by telling the reader to consult `/remove-db` for
   removing auth — circular advice for a fork that just ran it. Drop that
   sentence and the profile-feature deletion list with it.
-- `docs/adr/`: never delete an ADR (`docs/adr/README.md`, Numbering). Two need a
+- ADRs: never delete one (AGENTS.md, "ADR form"). Two need a
   note added in place. **ADR-0017**'s standing exception exists solely for
   drizzle-kit's `CLOUDFLARE_API_TOKEN`, so removing drizzle-kit closes it — its
   own acceptance test ("the remote path works with the token slot empty") is now
@@ -284,15 +284,15 @@ grep -rn "better-auth\|BETTER_AUTH\|drizzle\|D1Database\|R2Bucket\|AVATARS_BUCKE
   README.md AGENTS.md .claude/settings.json docs/DEPLOYMENT.md docs/FORKING.md
 ```
 
-Expect zero hits. Two deliberate exclusions from the path list: `docs/adr/`
+Expect zero hits. Two deliberate exclusions from the path list: the ADR records
 keeps D1 / drizzle references as decision history and in ADR-0017's amended
 exception, and generic infra checklists (e.g.
 `.claude/skills/launch-checklist`) keep their generic D1 / R2 mentions. Neither
 is a leftover.
 
 Also check for dead links to the deleted database doc — same path discipline,
-for the same reason (`docs/adr/` and `docs/superpowers/specs/` cite that file as
-history and must not be "fixed"):
+for the same reason (the Aegis knowledge base cites that file as history and must
+not be "fixed"):
 
 ```bash
 grep -rn "DATABASE_SETUP" README.md AGENTS.md .claude/ docs/DEPLOYMENT.md docs/FORKING.md
@@ -337,8 +337,8 @@ bodies in Japanese per that rule):
 3. `chore:` — remove the DB / auth dependencies (package.json / bun.lock)
 4. `docs:` — remove DB- and auth-related documentation. Stage every surface
    step 6 touched: `README.md`, `docs/DEPLOYMENT.md`, `docs/FORKING.md`,
-   `.claude/settings.json`, and the amended `docs/adr/0007` / `docs/adr/0017`
-   (plus their `aegis-share/source/` mirrors and the regenerated bundle, if your
+   `.claude/settings.json`, and the amended `adr-0007` / `adr-0017` documents
+   (plus the regenerated bundle under `aegis-share/`, if your
    fork runs Aegis). AGENTS.md's Commits discipline forbids `git add -A`, so a
    surface missing from this list is a surface left uncommitted.
 

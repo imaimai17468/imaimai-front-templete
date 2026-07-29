@@ -22,7 +22,41 @@ Benchmarking (2026-07-04) collapsed the old parallel workflow (4 hunt lanes, ~80
 
 ## When to run
 
-Step 4 of `start-workflow`, for features with non-obvious state transitions: wizards / multi-step forms, auth or session flows, async guards (disable-while-loading, unsaved-changes), permission branching. The deciding factor is interaction complexity, not scale. Write the spec first (format: `specs/README.md`), then run this. Fix the design for every CONFIRMED counterexample before implementing.
+Step 4 of `start-workflow`, for features with non-obvious state transitions: wizards / multi-step forms, auth or session flows, async guards (disable-while-loading, unsaved-changes), permission branching. The deciding factor is interaction complexity, not scale — even three states hide loopholes once back, cancel, retry, reload, double-submit or permission branching are involved. Skip static screens and plain CRUD. Write the spec first (see **Format** below), then run this. Fix the design for every CONFIRMED counterexample before implementing.
+
+## Format
+
+A spec is one Markdown file per feature, small enough that every state fits on a screen:
+
+```markdown
+# <Feature> spec
+
+## States
+- idle, submitting, succeeded, failed   (one per line, with a short meaning)
+
+## Initial state
+idle
+
+## Actions
+| action  | from       | to         | requires       | ensures           |
+|---------|------------|------------|----------------|-------------------|
+| submit  | idle       | submitting | form is valid  | request sent once |
+| succeed | submitting | succeeded  | response ok    | result persisted  |
+| fail    | submitting | failed     | response error | error shown       |
+| retry   | failed     | submitting | true           | request sent once |
+
+## Invariants
+- At most one in-flight request exists at any time.
+
+## Forbidden flows
+- A second submit while submitting (double-submit).
+- Reaching succeeded without passing through submitting.
+
+## Requirements
+- R1: The user can always recover from failed (retry or leave).
+```
+
+`requires: true` means unguarded, and this pipeline treats unguarded actions on a shared trigger as suspicious. Name UI events honestly — back, reload and cancel are actions too, and leaving them out is how loopholes hide. Update the spec when behaviour changes; a stale spec is worse than none. Worked examples live in `scripts/evals/verify-spec/sx-01..03/`.
 
 ## Argument
 
@@ -32,7 +66,7 @@ The spec path, e.g. `/verify-spec specs/checkout.spec.md`. Optional search depth
 
 ### Step 1 — Formalize — `spec-verifier` (hunter)
 
-Read the spec (format documented in `specs/README.md`) and normalize it into a structured state machine:
+Read the spec (format under "Format" above) and normalize it into a structured state machine:
 
 - every state; the initial state
 - every action as a (from → to) transition with its `requires` guard and `ensures` postcondition
