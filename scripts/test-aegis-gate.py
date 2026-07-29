@@ -104,35 +104,38 @@ def clear():
 print(f"shell under test: {subprocess.run(['bash', '--version'], capture_output=True, text=True).stdout.splitlines()[0]}")
 print()
 
-print("a gate hook must not use a construct that aborts on bash 3.2")
-# Scanned with whole-line comments removed. Naming a construct in a comment to
-# explain why it is avoided is exactly what these hooks should do, and the first
-# version of this check failed on its own explanatory comment.
-code = "\n".join(
-    line
-    for line in (REPO / ".claude/hooks/post-aegis-compile.sh").read_text().splitlines()
-    if not line.lstrip().startswith("#")
-)
-# `shopt -s <name>` exits non-zero on an unknown option, which `set -e` turns
-# into an abort. Guarding each one keeps a newer option optional rather than
-# required.
+print("no gate hook may use a construct that aborts on bash 3.2")
+# Every hook this file drives, not just the one that broke: the invariant is about
+# the gate, and a bash-4-only construct reintroduced into any of them fails the
+# same way.
 #
-# Both checks below are textual heuristics, not a shell parser. They catch the
-# construct written plainly, which is how it gets reintroduced by accident; they
-# do not survive indirection (`command shopt …`, `eval "shopt …"`, a builtin name
-# assembled from a variable). That is the intended strength — this guards against
-# a careless edit, not against someone working around it.
-unguarded = [
-    line.strip() for line in code.splitlines() if re.match(r"\s*shopt\s", line) and "|| true" not in line
-]
-check("no unguarded shopt", unguarded, [])
-# Builtins bash 3.2 does not have. `declare -A` is included for the same reason
-# even though the hook does not currently use one.
-check(
-    "no bash-4-only builtins",
-    sorted({w for w in ("mapfile", "readarray", "declare -A") if w in code}),
-    [],
-)
+# `shopt -s <name>` exits non-zero on an unknown option, which `set -e` turns into
+# an abort. Guarding each one keeps a newer option optional rather than required.
+# `mapfile` / `readarray` / `declare -A` do not exist in 3.2 at all.
+#
+# Both checks are textual heuristics, not a shell parser, and are read with
+# whole-line comments stripped — naming a construct in a comment to explain why it
+# is avoided is exactly what these hooks should do, and the first version of this
+# check failed on its own explanatory comment. They catch the construct written
+# plainly, which is how it gets reintroduced by accident; they do not survive
+# indirection (`command shopt …`, `eval "shopt …"`, a builtin name assembled from a
+# variable). That is the intended strength — this guards against a careless edit,
+# not against someone working around it.
+for hook_name in HOOKS:
+    code = "\n".join(
+        line
+        for line in (REPO / ".claude/hooks" / hook_name).read_text().splitlines()
+        if not line.lstrip().startswith("#")
+    )
+    unguarded = [
+        line.strip() for line in code.splitlines() if re.match(r"\s*shopt\s", line) and "|| true" not in line
+    ]
+    check(f"no unguarded shopt: {hook_name}", unguarded, [])
+    check(
+        f"no bash-4-only builtins: {hook_name}",
+        sorted({w for w in ("mapfile", "readarray", "declare -A") if w in code}),
+        [],
+    )
 
 print("a successful consultation stamps the gate")
 clear()

@@ -12,10 +12,10 @@ ever executed.
 Run it after touching pre-bash-guard.sh. Exits non-zero on a mismatch.
 """
 
+import atexit
 import json
 import os
 import pathlib
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -28,14 +28,15 @@ HOOK = REPO / ".claude/hooks/pre-bash-guard.sh"
 # commit-shaped command still reaches the commit gate — and would then be judged
 # by whether this session happens to have earned a stamp. Pointing such a case at
 # this directory keeps it testing the decision it names.
-# Fixed path, cleared on entry, matching scripts/test-review-gate.py — a fresh
-# mkdtemp per run would accumulate directories nothing deletes.
-STAMPED = pathlib.Path(tempfile.gettempdir()) / "bash-guard-stamped"
-shutil.rmtree(STAMPED, ignore_errors=True)
-# exist_ok because the path is shared: a concurrent or crashed earlier run can
-# leave the directory behind between the rmtree above and this line, and a
-# pre-flight script that dies on that is worse than one that reuses it.
-(STAMPED / ".claude").mkdir(parents=True, exist_ok=True)
+# A unique directory per run, removed at exit. A fixed shared path under the
+# system temp dir would let two concurrent runs clobber each other's fixture, and
+# the `rmtree` that kept it clean would delete whatever else happened to occupy
+# that name. `TemporaryDirectory` gives isolation and cleanup without leaving
+# directories behind.
+_STAMPED_TMP = tempfile.TemporaryDirectory(prefix="bash-guard-stamped-")
+atexit.register(_STAMPED_TMP.cleanup)
+STAMPED = pathlib.Path(_STAMPED_TMP.name)
+(STAMPED / ".claude").mkdir(parents=True)
 (STAMPED / ".claude/.review-stamp").touch()
 
 # Split so this file's own text is not itself a commit-shaped command.
