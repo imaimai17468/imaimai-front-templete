@@ -1,7 +1,16 @@
 # 0014. Golden evals govern the review pipeline; delta re-review mode; on-demand repo audit
 
-- Status: accepted
+- Status: accepted (amended by 0019)
 - Date: 2026-07-10
+
+> **Amended by [ADR-0019](0019-single-pass-review.md)** (2026-07-28): decision 2
+> below — the delta re-review mode — is deleted. It was built to make the
+> post-fix re-review cheap; ADR-0019 removes that re-review entirely, so the mode
+> had nothing left to make cheap, and a mode that has to be remembered was itself
+> a failure mode (in practice the parent kept running full re-reviews instead).
+> The fixture and measurements in `docs/superpowers/evals/review-diff/` are kept
+> as the record of why it existed. Decisions 1 (golden evals govern the pipeline)
+> and 3 (`repo-audit`) stand.
 
 ## Context
 

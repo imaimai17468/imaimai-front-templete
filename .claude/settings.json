@@ -212,7 +212,7 @@
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-edit-check.sh",
             "timeout": 60,
-            "statusMessage": "Per-edit check: scoped lint + review stamp clear..."
+            "statusMessage": "Per-edit check: scoped lint (review stamp preserved, ADR-0019)..."
           }
         ]
       },
@@ -246,6 +246,17 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-agent-review-stamp.sh",
             "timeout": 3,
             "statusMessage": "Review gate: finder marker on code-reviewer, stamp on review-verifier..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-bash-stamp-consume.sh",
+            "timeout": 15,
+            "statusMessage": "Review gate: consume stamp when a commit leaves the tree clean..."
           }
         ]
       }

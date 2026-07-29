@@ -74,7 +74,7 @@ ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 if [ ! -f "$ROOT/.claude/.review-stamp" ]; then
   jq -n '{
     decision: "block",
-    reason: "PreToolUse(Bash): the review gate has not been stamped. Dispatch the code-reviewer agent (or run /review-diff) on the uncommitted diff before committing. Note: any Edit/Write after a review clears the stamp (ADR-0013), so post-review fixes require a re-review."
+    reason: "PreToolUse(Bash): the review gate has not been stamped. Dispatch the code-reviewer agent, then the review-verifier agent (or run /review-diff), on the uncommitted diff before committing. Fixing what the verifier confirms does not require another review (ADR-0019) — the stamp survives those edits, so commit once the findings are addressed."
   }'
   exit 0
 fi

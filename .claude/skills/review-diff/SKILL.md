@@ -19,7 +19,7 @@ Benchmarking (2026-07-04) already collapsed the old 5–7-lane parallel workflow
 
 - **You are the parent session** (human invoked `/review-diff`, or start-workflow step 6):
   1. Dispatch the `code-reviewer` agent on the uncommitted diff (this clears any stale stamp — new cycle). It returns candidate findings as JSON.
-  2. Dispatch the `review-verifier` agent, passing the candidate JSON verbatim plus the `mode` and `effort`. Do this **even when the finder returned zero candidates** (a clean diff still needs the verifier to run so the gate stamps). Wait for it; its completion stamps `.claude/.review-stamp`.
+  2. Dispatch the `review-verifier` agent, passing the candidate JSON verbatim plus the `effort`. Do this **even when the finder returned zero candidates** (a clean diff still needs the verifier to run so the gate stamps). Wait for it; its completion stamps `.claude/.review-stamp`.
   3. Integrate the surviving findings it returns. Do NOT run the find/verify steps in the parent context yourself — the fresh agent contexts are the whole point.
   Pass `effort: high` through to both dispatches if the user asked for it.
 - **You are the `code-reviewer` agent** (this skill is preloaded): execute **Find** (Steps 1–2) and return the candidate JSON. Do not verify, do not stamp, do not dispatch anything.
@@ -29,43 +29,18 @@ Benchmarking (2026-07-04) already collapsed the old 5–7-lane parallel workflow
 
 - Step 6 of `start-workflow`, before proposing a commit.
 - Any time the uncommitted diff needs a full review.
-- Re-run after fixing findings (see Modes → delta).
+
+**Once per commit.** Fixing what the verifier confirmed does not require running
+this again — the stamp survives those edits (ADR-0019). The pass ends at the fix.
 
 ## Effort
 
 - **standard** (default): the verifier uses a single reproduction lens.
 - **high**: the verifier uses three lenses (correctness, reproduction, scope) and a finding survives only if it is NOT refuted by a majority. Use for security-sensitive or high-blast-radius diffs.
 
-## Modes
-
-- **full** (default): find over the entire uncommitted diff.
-- **delta**: re-review after a completed full review in the same task cycle.
-  The finder dispatch prompt MUST include (i) the prior review report verbatim
-  and (ii) a delta description listing the files/edits made since that review.
-  Describe the delta **relative to the resulting diff**, not just the edit:
-  when a fix reverts a file to HEAD it drops out of `git diff` entirely, so
-  say so and enumerate the expected remaining files — otherwise the finder's
-  consistency check sees the declared-delta file missing from the diff and
-  (correctly) falls back to a full-price review (measured on fx-08).
-  Adjustments:
-  - Scope the find pass to the delta files and their interaction with the prior
-    findings (did a fix regress a neighbor? does a prior finding still apply?).
-  - Do NOT re-run whole-project verification commands (typecheck / test /
-    build / knip) that a full review may choose to run while tracing a
-    finding — the parent's per-edit hooks and Stop gate own them. Reading code
-    and read-only git commands are still expected.
-  - The verifier still runs (zero candidates → verifier trivially confirms
-    nothing and stamps, as in full mode).
-  - **Fail closed to full mode** when the prior report is missing or partial,
-    the delta description is ambiguous, or `git diff` shows changes outside the
-    declared delta plus the prior review's scope. State the fallback in the
-    report.
-  - **Known trade**: delta mode does not re-examine previously-clean hunks of
-    the same diff — a fix that breaks reviewed-but-clean code is invisible to
-    it. Prefer full mode when fixes changed assumptions beyond the prior
-    findings.
-  Stamp semantics are identical in both modes: verifier completion stamps,
-  finder dispatch clears (ADR-0013/0015).
+There is one mode: find over the entire uncommitted diff. The pass runs once per
+commit and ends at the fix (ADR-0019) — there is no re-review mode to reach for,
+and a partial-scope re-run no longer exists.
 
 ## Procedure
 
@@ -87,7 +62,7 @@ Each finding: `{ file (repo-relative), line (1-indexed), title, description (fai
 
 ### Step 2 — Dedup + return candidates — `code-reviewer`
 
-Merge findings anchored to the same (file, line): keep the highest-severity one, fold the others into its description. Sort by severity. Return `{ mode, fallback?, candidates: [ ... ], stats: { candidates } }` as your final message. Stop here — you do not verify or stamp.
+Merge findings anchored to the same (file, line): keep the highest-severity one, fold the others into its description. Sort by severity. Return `{ candidates: [ ... ], stats: { candidates } }` as your final message. Stop here — you do not verify or stamp.
 
 ### Step 3 — Verify — `review-verifier`
 
@@ -103,18 +78,18 @@ If a finding cites an AGENTS.md rule, read AGENTS.md and respect rule scope qual
 Drop REFUTED findings. Sort survivors by verdict (CONFIRMED first) then severity. Return:
 
 ```
-{ effort, mode, fallback?, findings: [ { file, line, title, description, severity, verdict, verification } ], stats: { candidates, refuted } }
+{ effort, findings: [ { file, line, title, description, severity, verdict, verification } ], stats: { candidates, refuted } }
 ```
 
-`mode`/`fallback` are echoed from the finder. Do NOT manually create `.claude/.review-stamp` — the `PostToolUse(Agent)` hook stamps it when you (the `review-verifier` agent) complete.
+Do NOT manually create `.claude/.review-stamp` — the `PostToolUse(Agent)` hook stamps it when you (the `review-verifier` agent) complete.
 
 **Fail-closed (parent responsibility).** The gate is deterministic (ADR-0015): the hook stamps on a `review-verifier` completion ONLY if a `code-reviewer` finder ran this cycle (it left `.claude/.finder-done`) AND the diff hash then equals the diff hash now (no edit slipped in between). Consequences the parent must respect:
-- Always run the finder first, then the verifier, back-to-back — do not edit files between the two dispatches (an edit changes the diff hash → no stamp → re-review).
+- Always run the finder first, then the verifier, back-to-back — do not edit files between the two dispatches (an edit changes the diff hash → no stamp → the whole pass has to run again). Fix *after* the verifier returns, not before: those edits are the only ones the stamp survives.
 - If the `review-verifier` dispatch errors, times out, or returns a malformed/empty report, treat the review as NOT done — the surviving findings are unverified. Do not commit; re-dispatch the verifier (or the whole pipeline). A completed-but-degenerate verifier response is not a clean pass.
 - Dispatching `review-verifier` alone (without a fresh finder) will not stamp the gate — this is intentional; the stamp proves find→verify ran on the current diff, not merely that a verifier completed.
 
 ## After the review (parent session)
 
 1. Read the surviving findings. Never dismiss a finding as "pre-existing" when the file is in the diff. Apply rules literally; when in doubt, fix.
-2. The parent fixes findings directly (this clears the stamp via the per-edit hook — a re-review is required before committing).
-3. Re-review after fixing: prefer **delta mode** (pass the prior report verbatim + the delta description to the finder); use **full mode** after major rework.
+2. The parent fixes findings directly. **This is the end of the review** (ADR-0019) — those edits keep the stamp, so commit once every finding is addressed or explicitly justified as out of scope.
+3. Commit. Running this skill again is a fresh review of a fresh diff, not a follow-up on this one.
