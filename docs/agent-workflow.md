@@ -108,7 +108,7 @@ spec 検証も同じフラット2段（design-time / 非ゲートなので stamp
 
 ### 2.1 コミット前レビュー — 作った後に壊す（finder + verifier、ADR-0015）
 
-**agents**: [`code-reviewer`](../.claude/agents/code-reviewer.md)（finder）+ [`review-verifier`](../.claude/agents/review-verifier.md)（verifier）。どちらも [`review-diff`](../.claude/skills/review-diff/SKILL.md) skill を preload、model: sonnet。
+**agents**: [`code-reviewer`](../.claude/agents/code-reviewer.md)（finder）+ [`review-verifier`](../.claude/agents/review-verifier.md)（verifier）。どちらも [`review-diff`](../.claude/skills/review-diff/SKILL.md) skill を preload、model: sonnet、permissionMode: auto（下の「パーミッション」を参照）。
 **起動**: parent が2段を順に dispatch（ユーザーは `/review-diff [high]`）。**verifier の完走がコミットゲートを stamp する**。
 参照: [ADR-0009](./adr/0009-unified-review-workflow.md)（規律）, [ADR-0011](./adr/0011-nested-subagent-review-and-verification.md)（旧機構）, [ADR-0015](./adr/0015-flat-review-pipeline.md)（フラット化）
 
@@ -232,6 +232,13 @@ ADR とルールを管理する **コンテキストコンパイラ**。全ド�
 | `allow` | 自由に実行可能 | read-only git/gh, ゲート用の個別 `bun run` スクリプト (lint/check/typecheck/test/knip 等), `bun add -E`, `tree`/`ls`/`grep` |
 
 参照: [ADR-0004](./adr/0004-permission-deny-as-security-boundary.md)
+
+`.claude/agents/` の4エージェント（`code-reviewer` / `review-verifier` /
+`spec-verifier` / `spec-checker`）は `permissionMode: auto` で動くため、上の表の
+うち **`allow` にも `ask` にも載っていない Bash** は対話プロンプトではなく分類器の
+審査を通る。`deny` と `ask` はそのまま効く（`ask` は auto でもプロンプトを出す ——
+ADR-0004 の 2026-07-28 amend）。理由と出典は AGENTS.md「Permission mode for the
+pinned agents」。
 
 ### Hooks
 

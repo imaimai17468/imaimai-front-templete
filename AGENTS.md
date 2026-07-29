@@ -116,6 +116,15 @@ Implementation dispatches **block the parent's next step**: the platform runs su
 | Code review — `code-reviewer` (finder) and `review-verifier` | `sonnet` (re-run on `opus` only after a demonstrably weak result) |
 | Long-horizon autonomous workers, complex migrations, escalation after a weak result | `opus` |
 
+### Permission mode for the pinned agents
+
+The four agents in `.claude/agents/` set `permissionMode: auto`. They hold no `Edit`/`Write`, so what stalls them is Bash approval, and `acceptEdits` does not cover that — it covers reads, file edits, and common filesystem commands. `auto` has a classifier approve shell commands instead. Do not reach for `bypassPermissions`: these agents read diffs written by other people, and the classifier is specifically what blocks actions driven by content an agent read.
+
+Two behaviours to know, cited because they decide the design and were each wrong somewhere in this repo before being checked ([permission modes](https://code.claude.com/docs/en/permission-modes), [subagent frontmatter](https://code.claude.com/docs/en/sub-agents)):
+
+- **`permissions.ask` entries still prompt under `auto`** — "explicit ask rules still force a prompt". ADR-0004's Context claimed the opposite for auto mode and is amended. The practical effect is that a background agent reaching for an `ask`-listed command waits on a human rather than proceeding.
+- **`permissions.defaultMode: "auto"` is ignored in project settings** — v2.1.142 and later drop it from `.claude/settings.json` and `settings.local.json` so a repository cannot grant itself auto mode; it works only in `~/.claude/settings.json`. That is why the mode is set per agent in frontmatter instead.
+
 ### Model continuity (non-Fable parent)
 
 Review/verify quality is pinned by preloaded skills and deterministic gates
