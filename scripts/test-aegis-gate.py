@@ -31,6 +31,7 @@ import json
 import os
 import pathlib
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -65,6 +66,34 @@ os.chdir(WORK)
 failures = []
 STAMP = WORK / ".claude/.aegis-stamp"
 UNAVAILABLE = WORK / ".claude/.aegis-unavailable"
+
+
+def executable_part(line):
+    """`line` with any trailing comment removed, approximating shell word rules.
+
+    Hand-rolled cuts kept missing a variant: first a literal space before `#`,
+    then a tab, then `;#` with no whitespace at all — each one let a comment
+    supply the `|| true` the check looks for, which fails open. `shlex`
+    generalizes across separators and understands quoting, so a `#` inside a
+    quoted argument is no longer mistaken for a comment.
+
+    It is stricter than bash, deliberately left so: bash opens a comment only on
+    a `#` that begins a word, while `shlex` opens one on any unquoted `#`,
+    including mid-word — `globstar#opt` is a single invalid option name to bash,
+    not `globstar` followed by a comment. That can only strip more than bash
+    would, so the check may fail on a line bash accepts and can never miss a
+    guard that is not there.
+    """
+    lex = shlex.shlex(line, posix=False, punctuation_chars=True)
+    lex.whitespace_split = True
+    try:
+        return " ".join(lex)
+    except ValueError:
+        # Unbalanced quote: shlex cannot tokenize it. Returning the raw line
+        # would keep whatever `|| true` sits after the broken quote and mark the
+        # line guarded on that alone — fail-open. Return nothing instead, so an
+        # unparseable line is always flagged.
+        return ""
 
 
 def check(label, actual, expected):
@@ -123,38 +152,33 @@ print("no gate hook may use a construct that aborts on bash 3.2")
 # an abort. Guarding each one keeps a newer option optional rather than required.
 # `mapfile` / `readarray` / `declare -A` do not exist in 3.2 at all.
 #
-# Both checks are textual heuristics, not a shell parser, and are read with
-# whole-line comments stripped — naming a construct in a comment to explain why it
-# is avoided is exactly what these hooks should do, and the first version of this
-# check failed on its own explanatory comment. They catch the construct written
-# plainly, which is how it gets reintroduced by accident; they do not survive
-# indirection (`command shopt …`, `eval "shopt …"`, a builtin name assembled from a
-# variable). That is the intended strength — this guards against a careless edit,
-# not against someone working around it.
+# Both are read with whole-line comments stripped — naming a construct in a comment
+# to explain why it is avoided is exactly what these hooks should do, and the first
+# version of this check failed on its own explanatory comment. The guard test then
+# lexes each `shopt` line (see `executable_part`); the builtin test is a substring
+# match. Neither is a shell parser: they catch the construct written plainly, which
+# is how it gets reintroduced by accident, and they do not survive indirection
+# (`command shopt …`, `eval "shopt …"`, a builtin name assembled from a variable).
+# That is the intended strength — this guards against a careless edit, not against
+# someone working around it.
 #
-# Two further gaps are known and left as gaps, because both fail closed — they can
-# fail the test on a harmless line, never pass an aborting one. The builtin check
-# matches against the whole per-hook text rather than line by line, so a trailing
-# comment naming `mapfile` / `readarray` / `declare -A` would fail it even though no
-# such builtin is called. And the trailing-comment strip below is textual, not
-# quote-aware, so a `#` inside a quoted `shopt` argument would be cut — not a
-# construct that occurs, since option names are bare identifiers.
+# One gap is known and left as a gap, because it fails closed — it can fail the
+# test on a harmless line, never pass an aborting one. The builtin check matches
+# against the whole per-hook text rather than line by line, so a trailing comment
+# naming `mapfile` / `readarray` / `declare -A` would fail it even though no such
+# builtin is called.
 for hook_name in HOOKS:
     code = "\n".join(
         line
         for line in (REPO / ".claude/hooks" / hook_name).read_text().splitlines()
         if not line.lstrip().startswith("#")
     )
-    # The guard has to be executable, so an inline comment must not be able to
-    # supply it: `shopt -s globstar # || true` aborts on 3.2 exactly like the
-    # unguarded form. Whole-line comments are already gone above; this drops a
-    # trailing one before the test. Split on `\s#` rather than a literal " #" —
-    # bash opens a comment after any whitespace, so a tab before the `#` is the
-    # same construct and a literal-space cut would miss it.
+    # The guard has to be executable, so a comment must not be able to supply it:
+    # `shopt -s globstar # || true` aborts on 3.2 exactly like the unguarded form.
     unguarded = [
         line.strip()
         for line in code.splitlines()
-        if re.match(r"\s*shopt\s", line) and "|| true" not in re.split(r"\s#", line, maxsplit=1)[0]
+        if re.match(r"\s*shopt\s", line) and "|| true" not in executable_part(line)
     ]
     check(f"no unguarded shopt: {hook_name}", unguarded, [])
     check(
