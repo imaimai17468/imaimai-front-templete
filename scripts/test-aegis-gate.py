@@ -68,32 +68,62 @@ STAMP = WORK / ".claude/.aegis-stamp"
 UNAVAILABLE = WORK / ".claude/.aegis-unavailable"
 
 
-def executable_part(line):
-    """`line` with any trailing comment removed, approximating shell word rules.
+def shopt_is_guarded(line):
+    """True when every `shopt` on `line` is guarded the way bash 3.2 requires.
 
-    Hand-rolled cuts kept missing a variant: first a literal space before `#`,
-    then a tab, then `;#` with no whitespace at all — each one let a comment
-    supply the `|| true` the check looks for, which fails open. `shlex`
-    generalizes across separators and understands quoting, so a `#` inside a
-    quoted argument is no longer mistaken for a comment.
+    `set -e` aborts on a failing command unless that command is a non-final part
+    of an `&&` / `||` list, so the guard has to sit at the end of the same
+    statement as the `shopt` — not merely somewhere on the line. The line is
+    tokenized (`shlex` with `punctuation_chars`, so `||` and `;` are their own
+    tokens), split into statements on top-level `;` and `&`, and every statement
+    containing `shopt` must end in the token pair `||` `true`.
 
-    It is stricter than bash, deliberately left so: bash opens a comment only on
-    a `#` that begins a word, while `shlex` opens one on any unquoted `#`,
-    including mid-word — `globstar#opt` is a single invalid option name to bash,
-    not `globstar` followed by a comment. That can only strip more than bash
-    would, so the check may fail on a line bash accepts and can never miss a
-    guard that is not there.
+    Each earlier version of this check was fail-open in a way hand-testing
+    missed, which is why the cases below the definition are asserted on every
+    run rather than checked by hand:
+
+    - a substring search for `|| true` accepted `shopt -s globstar "|| true"`,
+      where bash sees an argument and exits;
+    - stripping comments by cutting at `" #"` missed a tab and then `;#`;
+    - looking for the token pair anywhere accepted
+      `shopt -s globstar; false || true` and `true || true && shopt -s globstar`,
+      both of which abort, and missed the second `shopt` in
+      `shopt -s globstar || true; shopt -s bogusopt`.
+
+    A backgrounded statement (`shopt -s x &`) is exempt: its exit status is never
+    checked, so it cannot abort the script.
+
+    Two imprecisions remain, and both can only report a guarded line as
+    unguarded — never the reverse:
+
+    - `shlex` opens a comment on any unquoted `#`, while bash opens one only on a
+      `#` that begins a word. `globstar#opt` is a single invalid option name to
+      bash, not `globstar` plus a comment.
+    - A line `shlex` cannot tokenize (an unbalanced quote) yields no tokens and
+      is reported unguarded rather than guessed at.
     """
     lex = shlex.shlex(line, posix=False, punctuation_chars=True)
     lex.whitespace_split = True
     try:
-        return " ".join(lex)
+        tokens = list(lex)
     except ValueError:
-        # Unbalanced quote: shlex cannot tokenize it. Returning the raw line
-        # would keep whatever `|| true` sits after the broken quote and mark the
-        # line guarded on that alone — fail-open. Return nothing instead, so an
-        # unparseable line is always flagged.
-        return ""
+        return False
+
+    statements = []
+    current = []
+    for token in tokens:
+        if token in (";", "&"):
+            statements.append((current, token == "&"))
+            current = []
+        else:
+            current.append(token)
+    statements.append((current, False))
+
+    return all(
+        backgrounded or stmt[-2:] == ["||", "true"]
+        for stmt, backgrounded in statements
+        if "shopt" in stmt
+    )
 
 
 def check(label, actual, expected):
@@ -140,6 +170,30 @@ def clear():
     UNAVAILABLE.unlink(missing_ok=True)
 
 
+# `shopt_is_guarded` is asserted on every run, because five successive versions of
+# it were fail-open in a way hand-testing missed. Each expectation below was taken
+# from what real bash 3.2.57 does with that line under `set -e`, not from reading
+# the implementation.
+print("shopt_is_guarded agrees with bash 3.2 on the known shapes")
+for _line, _guarded in (
+    ("shopt -s extglob nullglob 2>/dev/null || true", True),
+    ("shopt -s globstar || true", True),
+    ("shopt -s globstar && shopt -s nullglob || true", True),
+    ("shopt -s globstar &", True),
+    ("shopt -s globstar", False),
+    ('shopt -s globstar "|| true"', False),
+    ("shopt -s globstar '|| true'", False),
+    ("shopt -s globstar # || true", False),
+    ("shopt -s globstar\t# || true", False),
+    ("shopt -s globstar;# || true", False),
+    ("shopt -s globstar; false || true", False),
+    ("shopt -s globstar; shopt -s nullglob || true", False),
+    ("shopt -s globstar || true; shopt -s bogusopt", False),
+    ("true || true && shopt -s globstar", False),
+    ('shopt -s "globstar || true', False),
+):
+    check(f"guarded({_line!r})", shopt_is_guarded(_line), _guarded)
+
 print(f"shell under test: {subprocess.run(['bash', '--version'], capture_output=True, text=True).stdout.splitlines()[0]}")
 print()
 
@@ -155,12 +209,13 @@ print("no gate hook may use a construct that aborts on bash 3.2")
 # Both are read with whole-line comments stripped — naming a construct in a comment
 # to explain why it is avoided is exactly what these hooks should do, and the first
 # version of this check failed on its own explanatory comment. The guard test then
-# lexes each `shopt` line (see `executable_part`); the builtin test is a substring
-# match. Neither is a shell parser: they catch the construct written plainly, which
-# is how it gets reintroduced by accident, and they do not survive indirection
-# (`command shopt …`, `eval "shopt …"`, a builtin name assembled from a variable).
-# That is the intended strength — this guards against a careless edit, not against
-# someone working around it.
+# lexes each `shopt` line and requires the `||` guard on that statement itself (see
+# `shopt_is_guarded`); the builtin test is a plain substring match. Neither is a
+# shell parser: they catch the construct written plainly, which is how it gets
+# reintroduced by accident, and they do not survive indirection (`command shopt …`,
+# `eval "shopt …"`, a builtin name assembled from a variable). That is the intended
+# strength — this guards against a careless edit, not against someone working
+# around it.
 #
 # One gap is known and left as a gap, because it fails closed — it can fail the
 # test on a harmless line, never pass an aborting one. The builtin check matches
@@ -173,12 +228,10 @@ for hook_name in HOOKS:
         for line in (REPO / ".claude/hooks" / hook_name).read_text().splitlines()
         if not line.lstrip().startswith("#")
     )
-    # The guard has to be executable, so a comment must not be able to supply it:
-    # `shopt -s globstar # || true` aborts on 3.2 exactly like the unguarded form.
     unguarded = [
         line.strip()
         for line in code.splitlines()
-        if re.match(r"\s*shopt\s", line) and "|| true" not in executable_part(line)
+        if re.match(r"\s*shopt\s", line) and not shopt_is_guarded(line)
     ]
     check(f"no unguarded shopt: {hook_name}", unguarded, [])
     check(
