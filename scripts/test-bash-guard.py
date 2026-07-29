@@ -15,11 +15,28 @@ Run it after touching pre-bash-guard.sh. Exits non-zero on a mismatch.
 import json
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
+import tempfile
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 HOOK = REPO / ".claude/hooks/pre-bash-guard.sh"
+
+# A project directory that already holds a review stamp. The guard runs its three
+# decisions in order, so a case built to probe the env or `find` decision with a
+# commit-shaped command still reaches the commit gate — and would then be judged
+# by whether this session happens to have earned a stamp. Pointing such a case at
+# this directory keeps it testing the decision it names.
+# Fixed path, cleared on entry, matching scripts/test-review-gate.py — a fresh
+# mkdtemp per run would accumulate directories nothing deletes.
+STAMPED = pathlib.Path(tempfile.gettempdir()) / "bash-guard-stamped"
+shutil.rmtree(STAMPED, ignore_errors=True)
+# exist_ok because the path is shared: a concurrent or crashed earlier run can
+# leave the directory behind between the rmtree above and this line, and a
+# pre-flight script that dies on that is worse than one that reuses it.
+(STAMPED / ".claude").mkdir(parents=True, exist_ok=True)
+(STAMPED / ".claude/.review-stamp").touch()
 
 # Split so this file's own text is not itself a commit-shaped command.
 LAND = "git " + "com" + "mit"
@@ -27,7 +44,7 @@ LAND = "git " + "com" + "mit"
 failures = []
 
 
-def decide(command):
+def decide(command, project_dir=REPO):
     """Return the hook's decision for a Bash command: 'allow', 'block', or 'ask'."""
     payload = {"tool_name": "Bash", "tool_input": {"command": command}}
     out = subprocess.run(
@@ -35,7 +52,7 @@ def decide(command):
         input=json.dumps(payload),
         capture_output=True,
         text=True,
-        env={**os.environ, "CLAUDE_PROJECT_DIR": str(REPO)},
+        env={**os.environ, "CLAUDE_PROJECT_DIR": str(project_dir)},
     ).stdout.strip()
     if not out:
         return "allow"  # the hook stayed out of the way
@@ -46,8 +63,8 @@ def decide(command):
     return decision or "allow"
 
 
-def check(command, expected, why):
-    actual = decide(command)
+def check(command, expected, why, project_dir=REPO):
+    actual = decide(command, project_dir)
     ok = actual == expected
     if not ok:
         failures.append(f"{why}: {command}")
@@ -105,6 +122,7 @@ check(
     "git add x && " + LAND + " -F - <<'MSG'\nrefuse find . -type f | xargs cat and -delete\nMSG",
     "allow",
     "a commit message describing the dangerous shapes",
+    project_dir=STAMPED,
 )
 check("cat <<'EOF'\nfind / -delete\nEOF", "allow", "heredoc body naming a dangerous find")
 
