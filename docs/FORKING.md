@@ -37,24 +37,22 @@ clone した直後に置き換えるべき値と、残す/捨てるファイル�
   スキル・エージェント定義・ゲート・パススコープのルール
 - `.claude/settings.json` — 権限境界（ADR-0004）。プロジェクト固有のコマンドを
   足す場合は `allow` の広さが境界の一部であることに注意
-- `docs/superpowers/evals/` — レビュー品質の回帰スイート
+- `scripts/evals/` — レビュー品質の回帰スイート
 - `aegis-share/` — 知識ベースの正本（下記の注意を読むこと）
 - `AGENTS.md`, `CLAUDE.md`, `lefthook.yml`, `.oxlintrc.json`, `knip.json`
 
 **このテンプレート固有の履歴（整理してよい）**
 
-- `docs/adr/` — テンプレート自身の意思決定記録。新プロジェクトで意味を持つのは
-  一部（例: 0004 権限境界、0016 レイヤ契約）で、移行や運用変更の経緯（0001,
-  0003, 0007〜0015）は他人の歴史
-- `docs/superpowers/specs/*-design.md`, `docs/superpowers/plans/` — 個々の作業の
-  設計メモ
-- `specs/` — 実装済み機能の状態機械仕様（書式の参考にはなる）
+- `aegis-share/source/documents/` — テンプレート自身の意思決定記録（ADR）。
+  フォーク先に関係するのは「今どう動くか」を説明する ADR だけ（例: 0004 権限境界、
+  0016 レイヤ契約）。このテンプレート自身のプロセスがどう変遷したかの記録は他人の
+  歴史なので落としてよい。消す場合は
+  `source/edges/` の該当エッジも一緒に落とし、share パイプラインを回し直す
 - `docs/launch-checklist/` の過去レポート（あれば）
 
-**ADR を整理する場合の必須手順**: Aegis の知識ベースは ADR を配送している。
-`docs/adr/` を削る・書き換えるときは `aegis-share/source/documents/` の対応
-ファイル（と、新規なら `source/edges/`）も揃えたうえで、共有パイプラインを
-回す。
+**ADR を整理する場合の必須手順**: 記録は `aegis-share/source/` にしか無い。
+`source/documents/adr-NNNN.md` を直接編集し（新規なら `source/edges/` にエッジを
+追加、削除するならそのエッジも落とす）、共有パイプラインを回す。
 
 ```bash
 npx -y @fuwasegu/aegis@<pinned> share-format
@@ -76,5 +74,5 @@ npx -y @fuwasegu/aegis@<pinned> share-export
 であって要件ではない。不要なら削除する。認証自体を外す場合は
 `/remove-db` スキルの手順を確認する。
 
-新しい機能を追加するときのディレクトリ判断は [ADR-0016](./adr/0016-src-layering.md)
+新しい機能を追加するときのディレクトリ判断は ADR-0016
 と `.claude/rules/react.md` に従う。

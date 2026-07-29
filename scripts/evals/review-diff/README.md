@@ -6,7 +6,7 @@ base) + an expected findings list. Scores and costs are recorded per run; a
 model-tier change to `code-reviewer` or `review-verifier`, or a load-bearing
 edit to `review-diff`, requires a run recorded here (AGENTS.md, Model
 continuity). The spec pipeline has its own eval at
-`docs/superpowers/evals/verify-spec/`.
+`scripts/evals/verify-spec/`.
 
 ## Layout
 
@@ -24,14 +24,14 @@ The eval docs must be **committed** before any run — the reviewer's target is
 the whole uncommitted diff, and uncommitted `expected.md` files would hand it
 the answers. Committing is necessary but not sufficient: the `expected.md`
 files remain readable in the tree, so **every eval dispatch prompt must
-forbid reading `docs/superpowers/evals/`** (Anthropic measured
+forbid reading `scripts/evals/`** (Anthropic measured
 answer-extraction contamination amplifying ~3.7× in multi-agent
 configurations — https://www.anthropic.com/engineering/eval-awareness-browsecomp
 — and frames eval integrity as adversarial, not a one-time setup).
 
 Per fixture:
 
-1. `git apply docs/superpowers/evals/review-diff/fx-NN/seed.patch`
+1. `git apply scripts/evals/review-diff/fx-NN/seed.patch`
 2. Dispatch the `code-reviewer` (finder) agent (model per its definition,
    effort standard). Every fixture runs in the one remaining mode — a full pass
    over the seeded diff — since ADR-0019 deleted delta mode. It returns candidate
@@ -44,7 +44,7 @@ Per fixture:
    wall time, and for each survivor whether `fix` is concretely actionable rather
    than a restatement, whether `acceptance` is checkable, and whether a
    decision-needing finding listed credible options instead of an invented answer.
-4. `git apply -R docs/superpowers/evals/review-diff/fx-NN/seed.patch`;
+4. `git apply -R scripts/evals/review-diff/fx-NN/seed.patch`;
    verify `git status --short` is clean.
 
 Run fixtures one at a time, never in parallel — they share source files and

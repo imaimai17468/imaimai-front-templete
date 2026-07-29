@@ -1,6 +1,6 @@
 ---
 name: repo-audit
-description: On-demand repo-wide audit with the best available model — hunts what deterministic gates cannot (architecture drift vs ADRs, security posture, dependency strategy, doc staleness/DX) and routes outcomes into existing rails (ADR/AGENTS.md via aegis-share, or a plan doc in docs/superpowers/specs/). Use when the user asks for a repo audit, health check, or "what should we improve"; not scheduled, not CI-run.
+description: On-demand repo-wide audit with the best available model — hunts what deterministic gates cannot (architecture drift vs ADRs, security posture, dependency strategy, doc staleness/DX) and routes outcomes into existing rails (ADR/AGENTS.md via aegis-share; work findings are reported to the user rather than persisted). Use when the user asks for a repo audit, health check, or "what should we improve"; not scheduled, not CI-run.
 user_invocable: true
 ---
 
@@ -13,7 +13,7 @@ session model is weak, say so and recommend re-running on a stronger one
 
 ## Lanes (only what gates cannot catch)
 
-1. **architecture-drift** — code vs `docs/adr/` decisions and AGENTS.md rules
+1. **architecture-drift** — code vs the Aegis KB decisions and AGENTS.md rules
 2. **security-posture** — permissions, secrets handling, injection surfaces,
    supply chain (direct deps only, per ADR-0002)
 3. **dependency-strategy** — staleness, dead deps, risky pins (not CVE
@@ -46,8 +46,10 @@ CI gates own them.
    - **Knowledge** (rule / convention / decision) → ADR draft or AGENTS.md
      edit → aegis-share flow (source + edges → format → lint → materialize
      → export).
-   - **Work** (something to fix or build) → plan doc in
-     `docs/superpowers/specs/` for a later `/start-workflow` execution.
+   - **Work** (something to fix or build) → reported to the user in the audit
+     summary, to run through `/start-workflow` if they want it. There is no plan
+     artifact: the knowledge base carries decisions only (ADR-0008 item 2, kept
+     by ADR-0021), and the plan directories it replaced were deleted unused.
    - **Escalation**: a High-severity security finding is ALSO reported to
      the user immediately in the audit summary with a proposal to run
      `/start-workflow` on it right away — filing it in a plan doc alone is

@@ -13,13 +13,14 @@ Triggers that apply with or without start-workflow:
 - **Planning / design requests**: use `superpowers:writing-plans` and enter plan mode before implementing.
 - **Creative or architectural judgment** (new UI, architecture decisions, approach selection): run `superpowers:brainstorming` before any code change.
 - **Any code change outside start-workflow**: consult Aegis first (see "Aegis Process Enforcement"). When adding a pure function or presenter, use `superpowers:test-driven-development`.
-- **ADR maintenance**: if you edit or create files under `docs/adr/`, mirror the change into `aegis-share/source/documents/` (plus `source/edges/` for new docs) and run the share pipeline (`share-format` → `share-lint` → `share-materialize` → `share-export`) before finishing — `aegis-share/source/` is the canonical KB, and direct `aegis_import_doc` injection drifts from it. Forgetting this makes Aegis stale (`doctor` must report in_sync).
+- **ADR maintenance**: records live only in `aegis-share/source/` — there is no second copy to mirror. Edit or add `source/documents/adr-NNNN.md` (plus `source/edges/` for a new document) and run the share pipeline (`share-format` → `share-lint` → `share-materialize` → `share-export`) before finishing; direct `aegis_import_doc` injection drifts from the tracked source. Forgetting the pipeline makes Aegis stale (`doctor` must report in_sync).
+- **ADR form**: write one only when the decision is hard to unwind, credible alternatives existed, and the reasoning would be forgotten — if it can be re-derived from the code or commit messages, skip it. MADR-lite: `# NNNN. Title`, a `Status` / `Date` pair, then Context, Decision, Alternatives considered, Consequences. Keep it near 80 lines. Numbering is strictly sequential four digits and is never reused or renumbered; a replaced decision becomes `superseded by NNNN`, a partly revised one `accepted (amended by NNNN)` with a note at the top — **never rewrite an old ADR's Decision**.
 
 ## Degraded Environments
 
 Not every session has the full toolchain — remote containers may lack MCP servers, plugin skills, or local binaries. A missing tool downgrades a step; it never silently waives it, and it never blocks unrelated work. MUST-rules elsewhere in this document are satisfied by the corresponding degraded path below:
 
-- **Aegis MCP tools absent** (`aegis_compile_context` not in the tool list): tell the user once, write `.claude/.aegis-unavailable` containing a one-line reason (the dispatch guard then admits subagents), and read the relevant `docs/adr/` files directly instead of compiling context. Never fabricate a consultation.
+- **Aegis MCP tools absent** (`aegis_compile_context` not in the tool list): tell the user once, write `.claude/.aegis-unavailable` containing a one-line reason (the dispatch guard then admits subagents), and read the relevant `aegis-share/source/documents/` files directly instead of compiling context. Never fabricate a consultation.
 - **superpowers skills absent**: carry out the step's intent manually — planning, brainstorming, and TDD are disciplines, not plugins — and note that the skill was unavailable.
 - **Gate binaries absent** (e.g. `similarity-ts`): the SessionStart env-check reports this. Treat a skipped check as "not run", never as "passed", and say so when reporting completion.
 
@@ -97,7 +98,7 @@ White-box testing: tests cover internal logic paths and branches, not just input
 
 ## Agents
 
-Write all agent-facing docs (`.claude/`, AGENTS.md, CLAUDE.md, `docs/adr/`) in English.
+Write all agent-facing docs (`.claude/`, AGENTS.md, CLAUDE.md, `aegis-share/source/documents/`) in English.
 
 ### Delegation
 
@@ -142,8 +143,8 @@ model than the strongest available (e.g. Opus instead of Fable):
   more, not less.
 - Model-tier changes to `.claude/agents/*.md` require a scored eval run:
   `code-reviewer` / `review-verifier` against
-  `docs/superpowers/evals/review-diff/`, and `spec-verifier` / `spec-checker`
-  against `docs/superpowers/evals/verify-spec/`. The verify-spec eval has
+  `scripts/evals/review-diff/`, and `spec-verifier` / `spec-checker`
+  against `scripts/evals/verify-spec/`. The verify-spec eval has
   tier-discriminating fixtures (sx-01..03); the 2026-07-12 comparison kept
   both spec agents on `opus` (sonnet lost on precision AND cost) — a future
   downgrade needs a fresh suite run that beats that result.
@@ -217,7 +218,7 @@ Ask the user to run initial setup using the **admin surface** with `aegis_import
 
 ### Rules
 
-- NEVER skip the Aegis consultation step — for both implementation and questions. If the Aegis MCP tools are unavailable in the session, the "Degraded Environments" path (marker file + reading `docs/adr/` directly) IS the consultation — follow it, don't fabricate one.
+- NEVER skip the Aegis consultation step — for both implementation and questions. If the Aegis MCP tools are unavailable in the session, the "Degraded Environments" path (marker file + reading `aegis-share/source/documents/` directly) IS the consultation — follow it, don't fabricate one.
 - NEVER ignore guidelines returned by Aegis.
 - The compile_id and snapshot_id from the consultation are required for observation reporting.
 <!-- aegis:end -->

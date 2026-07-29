@@ -1,6 +1,6 @@
 # エージェントワークフロー
 
-Claude Code でこのリポジトリを開発するための作業マニュアル。判断の「なぜ」は [ADR 一覧](./adr/README.md)、コーディングルールは [`AGENTS.md`](../AGENTS.md) を参照。
+Claude Code でこのリポジトリを開発するための作業マニュアル。判断の「なぜ」は `aegis-share/source/documents/` の ADR（Aegis が配信）、コーディングルールは [`AGENTS.md`](../AGENTS.md) を参照。
 
 ---
 
@@ -38,7 +38,7 @@ Claude Code でこのリポジトリを開発するための作業マニュア�
   │     → 関連するルール / ADR を relevance スコア付きで返す。
   │
   ├ 3. ADR チェック
-  │     非自明な設計判断？ → docs/adr/NNNN-*.md を先に起票。
+  │     非自明な設計判断？ → aegis-share/source/documents/adr-NNNN.md を先に起票。
   │     純粋な機械作業？ → スキップ。
   │
   ├ 4. Plan                                     ← Superpowers / spec-verifier agent
@@ -70,7 +70,7 @@ Claude Code でこのリポジトリを開発するための作業マニュア�
         gh pr create。英語サマリー + 末尾に生成クレジット。
 ```
 
-参照: [ADR-0006](./adr/0006-orchestration-layering.md) (オーケストレーション), [ADR-0011](./adr/0011-nested-subagent-review-and-verification.md) (レビュー・検証), [ADR-0012](./adr/0012-parent-centric-implementation.md) (parent 直接実装と委譲基準), [ADR-0013](./adr/0013-deterministic-enforcement-gates.md) (強制ゲートの機構)
+参照: ADR-0006 (オーケストレーション), ADR-0011 (レビュー・検証), ADR-0012 (parent 直接実装と委譲基準), ADR-0013 (強制ゲートの機構)
 
 ---
 
@@ -104,13 +104,13 @@ spec 検証も同じフラット2段（design-time / 非ゲートなので stamp
   └─ dispatch: spec-checker (opus)              depth 1  → 各 trace を再生検証
 ```
 
-移行の経緯（旧 dynamic workflow / コードグラフ → ネスト）は [ADR-0011](./adr/0011-nested-subagent-review-and-verification.md)、ネスト → フラット化（review・spec 両方）は [ADR-0015](./adr/0015-flat-review-pipeline.md) を参照。
+移行の経緯（旧 dynamic workflow / コードグラフ → ネスト）は ADR-0011、ネスト → フラット化（review・spec 両方）は ADR-0015 を参照。
 
 ### 2.1 コミット前レビュー — 作った後に壊す（finder + verifier、ADR-0015）
 
 **agents**: [`code-reviewer`](../.claude/agents/code-reviewer.md)（finder）+ [`review-verifier`](../.claude/agents/review-verifier.md)（verifier）。どちらも [`review-diff`](../.claude/skills/review-diff/SKILL.md) skill を preload、model: sonnet、permissionMode: auto（下の「パーミッション」を参照）。
 **起動**: parent が2段を順に dispatch（ユーザーは `/review-diff [high]`）。**verifier の完走がコミットゲートを stamp する**。
-参照: [ADR-0009](./adr/0009-unified-review-workflow.md)（規律）, [ADR-0011](./adr/0011-nested-subagent-review-and-verification.md)（旧機構）, [ADR-0015](./adr/0015-flat-review-pipeline.md)（フラット化）
+参照: ADR-0009（規律）, ADR-0011（旧機構）, ADR-0015（フラット化）
 
 コミット前に **「本当にバグっていないか？ 規約に違反していないか？」** を fresh context の finder が網羅探索し、別の fresh context の verifier が各指摘を反証する。通らないとコミットできない。
 
@@ -145,7 +145,7 @@ spec 検証も同じフラット2段（design-time / 非ゲートなので stamp
 
 **agents**: [`spec-verifier`](../.claude/agents/spec-verifier.md)（hunter）+ [`spec-checker`](../.claude/agents/spec-checker.md)（checker）。どちらも [`verify-spec`](../.claude/skills/verify-spec/SKILL.md) skill を preload、model: opus。
 **起動**: parent が2段を順に dispatch（ユーザーは `/verify-spec specs/x.spec.md`）。**design-time ツールなので stamp はしない**。**単発実行** — parent は自動で再実行しない。反例修正後の再検証はユーザーが明示的に行う新しい 1 パス。
-参照: [ADR-0010](./adr/0010-agent-based-spec-verification.md)（規律）, [ADR-0011](./adr/0011-nested-subagent-review-and-verification.md)（旧機構）, [ADR-0015](./adr/0015-flat-review-pipeline.md)（フラット化）
+参照: ADR-0010（規律）, ADR-0011（旧機構）, ADR-0015（フラット化）
 
 仕様を状態機械として書き下し、**「戻る・リロード・二重送信・権限変更の合わせ技で壊せるか？」** をエージェントに試させる。
 
@@ -165,7 +165,7 @@ spec 検証も同じフラット2段（design-time / 非ゲートなので stamp
      Step 4: Return — { counterexamples[], stats }（design-time なので stamp なし）
 ```
 
-eval: `docs/superpowers/evals/verify-spec/`（シード反例を持つ spec fixture で
+eval: `scripts/evals/verify-spec/`（シード反例を持つ spec fixture で
 フラット spec パイプラインを実走検証、ADR-0014/0015）。
 
 **正直な限界**: 「見つけたものは本物」だが「見つからなかった = 安全」ではない。hunt が失敗（outage）した場合は `incomplete: true` で明示し、clean pass と区別する（fail-closed）。
@@ -194,8 +194,8 @@ ADR とルールを管理する **コンテキストコンパイラ**。全ド�
 
 - **使い所**: `/start-workflow` step 2 で `aegis_compile_context({ target_files, plan, command, intent_tags })` を呼び、関連 ADR / ルールを relevance スコア付きで取得。subagent dispatch 前は `pre-agent-aegis-guard.sh` が未呼び出しをブロック。
 - **データ**: `aegis-share/`（git 管理の共有バンドル: `source/documents/` の Markdown + `source/edges/` の glob→doc_id）と `.aegis/aegis.db`（gitignore 済みローカル SQLite、SessionStart で自動構築）。
-- **メンテ**: `aegis-share/source/` が canonical。新規 ADR・既存編集とも `source/documents/`（+必要なら `source/edges/`）を編集し、`share-format` → `share-lint` → `share-materialize` → `share-export` で DB とバンドルへ反映（`aegis_import_doc` の直接投入は source と乖離を生むため使わない）。`aegis_sync_docs` は hydrate 後の再アンカー用。compile miss は `aegis_observe` → `/aegis-triage`。
-- 詳細は [ADR](./adr/README.md) と `aegis-share/` を参照。
+- **メンテ**: `aegis-share/source/` が canonical。新規 ADR・既存編集とも `source/documents/`（+必要なら `source/edges/`）を編集し、`share-format` → `share-lint` → `share-materialize` → `share-export` で DB とバンドルへ反映（`aegis_import_doc` の直接投入は source と乖離を生むため使わない）。`aegis_sync_docs` は file-anchored な文書を再アンカーする道具で、ADR-0021 以降どの文書も file-anchored ではないため実質 no-op。compile miss は `aegis_observe` → `/aegis-triage`。
+- 詳細は `aegis-share/source/documents/` の ADR を参照。
 
 ### 3.2 Superpowers（プラグイン: `superpowers@claude-plugins-official`）— 「どう進めるか」
 
@@ -241,7 +241,7 @@ ADR とルールを管理する **コンテキストコンパイラ**。全ド�
 コマンドに効くかが未確認で、黙って何もしないガードより厳しい方を選んだため。
 ADR-0004 の 2026-07-29 amend、検査は `scripts/test-bash-guard.py`。
 
-参照: [ADR-0004](./adr/0004-permission-deny-as-security-boundary.md)
+参照: ADR-0004
 
 `.claude/agents/` の4エージェント（`code-reviewer` / `review-verifier` /
 `spec-verifier` / `spec-checker`）は `permissionMode: auto` で動くため、上の表の
@@ -318,7 +318,7 @@ Claude Code のイベントに応じて自動実行されるシェルスクリ�
 
 毎セッションにロードされるコーディング規約。Design Philosophy / Knowledge Currency / Code Practices / Rules of React / Testing / Commits / Agents の各セクションとして凝縮。パススコープの詳細ルール (`.claude/rules/react.md`、`design.md`) は対象パス編集時に自動ロード。
 
-参照: [ADR-0008](./adr/0008-consolidate-rules-into-agents-md.md)
+参照: ADR-0008
 
 ---
 
@@ -336,31 +336,31 @@ Claude Code のイベントに応じて自動実行されるシェルスクリ�
   · check + test + typecheck + build
 ```
 
-参照: [ADR-0002](./adr/0002-direct-deps-only-audit.md)
+参照: ADR-0002
 
 ### Aegis ナレッジベース
 
 ```
 canonical は aegis-share/source/（import_doc の直接投入は乖離を生むため不使用）
 
-[新しい ADR の追加]  docs/adr/NNNN-*.md を書く
+[新しい ADR の追加]  aegis-share/source/documents/adr-NNNN.md を書く
                      → aegis-share/source/documents/adr-NNNN.md（frontmatter+本文ミラー）
                        + source/edges/*.json に必要な edge を追加
                      → npx aegis share-format → share-lint → share-materialize → share-export（4 コマンドを順に実行）
-[既存 ADR の編集]    docs/adr/ を編集 → source/documents/ のミラー本文を同期
+[既存 ADR の編集]    source/documents/adr-NNNN.md を編集（写しは無い）
                      → 同上の share パイプライン（doctor で in_sync を確認）
-[hydrate 直後]       aegis_sync_docs() で file-anchored ドキュメントを再アンカー
+[hydrate 直後]       追加操作なし（file-anchored な文書は無い / ADR-0021）
 [compile miss]       aegis_observe({ event_type: "compile_miss", ... })
                      → /aegis-triage で分析 → proposals → 承認
 ```
 
 ### ADR
 
-非自明な設計判断がされたら新しい ADR を追加。MADR-lite テンプレートを使用（[`docs/adr/README.md`](./adr/README.md) 参照）。番号は厳密に連番。
+非自明な設計判断がされたら新しい ADR を追加。MADR-lite テンプレートを使用（AGENTS.md の「ADR form」参照）。番号は厳密に連番。
 
 ### スキル / エージェント / プロンプトのチューニング
 
-新規作成・大幅編集時は [`/empirical-prompt-tuning`](../.claude/skills/empirical-prompt-tuning/SKILL.md) を使用。2 回連続で新たな曖昧さが出なくなるまで改善。ただし `code-reviewer` / `review-verifier` agent と `review-diff` skill の load-bearing な変更、およびそのモデル階層変更は、ADR-0014/0015 によりスコア付き golden eval（`docs/superpowers/evals/review-diff/`）の実走が必須（この点で empirical-prompt-tuning の従来義務を置換）。`spec-verifier` / `verify-spec` は eval 未整備のため従来通り empirical tuning + ユーザー承認（明示的な負債）。
+新規作成・大幅編集時は [`/empirical-prompt-tuning`](../.claude/skills/empirical-prompt-tuning/SKILL.md) を使用。2 回連続で新たな曖昧さが出なくなるまで改善。ただし `code-reviewer` / `review-verifier` agent と `review-diff` skill の load-bearing な変更、およびそのモデル階層変更は、ADR-0014/0015 によりスコア付き golden eval（`scripts/evals/review-diff/`）の実走が必須（この点で empirical-prompt-tuning の従来義務を置換）。`spec-verifier` / `verify-spec` は eval 未整備のため従来通り empirical tuning + ユーザー承認（明示的な負債）。
 
 ### 監査 / eval サイクル（ADR-0014）
 
@@ -372,16 +372,16 @@ canonical は aegis-share/source/（import_doc の直接投入は乖離を生む
   依存戦略 / docs·DX）。lint·型·テスト·dead-code·フォーマットはゲートが持つので対象外。
   成果物は既存レールのみに振り分ける（新形式を作らない）:
     · 知識（規約・判断）→ ADR / AGENTS.md → aegis-share フロー
-    · 作業（直す・作る）→ docs/superpowers/specs/ 計画書 → /start-workflow
+    · 作業（直す・作る）→ 監査サマリでユーザーに報告 → /start-workflow
   2 回連続で空振りしたら skill 自体の削除を提案（ADR-0011 の教訓）。
 
-[golden eval]  docs/superpowers/evals/review-diff/
+[golden eval]  scripts/evals/review-diff/
   review パイプラインの回帰検出器。シード欠陥パッチ + 期待所見で
   code-reviewer を採点。model 階層・load-bearing skill の変更時に実走し
   results/ に記録（上記チューニング項の必須要件）。
 ```
 
-参照: [ADR-0014](./adr/0014-measurement-first-model-continuity.md)
+参照: ADR-0014
 
 ---
 
@@ -456,10 +456,10 @@ canonical は aegis-share/source/（import_doc の直接投入は乖離を生む
 | コーディングルール | [`AGENTS.md`](../AGENTS.md) + [`.claude/rules/`](../.claude/rules/) |
 | サブエージェント | [`.claude/agents/`](../.claude/agents/) |
 | スキル | [`.claude/skills/`](../.claude/skills/) |
-| 状態機械の仕様 | [`specs/`](../specs/) |
+| 状態機械の仕様 | `.claude/skills/verify-spec/SKILL.md` の Format セクション |
 | Hooks | [`.claude/hooks/`](../.claude/hooks/) + [`.claude/settings.json`](../.claude/settings.json) |
 | パーミッション | [`.claude/settings.json`](../.claude/settings.json) |
 | MCP サーバー | [`.mcp.json`](../.mcp.json) |
-| ADR | [`docs/adr/`](./adr/) |
+| ADR | `aegis-share/source/documents/` |
 | CI | [`.github/workflows/ci.yaml`](../.github/workflows/ci.yaml) + [`scripts/audit-direct.sh`](../scripts/audit-direct.sh) |
 | 依存自動更新 | [`.github/dependabot.yml`](../.github/dependabot.yml) |
