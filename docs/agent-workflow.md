@@ -230,8 +230,16 @@ ADR とルールを管理する **コンテキストコンパイラ**。全ド�
 | レベル | 対象 | 例 |
 |--------|------|-----|
 | `deny` | 破壊的操作 | `rm -rf`, `git push --force`, `git reset --hard`, `.env` アクセス |
-| `ask` | 確認が必要な操作 | `git commit`, `git push`, `gh pr create`, `deploy`, `find`, `bunx`, 未登録の `bun run` |
-| `allow` | 自由に実行可能 | read-only git/gh, ゲート用の個別 `bun run` スクリプト (lint/check/typecheck/test/knip 等), `bun add -E`, `tree`/`ls`/`grep` |
+| `ask` | 確認が必要な操作 | `git commit`, `git push`, `gh pr create`, `deploy`, `bunx`, 未登録の `bun run` |
+| `allow` | 自由に実行可能 | read-only git/gh, ゲート用の個別 `bun run` スクリプト (lint/check/typecheck/test/knip 等), `bun add -E`, `tree`/`ls`/`grep`, `find` |
+
+`find` はルールでは `allow` だが、`pre-bash-guard.sh` が危険な形だけ**拒否**する
+（探索起点が `.` / `..` / `/` / `~` / 変数 / 絶対パス / 起点なし、または
+`-exec` / `-delete` 系）。`find . -type f | xargs cat` は allow のコマンドだけで
+保護ファイルを読めるため、`-exec` の有無ではなく起点で見る必要がある。起点は
+複数取れるので全部見る。確認ではなく拒否なのは、hook の `ask` が allow 済み
+コマンドに効くかが未確認で、黙って何もしないガードより厳しい方を選んだため。
+ADR-0004 の 2026-07-29 amend、検査は `scripts/test-bash-guard.py`。
 
 参照: [ADR-0004](./adr/0004-permission-deny-as-security-boundary.md)
 
