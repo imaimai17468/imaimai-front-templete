@@ -1,18 +1,5 @@
-diff --git a/src/components/features/profile-page/profile-form/ProfileForm.tsx b/src/components/features/profile-page/profile-form/ProfileForm.tsx
-index 37d6c8d..374e3dc 100644
---- a/src/components/features/profile-page/profile-form/ProfileForm.tsx
-+++ b/src/components/features/profile-page/profile-form/ProfileForm.tsx
-@@ -48,7 +48,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
-     const file = e.target.files?.[0];
-     if (!file) return;
- 
--    if (file.size > 5 * 1024 * 1024) {
-+    if (file.size < 5 * 1024 * 1024) {
-       toast.error("Please keep file size under 5MB");
-       return;
-     }
 diff --git a/src/components/shared/header/user-menu/UserMenu.tsx b/src/components/shared/header/user-menu/UserMenu.tsx
-index c2a9894..7a074c8 100644
+index 62132f8..e8cc7f9 100644
 --- a/src/components/shared/header/user-menu/UserMenu.tsx
 +++ b/src/components/shared/header/user-menu/UserMenu.tsx
 @@ -18,7 +18,7 @@ type UserMenuProps = {
@@ -34,10 +21,10 @@ index c2a9894..7a074c8 100644
            </Avatar>
          </button>
 diff --git a/src/gateways/user/index.ts b/src/gateways/user/index.ts
-index 5879112..dab9a44 100644
+index f4e479b..6d23c7f 100644
 --- a/src/gateways/user/index.ts
 +++ b/src/gateways/user/index.ts
-@@ -53,7 +53,7 @@ export const updateUser = async (
+@@ -54,7 +54,7 @@ export const updateUser = async (
        .where(eq(users.id, userId));
      return { success: true };
    } catch {
@@ -46,41 +33,49 @@ index 5879112..dab9a44 100644
    }
  };
  
-diff --git a/src/lib/auth.ts b/src/lib/auth.ts
-index 78dcbf2..e96e8da 100644
---- a/src/lib/auth.ts
-+++ b/src/lib/auth.ts
-@@ -1,9 +1,11 @@
- import { authClient } from "./auth/auth-client";
+diff --git a/src/lib/auth/actions.ts b/src/lib/auth/actions.ts
+index 905d1e9..af01fff 100644
+--- a/src/lib/auth/actions.ts
++++ b/src/lib/auth/actions.ts
+@@ -1,5 +1,6 @@
+ import { authClient } from "./auth-client";
  
-+/** Google OAuth sign-in via Better Auth. */
++/** Starts the Google OAuth sign-in flow via better-auth. */
  export const signInWithGoogle = async () => {
    await authClient.signIn.social({ provider: "google", callbackURL: "/" });
  };
- 
-+/** Sign out the current session. */
- export const signOut = async () => {
-   await authClient.signOut();
- };
+diff --git a/src/lib/storage/avatar-validation.ts b/src/lib/storage/avatar-validation.ts
+index ce2df39..4e29de0 100644
+--- a/src/lib/storage/avatar-validation.ts
++++ b/src/lib/storage/avatar-validation.ts
+@@ -68,7 +68,7 @@ export const avatarSizeRejection = (
+   if (size <= 0) {
+     return "empty";
+   }
+-  if (size > MAX_AVATAR_BYTES) {
++  if (size < MAX_AVATAR_BYTES) {
+     return "too-large";
+   }
+   return null;
 diff --git a/src/lib/utils.ts b/src/lib/utils.ts
-index 365058c..72ef94b 100644
+index 365058c..2c68da0 100644
 --- a/src/lib/utils.ts
 +++ b/src/lib/utils.ts
 @@ -1,6 +1,7 @@
  import { type ClassValue, clsx } from "clsx";
  import { twMerge } from "tailwind-merge";
  
-+/** Merge class names with Tailwind conflict resolution. */
++/** Merge conditional class names, letting later Tailwind utilities win. */
  export function cn(...inputs: ClassValue[]) {
    return twMerge(clsx(inputs));
  }
 diff --git a/src/routes/login.tsx b/src/routes/login.tsx
-index b1e8d24..06d73e8 100644
+index 8152747..041e224 100644
 --- a/src/routes/login.tsx
 +++ b/src/routes/login.tsx
 @@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
  import { Button } from "@/components/ui/button";
- import { signInWithGoogle } from "@/lib/auth";
+ import { signInWithGoogle } from "@/lib/auth/actions";
  
 +const SIGN_IN_LABEL = "Sign in With Google";
 +
@@ -97,28 +92,24 @@ index b1e8d24..06d73e8 100644
        </div>
      </div>
 diff --git a/src/server/cloudflare.ts b/src/server/cloudflare.ts
-index 3737882..06af9ff 100644
+index 3737882..1fbdf63 100644
 --- a/src/server/cloudflare.ts
 +++ b/src/server/cloudflare.ts
-@@ -2,7 +2,8 @@
- // `cloudflare:workers` is provided by the Workers runtime (and by
- // @cloudflare/vite-plugin during dev). When running outside a Worker (vitest),
- // imports of this module should be avoided — D1 / R2 bindings have no meaning
--// in that environment.
-+// in that environment. The generated worker-configuration.d.ts types this
-+// import (ADR-0005).
+@@ -6,4 +6,5 @@
  // eslint-disable-next-line import/no-unresolved
  import { env as runtimeEnv } from "cloudflare:workers";
  
++/** The Worker's bindings. Typed by `wrangler types` (ADR-0005), never by hand. */
+ export const getCloudflareEnv = (): CloudflareEnv => runtimeEnv;
 diff --git a/src/test-setup.ts b/src/test-setup.ts
-index db66787..3b54c35 100644
+index db66787..cf802eb 100644
 --- a/src/test-setup.ts
 +++ b/src/test-setup.ts
 @@ -2,6 +2,7 @@ import "@testing-library/jest-dom/vitest";
  import { cleanup } from "@testing-library/react";
  import { afterEach } from "vitest";
  
-+// jsdom lacks scrollTo; stub it so components calling it don't throw.
++// No-op scrollTo shim for the jsdom test environment.
  window.scrollTo = () => {};
  
  afterEach(() => {

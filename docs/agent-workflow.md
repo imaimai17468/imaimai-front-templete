@@ -129,7 +129,9 @@ spec 検証も同じフラット2段（design-time / 非ゲートなので stamp
        · high:     correctness · reproduction · scope の 3 レンズ → 過半数で棄却
        CONFIRMED / PLAUSIBLE / REFUTED（迷ったら REFUTED）
      Step 4: Return — REFUTED を落とし survivors を返す
-       { effort, mode, fallback?, findings[], stats }
+       生き残りには fix（具体的な修正）と acceptance（確認方法）を必ず付ける
+       （判断が要る所見は fix に「決めるべき選択肢」を書く。ADR-0020）
+       { effort, findings[], stats }
      stamp: 手動 touch はしない。verifier 完走で post-agent-review-stamp.sh が自動作成。
 ```
 
@@ -137,7 +139,7 @@ spec 検証も同じフラット2段（design-time / 非ゲートなので stamp
 - **なぜフラット**: 両 agent とも depth-1 で親が直接待つ。ネスト（agent が自分の子を待つ）は 2026-07-10 に評決ロストを2回起こした関節で、それを構造ごと撤去（ADR-0015）。独立性は finder / verifier が別 context である事実で担保。
 - **fail-closed**: verifier が候補を確証できなくても unverified として残す（カバレッジは落とさない）。verifier が完走しなければ stamp は付かず commit はブロック。
 - **モードは1つ**: 未コミット diff 全体を1回見て終わり（ADR-0019）。部分再走の delta モードは撤去済み。
-- **findings の消費者**: agent は報告まで。修正は parent が直接行う。
+- **findings の消費者**: parent が verifier の返した `fix` を適用し `acceptance` で確認する。外れると判断したら理由を明示する。1回で終わる以上、修正案まで verifier に出させないと修正だけ誰の判定も受けない（ADR-0020）。
 
 ### 2.2 spec 検証 — 作る前に壊す（hunter + checker、ADR-0015）
 
