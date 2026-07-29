@@ -80,8 +80,18 @@ This does not reintroduce a return arrow. Nothing re-runs; the judgement moves
   the human reading it, so the shape can change without a migration.
 - Under [ADR-0014](0014-measurement-first-model-continuity.md) this is a
   load-bearing edit to `review-diff` that changes how the verifier behaves, so it
-  requires a scored eval run recorded in `docs/superpowers/evals/review-diff/results/`
-  before this ADR can claim the risk is measured. **That run is pending as this ADR
-  is committed** — the run and its results file follow in the same change, and the
-  agreed scope is partial (four fixtures rather than eight), with the reason
-  recorded in the results file.
+  required a scored eval run:
+  `docs/superpowers/evals/review-diff/results/2026-07-29-verifier-returns-fix.md`.
+  Four fixtures rather than eight, by agreement — detection, false positives on a
+  clean diff, discrimination in a mixed diff, and scale. **4/4 found, 0 missed,
+  0 false positives, cost flat against the 2026-07-12 baselines**, so the
+  attention risk above did not materialise at this scale. What the run does *not*
+  measure is the quality of `fix` / `acceptance` themselves: no fixture has an
+  expected fix, so a correct detection with a degraded remedy would still score
+  clean. That gap, and the four unrun fixtures, are recorded in the results file.
+- Regenerating two stale fixtures for that run produced the more interesting
+  result. The first rebuild of fx-08 contained three edits meant to be benign that
+  were not — two asserted unverified facts about jsdom and better-auth, one broke
+  the import-block convention — and the finder flagged all three, correctly,
+  against the very rule the fixture author had skipped. The pipeline read the
+  codebase more carefully than the person writing its test did.
