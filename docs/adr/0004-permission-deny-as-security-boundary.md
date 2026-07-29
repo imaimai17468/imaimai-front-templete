@@ -1,7 +1,58 @@
 # 0004. `permissions.deny` is the security boundary, not `ask`
 
-- Status: accepted (amended by 0013, 0017; amended 2026-07-25, 2026-07-28)
+- Status: accepted (amended by 0013, 0017; amended 2026-07-25, 2026-07-28, 2026-07-29)
 - Date: 2026-04-23
+
+> **Amended 2026-07-29** — `Bash(find:*)` moves from `ask` back to `allow`, with
+> the dangerous shapes gated by `pre-bash-guard.sh` instead of by the rule. The
+> 2026-07-25 amendment put `find` in `ask` because
+> `find . -maxdepth 1 -type f -exec cat {} \;` reads protected files without
+> naming one. That reasoning holds; putting the *whole verb* behind a prompt was
+> the wrong instrument. Path discovery is constant agent work, every prompt was
+> answered yes, and a gate answered reflexively is not a gate.
+>
+> What replaced it, in the hook rather than the rule (Bash rules match a prefix,
+> so "contains `-exec`" is not expressible as one):
+>
+> - **Broad search roots are refused** — a root of `.`, `./`, `..`, `/`, `~`, a
+>   variable, an absolute path, or none at all, and it checks *every* leading
+>   operand because `find` takes more than one. The load-bearing case is
+>   `find . -type f | xargs cat`: it reads every file using only allow-listed
+>   verbs, and the `.env` filter never fires because the command text contains no
+>   such literal. Blocking `-exec` alone would not have closed it — the reach has
+>   to be judged from the root.
+> - **`-exec` / `-execdir` / `-ok` / `-okdir` / `-delete` / `-fprint*` / `-fls`
+>   are refused** even when scoped, because they run arbitrary commands per match
+>   and reach past the `rm -rf` prefixes in `deny`.
+>
+> A `find` scoped to a subdirectory with no such action now runs unattended.
+> `Bash(bunx:*)` stays in `ask`: it executes arbitrary published code, which is a
+> different risk class and not what this amendment measured.
+>
+> **It refuses rather than prompting**, which was not the first intent. A hook can
+> return `permissionDecision: "ask"`, but the documented precedence only settles
+> that a *blocking* hook overrides an `allow` rule — Guard 1 proves that in this
+> repo by stopping allow-listed `cat .env.local`. Whether a hook's `ask` prompts
+> for an already-allowed command is unstated, and a guard that silently does
+> nothing is worse than a strict one, so these shapes are refused with a message
+> naming the narrower form. Revisit if that behaviour is ever confirmed.
+>
+> Note this is not merely hygiene. [ADR-0017](0017-secret-value-boundary.md)
+> holds that production secrets are never in the working tree, but its standing
+> exception puts a real D1 API token in the local env file, so the
+> read-everything shape still has something worth reading.
+>
+> Text from the first heredoc operator onward is treated as data, so a commit
+> message *describing* a dangerous `find` does not trip the guard. Guard 1 scrubs
+> `-m` bodies for the same reason.
+>
+> `scripts/test-bash-guard.py` asserts all of it against the real hook — 38 cases
+> covering what runs unattended, what is refused, and that the env and commit
+> gates still behave. Three whole classes in it exist because the first draft
+> failed them: quoting the operand (`find "." …`) and hiding a broad root behind a
+> narrow one (`find src / …`) both walked straight through a single-anchor regex,
+> and the heredoc case was found when the guard refused the very commit that
+> introduced it. Run it after touching the guard.
 
 > **Amended 2026-07-28** — one mode does not belong in the Context list below.
 > That bullet says `acceptEdits`, `bypassPermissions`,

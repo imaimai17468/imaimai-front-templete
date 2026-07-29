@@ -55,6 +55,7 @@
       "Bash(wrangler types:*)",
       "Bash(wrangler d1 list:*)",
       "Bash(wrangler tail:*)",
+      "Bash(find:*)",
       "Bash(ffmpeg:*)"
     ],
     "deny": [
@@ -114,8 +115,7 @@
       "Bash(wrangler secret:*)",
       "Bash(rm:*)",
       "Bash(mv:*)",
-      "Bash(cp:*)",
-      "Bash(find:*)"
+      "Bash(cp:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
