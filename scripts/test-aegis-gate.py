@@ -74,7 +74,7 @@ def hook(name, payload):
     )
 
 
-def compile_hook(tool_response, target_files=(".claude/rules/authoring.md",)):
+def compile_hook(tool_response, target_files=("AGENTS.md",)):
     """Drive PostToolUse for a compile_context call. `tool_response=None` omits it."""
     payload = {
         "tool_name": COMPILE_TOOL,

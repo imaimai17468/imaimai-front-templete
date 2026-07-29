@@ -74,7 +74,10 @@ Path-scoped rules are auto-loaded from `.claude/rules/`:
 
 - **`.claude/rules/react.md`** (`**/*.tsx`) — Rules of React: purity, hooks, component splitting, module organization
 - **`.claude/rules/design.md`** (`src/**/*.css`, `src/**/*.tsx`) — Design system: Wairo (和色) palette, squircle corners, typography, spacing, component conventions
-- **`.claude/rules/authoring.md`** (`.claude/skills/**/*.md`, `.claude/agents/*.md`, `.claude/rules/*.md`, `AGENTS.md`, `docs/**/*.md`) — Writing instruction documents: point instead of restating, check universal / completion / attribution / quantity claims in the turn that writes them, keep the document consistent with itself
+
+The next rule is not path-scoped — it applies whenever you write any instruction document, whatever the file type:
+
+**Instruction documents.** Point at other files, do not restate them — a copy is correct when written and wrong after the next edit to what it copied. Never write a claim about another file, commit, tool, or count of any of them without opening or running it in the same turn; if that is not worth the cost, drop the assertive form instead. A grep only matches the literals you predicted, so never offer "expect zero hits" as proof. After changing a step, reconcile every other mention of what it names. Long enumerations rot; prefer a principle. All of this aims at procedures: ADRs and audit records describe decided state rather than action, so summarising one is not the restating this forbids.
 
 `src/` is layered — `routes/` → `server/fn/` → `gateways/` → `entities/`, imports flow downward only, and `server/fn/` is the authorization boundary. The contract is ADR-0016; Aegis serves it for any `src/**` edit.
 
@@ -171,10 +174,11 @@ You MUST consult Aegis for every coding-related interaction — implementation t
    - `plan`: your natural-language plan (optional but recommended)
    - `command`: the type of operation (scaffold, refactor, review, etc.)
    - `intent_tags` (recommended): tags chosen from the step-2 catalog — drives `expanded` context deterministically. Use `[]` to skip expanded context without using the server-side SLM tagger. Omit `intent_tags` only if you want the server SLM tagger (when enabled) to infer tags from `plan` instead (see ADR-004).
+     **If step 2 returned `tags: []` the catalog is empty and `expanded` cannot fire at all** — passing `[]` then looks like a choice but is the only outcome available. Say so to the user rather than treating the reduced result as what Aegis offers; the fix is tag mappings in the KB, not a different call.
 4. **Read and follow** the returned architecture guidelines.
    - `delivery: "inline"` — content is included; read it directly.
-   - `delivery: "deferred"` — content is NOT included. You MUST Read the file via `source_path` before proceeding. Prioritize by `relevance` score (high first); skip only documents with very low relevance (< 0.25) unless specifically needed.
-   - `delivery: "omitted"` — excluded by budget or policy. Increase `max_inline_bytes` or use `content_mode: "always"` if needed.
+   - `delivery: "deferred"` — content is NOT included. Either Read the file via `source_path`, or **re-request with `content_mode: "always"`** to get the bodies inline. Prefer the latter when you want several documents: deferral has been observed independent of relevance — an inline document scoring lower than one deferred in the same response — so leaving `content_mode` at its `auto` default and then reading files is how a whole session ends up never seeing a body Aegis was willing to hand over. Prioritize by `relevance` (high first); skip only very low scores (< 0.25) unless specifically needed.
+   - `delivery: "omitted"` — excluded by budget or policy. Raise `max_inline_bytes` (default 128KB) or use `content_mode: "always"`.
 5. **Self-Review** — After writing code, check your implementation against the returned guidelines.
 6. **Report Compile Misses** — If Aegis failed to provide a needed guideline:
    ```
