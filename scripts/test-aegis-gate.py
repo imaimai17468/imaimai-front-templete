@@ -131,14 +131,30 @@ print("no gate hook may use a construct that aborts on bash 3.2")
 # indirection (`command shopt …`, `eval "shopt …"`, a builtin name assembled from a
 # variable). That is the intended strength — this guards against a careless edit,
 # not against someone working around it.
+#
+# Two further gaps are known and left as gaps, because both fail closed — they can
+# fail the test on a harmless line, never pass an aborting one. The builtin check
+# matches against the whole per-hook text rather than line by line, so a trailing
+# comment naming `mapfile` / `readarray` / `declare -A` would fail it even though no
+# such builtin is called. And the trailing-comment strip below is textual, not
+# quote-aware, so a `#` inside a quoted `shopt` argument would be cut — not a
+# construct that occurs, since option names are bare identifiers.
 for hook_name in HOOKS:
     code = "\n".join(
         line
         for line in (REPO / ".claude/hooks" / hook_name).read_text().splitlines()
         if not line.lstrip().startswith("#")
     )
+    # The guard has to be executable, so an inline comment must not be able to
+    # supply it: `shopt -s globstar # || true` aborts on 3.2 exactly like the
+    # unguarded form. Whole-line comments are already gone above; this drops a
+    # trailing one before the test. Split on `\s#` rather than a literal " #" —
+    # bash opens a comment after any whitespace, so a tab before the `#` is the
+    # same construct and a literal-space cut would miss it.
     unguarded = [
-        line.strip() for line in code.splitlines() if re.match(r"\s*shopt\s", line) and "|| true" not in line
+        line.strip()
+        for line in code.splitlines()
+        if re.match(r"\s*shopt\s", line) and "|| true" not in re.split(r"\s#", line, maxsplit=1)[0]
     ]
     check(f"no unguarded shopt: {hook_name}", unguarded, [])
     check(
