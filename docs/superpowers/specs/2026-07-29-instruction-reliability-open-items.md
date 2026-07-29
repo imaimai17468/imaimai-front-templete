@@ -91,7 +91,7 @@ carry the tuning.
 One piece already landed in #50 (`92e75cf`): the parent must verify claims about external
 tool behaviour and pass the quote and URL into both dispatch prompts, because
 neither review agent has a web tool and so neither can discharge
-`.claude/rules/authoring.md`'s verify-every-claim rule for that class of claim.
+AGENTS.md's instruction-document rule for that class of claim.
 
 **Note the cost side, honestly:** a template constrains the parent's briefing,
 and ADR-0014's eval obligation covers load-bearing edits to `review-diff`. A
