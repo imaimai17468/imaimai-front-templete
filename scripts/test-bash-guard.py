@@ -31,8 +31,12 @@ HOOK = REPO / ".claude/hooks/pre-bash-guard.sh"
 # A unique directory per run, removed at exit. A fixed shared path under the
 # system temp dir would let two concurrent runs clobber each other's fixture, and
 # the `rmtree` that kept it clean would delete whatever else happened to occupy
-# that name. `TemporaryDirectory` gives isolation and cleanup without leaving
-# directories behind.
+# that name.
+# `atexit` runs on a normal exit and on an uncaught exception, but not on SIGKILL,
+# an OOM kill, or a segfault — a hard-killed run leaves its directory behind, and
+# no later run will match the random name to clean it. Sweeping the prefix at
+# startup would restore that self-healing and delete the live directory of a
+# concurrent run, which is the bug this replaced, so it is deliberately not done.
 _STAMPED_TMP = tempfile.TemporaryDirectory(prefix="bash-guard-stamped-")
 atexit.register(_STAMPED_TMP.cleanup)
 STAMPED = pathlib.Path(_STAMPED_TMP.name)
