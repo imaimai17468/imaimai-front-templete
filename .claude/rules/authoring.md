@@ -13,7 +13,7 @@ Applies to text that **instructs** — a procedure someone executes against othe
 files. ADRs and audit records describe state rather than direct action, so the
 restatement rule below is aimed at procedures rather than at them.
 
-The **verify-every-claim** rule applies to all of it, records included. An
+The claim-checking rule below applies to all of it, records included. An
 earlier revision scoped this file to `docs/*.md` only, on the reasoning that
 ADRs are records; an ADR amendment then shipped two invented claims — a
 cross-reference to an ADR that says nothing of the kind, and a "this already
@@ -45,21 +45,52 @@ and nothing will tell you.
   a Japanese word, a paraphrase, or a capability description with no keyword
   all slip through. Never write "expect zero hits" as if it proved completeness.
 
-## Verify every claim before dispatching review
+## Check the sentence form as you write it
 
-A claim about another file is either checked or invented. Before sending an
-instruction document to review, open every file it names and confirm each
-assertion: the path exists, the named section or key is really there, the
-quoted behaviour matches, the line and section numbers are right.
+A claim about another file, another commit, or a tool's behaviour is either
+checked or invented, and nothing downstream tells the two apart: the sentence
+reads the same either way, and skipping the check leaves no trace in the
+document. So the check cannot wait for a moment when you would notice it
+missing. It has to attach to something visible while you type.
 
-This is not enforceable by any hook — it is a discipline, and skipping it is
-invisible until a reviewer does the work for you. When that happens the finding
-is always the same shape ("the doc says X, the file says Y"), and each one costs
-a full finder/verifier pair because the gate requires both to see the same tree.
+Four **sentence forms** are what to notice. You do not have to classify the
+subject — the form alone is the trigger, and it fires in the same turn that
+writes it:
+
+| Form | Words that signal it | What discharges it |
+|---|---|---|
+| **Universal** | every / all / none / only / no other / always / never | the search that enumerates the set |
+| **Completion** | was run / has been done / already / landed | the artifact or commit that records it |
+| **Attribution** | landed in #N / added by X / `<file>` says Y | opening that file or commit now |
+| **Quantity** | N cases / N flags / N files | counting them now |
+
+A search "enumerates the set" only when it would also catch translations,
+paraphrases, and keyword-free mentions — the grep caveat in "Point, don't
+restate" above is not suspended for Universal claims, and it is not suspended by
+narrowing the domain either: narrow what you claim, not the rigor of the search
+inside it.
+
+Opening the source is not the same as getting the sentence right, and the second
+half fails on its own. Copy the value out of the source rather than recalling it
+a paragraph later, and when you say what a file contains, describe the part you
+read — not the part you expected to find.
+
+When the evidence is not worth its cost, **drop the form** rather than assert
+it: "mostly", "as of <date> I saw", "under `.claude/` I found none". A
+downgraded sentence is not a weaker document — it is the honest shape of an
+unchecked claim, and it tells the next reader exactly what is still open.
+Narrowing a claim to the ground you actually covered counts as discharging it.
 
 For claims about tool behaviour (what a CLI emits, what a flag defaults to),
 run it in a scratch directory and cite the observation. Do not reason from
 memory — the AGENTS.md Knowledge Currency rule applies with full force here.
+
+Sweeping the finished draft for the same four forms is a backstop, not the
+check. This rule used to be only that sweep, scheduled before dispatching
+review — the moment momentum is highest and the work already feels finished, so
+it was the first step to go, and going cost nothing visible because the reviewer
+did it instead. Each such finding costs a full finder/verifier pair, because the
+gate requires both to see the same tree.
 
 ## Keep the document consistent with itself
 
