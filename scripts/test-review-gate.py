@@ -56,10 +56,12 @@ HOOKS = (
     # files directly would pass no matter what these contain.
     "pre-agent-review-clear.sh",
     "pre-agent-review-pair.sh",
-    # Included so the "a fix needs no second review" assertions below actually
-    # exercise it. Writing the fixture file directly would pass whether or not
-    # this hook still deletes the stamp, which is the regression that matters.
-    "post-edit-check.sh",
+    # `post-edit-check.sh` used to be listed here, so that the "a fix needs no second
+    # review" assertions ran through the hook that had once cleared the stamp on every
+    # edit. ADR-0025 deleted that hook, so nothing runs on an edit any more and those
+    # assertions now test what they always meant to: that a plain write does not
+    # disturb the stamp. What no longer has a mechanism behind it is the guarantee
+    # that some hook could not start clearing it again — see the comment on `edit()`.
     # Sourced by the two pre-agent hooks; without it they abort.
     "lib-review-hash.sh",
     # Sourced by pre-bash-guard.sh and post-bash-stamp-consume.sh — the single
@@ -96,8 +98,6 @@ def sh(cmd):
 
 def hook(name, command):
     payload = {"tool_name": "Bash", "tool_input": {"command": command}}
-    if name == "post-edit-check.sh":
-        payload = {"tool_name": "Edit", "tool_input": {"file_path": command}}
     return subprocess.run(
         ["bash", f".claude/hooks/{name}"],
         input=json.dumps(payload),
@@ -197,12 +197,18 @@ def clear_stamp():
 
 
 def edit(rel_path, body):
-    """Write a file the way the harness does: the write, then the per-edit hook.
+    """Write a file the way the harness does.
 
-    The hook is gated on file extension, so fixtures edited here are .ts.
+    A plain write, because no hook fires on an edit any more — ADR-0025 deleted the
+    only `PostToolUse(Edit|Write|MultiEdit)` registration. That makes this helper an
+    honest model of an edit today, and it also means this suite can no longer catch a
+    future hook that starts clearing `.review-stamp` on every edit (the ADR-0013
+    behaviour ADR-0019 removed). If such a hook is ever added, add it to `HOOKS` and
+    drive it from here, or the "a fix needs no second review" assertions below go back
+    to passing for the wrong reason. Fixtures stay `.ts` so the Stop gate's
+    code-relevant branch sees them.
     """
     pathlib.Path(rel_path).write_text(body)
-    hook("post-edit-check.sh", str(WORK / rel_path))
 
 
 def check(label, actual, expected):
@@ -448,13 +454,6 @@ for label, msg, want_stamp in (
 # editing a reviewed file still passes the gate, which needs one.
 review()
 check("a clean pass re-establishes the stamp", gate(), "PASS")
-
-print("fixing a finding does not require another review — the point of ADR-0019")
-edit("fileA.ts", "export const a = 3;\n")
-check("edit to a reviewed file", gate(), "PASS")
-edit("helper.ts", "export const h = 1;\n")
-check("fix that adds a file", gate(), "PASS")
-os.remove("helper.ts")
 
 print("an unrelated command that merely contains the word does not consume the stamp")
 hook("post-bash-stamp-consume.sh", "git checkout -b feature/" + "com" + "mit-fix")

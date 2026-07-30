@@ -275,13 +275,12 @@ Claude Code のイベントに応じて自動実行されるシェルスクリ�
 | `pre-bash-guard.sh` | Bash | 4つのガード（`.env` 遮断 / `find` の到達範囲制限 / ゲートのマーカー参照拒否 / コミットゲート）。判定条件はフック冒頭の番号付きコメントが正 — ADR-0004・ADR-0024 |
 | `lib-commit-shape.sh` / `lib-review-hash.sh` | （フックではない。source される） | 前者は「このコマンドはコミットを着地させるか」の**唯一の定義**（`pre-bash-guard.sh` と `post-bash-stamp-consume.sh` が共有。2つの手書き正規表現がずれて穴になったため — ADR-0024）。後者はペアリング用のツリーハッシュの唯一の定義（ADR-0022） |
 
-**ツール実行後 (PostToolUse)** — 同期・スタンプ・即時チェック:
+**ツール実行後 (PostToolUse)** — 同期・スタンプ:
 
 | Hook | トリガー | 役割 |
 |------|---------|------|
 | `post-aegis-compile.sh` | aegis_compile_context | `.aegis-stamp` を作成（dispatch ゲートの成果物）+ エッジの glob がファイルにマッチしなかった場合に警告 |
 | `post-aegis-share-sync.sh` | aegis_sync_docs / import_doc | DB → `aegis-share/` を同期 |
-| `post-edit-check.sh` | Edit / Write | 編集ファイル単体を lint（全体チェックはここでは走らせない。どの層で何が走るかは AGENTS.md の Delegation 節が指す設定ファイルを見る）。`.review-stamp` は消さない — 所見の修正で再レビューを起こさないため（ADR-0019） |
 | `post-bash-stamp-consume.sh` | Bash | `git commit` 後にツリーがクリーンなら `.review-stamp` を消費（ADR-0019。1スタンプで分割コミットは通し、タスク越えはさせない） |
 
 **サブエージェント完了時 (SubagentStop)** — レビューゲートのスタンプ:

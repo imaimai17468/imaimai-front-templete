@@ -220,17 +220,6 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-edit-check.sh",
-            "timeout": 60,
-            "statusMessage": "Per-edit check: scoped lint (review stamp preserved, ADR-0019)..."
-          }
-        ]
-      },
-      {
         "matcher": "mcp__aegis__aegis_compile_context|mcp__aegis-admin__aegis_compile_context",
         "hooks": [
           {

@@ -64,7 +64,7 @@ If the feature involves non-obvious state transitions (wizards / multi-step form
 
 ### 5. Implement
 
-**The parent implements directly by default.** Use `superpowers:test-driven-development` for pure functions and well-specified logic. The per-edit lint/typecheck hook keeps quality continuous.
+**The parent implements directly by default.** Use `superpowers:test-driven-development` for pure functions and well-specified logic. Nothing checks each edit as you make it (ADR-0025 removed the per-edit lint hook), so run the project's checks yourself at the points step 6 names.
 
 Delegate only when the delegation criteria (AGENTS.md / ADR-0012) are met:
 
@@ -77,7 +77,7 @@ Delegate only when the delegation criteria (AGENTS.md / ADR-0012) are met:
 Once implementation is complete:
 
 - Read the full diff (`git status` / `git diff`) — for dispatched work, do not trust the summary alone
-- Run `bun run typecheck` and `bun run test` — the PostToolUse hook already checks per-edit, but a final pass catches gaps
+- Run `bun run typecheck`, `bun run check` and `bun run test` — nothing has checked these since your last edit, and the Stop gate fires only at the end of the turn
 - Verify the acceptance criteria from step 4 are met
 - **Review the uncommitted diff** (users can also trigger it as `/review-diff`; pass `high` for a deeper multi-lens verification). Per ADR-0015 this is a flat two-agent pipeline you orchestrate: dispatch the `code-reviewer` agent (finder) → it returns candidate findings across all lenses (bug hunt + AGENTS.md and path-scoped rules) → dispatch the `review-verifier` agent with those candidates (even if zero) → it adversarially refutes each and returns CONFIRMED/PLAUSIBLE survivors, and its completion stamps the commit gate (ADR-0022). This is the bias check: neither agent's context has seen the implementation reasoning. Both are depth-1 dispatches you wait on directly. Address every finding or explicitly justify it as out of scope before committing. A PreToolUse hook enforces the gate — `git commit` is blocked until the verifier has stamped it.
 - **The parent applies each finding's returned fix, and that ends the review** (ADR-0019/0020) — the verifier hands back the concrete change and its acceptance check, the stamp survives those edits, so commit next. There is no re-review step.

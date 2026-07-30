@@ -175,6 +175,13 @@
     "specificity": 0
   },
   {
+    "edge_id": "d364933a-3d37-4d07-9e8c-62c9d6190eab",
+    "source_value": ".claude/settings.json",
+    "target_doc_id": "adr-0025",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "d420ec6b-8226-46d8-bd43-ced76392da82",
     "source_value": ".claude/settings.json",
     "target_doc_id": "adr-0019",

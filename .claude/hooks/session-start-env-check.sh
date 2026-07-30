@@ -30,7 +30,7 @@ rm -f \
 MISSING=()
 
 command -v jq >/dev/null 2>&1 || MISSING+=("jq (ALL guard hooks parse their input with jq — the gates are effectively OFF)")
-command -v bun >/dev/null 2>&1 || MISSING+=("bun (per-edit lint and the Stop quality gate cannot run)")
+command -v bun >/dev/null 2>&1 || MISSING+=("bun (the Stop quality gate and lefthook's pre-commit/pre-push checks cannot run)")
 [ -x "$HOME/.cargo/bin/similarity-ts" ] || command -v similarity-ts >/dev/null 2>&1 || MISSING+=("similarity-ts (Stop gate skips duplicate-type/function detection; install: cargo install similarity-ts)")
 command -v python3 >/dev/null 2>&1 || MISSING+=("python3 (Stop gate skips the markdown dead-link check; the gate-behaviour test scripts under scripts/ cannot run either)")
 
