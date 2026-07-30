@@ -14,6 +14,7 @@ Run it after touching check-md-links.py. Exits non-zero on a mismatch.
 
 import atexit
 import importlib.util
+import os
 import pathlib
 import sys
 import tempfile
@@ -43,7 +44,18 @@ def dead_links(body):
     found = []
     for line_no, raw in mod.link_targets(mod.strip_code(body)):
         cleaned = mod.clean_target(raw)
-        if cleaned is not None and not mod.resolve(doc, cleaned).exists():
+        # `target_exists`, not a bare `.exists()` — mirroring what main() calls. This
+        # helper used `.exists()` and therefore could not see the case-sensitivity
+        # defect at all: a harness that does not walk the real code path is testing a
+        # program that does not ship.
+        if cleaned is None:
+            continue
+        # resolve() returns None for a target no path in the repository can satisfy
+        # (a root-relative `..` climbing above the root), and main() counts that as
+        # dead. Mirrored here for the same reason the line below calls target_exists
+        # rather than .exists().
+        target = mod.resolve(doc, cleaned)
+        if target is None or not mod.target_exists(target):
             found.append((line_no, cleaned))
     return found
 
@@ -129,6 +141,70 @@ check(
     ["./gone.md"],
 )
 
+# Six defects found by an adversarial audit on 2026-07-30, each reproduced against
+# the shipped module before being fixed. The first two are false positives, the next
+# three false negatives, and the last two break the local-gate/CI equivalence.
+print("indented code is deliberately NOT treated as code")
+# Reverted on 2026-07-30. The implementation looked right, passed its own tests, and
+# still made the first case below invisible — a false negative, which in a gate is
+# silent. The false positive it was fixing lived in this checker's own docstring,
+# which is fenced now. See strip_code's docstring.
+check(
+    "a link after a fenced block inside a list stays visible",
+    "- item\n\n    ```\n    code\n    ```\n\n    [x](./gone.md)\n",
+    ["./gone.md"],
+)
+check("a nested list item stays visible", "- top\n    - [x](./gone.md)\n", ["./gone.md"])
+check(
+    "an indented example IS reported — the accepted cost",
+    "Usage:\n\n    See [x](./gone.md)\n",
+    ["./gone.md"],
+)
+
+print("a UTF-8 BOM must not defeat fence detection")
+check("BOM then a first-line fence", "﻿```\n[x](./gone.md)\n```\n", [])
+
+print("shapes that were invisible")
+check("raw HTML anchor", 'See <a href="./gone.md">here</a>.\n', ["./gone.md"])
+check("HTML anchor, single quotes", "<a href='./gone.md'>x</a>\n", ["./gone.md"])
+check("HTML anchor, unquoted", "<a href=./gone.md>x</a>\n", ["./gone.md"])
+check("HTML anchor to a live file", '<a href="./real.md">x</a>\n', [])
+check("reference definition in a blockquote", "> [ref]: ./gone.md\n", ["./gone.md"])
+check("nested blockquote definition", ">> [ref]: ./gone.md\n", ["./gone.md"])
+# An escaped paren used to make the balanced scan never reach depth 0, so the link
+# was dropped entirely — the checker could not tell dead from alive because it never
+# looked, which is worse than reporting the wrong answer.
+check("escaped paren in the destination", "[x](./no\\(such.md)\n", ["./no\\(such.md"])
+# The escape must not swallow a newline: `i += 2` jumps over the escaped character
+# without testing it, so a backslash immediately before a line end carried the scan
+# into the next line and produced a target with an embedded newline, breaking the
+# "an unclosed link ends at the line end" guarantee. A live link was then reported
+# dead, because clean_target() truncated the corrupted destination at the newline.
+#
+# Two shapes, because the first one alone certified the bug as fixed for a while: its
+# expected answer is recovered by a SECOND `](` match inside the text the broken scan
+# swallowed, so it passed while the merging was still happening. Only the isolated
+# shape below — no second link to rescue it — actually fails when the escape branch
+# skips past the newline.
+check(
+    "a backslash at line end does not join the next line",
+    "[x](abc\\\n[y](./gone.md)\n",
+    ["./gone.md"],
+)
+check(
+    "backslash-escaped newline does not merge lines (isolated)",
+    "[x](abc\\\ndef)\n",
+    [],
+)
+# `\b` is satisfied by a hyphen or colon, so these read as the real attribute. A
+# `data-href` usually drives JavaScript and points at nothing on disk.
+check("data-href is not an href", '<a data-href="./gone.md">x</a>\n', [])
+check("aria-href is not an href", '<a aria-href="./gone.md">x</a>\n', [])
+check("xlink:href is not an href", '<a xlink:href="./gone.md">x</a>\n', [])
+check("href in a fenced block stays quoted", '```\n<a href="./gone.md">x</a>\n```\n', [])
+check("an anchor to an external URL is skipped", '<a href="https://x.test/a.md">x</a>\n', [])
+check("an anchor to a fragment is skipped", '<a href="#top">x</a>\n', [])
+
 print("target syntax that a naive regex gets wrong")
 check("title after target", '[x](./real.md "the title")\n', [])
 check("dead target with title reports only the path", '[x](./gone.md "the title")\n', ["./gone.md"])
@@ -145,6 +221,91 @@ check("newline before close paren is not a link", "[x](./gone.md\n)\n", [])
 print("root-relative targets resolve against the repository root")
 check("live root-relative", "[x](/README.md)\n", [])
 check("dead root-relative", "[x](/nope-does-not-exist.md)\n", ["/nope-does-not-exist.md"])
+# `/` means the repository root, so climbing above it names nothing this checker can
+# accept: resolve() returns None and the link is dead. Without the clamp it returned
+# the escaped path, and a same-named file in the parent directory (a nested checkout,
+# a sibling package) reported the link LIVE — a false negative, which is the failure
+# mode this gate cannot afford because nothing announces it. Decided 2026-07-30
+# between clamping and leaving it to disk; clamping was chosen.
+ok = mod.resolve(WORK / "doc.md", "/../anything.md") is None
+if not ok:
+    failures.append("root-relative escape not clamped")
+print(f"  {'ok  ' if ok else 'FAIL'} a root-relative target climbing above the root resolves to None")
+# The case that actually bites: the escaped path EXISTS. Uses a real sibling of the
+# repository rather than creating one, because a test has no business writing outside
+# the repository it checks. Skipped rather than faked when the checkout has no sibling.
+_sibling = next(
+    (e for e in sorted(os.listdir(REPO.parent)) if e != REPO.name and not e.startswith(".")),
+    None,
+)
+if _sibling is None:
+    print(f"  SKIP no sibling of {REPO.name} on disk to point at")
+else:
+    check(f"root-relative escape onto a real sibling ({_sibling})", f"[x](/../{_sibling})\n", [f"/../{_sibling}"])
+
+# On a case-insensitive filesystem (APFS by default) `Path.exists()` answers True for
+# the wrong case, so a wrong-case link passed the local Stop gate and failed in CI —
+# splitting the local gate from the step meant to be redundant with it (ADR-0013).
+# `target_exists` checks each component against real directory entries instead.
+print("a wrong-case target is dead even where the filesystem disagrees")
+check("exact case", "[x](./real.md)\n", [])
+check("wrong case on the file", "[x](./REAL.MD)\n", ["./REAL.MD"])
+check("wrong case in a directory", "[x](./SUB/nested.md)\n", ["./SUB/nested.md"])
+check("wrong case, live file, live dir", "[x](./sub/NESTED.md)\n", ["./sub/NESTED.md"])
+ok = mod.target_exists(WORK / "real.md") and not mod.target_exists(WORK / "REAL.MD")
+if not ok:
+    failures.append("target_exists case check")
+print(f"  {'ok  ' if ok else 'FAIL'} target_exists distinguishes case directly")
+
+print("a root-relative target with .. still resolves")
+# The root-relative branch was not normalised, so a literal `..` survived into
+# target_exists()'s component walk, where no real directory lists `..`.
+ok = mod.target_exists(mod.resolve(WORK / "doc.md", "/AGENTS.md"))
+ok2 = mod.target_exists(mod.resolve(WORK / "doc.md", "/docs/../AGENTS.md"))
+for label, got in (("plain root-relative", ok), ("root-relative through ..", ok2)):
+    if not got:
+        failures.append(label)
+    print(f"  {'ok  ' if got else 'FAIL'} {label} resolves to a live file")
+
+print("the listdir cache does not outlive one scan")
+# Cached per directory and never refreshed, a file created after its parent was first
+# listed read as dead for the rest of the process — and this harness shares one.
+#
+# Exercised through main(), which is where the clearing lives. The first version of
+# this block called `mod._LISTDIR_CACHE.clear()` itself and then checked
+# target_exists(), so it passed whether or not main() cleared anything — verified by
+# deleting the clear from main() and watching all 71 checks still pass. A test that
+# cannot fail certifies the fix instead of covering it.
+cache_dir = WORK / "cache-check"
+cache_dir.mkdir()
+doc = cache_dir / "doc.md"
+(cache_dir / "seed.md").write_text("# seed\n")
+# Primed through resolve(), not with a bare path: resolve() calls .resolve(), which
+# rewrites macOS's /var -> /private/var symlink, so a bare cache_dir key never
+# collides with the one main() goes on to use and the priming becomes a no-op.
+mod.target_exists(mod.resolve(doc, "./seed.md"))
+(cache_dir / "created-later.md").write_text("# later\n")
+doc.write_text("[x](./created-later.md)\n")
+rc = mod.main([str(doc)])
+ok = rc == 0
+if not ok:
+    failures.append("cache staleness across main() invocations")
+print(f"  {'ok  ' if ok else 'FAIL'} main() clears the cache before its own scan (exit {rc}, expected 0)")
+
+print("a symlinked .md is skipped, not followed outside the repository")
+outside = WORK / "outside.md"
+outside.write_text("[x](./nowhere-at-all.md)\n")
+link = WORK / "linked.md"
+try:
+    link.symlink_to(outside)
+    rc = mod.main([str(link)])
+    ok = rc == 0
+    if not ok:
+        failures.append("symlink skipped")
+    print(f"  {'ok  ' if ok else 'FAIL'} a symlink is not read (exit {rc}, expected 0)")
+finally:
+    if link.is_symlink():
+        link.unlink()
 
 print("line numbers point at the link")
 _lines = dead_links("one\ntwo\n[x](./gone.md)\n")

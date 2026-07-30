@@ -1,7 +1,13 @@
 """Report markdown links that point at files which do not exist.
 
-    python3 scripts/check-md-links.py            # every .md file git knows about
-    python3 scripts/check-md-links.py a.md b.md  # only these
+```
+python3 scripts/check-md-links.py            # every .md file git knows about
+python3 scripts/check-md-links.py a.md b.md  # only these
+```
+
+Fenced, not indented, on purpose: this checker does not treat 4-space-indented
+blocks as code (see `strip_code`), so an indented example here would be scanned as
+prose and reported as a dead link. That is the accepted trade — see that docstring.
 
 Exists because the review pipeline was being used as a link checker. On
 2026-07-29 a consolidation deleted `docs/adr/` and `docs/superpowers/`, and the
@@ -41,10 +47,28 @@ def strip_code(text):
     quoted text, not links — reporting them would train the reader to ignore this
     check. Replacement is space-for-character so every surviving link keeps its
     real line and column.
+
+    **Indented (4-space) code blocks are deliberately NOT recognised**, though
+    CommonMark says they are code. Handling them was implemented and reverted on
+    2026-07-30, and the reason is worth keeping: a code block cannot interrupt a
+    paragraph, and inside a list the same indentation is list *content*, so any rule
+    simple enough to state here misjudges one of the two. The implementation looked
+    right, passed its own tests, and still made a link after a fenced block inside a
+    list invisible — a false negative, which in a gate is silent, and therefore worse
+    than the false positive it was fixing.
+
+    The false positive it was fixing was in this very file's docstring, which used to
+    write its usage examples 4-space indented. Those are fenced now. That is the
+    whole trade: a genuine indented code block elsewhere gets *reported*, which is
+    visible and fixed by adding a fence, whereas a missed link is not visible at all.
     """
     out = []
     fence = None  # the opening fence's (char, length) while inside a block
     for line in text.split("\n"):
+        # A UTF-8 BOM is not whitespace, so `lstrip()` leaves it in front of a
+        # first-line fence and the fence stops being recognised — everything to the
+        # closing fence then reads as prose. Editors add one silently.
+        line = line.lstrip("﻿")
         stripped = line.lstrip()
         m = re.match(r"^(`{3,}|~{3,})", stripped)
         if fence is None:
@@ -96,25 +120,68 @@ def link_targets(text):
         i = m.end()
         depth = 1
         while i < len(text) and depth:
+            # A line end terminates the scan: an unclosed link ends at the line end.
+            if text[i] == "\n":
+                break
+            # A backslash escapes the next character, so an escaped paren is part of
+            # the destination and must not move the depth. Counting it did, so
+            # `[x](notes\(draft.md)` never reached depth 0 and the whole link was
+            # dropped from the scan — the checker could not tell dead from alive
+            # because it never looked, which is worse than a false positive.
+            #
+            # The escaped character is inspected before being skipped, because the
+            # skip is what can cross a line end: `i += 2` jumps over text[i+1]
+            # without ever testing it, so a backslash immediately before a newline
+            # carried the scan into the next line and produced a destination with an
+            # embedded newline. Testing for the newline earlier in this loop does
+            # NOT prevent that — both tests read the same index and are mutually
+            # exclusive on one character, so ordering them cannot help. An earlier
+            # attempt at this fix did exactly that, and its test passed only because
+            # a second `](` match inside the swallowed text happened to recover the
+            # right answer; the isolated shape `[x](abc\<newline>def)` still merged
+            # the lines. The consequence was a LIVE link reported dead, because
+            # clean_target() then truncated the corrupted destination at the newline.
+            if text[i] == "\\":
+                if i + 1 >= len(text) or text[i + 1] == "\n":
+                    break
+                i += 2
+                continue
             if text[i] == "(":
                 depth += 1
             elif text[i] == ")":
                 depth -= 1
                 if not depth:
                     break
-            elif text[i] == "\n":
-                break
             i += 1
         if depth:
             continue
         yield text.count("\n", 0, m.start()) + 1, text[m.end() : i]
+
+    # Raw HTML anchors. Legal in CommonMark and used here for anchors and styling;
+    # `](` never appears in them, so they were entirely invisible.
+    # `(?<![\w:-])` rather than `\b`: a word boundary is satisfied by a hyphen or a
+    # colon too, so `data-href`, `aria-href` and `xlink:href` were read as the real
+    # attribute. `data-href` in particular usually drives JavaScript and points at
+    # nothing on disk, so that was a false positive able to block a commit. The colon
+    # was missed on the first attempt at this fix — `\w` and `-` alone still let
+    # `xlink:href` through.
+    for m in re.finditer(
+        r"""(?i)<a\s[^>]*?(?<![\w:-])href\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)""", text
+    ):
+        raw = m.group(1).strip("\"'")
+        yield text.count("\n", 0, m.start()) + 1, raw
     # Reference definitions: `[label]: target "optional title"`.
     # The lookahead skips footnote definitions (`[^note]: ...`), whose target is
     # prose rather than a path. It has to be a lookahead on the FIRST character
     # rather than `^` inside the character class: excluding the caret everywhere
     # made any label merely containing one — `[a^b]: ./gone.md` — invisible, so a
     # genuinely dead link went unreported.
-    for m in re.finditer(r"(?m)^[ \t]{0,3}\[(?!\^)[^\]]+\]:[ \t]*(\S+)", text):
+    #
+    # `(?:>[ \t]?)*` allows blockquote markers: a definition inside a blockquote is
+    # still a definition, and anchoring on `[` alone skipped it.
+    for m in re.finditer(
+        r"(?m)^[ \t]{0,3}(?:>[ \t]?)*[ \t]{0,3}\[(?!\^)[^\]]+\]:[ \t]*(\S+)", text
+    ):
         yield text.count("\n", 0, m.start()) + 1, m.group(1)
 
 
@@ -147,16 +214,109 @@ def clean_target(target):
     return urllib.parse.unquote(target)
 
 
+_LISTDIR_CACHE = {}
+
+
+def target_exists(path):
+    """True when `path` exists AND every component's case matches the disk.
+
+    `Path.exists()` is a bare `stat()`, so on a case-insensitive filesystem (APFS
+    by default on macOS) `./HTMLREF.MD` resolves to `htmlref.md` and a wrong-case
+    link passes. CI runs on ext4 and fails it. That split the local gate from the
+    CI step that is supposed to be redundant with it — a contributor would be told
+    "clean" locally and surprised by CI, which is precisely the equivalence
+    ADR-0013 assumes. So the case is verified explicitly rather than delegated to
+    the filesystem.
+
+    Directory listings are cached: a document with many links otherwise re-reads the
+    same directory once per link.
+    """
+    if not path.exists():
+        return False
+    # Walk from the anchor down, checking each component against its parent's real
+    # directory entries.
+    parts = list(path.parts)
+    if not parts:
+        return False
+    current = pathlib.Path(parts[0])
+    for part in parts[1:]:
+        key = str(current)
+        entries = _LISTDIR_CACHE.get(key)
+        if entries is None:
+            try:
+                entries = set(os.listdir(current))
+            except OSError:
+                return False
+            _LISTDIR_CACHE[key] = entries
+        if part not in entries:
+            return False
+        current = current / part
+    return True
+
+
 def resolve(md_path, cleaned):
-    """Return the path a cleaned target refers to."""
+    """Return the path a cleaned target refers to, or None if it cannot be one.
+
+    None means "no path in this repository can satisfy this target", which the
+    caller treats as dead. It is distinct from `clean_target` returning None,
+    which means "not a repository-relative target at all" and is skipped.
+    """
+    # Both branches are normalised. The root-relative one was not, so a `..`
+    # segment survived into target_exists()'s component walk, where no real
+    # directory ever lists `..` — a live file read as dead.
     if cleaned.startswith("/"):
-        return REPO / cleaned.lstrip("/")
+        target = (REPO / cleaned.lstrip("/")).resolve()
+        # `/` here means "the repository root", so a target with enough `..` to
+        # climb above it (`/../x`) names nothing this checker can accept. Returning
+        # the escaped path instead let a same-named file in the parent directory —
+        # a nested checkout, a sibling package — report the link live: a false
+        # negative, which is the one failure mode a silent gate cannot afford.
+        #
+        # The ordinary relative branch below is deliberately NOT clamped the same
+        # way. `../` there is how a document legitimately points at a sibling file,
+        # and the checker's question for it is only "does this resolve on disk";
+        # clamping it would reject working links. The asymmetry is the point: the
+        # two branches answer different questions.
+        if target != REPO and REPO not in target.parents:
+            return None
+        return target
     return (md_path.parent / cleaned).resolve()
+
+
+def reached_via_symlink(path):
+    """True when `path`, or any directory between the repo root and it, is a symlink.
+
+    Checking only the final component was not enough: with `docs/linked -> /elsewhere`
+    and `docs/linked/real.md` an ordinary file, `is_symlink()` on the full path is
+    False and the OS follows the link transparently, so the read escaped the
+    repository anyway.
+
+    Deliberately NOT implemented as `path.resolve() != path`. On macOS `/var` and
+    `/tmp` are themselves symlinks into `/private`, so that comparison would flag
+    every fixture the test harness creates under a temp directory. Only components
+    *inside* the repository are inspected; a path the caller passed from outside the
+    repository is the caller's own choice, and this walk stops before it.
+    """
+    if path.is_symlink():
+        return True
+    try:
+        rel = path.relative_to(REPO)
+    except ValueError:
+        return False
+    current = REPO
+    for part in rel.parts[:-1]:
+        current = current / part
+        if current.is_symlink():
+            return True
+    return False
 
 
 def md_files(argv):
     if argv:
-        return [pathlib.Path(a).resolve() for a in argv]
+        # `absolute()`, not `resolve()`: resolve() follows symlinks, which would
+        # defeat the symlink check in main() for explicitly-named files — the path
+        # would already be the target by the time anything asked.
+        return [pathlib.Path(a).absolute() for a in argv]
 
     def listed(*extra):
         out = subprocess.run(
@@ -177,17 +337,36 @@ def md_files(argv):
 
 
 def main(argv):
+    # One scan, one cache. It is keyed by directory, so a file created after that
+    # directory was first listed would otherwise read as dead for the rest of the
+    # process — which matters because the test harness and any watch-mode caller
+    # invoke main() more than once.
+    _LISTDIR_CACHE.clear()
     dead = []
+    skipped = 0
     files = md_files(argv)
     for md in files:
+        # A `*.md` symlink passes `--exclude-standard` (which filters by .gitignore,
+        # not by file type), and reading it followed the link to wherever it pointed
+        # — an editor swap file, a build artifact, anything on disk the user can
+        # read. A gate has no business reading outside the repository, so symlinks
+        # are skipped out loud rather than silently.
+        if reached_via_symlink(md):
+            print(f"  SKIP {os.path.relpath(md, REPO)}: symlink, not followed")
+            skipped += 1
+            continue
         try:
             text = md.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as exc:
             print(f"  SKIP {os.path.relpath(md, REPO)}: {exc}")
+            skipped += 1
             continue
         for line_no, raw in link_targets(strip_code(text)):
             cleaned = clean_target(raw)
-            if cleaned is None or resolve(md, cleaned).exists():
+            if cleaned is None:
+                continue
+            target = resolve(md, cleaned)
+            if target is not None and target_exists(target):
                 continue
             dead.append((os.path.relpath(md, REPO), line_no, cleaned))
 
@@ -195,10 +374,13 @@ def main(argv):
         print(f"Dead markdown links: {len(dead)}")
         for path, line_no, raw in dead:
             print(f"  {path}:{line_no}  ->  {raw}")
-        print("\nEach target above does not exist on disk. Fix the path, or drop")
-        print("the link and name the thing in plain text.")
+        print("\nEach target above does not exist on disk, or exists under a")
+        print("different case. Fix the path, or drop the link and name the thing")
+        print("in plain text.")
         return 1
-    print(f"markdown links ok ({len(files)} files, no dead relative links)")
+    checked = len(files) - skipped
+    note = f", {skipped} skipped" if skipped else ""
+    print(f"markdown links ok ({checked} files checked{note}, no dead relative links)")
     return 0
 
 
