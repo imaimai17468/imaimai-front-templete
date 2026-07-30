@@ -49,6 +49,13 @@
     "specificity": 0
   },
   {
+    "edge_id": "5abb1abe-a2c4-4946-b5c5-681a38258fcd",
+    "source_value": "specs/**",
+    "target_doc_id": "adr-0015",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "6ad8a6ce-9367-4fd0-b707-1eab9cc68795",
     "source_value": "aegis-share/source/**",
     "target_doc_id": "adr-0021",
