@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # PostToolUse(Edit|Write|MultiEdit) hook:
-# Lint the edited file (scoped, blocking). Whole-project typecheck / lint /
-# format stay in the Stop gate — running them per edit re-checked the world
-# N times per task and blocked legitimate mid-refactor states.
+# Lint the edited file (scoped, blocking). Whole-project checks are deliberately
+# not run here — per edit they re-checked the world N times per task and blocked
+# legitimate mid-refactor states. Which layer runs which check is spread across
+# several files; AGENTS.md's Delegation section names them. This comment used to
+# say the whole-project checks "stay in the Stop gate", which read as if that were
+# the only place they run — it is not, and on 2026-07-30 the same wording in
+# AGENTS.md was cited to confirm a gap that pre-push and CI already closed.
 #
 # This hook deliberately does NOT clear .claude/.review-stamp (ADR-0019,
 # amending ADR-0013). Clearing it on every edit made fixing a finding require a

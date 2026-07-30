@@ -281,7 +281,7 @@ Claude Code のイベントに応じて自動実行されるシェルスクリ�
 |------|---------|------|
 | `post-aegis-compile.sh` | aegis_compile_context | `.aegis-stamp` を作成（dispatch ゲートの成果物）+ エッジの glob がファイルにマッチしなかった場合に警告 |
 | `post-aegis-share-sync.sh` | aegis_sync_docs / import_doc | DB → `aegis-share/` を同期 |
-| `post-edit-check.sh` | Edit / Write | 編集ファイル単体を lint（全体チェックは Stop gate に集約）。`.review-stamp` は消さない — 所見の修正で再レビューを起こさないため（ADR-0019） |
+| `post-edit-check.sh` | Edit / Write | 編集ファイル単体を lint（全体チェックはここでは走らせない。どの層で何が走るかは AGENTS.md の Delegation 節が指す設定ファイルを見る）。`.review-stamp` は消さない — 所見の修正で再レビューを起こさないため（ADR-0019） |
 | `post-bash-stamp-consume.sh` | Bash | `git commit` 後にツリーがクリーンなら `.review-stamp` を消費（ADR-0019。1スタンプで分割コミットは通し、タスク越えはさせない） |
 
 **サブエージェント完了時 (SubagentStop)** — レビューゲートのスタンプ:
