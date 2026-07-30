@@ -1,5 +1,12 @@
 [
   {
+    "edge_id": "0f78948b-1944-4e96-95e0-e7d863a50334",
+    "source_value": ".claude/rules/**",
+    "target_doc_id": "adr-0008",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "11179a3d-e436-4b32-8279-b5bd8de464f0",
     "source_value": ".claude/hooks/**",
     "target_doc_id": "adr-0022",
@@ -10,6 +17,13 @@
     "edge_id": "1e66281e-b070-4827-b202-71a5445a3f6e",
     "source_value": ".claude/settings.json",
     "target_doc_id": "adr-0022",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "1f2e133d-cfe3-423b-94ca-97f8232dabea",
+    "source_value": "AGENTS.md",
+    "target_doc_id": "adr-0021",
     "priority": -1,
     "specificity": 0
   },
@@ -133,6 +147,13 @@
     "specificity": 0
   },
   {
+    "edge_id": "c1071b3d-5bab-45d2-a551-cfe55488add7",
+    "source_value": "AGENTS.md",
+    "target_doc_id": "adr-0008",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "d420ec6b-8226-46d8-bd43-ced76392da82",
     "source_value": ".claude/settings.json",
     "target_doc_id": "adr-0019",
@@ -154,9 +175,23 @@
     "specificity": 0
   },
   {
+    "edge_id": "da60879a-2779-44d1-a652-74a3ce7ff05f",
+    "source_value": ".claude/skills/**",
+    "target_doc_id": "adr-0006",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "de4c4d45-63fd-48a2-afc3-b25b3aae3628",
     "source_value": "src/**/*",
     "target_doc_id": "adr-0007",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "e57aaebd-cbab-44ef-84fc-2b759f377f58",
+    "source_value": "aegis-share/source/**",
+    "target_doc_id": "adr-0023",
     "priority": -1,
     "specificity": 0
   },
