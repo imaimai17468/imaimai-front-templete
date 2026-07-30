@@ -259,8 +259,15 @@ this procedure keeps:
   Section 4 (now 3) also ends by telling the reader to consult `/remove-db` for
   removing auth — circular advice for a fork that just ran it. Drop that
   sentence and the profile-feature deletion list with it.
-- ADRs: never delete one (AGENTS.md, "ADR form"). Two need a
-  note added in place. **ADR-0017**'s standing exception exists solely for
+- ADRs: inside this repository, never delete one — a retired decision is
+  superseded, not removed (AGENTS.md, "ADR form"). A fork is the documented
+  exception, because it is a different repository: `docs/FORKING.md` section 3
+  lets it drop the ADRs that only record this template's own process history, and
+  requires dropping the matching `source/edges/` entries and re-running the share
+  pipeline when it does. Either way the two below are **amended in place, never
+  dropped** — they describe mechanisms this removal changes, so a fork that keeps
+  them needs the note and a fork that discards them needs neither.
+  **ADR-0017**'s standing exception exists solely for
   drizzle-kit's `CLOUDFLARE_API_TOKEN`, so removing drizzle-kit closes it — its
   own acceptance test ("the remote path works with the token slot empty") is now
   satisfied trivially. **ADR-0007**'s amendment describes bindings being read
@@ -284,22 +291,26 @@ grep -rn "better-auth\|BETTER_AUTH\|drizzle\|D1Database\|R2Bucket\|AVATARS_BUCKE
   README.md AGENTS.md .claude/settings.json docs/DEPLOYMENT.md docs/FORKING.md
 ```
 
-Expect zero hits. Two deliberate exclusions from the path list: the ADR records
-keeps D1 / drizzle references as decision history and in ADR-0017's amended
-exception, and generic infra checklists (e.g.
-`.claude/skills/launch-checklist`) keep their generic D1 / R2 mentions. Neither
-is a leftover.
+Read every hit and decide — a hit is not automatically a leftover. An empty
+result is not evidence the removal is complete either: this finds the eight
+literals above in the paths above, and anything phrased differently or living
+elsewhere is invisible to it. Two exclusions from the path list are deliberate:
+the ADR records keep their D1 / drizzle references as decision history
+(including ADR-0017's amended exception), and generic infra checklists (e.g.
+`.claude/skills/launch-checklist`) keep their generic D1 / R2 mentions.
 
-Also check for dead links to the deleted database doc — same path discipline,
-for the same reason (the Aegis knowledge base cites that file as history and must
-not be "fixed"):
+Dead markdown links to the deleted database doc need no grep — `python3
+scripts/check-md-links.py` fails on any link whose target is gone, and the Stop
+gate runs it over the whole repository. What it cannot see is prose that names
+the file without linking it, so check that separately:
 
 ```bash
 grep -rn "DATABASE_SETUP" README.md AGENTS.md .claude/ docs/DEPLOYMENT.md docs/FORKING.md
 ```
 
-Hits inside this skill file are its own instructions, not leftovers. Everything
-else should be gone.
+Hits inside this skill file are its own instructions, not leftovers. The path
+discipline is the same as above and for the same reason: the Aegis knowledge base
+cites that file as history and must not be "fixed".
 
 ## 8. Verify
 
