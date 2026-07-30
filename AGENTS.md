@@ -175,7 +175,7 @@ You MUST consult Aegis for every coding-related interaction — implementation t
    - `target_files`: the files you plan to edit
    - `plan`: your natural-language plan (optional but recommended)
    - `command`: the type of operation (scaffold, refactor, review, etc.)
-   - `intent_tags` (recommended): tags chosen from the step-2 catalog — drives `expanded` context deterministically. Use `[]` to skip expanded context without using the server-side SLM tagger. Omit `intent_tags` only if you want the server SLM tagger (when enabled) to infer tags from `plan` instead (see ADR-004).
+   - `intent_tags` (**required**): tags chosen from the step-2 catalog — drives `expanded` context deterministically. Pass `[]` to skip expanded context deliberately. Omitting the field is not a third option: `pre-aegis-compile-guard.sh` blocks the call, so the server-side SLM tagger fallback aegis offers is unreachable here, and nothing in `.mcp.json` enables it either. Choose tags or choose `[]`.
      **If step 2 returns `tags: []` the catalog is empty and `expanded` cannot fire at all** — passing `[]` then looks like a choice but is the only outcome available. Say so to the user rather than treating the reduced result as what Aegis offers; the fix is `source/tag-mappings.json`, not a different call. (This repository's catalog is populated, so an empty result means something is wrong — a fork that dropped the file, or a bundle that was never materialized. `manifest.json`'s `includes_tag_mappings` is the quick check.)
 4. **Read and follow** the returned architecture guidelines.
    - `delivery: "inline"` — content is included; read it directly.
@@ -209,7 +209,7 @@ If the user asks about architecture, patterns, conventions, or how to write code
    - `target_files`: the real file paths from step 1
    - `plan`: the user's question in natural language
    - `command`: `"review"`
-   - `intent_tags` (optional): when `expanded` context is useful, call `aegis_get_known_tags` first, then pass a subset of tags (or `[]` to skip expanded).
+   - `intent_tags` (**required**, same as above — the guard does not exempt questions): call `aegis_get_known_tags` first and pass a subset of tags, or `[]` to skip expanded context.
 3. **Answer using Aegis context** — Base your answer on the guidelines returned by Aegis, supplemented by your own knowledge. Cite specific guidelines when relevant. When documents include a `relevance` score, prioritize high-scoring documents and skim or skip low-scoring ones.
 
 ### When Knowledge Base Is Empty

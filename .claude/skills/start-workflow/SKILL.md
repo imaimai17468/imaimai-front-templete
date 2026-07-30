@@ -37,7 +37,9 @@ If the request is clear enough, say so and proceed.
 
 ### 2. Compile context via aegis
 
-Call `aegis_compile_context` with `target_files` (the files that will be edited or created) and `plan` (one-line goal). aegis returns the relevant rule and ADR documents deterministically, with relevance scores. Use this output as the single source of truth for "what rules apply to this task" — do not also paste in the full rule content; the rules are already in the prompt baseline.
+Call `aegis_compile_context` with `target_files` (the files that will be edited or created), `plan` (one-line goal), `command`, and `intent_tags`. aegis returns the relevant rule and ADR documents deterministically, with relevance scores. Use this output as the single source of truth for "what rules apply to this task" — do not also paste in the full rule content; the rules are already in the prompt baseline.
+
+`intent_tags` is not optional: `pre-aegis-compile-guard.sh` blocks a call that omits it. Call `aegis_get_known_tags` first and pass a subset, or pass `[]` to skip expanded context deliberately. AGENTS.md's "When Writing Code" steps 2–3 carry the full rule, including the reach test a new tag has to pass.
 
 If aegis returns nothing relevant, that is itself a signal: either the knowledge base needs new docs (raise via `aegis_observe` with `event_type: "compile_miss"` after the work is done), or the task is genuinely outside any documented decision.
 
