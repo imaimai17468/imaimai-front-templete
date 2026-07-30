@@ -51,6 +51,20 @@ ALL_FILES=$(printf '%s\n%s' "$CHANGED" "$UNTRACKED" | sort -u)
 
 CODE_CHANGED=$(printf '%s\n' "$ALL_FILES" | grep -cE '\.(ts|tsx|js|jsx|mjs|cjs|json|css)$' || true)
 
+# Initialised here, not only inside the quality-gate block below, because the
+# summary and the aegis branch both read it and `set -u` aborts the whole hook on an
+# unset name. A docs-only turn skips the quality gate entirely, so similarity is not
+# "unavailable" there — it was never attempted, which the summary states separately.
+SIM_AVAILABLE=true
+# Appended to the summary of any exit that ends the turn while section 1's result is
+# in hand. Empty unless similarity was actually attempted and the binary was missing:
+# it is assigned in exactly one place, next to `SIM_AVAILABLE=false`, which is only
+# reachable with CODE_CHANGED > 0. Guarding each call site on CODE_CHANGED instead
+# would work today and drift later — on a docs-only turn SIM_AVAILABLE still holds
+# this default, and reporting a default as a measurement is a new false claim, not a
+# fix.
+SIM_TAG=""
+
 if [ "$CODE_CHANGED" -gt 0 ]; then
   # Layer 1: typecheck / lint / format
   OUT=$(bun run typecheck 2>&1 && bun run lint 2>&1 && bun run format 2>&1)
@@ -63,11 +77,11 @@ if [ "$CODE_CHANGED" -gt 0 ]; then
   KNIP=$(bun run knip 2>&1 || true)
   SIM_BIN="$HOME/.cargo/bin/similarity-ts"
   command -v similarity-ts >/dev/null 2>&1 && SIM_BIN=$(command -v similarity-ts)
-  SIM_AVAILABLE=true
   if [ -x "$SIM_BIN" ]; then
     SIM=$("$SIM_BIN" ./src 2>&1 || true)
   else
     SIM_AVAILABLE=false
+    SIM_TAG=" (similarity: SKIPPED — similarity-ts not installed)"
     SIM=""
   fi
 
@@ -118,7 +132,12 @@ ${SIM}
    - For similarity findings, add a \`// similarity-ignore: <reason>\` comment immediately before the type
 3. \`@public\` / \`similarity-ignore\` MUST include **the reason for keeping it**"
 
-    emit_block "advisory findings — ${SUM}" "${GUIDANCE}
+    # emit_block's warning form ends the turn without re-blocking, so it is a
+    # "reporting completion" exit and has to carry a skipped check like any other.
+    # It did not: with similarity-ts absent and a knip finding present, the second
+    # Stop reported only knip and let the turn end. SIM_AVAILABLE is a real
+    # measurement here because section 1 ran.
+    emit_block "advisory findings — ${SUM}${SIM_TAG}" "${GUIDANCE}
 
 ${DETAIL}"
   fi
@@ -136,13 +155,26 @@ if command -v python3 >/dev/null 2>&1; then
   LINKS=$(python3 "$ROOT/scripts/check-md-links.py" 2>&1)
   LINKS_RC=$?
   if [ $LINKS_RC -ne 0 ]; then
-    emit_block "dead markdown links. Fix the paths before ending the turn." "$LINKS"
+    # SIM_TAG is empty on a docs-only turn, where section 1 never ran — so this
+    # cannot claim similarity was skipped when it was simply never attempted.
+    emit_block "dead markdown links. Fix the paths before ending the turn.${SIM_TAG}" "$LINKS"
   fi
 else
   # A missing interpreter downgrades the step; it never silently passes
   # (AGENTS.md, "Degraded Environments"). Reported in the summary below.
   LINKS_AVAILABLE=false
 fi
+
+# The skipped-check notes are built HERE, before any branch can exit, because a
+# check that did not run has to be reported on every path out of this hook. The
+# aegis branch below used to `exit 0` before these were assembled, so on a machine
+# without python3 a turn touching aegis-share/source/ ended having said nothing
+# about the link check not running — "never silently pass" held everywhere except
+# that one combination.
+LINK_NOTE="md links: clean"
+[ "$LINKS_AVAILABLE" = "false" ] && LINK_NOTE="md links: SKIPPED (python3 not installed)"
+SIM_NOTE="similarity: clean"
+[ "$SIM_AVAILABLE" = "false" ] && SIM_NOTE="similarity: SKIPPED (similarity-ts not installed)"
 
 # ==== 3. Aegis sync check ====
 
@@ -159,19 +191,20 @@ if [ "$RULES_CHANGED" -gt 0 ]; then
   fi
 
   if [ "$AEGIS_CALLED" = false ]; then
-    jq -n '{
-      systemMessage: "⚠️ Aegis sync check: aegis-share/source/ was modified but no knowledge-base update was detected in this session. Run `share-format` -> `share-lint` -> `share-materialize` -> `share-export` with `npx -y @fuwasegu/aegis@<pin in .mcp.json>` (preferred), or use aegis_sync_docs / aegis_import_doc."
+    # Carries the skipped-check notes too — see the comment above section 3.
+    SKIPS=""
+    [ "$LINKS_AVAILABLE" = "false" ] && SKIPS=" (${LINK_NOTE})"
+    # Only when the quality gate actually ran — on a docs-only turn similarity was
+    # never attempted, so reporting it as skipped-for-missing-binary would be false.
+    [ "$CODE_CHANGED" -gt 0 ] && [ "$SIM_AVAILABLE" = "false" ] && SKIPS="${SKIPS} (${SIM_NOTE})"
+    jq -n --arg skips "$SKIPS" '{
+      systemMessage: ("⚠️ Aegis sync check: aegis-share/source/ was modified but no knowledge-base update was detected in this session. Run `share-format` -> `share-lint` -> `share-materialize` -> `share-export` with `npx -y @fuwasegu/aegis@<pin in .mcp.json>` (preferred), or use aegis_sync_docs / aegis_import_doc." + $skips)
     }'
     exit 0
   fi
 fi
 
-LINK_NOTE="md links: clean"
-[ "$LINKS_AVAILABLE" = "false" ] && LINK_NOTE="md links: SKIPPED (python3 not installed)"
-
 if [ "$CODE_CHANGED" -gt 0 ]; then
-  SIM_NOTE="similarity: clean"
-  [ "$SIM_AVAILABLE" = "false" ] && SIM_NOTE="similarity: SKIPPED (similarity-ts not installed)"
   jq -n --arg sim "$SIM_NOTE" --arg links "$LINK_NOTE" '{"systemMessage":("✅ Stop gate: typecheck / lint / format pass (knip: clean, " + $sim + ", " + $links + ", aegis: synced)")}'
 else
   jq -n --arg links "$LINK_NOTE" '{"systemMessage":("✅ Stop gate: no code-relevant changes (quality gate skipped, " + $links + ", aegis: synced)")}'
