@@ -190,10 +190,12 @@ eval: `scripts/evals/verify-spec/`（シード反例を持つ spec fixture で
 
 ### 3.1 Aegis（MCP: `aegis` + `aegis-admin`）— 「何に従うか」
 
-ADR とルールを管理する **コンテキストコンパイラ**。全ドキュメントを読ませる代わりに、ファイルパスとコマンドからエッジ（`path-requires` / `command-requires`）を辿って必要なドキュメントだけを決定論的に返す。
+ADR とルールを管理する **コンテキストコンパイラ**。全ドキュメントを読ませる代わりに、必要なドキュメントだけを決定論的に返す。経路は2つあり、返り値も別の節に入る:
 
-- **使い所**: `/start-workflow` step 2 で `aegis_compile_context({ target_files, plan, command, intent_tags })` を呼び、関連 ADR / ルールを relevance スコア付きで取得。subagent dispatch 前は `pre-agent-aegis-guard.sh` が未呼び出しをブロック。
-- **データ**: `aegis-share/`（git 管理の共有バンドル: `source/documents/` の Markdown + `source/edges/` の glob→doc_id）と `.aegis/aegis.db`（gitignore 済みローカル SQLite、SessionStart で自動構築）。
+- **エッジ**（`path-requires` / `command-requires`）→ `base`。ファイルパスとコマンドから辿る。
+- **タグ**（`tag-mappings`）→ `expanded`。`intent_tags` から辿る。パスに相関しない意図がここに乗る。例と追加基準は AGENTS.md step 2 と ADR-0023 を参照。
+- **使い所**: `/start-workflow` step 2 で `aegis_compile_context({ target_files, plan, command, intent_tags })` を呼び、関連 ADR / ルールを relevance スコア付きで取得。カタログは `aegis_get_known_tags` で引く。subagent dispatch 前は `pre-agent-aegis-guard.sh` が未呼び出しをブロック。
+- **データ**: `aegis-share/`（git 管理の共有バンドル: `source/documents/` の Markdown + `source/edges/` の glob→doc_id + `source/tag-mappings.json` の tag→doc_id）と `.aegis/aegis.db`（gitignore 済みローカル SQLite、SessionStart で自動構築）。`manifest.json` の `includes_tag_mappings` が false なら `expanded` は発火しない。
 - **メンテ**: `aegis-share/source/` が canonical。新規 ADR・既存編集とも `source/documents/`（+必要なら `source/edges/`）を編集し、`share-format` → `share-lint` → `share-materialize` → `share-export` で DB とバンドルへ反映（`aegis_import_doc` の直接投入は source と乖離を生むため使わない）。`aegis_sync_docs` は file-anchored な文書を再アンカーする道具で、ADR-0021 以降どの文書も file-anchored ではないため実質 no-op。compile miss は `aegis_observe` → `/aegis-triage`。
 - 詳細は `aegis-share/source/documents/` の ADR を参照。
 
@@ -371,12 +373,15 @@ Claude Code のイベントに応じて自動実行されるシェルスクリ�
 ```
 canonical は aegis-share/source/（import_doc の直接投入は乖離を生むため不使用）
 
-[新しい ADR の追加]  aegis-share/source/documents/adr-NNNN.md を書く
-                     → aegis-share/source/documents/adr-NNNN.md（frontmatter+本文ミラー）
-                       + source/edges/*.json に必要な edge を追加
+[新しい ADR の追加]  source/documents/adr-NNNN.md を書く（frontmatter + 本文。写しは無い）
+                     + source/edges/*.json に必要な edge を追加
                      → npx aegis share-format → share-lint → share-materialize → share-export（4 コマンドを順に実行）
 [既存 ADR の編集]    source/documents/adr-NNNN.md を編集（写しは無い）
                      → 同上の share パイプライン（doctor で in_sync を確認）
+[タグの追加]         source/tag-mappings.json に {tag, doc_id, confidence, source} を追加
+                     → 同上の share パイプライン
+                     ※ 追加基準は ADR-0023 / AGENTS.md step 2。エッジで既に
+                       到達できる文書へのタグは足さない（語彙だけ増える）
 [hydrate 直後]       追加操作なし（file-anchored な文書は無い / ADR-0021）
 [compile miss]       aegis_observe({ event_type: "compile_miss", ... })
                      → /aegis-triage で分析 → proposals → 承認
@@ -388,7 +393,7 @@ canonical は aegis-share/source/（import_doc の直接投入は乖離を生む
 
 ### スキル / エージェント / プロンプトのチューニング
 
-新規作成・大幅編集時は [`/empirical-prompt-tuning`](../.claude/skills/empirical-prompt-tuning/SKILL.md) を使用。2 回連続で新たな曖昧さが出なくなるまで改善。ただし `code-reviewer` / `review-verifier` agent と `review-diff` skill の load-bearing な変更、およびそのモデル階層変更は、ADR-0014/0015 によりスコア付き golden eval（`scripts/evals/review-diff/`）の実走が必須（この点で empirical-prompt-tuning の従来義務を置換）。`spec-verifier` / `verify-spec` は eval 未整備のため従来通り empirical tuning + ユーザー承認（明示的な負債）。
+新規作成・大幅編集時は [`/empirical-prompt-tuning`](../.claude/skills/empirical-prompt-tuning/SKILL.md) を使用。2 回連続で新たな曖昧さが出なくなるまで改善。ただし `code-reviewer` / `review-verifier` agent と `review-diff` skill の load-bearing な変更、およびそのモデル階層変更は、ADR-0014/0015 によりスコア付き golden eval（`scripts/evals/review-diff/`）の実走が必須（この点で empirical-prompt-tuning の従来義務を置換）。`spec-verifier` / `spec-checker` も同じ regime。eval は `scripts/evals/verify-spec/`（tier を判別する fixture sx-01..03）に整備済みで、モデル階層の変更にはスコア付き実走が必須 — 2026-07-12 の比較が両エージェントを opus に据えたので、降格するならその結果を上回る新しい実走が必要（ADR-0014 内の 2026-07-12 解決メモ / AGENTS.md「Model continuity」）。
 
 ### 監査 / eval サイクル（ADR-0014）
 

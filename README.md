@@ -68,6 +68,21 @@ AI エージェント用の Aegis ナレッジベース（`.aegis/`、gitignore 
 - **[lefthook](https://github.com/evilmartians/lefthook)** — Git hooks (`lefthook.yml`、`bun install` 時に `prepare` スクリプトで自動セットアップ)
 - **[knip](https://knip.dev/)** — Unused deps/exports/files detection (`knip.json`)
 - **[similarity-ts](https://github.com/mizchi/similarity)** — Code similarity detector
+- **python3** — ゲート用スクリプトの実行環境（下記）
+
+### python3 が要るもの
+
+`scripts/` の Python スクリプトはビルドには関与しませんが、ゲートの一部です。多くの macOS / Linux 環境には既に入っています。入っていなければ SessionStart の env-check が報告するので、そのとき入れれば足ります。
+
+| スクリプト | 役割 |
+| --- | --- |
+| `check-md-links.py` | markdown の相対リンク切れを検出。Stop gate と CI が自動実行 |
+| `test-review-gate.py` | レビューゲートのフック挙動を実物に対して検証 |
+| `test-md-links.py` | 上記リンクチェッカー自身の回帰テスト |
+| `test-bash-guard.py` | Bash ガード（`.env` 保護・`find` の到達範囲・コミットゲート）の検証 |
+| `test-aegis-gate.py` | Aegis dispatch ゲートの検証 |
+
+`test-*.py` は該当フックを触ったときに手で回します（`python3 scripts/test-review-gate.py` など）。未インストールの環境では SessionStart の env-check が欠落を報告し、Stop gate はリンクチェックを「スキップした」と明示します（黙って合格扱いにはなりません）。
 
 ### similarity-ts のインストール
 
