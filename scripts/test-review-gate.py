@@ -6,12 +6,13 @@ Builds a throwaway git repository under the system temp directory, copies the
 hooks into it, and drives the sequences the gate has to get right: a review, a
 fix (which must never need a second review), a multi-commit split on one stamp,
 and an unrelated unreviewed task. It also pins the distinction ADR-0022 turns
-on — launching a review agent is not finishing one. (A verifier that stops
-without reporting still stamps the gate today; that gap is intentional, recorded
-in ADR-0022's Residual gap consequence, and is deliberately not asserted here —
-a test asserting the opposite would fail forever.) Nothing touches this
-repository, apart from reading `.claude/settings.json` to confirm the real
-wiring.
+on — launching a review agent is not finishing one — and, since ADR-0022's
+residual gap was closed, what a verifier has to have said for its stop to count.
+The section titled "a verifier that stopped without reporting has verified
+nothing" is the authoritative statement of that; both outcomes it pins (refuse on
+a blank message, stamp-with-a-warning when the field is absent) are asserted
+there rather than described here. Nothing touches this repository, apart from
+reading `.claude/settings.json` to confirm the real wiring.
 
 Run it after changing any hook it drives — the `HOOKS` tuple below is the
 authoritative list, including `lib-review-hash.sh`, which the pairing hooks source.
@@ -134,6 +135,12 @@ def dispatch(subagent_type):
     return raw_hook("pre-agent-review-pair.sh", payload)
 
 
+# Distinguishes "the payload carries no such key" from "the key is there and empty".
+# The stamp hook treats those differently on purpose, so the harness has to be able to
+# produce both — `None` cannot serve, because it is also a legitimate JSON null.
+OMIT = object()
+
+
 def stop(role, agent_type=None, message="findings: none surviving"):
     """Fire post-agent-review-stamp.sh exactly as its registration does.
 
@@ -142,12 +149,16 @@ def stop(role, agent_type=None, message="findings: none surviving"):
     from the payload. That indirection exists because 20 of 23 captured payloads
     carried `agent_type: ""` (ADR-0022). Pass `role=""` to exercise the
     argument-less fallback that still reads `agent_type`.
+
+    `message=OMIT` drops `last_assistant_message` entirely, modelling a harness that
+    does not supply it.
     """
     payload = {
         "hook_event_name": "SubagentStop",
         "agent_type": "" if agent_type is None else agent_type,
-        "last_assistant_message": message,
     }
+    if message is not OMIT:
+        payload["last_assistant_message"] = message
     return raw_hook(
         "post-agent-review-stamp.sh", payload, args=([role] if role else [])
     )
@@ -402,6 +413,41 @@ check("leftover residue leaves the pairing intact", paired(), True)
 stop("verifier")
 check("the pass still stamps", gate(), "PASS")
 os.remove("agent-leftover.ts")
+
+print("a verifier that stopped without reporting has verified nothing")
+# The gap ADR-0022 recorded and deferred, and which then fired for real: on
+# 2026-07-30 a review-verifier died on an API 529 mid-run, and the two marker files
+# alone stamped the gate. Both marker facts hold in every case below — the only
+# variable is what the agent said.
+for label, msg, want_stamp in (
+    ("a real verdict stamps", "CONFIRMED: 2 findings survive", True),
+    ("an empty message does not", "", False),
+    ("whitespace only does not", "   \n\t  ", False),
+    ("a JSON null does not", None, False),
+    # A harness that omits the field entirely cannot be judged. Stamping there is
+    # deliberate: refusing would wedge every commit on a platform change, which is
+    # the risk that kept this check out of the hook until now.
+    ("an absent field stamps, with a warning", OMIT, True),
+):
+    edit("fileA.ts", f"export const a = {len(label)};\n")
+    dispatch("code-reviewer")
+    stop("finder")
+    dispatch("review-verifier")
+    out = stop("verifier", message=msg)
+    check(label, stamped(), want_stamp)
+    if msg is OMIT:
+        check("...and says the check was skipped", "could not be checked" in out, True)
+    elif not want_stamp:
+        check("...and says why it refused", "NOT written" in out, True)
+    # Leave no stamp behind for the next case: without this, a case that must NOT
+    # stamp would inherit the previous case's stamp and pass for the wrong reason.
+    clear_stamp()
+
+# Restore the invariant the following sections run on — a stamp earned by a clean
+# pass. The loop above deliberately ends with none, and the next section asserts that
+# editing a reviewed file still passes the gate, which needs one.
+review()
+check("a clean pass re-establishes the stamp", gate(), "PASS")
 
 print("fixing a finding does not require another review — the point of ADR-0019")
 edit("fileA.ts", "export const a = 3;\n")

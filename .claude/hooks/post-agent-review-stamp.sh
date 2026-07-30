@@ -39,6 +39,16 @@
 
 set -euo pipefail
 
+# Every decision below parses the payload with jq, and several `jq` calls emit the
+# hook's own JSON output, so they cannot be made optional individually. Without the
+# binary this script aborted at the first unguarded `jq -n` with `command not found`
+# and exit 127 — no stamp, but also no stated reason, which is the shape this file
+# exists to eliminate. Checked once, here: the gate stays closed and says so.
+if ! command -v jq >/dev/null 2>&1; then
+  printf '⚠️ post-agent-review-stamp.sh: jq is not on PATH, so this SubagentStop payload could not be parsed. No review stamp was written and the commit gate stays closed. Install jq (the SessionStart env-check reports it too).\n' >&2
+  exit 0
+fi
+
 INPUT=$(cat)
 
 # Refuse to act on anything but a SubagentStop payload. This is not defensive
@@ -112,16 +122,52 @@ case "$ROLE" in
     # completion this cycle; `.pair-ok` proves the tree was unchanged across the
     # two dispatches.
     #
-    # Not checked: whether the verifier actually reported anything. An earlier
-    # version refused to stamp on a blank `last_assistant_message`, which is
-    # well-motivated — an agent that stopped without reporting has verified
-    # nothing — but it was removed while the field's behaviour was unobserved, and
-    # a gate that wedges every commit is worse than the narrow hole it closes. A
-    # `review-verifier` payload has since been captured with a 19,525-character
-    # message, so the check is now known to be implementable; adding it is left to
-    # its own change, with its own validation. Recorded in ADR-0022.
-    if [ -f "$ROOT/.claude/.finder-done" ] && [ -f "$ROOT/.claude/.pair-ok" ]; then
+    # Third fact: the verifier actually reported. An agent that stopped without a
+    # final message has verified nothing, and that is not hypothetical — a
+    # `review-verifier` died on an API 529 mid-run on 2026-07-30 and the two marker
+    # files alone stamped an unearned gate.
+    #
+    # ADR-0022 deferred this check because the field's behaviour was unobserved and
+    # "a gate that wedges every commit is worse than the narrow hole it closes". That
+    # risk is met by splitting the two cases rather than by skipping the check:
+    #   - present but blank/whitespace -> the agent reported nothing. Refuse to stamp.
+    #   - absent entirely              -> this harness does not supply the field, so
+    #                                     there is nothing to judge. Stamp as before,
+    #                                     and SAY the check was skipped instead of
+    #                                     letting silence read as a pass.
+    # Only the first case can wedge a commit, and it wedges exactly the pass that
+    # produced no verdict. The populated path is observed, not assumed: a
+    # `review-verifier` payload carrying a 19,525-character message was captured on
+    # 2026-07-30.
+    #
+    # Classified inside jq rather than against a shell sentinel. A sentinel needs a
+    # value no real report can equal, and bash cannot hold a NUL byte in a variable —
+    # the first attempt used one, it collapsed to the empty string, and what was left
+    # was a prefix a real message could carry. jq distinguishes a missing key from an
+    # empty one directly. A jq failure classifies as `absent`: warn, do not wedge.
+    # `has()`, not `// null`: the latter collapses "no such key" and "the key is
+    # explicitly null" into one bucket, which put a null — the harness stating there
+    # is no message — on the stamping side, contradicting the rule stated just above.
+    # A null is present-and-empty, so it counts as blank.
+    REPORTED=$(printf '%s' "$INPUT" | jq -r '
+      if (has("last_assistant_message") | not) then "absent"
+      elif (.last_assistant_message == null) then "blank"
+      elif ((.last_assistant_message | tostring | gsub("\\s"; "")) == "") then "blank"
+      else "present" end' 2>/dev/null || echo absent)
+    [ -n "$REPORTED" ] || REPORTED=absent
+
+    if [ -f "$ROOT/.claude/.finder-done" ] && [ -f "$ROOT/.claude/.pair-ok" ] \
+      && [ "$REPORTED" != "blank" ]; then
       touch "$ROOT/.claude/.review-stamp"
+      if [ "$REPORTED" = "absent" ]; then
+        jq -n '{
+          systemMessage: "⚠️ Review stamp written, but this SubagentStop payload carried no last_assistant_message, so whether the verifier actually reported could not be checked (ADR-0022). Confirm you received its findings before committing."
+        }'
+      fi
+    elif [ "$REPORTED" = "blank" ]; then
+      jq -n '{
+        systemMessage: "⛔ Review stamp NOT written: the review-verifier stopped without a final message, so it produced no verdict — a crashed or interrupted verifier looks exactly like this. Re-run the finder and verifier on the current tree."
+      }'
     fi
     # Consume the cycle either way: these markers describe one finder→verifier
     # pass, and leaving them behind would let a later lone verifier stamp.
