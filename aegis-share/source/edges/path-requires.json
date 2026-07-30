@@ -1,5 +1,19 @@
 [
   {
+    "edge_id": "11179a3d-e436-4b32-8279-b5bd8de464f0",
+    "source_value": ".claude/hooks/**",
+    "target_doc_id": "adr-0022",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "1e66281e-b070-4827-b202-71a5445a3f6e",
+    "source_value": ".claude/settings.json",
+    "target_doc_id": "adr-0022",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "374528df-0683-454a-9177-21555bdf8f27",
     "source_value": ".claude/skills/review-diff/**",
     "target_doc_id": "adr-0014",

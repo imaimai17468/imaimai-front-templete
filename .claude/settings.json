@@ -187,8 +187,14 @@
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-agent-review-clear.sh",
-            "timeout": 3,
-            "statusMessage": "Clearing review stamp: finder dispatch starts a new review cycle..."
+            "timeout": 5,
+            "statusMessage": "Review gate: starting a cycle, recording the tree the finder will read..."
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-agent-review-pair.sh",
+            "timeout": 5,
+            "statusMessage": "Review gate: checking the tree is unchanged since the finder dispatch..."
           }
         ]
       },
@@ -239,17 +245,6 @@
         ]
       },
       {
-        "matcher": "Agent",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-agent-review-stamp.sh",
-            "timeout": 3,
-            "statusMessage": "Review gate: finder marker on code-reviewer, stamp on review-verifier..."
-          }
-        ]
-      },
-      {
         "matcher": "Bash",
         "hooks": [
           {
@@ -257,6 +252,30 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-bash-stamp-consume.sh",
             "timeout": 15,
             "statusMessage": "Review gate: consume stamp when a commit leaves the tree clean..."
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "code-reviewer",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-agent-review-stamp.sh finder",
+            "timeout": 3,
+            "statusMessage": "Review gate: recording the diff the finder reviewed..."
+          }
+        ]
+      },
+      {
+        "matcher": "review-verifier",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-agent-review-stamp.sh verifier",
+            "timeout": 3,
+            "statusMessage": "Review gate: stamping the commit gate after the verifier..."
           }
         ]
       }

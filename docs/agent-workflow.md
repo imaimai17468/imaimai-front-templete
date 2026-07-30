@@ -268,18 +268,24 @@ Claude Code のイベントに応じて自動実行されるシェルスクリ�
 |------|---------|------|
 | `pre-aegis-compile-guard.sh` | aegis_compile_context | `intent_tags` 未指定をブロック + レビューゲートをリセット（新サイクル開始） |
 | `pre-agent-aegis-guard.sh` | Agent dispatch | `.aegis-stamp` 不在をブロック（code-reviewer / review-verifier / spec-verifier は例外。Aegis 不在の環境は `.aegis-unavailable` マーカーで明示的に degrade — ADR-0013） |
-| `pre-agent-review-clear.sh` | Agent dispatch (code-reviewer) | finder 起動＝新サイクルで `.review-stamp` と `.finder-done` をリセット（`post-agent-review-stamp.sh` と対。stale stamp を防ぐ） |
+| `pre-agent-review-clear.sh` | Agent dispatch (code-reviewer) | finder 起動＝新サイクル。サイクルのマーカーを全部リセットする（ハッシュは記録しない — 下記の理由） |
+| `pre-agent-review-pair.sh` | Agent dispatch (review-verifier) | `.finder-hash`（finder **完走時**のツリー）と現在のハッシュを比較し、一致していれば `.pair-ok` を作成（ADR-0015 のペアリング検査）。不一致なら理由をその場で報告する — 数分後にコミットが理由不明で弾かれるのを避けるため |
 | `pre-bash-guard.sh` | Bash | `.env` 系ファイルを参照するコマンドをブロック（ADR-0004 改訂）+ git commit のレビューゲート確認 |
 
 **ツール実行後 (PostToolUse)** — 同期・スタンプ・即時チェック:
 
 | Hook | トリガー | 役割 |
 |------|---------|------|
-| `post-agent-review-stamp.sh` | Agent 完了 | `code-reviewer`(finder)完走時に diff ハッシュを `.finder-done` に記録; `review-verifier` 完走時に `.finder-done` が有り同一 diff ハッシュのときのみ `.review-stamp` を作成し `.finder-done` を消費（ADR-0015 決定論ゲート） |
 | `post-aegis-compile.sh` | aegis_compile_context | `.aegis-stamp` を作成（dispatch ゲートの成果物）+ エッジの glob がファイルにマッチしなかった場合に警告 |
 | `post-aegis-share-sync.sh` | aegis_sync_docs / import_doc | DB → `aegis-share/` を同期 |
 | `post-edit-check.sh` | Edit / Write | 編集ファイル単体を lint（全体チェックは Stop gate に集約）。`.review-stamp` は消さない — 所見の修正で再レビューを起こさないため（ADR-0019） |
 | `post-bash-stamp-consume.sh` | Bash | `git commit` 後にツリーがクリーンなら `.review-stamp` を消費（ADR-0019。1スタンプで分割コミットは通し、タスク越えはさせない） |
+
+**サブエージェント完了時 (SubagentStop)** — レビューゲートのスタンプ:
+
+| Hook | トリガー | 役割 |
+|------|---------|------|
+| `post-agent-review-stamp.sh` | code-reviewer / review-verifier の**完了** | `code-reviewer` 完走時に `.finder-done` を作成; `review-verifier` 完走時に `.finder-done` と `.pair-ok` が両方揃っているときだけ `.review-stamp` を作成し、サイクルのマーカーを消費。**ハッシュ計算はしない** — 「編集が挟まっていないか」は派遣時に判定済み（ADR-0022）。`PostToolUse(Agent)` ではなく `SubagentStop` に登録されている理由も ADR-0022 — Agent ツールは**起動**した時点で返るので、PostToolUse では「派遣した」ことしか証明できない |
 
 **セッション終了時 (Stop)** — 最終ゲート:
 
@@ -292,24 +298,46 @@ Claude Code のイベントに応じて自動実行されるシェルスクリ�
 ```
 ゲートのライフサイクル (フラット finder→verifier、ADR-0015):
 
-  .finder-done (finder が見た diff のハッシュ):
-    作成: code-reviewer(finder)完走時 (post-agent-review-stamp.sh)
-    削除: review-verifier 完走時に消費 / 新サイクル開始時
-          (pre-agent-review-clear.sh・pre-aegis-compile-guard.sh・SessionStart)
-  .review-stamp (コミットゲート):
-    作成: review-verifier 完走時、ただし .finder-done が有り
-          「finder 時点の diff ハッシュ == 現在の diff ハッシュ」のときだけ
-          (post-agent-review-stamp.sh)
-    削除: code-reviewer dispatch 時 (pre-agent-review-clear.sh)
-          / aegis_compile_context 呼び出し時（新実装サイクル）
-          / セッション開始時 (session-start-env-check.sh)
-          / git commit 後にツリーがクリーンなとき (post-bash-stamp-consume.sh)
-          ※ Edit・Write では消えない — 所見の修正で再レビューを起こさないため
-            (ADR-0019 が ADR-0013 の該当判断を amend)
+  スタンプには独立した2つの事実が必要で、観測できる瞬間が違う (ADR-0022):
+    「親が2体のエージェントの間で編集していない」→ 比較する2点でしか判定できない
+    「両エージェントが完走した」                  → SubagentStop でしか判定できない
 
-  → stamp は「finder が先行し、verifier が同一 diff を検証した」ことの証明。
-    verifier 単独 dispatch や finder→verifier 間の編集では stamp が付かない（C1/C2）
+  比較する2点は [finder 完走時 → verifier 派遣時]。どちらのエージェントの
+  実行区間も含まないのが要点で、ここに至るまでに2案が失敗している
+  （verifier 完走時で比較 → verifier の実行が入る / finder 派遣時で比較 →
+   finder の実行が入る。どちらもエージェント自身が作った一時ファイルで無効化された）
+
+  .finder-done (finder が完走した証明):
+    作成: code-reviewer 完走時 (post-agent-review-stamp.sh)
+  .finder-hash (finder が完走した時点のツリーのハッシュ = 比較の基準):
+    作成: code-reviewer 完走時 (post-agent-review-stamp.sh)
+  .pair-ok (ペアリング成立の証明):
+    作成: review-verifier 派遣時、.finder-hash と現在のハッシュが一致するとき
+          (pre-agent-review-pair.sh)
+  .review-stamp (コミットゲート):
+    作成: review-verifier 完走時、.finder-done と .pair-ok が両方揃っているときだけ
+          (post-agent-review-stamp.sh — SubagentStop 登録)
+
+  削除は原則で覚える（マーカーごとに列挙すると5個目を足したとき必ず片方が古くなる。
+  実体は .gitignore の `.claude/.*` エントリと各フックの rm -f）:
+    ・新サイクル開始イベントは4つのマーカーを**まとめて**リセットする
+      — code-reviewer dispatch (pre-agent-review-clear.sh)
+      / aegis_compile_context 呼び出し (pre-aegis-compile-guard.sh)
+      / セッション開始 (session-start-env-check.sh)
+    ・上記3マーカーは review-verifier 完走時にもまとめて消費される
+    ・.review-stamp だけの固有の消え方: git commit 後にツリーがクリーンなとき
+      (post-bash-stamp-consume.sh)
+    ・Edit・Write では消えない — 所見の修正で再レビューを起こさないため
+      (ADR-0019 が ADR-0013 の該当判断を amend)
+
+  → stamp は「finder が先行し、verifier が同じツリーを検証し、両方が完走した」証明。
+    verifier 単独 dispatch でも、2回の派遣の間に親が編集した場合でも stamp は付かない
   → レビューがエラー/中断で完走しなければ stamp は付かず、stale stamp は残らない
+  → 逆に、エージェントが自分の実行区間の中でリポジトリ内へ一時ファイルを作って
+    消しても pass は無効化されない。基準点が finder の完走時なので、finder の作業も
+    verifier の作業も比較区間の外にある。ただし finder が**完走後まで残した**ファイルは
+    ツリーの一部なので、それ自体は基準に含まれる（=無効化しない）が、その後に消えれば
+    差分として検出される。ADR-0022 がこの区別を導入した理由
   → コミット分割は編集を伴わないので、1 回のレビューで複数コミットに分割できる
   不在時 → git commit は pre-bash-guard.sh がブロック
 ```

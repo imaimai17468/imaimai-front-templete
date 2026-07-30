@@ -6,11 +6,12 @@
 # missing dependency create sessions whose guarantees differ by machine with no
 # signal. This hook makes the degrade visible at session start.
 #
-# It also clears per-session gate markers so a previous session's state can
-# never leak into this one:
-#   .aegis-stamp        — consultation window marker (per prompt)
-#   .aegis-unavailable  — self-declared Aegis degrade (per session)
-#   .review-stamp       — review gate (a new session must re-review)
+# It also clears every per-session gate marker so a previous session's state can
+# never leak into this one — the aegis consultation window and degrade markers,
+# and all four markers of the review cycle (`.review-stamp` plus the three the
+# finder→verifier pairing uses). The rule is "every marker under .claude/ that a
+# hook creates", not this list: enumerating them here is how one gets forgotten
+# when a fifth is added. They are the `.claude/.*` entries in .gitignore.
 
 set -uo pipefail
 
@@ -18,7 +19,13 @@ INPUT="$(cat 2>/dev/null || true)"
 
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 
-rm -f "$ROOT/.claude/.aegis-stamp" "$ROOT/.claude/.aegis-unavailable" "$ROOT/.claude/.review-stamp" "$ROOT/.claude/.finder-done"
+rm -f \
+  "$ROOT/.claude/.aegis-stamp" \
+  "$ROOT/.claude/.aegis-unavailable" \
+  "$ROOT/.claude/.review-stamp" \
+  "$ROOT/.claude/.finder-done" \
+  "$ROOT/.claude/.finder-hash" \
+  "$ROOT/.claude/.pair-ok"
 
 MISSING=()
 

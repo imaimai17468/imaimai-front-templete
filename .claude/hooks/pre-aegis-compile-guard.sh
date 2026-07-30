@@ -30,6 +30,10 @@ fi
 
 # --- Side effect: clear review stamp + finder marker for new cycle ---
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-rm -f "$ROOT/.claude/.review-stamp" "$ROOT/.claude/.finder-done"
+rm -f \
+  "$ROOT/.claude/.review-stamp" \
+  "$ROOT/.claude/.finder-done" \
+  "$ROOT/.claude/.finder-hash" \
+  "$ROOT/.claude/.pair-ok"
 
 exit 0

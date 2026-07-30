@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# PreToolUse(Agent): clear .review-stamp when a code-reviewer agent is dispatched.
-# The commit gate is then owned by the run that is starting (ADR-0011 fail-closed
-# guarantee, preserving ADR-0009's "cleared at the next review launch"): a stale
-# stamp from a previous cycle cannot leak through a review that fails, times out,
-# or is interrupted before post-agent-review-stamp.sh fires.
+# PreToolUse(Agent), code-reviewer only: start a review cycle.
 #
-# This is the mirror of post-agent-review-stamp.sh (ADR-0015). The flat review
-# pipeline is: parent dispatches code-reviewer (find) then review-verifier
-# (verify). code-reviewer is the FIRST step, so its dispatch marks the start of
-# a new review cycle and clears any stale stamp; the verifier's COMPLETION (last
-# step) creates it. Together they keep the gate symmetric:
-#   dispatch code-reviewer (find, cycle start) -> clear  (this hook)
-#   review-verifier completes (verify, cycle end) -> create (post-agent-review-stamp.sh)
+# One duty: clear every marker from any previous cycle, so a stale stamp cannot
+# leak through a review that fails, times out, or is interrupted (ADR-0009's
+# "cleared at the next review launch", kept by ADR-0011/0015).
+#
+# This hook deliberately does NOT sample the pairing hash, though an earlier
+# version did (ADR-0022). The ADR-0015 invariant is about the window the PARENT
+# controls, and that window begins when the finder hands control back — not when it
+# is launched. Sampling here put the finder's whole run inside the window, so a
+# scratch file the finder left behind voided an innocent pass. The baseline is now
+# taken at the finder's completion by post-agent-review-stamp.sh, and compared at
+# the verifier's dispatch by pre-agent-review-pair.sh.
 
 set -euo pipefail
 
@@ -23,8 +23,8 @@ if [ "$TOOL" != "Agent" ]; then
 fi
 
 # Only the finder dispatch (cycle start) clears the gate. The review-verifier
-# dispatch that follows must NOT clear it — it runs later in the same cycle and
-# its completion is what creates the stamp.
+# dispatch that follows must NOT clear it — it runs later in the same cycle, and
+# `pre-agent-review-pair.sh` handles it.
 SUBTYPE=$(printf '%s' "$INPUT" | jq -r '.tool_input.subagent_type // ""')
 if [ "$SUBTYPE" != "code-reviewer" ]; then
   exit 0
@@ -40,7 +40,11 @@ if [ -n "$SIDECHAIN_CHECK" ] && [ -f "$SIDECHAIN_CHECK" ]; then
 fi
 
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-# New review cycle: drop both the stamp and any finder marker from a prior cycle
-# (the finder about to run writes a fresh .finder-done on completion, ADR-0015).
-rm -f "$ROOT/.claude/.review-stamp" "$ROOT/.claude/.finder-done"
+
+# New cycle: drop every marker a previous cycle may have left.
+rm -f \
+  "$ROOT/.claude/.review-stamp" \
+  "$ROOT/.claude/.finder-done" \
+  "$ROOT/.claude/.finder-hash" \
+  "$ROOT/.claude/.pair-ok"
 exit 0

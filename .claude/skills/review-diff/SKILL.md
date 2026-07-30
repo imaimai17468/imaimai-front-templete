@@ -110,10 +110,11 @@ Drop REFUTED findings. Sort survivors by verdict (CONFIRMED first) then severity
 { effort, findings: [ { file, line, title, description, severity, verdict, verification, fix, acceptance } ], stats: { candidates, refuted } }
 ```
 
-Do NOT manually create `.claude/.review-stamp` — the `PostToolUse(Agent)` hook stamps it when you (the `review-verifier` agent) complete.
+Do NOT manually create `.claude/.review-stamp` — a `SubagentStop` hook stamps it when you (the `review-verifier` agent) finish (ADR-0022).
 
-**Fail-closed (parent responsibility).** The gate is deterministic (ADR-0015): the hook stamps on a `review-verifier` completion ONLY if a `code-reviewer` finder ran this cycle (it left `.claude/.finder-done`) AND the diff hash then equals the diff hash now (no edit slipped in between). Consequences the parent must respect:
-- Always run the finder first, then the verifier, back-to-back — do not edit files between the two dispatches (an edit changes the diff hash → no stamp → the whole pass has to run again). Fix *after* the verifier returns, not before: those edits are the only ones the stamp survives.
+**Fail-closed (parent responsibility).** The gate is deterministic (ADR-0015) and needs two independent facts, checked at different moments (ADR-0022): the working tree was unchanged **between the two dispatches** (sampled at each dispatch, recorded as `.pair-ok`), and **both agents finished** (their `SubagentStop` events, recorded as `.finder-done` then `.review-stamp`). Consequences the parent must respect:
+- Always run the finder first, then the verifier, back-to-back — do not edit files between the two dispatches (that breaks the pairing → no stamp → the whole pass has to run again; the verifier's dispatch hook says so at the moment it happens). Fix *after* the verifier returns, not before: those edits are the only ones the stamp survives.
+- Your own `Bash` use inside a run does not void the pass — the samples are taken at dispatch, so a temp file you create and remove while working is invisible to the check.
 - If the `review-verifier` dispatch errors, times out, or returns a malformed/empty report, treat the review as NOT done — the surviving findings are unverified. Do not commit; re-dispatch the verifier (or the whole pipeline). A completed-but-degenerate verifier response is not a clean pass.
 - Dispatching `review-verifier` alone (without a fresh finder) will not stamp the gate — this is intentional; the stamp proves find→verify ran on the current diff, not merely that a verifier completed.
 
