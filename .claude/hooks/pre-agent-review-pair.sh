@@ -48,8 +48,26 @@ if [ -n "$SIDECHAIN_CHECK" ] && [ -f "$SIDECHAIN_CHECK" ]; then
 fi
 
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+
+# Guarded, not bare: under `set -euo pipefail` a missing helper aborts here with a
+# non-zero status and no output, so the dispatch proceeds having said nothing about
+# why pairing was skipped. The gate does stay closed either way (no `.pair-ok`, so
+# `post-agent-review-stamp.sh` will not stamp), but a silent skip is the shape that
+# let the gate certify dispatch for months — it looks identical to a pass. State it.
+# Same pattern as `pre-bash-guard.sh`'s guard around `lib-commit-shape.sh`.
+LIB="$(dirname "$0")/lib-review-hash.sh"
+if [ ! -f "$LIB" ]; then
+  rm -f "$ROOT/.claude/.pair-ok"
+  jq -n '{
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      additionalContext: "⚠️ pre-agent-review-pair.sh: the hash helper .claude/hooks/lib-review-hash.sh is missing, so the ADR-0015 pairing check could not run. .pair-ok was NOT written, so this review pass cannot stamp the commit gate. Restore the file and re-run the finder."
+    }
+  }'
+  exit 0
+fi
 # shellcheck source=lib-review-hash.sh
-. "$(dirname "$0")/lib-review-hash.sh"
+. "$LIB"
 
 # A verifier dispatched without a finder having COMPLETED this cycle cannot pair —
 # `.finder-hash` only exists once the finder's SubagentStop has fired.
