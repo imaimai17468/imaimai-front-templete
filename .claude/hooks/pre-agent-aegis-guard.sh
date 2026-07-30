@@ -13,12 +13,17 @@
 # (session-start-env-check.sh), so the degrade never outlives the session and
 # stays visible in the worktree while it is active.
 #
-# Exception: subagent_type claude-code-guide / Explore does not require Aegis
-# knowledge (CLI Q&A / read-only search), so those are allowed through.
-# The pinned review/spec agents are also exempt: they read AGENTS.md and the
-# path-scoped rule files directly (they do
-# not consume aegis_compile_context output), so requiring a fresh
-# compile_context before /review-diff or /verify-spec would only add friction.
+# Exemptions: the `case` statement below IS the list — read it, do not read this
+# comment for the membership. Two kinds of agent are exempt, and the test for adding
+# one is which kind it is:
+#   1. It does not consume `aegis_compile_context` output. The pinned review/spec
+#      agents read AGENTS.md and the path-scoped rule files directly, so requiring a
+#      fresh compile before /review-diff or /verify-spec would only add friction.
+#   2. It does no repository work that architecture rules govern — CLI Q&A,
+#      read-only search, harness-provided configuration helpers.
+# An earlier version of this comment enumerated the members instead and drifted:
+# it named six while the `case` held eight, so the two harness helpers looked
+# unauthorised to anyone who trusted the prose over the code.
 
 set -euo pipefail
 
