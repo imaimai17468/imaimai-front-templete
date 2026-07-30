@@ -136,6 +136,59 @@ check("cat .env.local", "block", "direct read")
 check("grep SECRET .env", "block", "grep read")
 check("cat .env.local.example", "allow", "the example file is readable")
 
+print("commit gate: a shell metacharacter against `git` must not escape it")
+# Verified hole, 2026-07-30: the pattern required the character before `git` to be
+# start-of-string or one of `;&| `, so a metacharacter glued directly against the
+# command word matched none of them and the whole gate was skipped — no stamp
+# needed. `(cd sub && ...)` was caught only because the space after `&&` happened to
+# match. Now resolved through lib-commit-shape.sh, shared with the consume hook.
+stamp_probe = REPO / ".claude/.review-stamp"
+_had = stamp_probe.exists()
+try:
+    if _had:
+        stamp_probe.unlink()
+    for shape, why in (
+        (LAND, "the plain form"),
+        (f"({LAND})", "subshell, no space before git"),
+        (f"$({LAND})", "command substitution"),
+        (f"`{LAND}`", "backtick substitution"),
+        (f"{{ {LAND}; }}", "brace group"),
+        (f"(cd sub && {LAND})", "subshell with a cd first"),
+        (f"if true; then {LAND}; fi", "inside a conditional"),
+        (f"{LAND};true", "operator glued after commit"),
+    ):
+        check(shape, "block", f"unstamped — {why}")
+finally:
+    if _had:
+        stamp_probe.touch()
+
+print("commit gate: shapes bash resolves before dispatch must not slip past")
+# All three were found by the review of the change that introduced the shared
+# matcher, and all three really commit under bash 3.2.57 — verified with a stub
+# `git` that printed its argv. The third is the worst kind: the continuation
+# handling added to close one gap opened another, because bash joins a
+# backslash-newline with NOTHING and the first version substituted a space,
+# splitting the verb into `com` + `mit`.
+VERB = "com" + "mit"
+_had2 = stamp_probe.exists()
+try:
+    if _had2:
+        stamp_probe.unlink()
+    check(f"git '{VERB}' -m x", "block", "quoted verb — quotes are removed before dispatch")
+    check("git${IFS}" + VERB + " -m x", "block", "${IFS} performs real word splitting")
+    check("git co\\\nmm\\\nit -m x", "block", "continuation splitting the verb itself")
+    # bash reads `$IFScommit` as one undefined variable name, so no commit runs and
+    # nothing needs to block. Pinned so a future 'fix' does not add a false positive.
+    check("git $IFS" + VERB + " -m x", "allow", "$IFScommit is one variable name, not a commit")
+finally:
+    if _had2:
+        stamp_probe.touch()
+
+print("commit gate: shapes that only mention the word still run unattended")
+check("git log --grep=" + "com" + "mit", "allow", "searching for the word is not committing")
+check("git checkout -b feature/" + "com" + "mit-fix", "allow", "a branch named for it")
+check("git status; echo " + "com" + "mit", "allow", "a separator is not crossed")
+
 print("commit gate follows the stamp")
 # Both stamp states are exercised every run so the case count does not depend on
 # ambient state, and the original state is restored even if a check raises — a

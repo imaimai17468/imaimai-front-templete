@@ -84,7 +84,15 @@
       "Edit(./.env)",
       "Edit(./.env.local)",
       "Edit(./.env.development)",
-      "Edit(./.env.production)"
+      "Edit(./.env.production)",
+      "Write(./.claude/.review-stamp)",
+      "Edit(./.claude/.review-stamp)",
+      "Write(./.claude/.finder-done)",
+      "Edit(./.claude/.finder-done)",
+      "Write(./.claude/.finder-hash)",
+      "Edit(./.claude/.finder-hash)",
+      "Write(./.claude/.pair-ok)",
+      "Edit(./.claude/.pair-ok)"
     ],
     "ask": [
       "Bash(git commit:*)",

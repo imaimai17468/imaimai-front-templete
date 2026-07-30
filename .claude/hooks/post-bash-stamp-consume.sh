@@ -39,14 +39,32 @@ fi
 
 CMD=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""')
 
-# Like the commit gate in pre-bash-guard.sh, but requiring `commit` to be a
-# whitespace-delimited token rather than any `\bcommit\b` substring. The gate can
-# afford the loose form because over-matching there only runs a check that then
-# passes; here over-matching *deletes* the stamp, so `git checkout -b
-# feature/commit-fix` or `git log --grep=commit` must not count as a commit.
-# Keep the two patterns in step: a change to one is a prompt to re-read the other.
-NORM=$(printf '%s' "$CMD" | tr -s '[:space:]' ' ')
-printf '%s' "$NORM" | grep -qE '(^|[;&| ])git ([^;&|]*[[:space:]])?commit([[:space:]]|$)' || exit 0
+# Same question as the commit gate in pre-bash-guard.sh, so the same answer:
+# lib-commit-shape.sh. These two used to carry separate hand-written regexes with a
+# comment asking the next editor to keep them in step, and they drifted — this side
+# required whitespace after `commit` while the gate accepted any `\bcommit\b`, so
+# `git commit;true` was gated on the way in and NOT recognised as a landed commit on
+# the way out. A live stamp then authorised the next, unreviewed change: exactly the
+# hole this hook exists to close (ADR-0019). Verified 2026-07-30.
+#
+# Precision still matters more here than there: over-matching *deletes* a stamp the
+# review legitimately earned, so `git log --grep=commit` and
+# `git checkout -b feature/commit-fix` must not count. The shared helper keeps
+# `commit` a whitespace-delimited word for that reason.
+# shellcheck source=lib-commit-shape.sh
+. "$(dirname "$0")/lib-commit-shape.sh"
+# Everything from the first heredoc operator onward is data, not a command, and is
+# cut before asking. `echo 'please run git commit later'`-style prose was enough to
+# consume a stamp the review had legitimately earned; writing a document through a
+# heredoc whose body says `git … commit` is a routine technique here, so the
+# exposure was real rather than theoretical. This mirrors what Guard 2 in
+# pre-bash-guard.sh already does for `find`.
+#
+# It does not hide a real commit: in `git commit -F - <<'MSG' … MSG` the verb sits
+# before the operator, so the truncated string still contains it. The gate side is
+# deliberately NOT truncated — over-blocking there costs a check that passes, and
+# leaving the heredoc in place keeps that side the stricter of the two.
+command_lands_a_commit "${CMD%%<<*}" || exit 0
 
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 [ -f "$ROOT/.claude/.review-stamp" ] || exit 0

@@ -61,6 +61,9 @@ HOOKS = (
     "post-edit-check.sh",
     # Sourced by the two pre-agent hooks; without it they abort.
     "lib-review-hash.sh",
+    # Sourced by pre-bash-guard.sh and post-bash-stamp-consume.sh — the single
+    # definition of "does this command land a commit". Without it, both abort.
+    "lib-commit-shape.sh",
 )
 
 (WORK / ".claude/hooks").mkdir(parents=True)
@@ -410,6 +413,16 @@ os.remove("helper.ts")
 print("an unrelated command that merely contains the word does not consume the stamp")
 hook("post-bash-stamp-consume.sh", "git checkout -b feature/" + "com" + "mit-fix")
 check("stamp survives a non-commit git command", stamped(), True)
+hook("post-bash-stamp-consume.sh", "git log --grep=" + "com" + "mit")
+check("stamp survives a log search for the word", stamped(), True)
+# Over-consuming deletes a stamp the review legitimately earned, so the consume side
+# cuts at the first heredoc operator. Prose in a heredoc body was enough to trigger
+# it, and writing a document through a heredoc is routine here.
+hook("post-bash-stamp-consume.sh",
+     "cat <<'EOF' > notes.md\nrun " + LAND + " when ready\nEOF")
+check("stamp survives prose inside a heredoc body", stamped(), True)
+hook("post-bash-stamp-consume.sh", "echo 'please run " + LAND + " later'")
+check("stamp survives prose in a quoted echo", stamped(), True)
 
 print("one review covers a multi-commit split")
 pathlib.Path("fileB.txt").write_text("B\n")
@@ -426,6 +439,33 @@ sh(f"{LAND} -qm part2")
 check("tree clean", sh("git status --porcelain") == "", True)
 hook("post-bash-stamp-consume.sh", LAND)
 check("stamp consumed", stamped(), False)
+
+# Verified holes, 2026-07-30. The gate and this hook carried separate regexes that
+# had drifted: an operator glued directly after `commit` (no whitespace) meant a
+# real landed commit was NOT recognised here, so the stamp outlived its reviewed
+# batch and could authorise the next, unreviewed change — the hole this hook exists
+# to close. And a shell metacharacter glued directly BEFORE `git` escaped the gate
+# entirely, needing no stamp at all. Both now go through lib-commit-shape.sh.
+print("every shape that lands a commit is recognised on the way out")
+for shape in (LAND, f"{LAND};true", f"{LAND}&&true", f"{LAND}|cat", f"({LAND})",
+              f"$({LAND})", f"`{LAND}`", f"git add -A && {LAND} -m x",
+              # bash resolves these before dispatch, so each really commits
+              f"git '{LAND.split()[1]}' -m x", "git${IFS}" + LAND.split()[1],
+              "git co\\\nmm\\\nit -m x",
+              # a real commit written with a heredoc: the verb precedes the operator,
+              # so truncating at `<<` must not hide it
+              f"{LAND} -F - <<'MSG'\nsubject\nMSG"):
+    pathlib.Path("fileC.ts").write_text(f"export const c = {len(shape)};\n")
+    review()
+    sh("git add -A")
+    sh(f"{LAND} -qm shape")
+    hook("post-bash-stamp-consume.sh", shape)
+    check(f"consumed after {shape!r}", stamped(), False)
+
+# The mirror-image hole — a metacharacter glued directly before `git` escaping the
+# gate entirely — is pinned in scripts/test-bash-guard.py, which is the suite
+# pre-bash-guard.sh's own header points at. Both sides now resolve the shape through
+# lib-commit-shape.sh, so they cannot disagree again.
 
 print("the next task needs its own review")
 pathlib.Path("fileC.txt").write_text("C\n")

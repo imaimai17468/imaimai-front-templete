@@ -5,7 +5,9 @@
 #    grep, head, tail, redirections) could walk around it (ADR-0004 amendment).
 # 2. find gate — prompt for the `find` shapes that reach past the deny list or
 #    run/delete, while leaving scoped path discovery unattended.
-# 3. Commit gate — block `git commit` while .claude/.review-stamp is missing.
+# 3. Gate-marker protection — refuse any command naming the review gate's own
+#    marker files, so Bash cannot forge the artifact Guard 4 keys on.
+# 4. Commit gate — block a commit while the review stamp is missing.
 
 set -euo pipefail
 
@@ -139,13 +141,65 @@ if [ -n "$FIND_ASK" ]; then
   exit 0
 fi
 
-# --- Guard 3: commit gate (parent session only) ---
-# Treat any `commit` word after `git` in the same shell command (no ;|&
-# crossing) as a commit. Deliberately loose: option chains like
-# `git -C <path> commit` must match, and over-blocking (e.g. a file literally
-# named commit) is the safe failure mode — under-blocking bypasses the review
-# gate.
-if ! printf '%s' "$NORM" | grep -qE '(^|[;&| ])git [^;&|]*\bcommit\b'; then
+# --- Guard 3: the review gate's own markers are not writable from Bash ---
+# The gate keys on artifacts under `.claude/` that only hooks are meant to create.
+# Nothing stopped a Bash command from creating one: `Bash(touch:*)` is allow-listed,
+# so `touch .claude/.review-stamp` forged a stamp and satisfied Guard 4 with no
+# review having happened at all (verified 2026-07-30). The only thing standing
+# against that was a sentence in the `review-diff` skill telling the agent not to —
+# an instruction, which is the failure mode ADR-0013 exists because of. The same
+# reasoning was already applied to the env files in Guard 1 and simply never
+# extended to the gate's own state.
+#
+# Every mention is refused, not only writes. Telling a read from a write lexically
+# needs a verb list, and a verb list rots; `ls -la .claude/` shows every marker's
+# state without naming one, so no diagnostic is lost. Deleting a marker is safe in
+# itself (fail-closed) but is refused too, because separating that from creation is
+# the same unsolved problem — ask the user if one genuinely needs clearing.
+#
+# Lexical, therefore defeatable by obfuscation, exactly like Guard 1 — and the
+# `permissions.deny` entries added alongside it cover the `Write`/`Edit` tools,
+# which a Bash guard cannot see. Same honest framing as ADR-0017: together these
+# raise forging from "allow-listed and silent" to "requires deliberate evasion that
+# is visible in the transcript". Neither is a boundary against an agent that has
+# decided to cheat.
+case "$NORM" in
+  *.review-stamp*|*.finder-done*|*.finder-hash*|*.pair-ok*)
+    jq -n '{
+      decision: "block",
+      reason: "PreToolUse(Bash): this command names one of the review gate'\''s marker files (.review-stamp / .finder-done / .finder-hash / .pair-ok). Only the gate hooks may create or consume them — a Bash command that writes one forges the commit gate. Reads are refused too because a lexical guard cannot tell them apart: use `ls -la .claude/` to see their state without naming one. If a marker genuinely needs clearing, ask the user."
+    }'
+    exit 0
+    ;;
+esac
+
+# --- Guard 4: commit gate (parent session only) ---
+# "Does this land a commit" is answered by lib-commit-shape.sh, shared with
+# post-bash-stamp-consume.sh. The two used to carry separate hand-written regexes
+# plus a comment asking the next editor to keep them in step; they drifted, and the
+# drift was a hole (see that file's header). One definition, so they cannot.
+#
+# Over-matching here is still the safe failure mode — prose in a heredoc or a `-m`
+# body that happens to read `git … commit` only runs the stamp check below, which
+# then passes. Under-matching bypasses the gate, which is what was wrong before:
+# `(git commit)`, `$(git commit)` and the backtick form all escaped it entirely.
+# The source is guarded and fails closed. Unguarded, a missing helper aborted this
+# script under `set -euo pipefail` with no JSON at all — and because this line runs
+# for every command that gets past Guards 1–3, that was a crash on nearly every
+# Bash call, not merely a disabled commit gate. Whether the harness reads a
+# non-JSON, non-zero PreToolUse exit as fail-open is not something this repo can
+# verify, so it is not something to depend on.
+LIB="$(dirname "$0")/lib-commit-shape.sh"
+if [ ! -f "$LIB" ]; then
+  jq -n '{
+    decision: "block",
+    reason: "PreToolUse(Bash): the commit-gate helper .claude/hooks/lib-commit-shape.sh is missing, so whether this command lands a commit cannot be decided. Refusing rather than risking an unreviewed commit. Restore the file."
+  }'
+  exit 0
+fi
+# shellcheck source=lib-commit-shape.sh
+. "$LIB"
+if ! command_lands_a_commit "$CMD"; then
   exit 0
 fi
 

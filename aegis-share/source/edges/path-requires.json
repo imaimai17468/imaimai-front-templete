@@ -14,6 +14,13 @@
     "specificity": 0
   },
   {
+    "edge_id": "1c6e97f4-c147-4650-837b-8f9dc5037db7",
+    "source_value": ".claude/settings.json",
+    "target_doc_id": "adr-0024",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "1e66281e-b070-4827-b202-71a5445a3f6e",
     "source_value": ".claude/settings.json",
     "target_doc_id": "adr-0022",
@@ -24,6 +31,13 @@
     "edge_id": "1f2e133d-cfe3-423b-94ca-97f8232dabea",
     "source_value": "AGENTS.md",
     "target_doc_id": "adr-0021",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "2f5e9f7e-7dbf-4a74-8ccb-09680406df80",
+    "source_value": ".claude/hooks/**",
+    "target_doc_id": "adr-0024",
     "priority": -1,
     "specificity": 0
   },

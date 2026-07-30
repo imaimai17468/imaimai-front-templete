@@ -233,7 +233,7 @@ ADR とルールを管理する **コンテキストコンパイラ**。全ド�
 |--------|------|-----|
 | `deny` | 破壊的操作 | `rm -rf`, `git push --force`, `git reset --hard`, `.env` アクセス |
 | `ask` | 確認が必要な操作 | `git commit`, `git push`, `gh pr create`, `deploy`, `bunx`, 未登録の `bun run` |
-| `allow` | 自由に実行可能 | read-only git/gh, ゲート用の個別 `bun run` スクリプト (lint/check/typecheck/test/knip 等), `bun add -E`, `tree`/`ls`/`grep`, `find` |
+| `allow` | 自由に実行可能 | 参照系の git/gh に加えて `git add` / `git stash` / `gh api`（後者は `-X POST` で書き込める — read-only ではない）, ゲート用の個別 `bun run` スクリプト (lint/check/typecheck/test/knip 等), `bun add -E`, `tree`/`ls`/`grep`, `find` |
 
 `find` はルールでは `allow` だが、`pre-bash-guard.sh` が危険な形だけ**拒否**する
 （探索起点が `.` / `..` / `/` / `~` / 変数 / 絶対パス / 起点なし、または
@@ -269,10 +269,11 @@ Claude Code のイベントに応じて自動実行されるシェルスクリ�
 | Hook | トリガー | 役割 |
 |------|---------|------|
 | `pre-aegis-compile-guard.sh` | aegis_compile_context | `intent_tags` 未指定をブロック + レビューゲートをリセット（新サイクル開始） |
-| `pre-agent-aegis-guard.sh` | Agent dispatch | `.aegis-stamp` 不在をブロック（code-reviewer / review-verifier / spec-verifier は例外。Aegis 不在の環境は `.aegis-unavailable` マーカーで明示的に degrade — ADR-0013） |
+| `pre-agent-aegis-guard.sh` | Agent dispatch | `.aegis-stamp` 不在をブロック（例外リストの実体はフック内の `case` 文。4つのレビュー/spec エージェントとハーネス組み込みのものが除外される — ここに写すと古くなるので数えない）。Aegis 不在の環境は `.aegis-unavailable` マーカーで明示的に degrade — ADR-0013 |
 | `pre-agent-review-clear.sh` | Agent dispatch (code-reviewer) | finder 起動＝新サイクル。サイクルのマーカーを全部リセットする（ハッシュは記録しない — 下記の理由） |
 | `pre-agent-review-pair.sh` | Agent dispatch (review-verifier) | `.finder-hash`（finder **完走時**のツリー）と現在のハッシュを比較し、一致していれば `.pair-ok` を作成（ADR-0015 のペアリング検査）。不一致なら理由をその場で報告する — 数分後にコミットが理由不明で弾かれるのを避けるため |
-| `pre-bash-guard.sh` | Bash | `.env` 系ファイルを参照するコマンドをブロック（ADR-0004 改訂）+ git commit のレビューゲート確認 |
+| `pre-bash-guard.sh` | Bash | 4つのガード（`.env` 遮断 / `find` の到達範囲制限 / ゲートのマーカー参照拒否 / コミットゲート）。判定条件はフック冒頭の番号付きコメントが正 — ADR-0004・ADR-0024 |
+| `lib-commit-shape.sh` / `lib-review-hash.sh` | （フックではない。source される） | 前者は「このコマンドはコミットを着地させるか」の**唯一の定義**（`pre-bash-guard.sh` と `post-bash-stamp-consume.sh` が共有。2つの手書き正規表現がずれて穴になったため — ADR-0024）。後者はペアリング用のツリーハッシュの唯一の定義（ADR-0022） |
 
 **ツール実行後 (PostToolUse)** — 同期・スタンプ・即時チェック:
 
@@ -494,5 +495,5 @@ canonical は aegis-share/source/（import_doc の直接投入は乖離を生む
 | パーミッション | [`.claude/settings.json`](../.claude/settings.json) |
 | MCP サーバー | [`.mcp.json`](../.mcp.json) |
 | ADR | `aegis-share/source/documents/` |
-| CI | [`.github/workflows/ci.yaml`](../.github/workflows/ci.yaml) + [`scripts/audit-direct.sh`](../scripts/audit-direct.sh) |
+| CI | [`.github/workflows/ci.yaml`](../.github/workflows/ci.yaml)（呼ぶスクリプトは ci.yaml のステップ一覧が実体） |
 | 依存自動更新 | [`.github/dependabot.yml`](../.github/dependabot.yml) |
