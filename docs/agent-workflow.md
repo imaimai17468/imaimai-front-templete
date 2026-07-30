@@ -291,7 +291,7 @@ Claude Code のイベントに応じて自動実行されるシェルスクリ�
 
 | Hook | 役割 |
 |------|------|
-| `stop-gate.sh` | typecheck + lint + format + knip + similarity + aegis 同期チェック（コード系ファイルの変更時のみ。`stop_hook_active` の 2 周目は警告に降格し無限ループを防ぐ。similarity-ts 未導入はスキップとして明示） |
+| `stop-gate.sh` | typecheck + lint + format + knip + similarity（コード系ファイルの変更時のみ）+ markdown リンク切れチェック（リポジトリ全体。リンク先の削除で他ファイルのリンクが死ぬケースを拾うため差分に絞らない）+ aegis 同期チェック。`stop_hook_active` の 2 周目は警告に降格し無限ループを防ぐ。similarity-ts / python3 未導入はスキップとして明示 |
 
 ### コミットゲート
 

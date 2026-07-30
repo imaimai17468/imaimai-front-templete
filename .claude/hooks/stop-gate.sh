@@ -5,7 +5,9 @@
 #    — respects stop_hook_active: if this Stop was already blocked once, a
 #      still-failing gate downgrades to a warning instead of blocking again,
 #      so a pre-existing failure the agent cannot fix does not loop forever
-# 2. Aegis sync check — warn if aegis-share/source/ changed without running the pipeline
+# 2. Markdown link check — blocking; dead relative links are decidable by opening
+#    the path, so they belong here rather than in a reviewer's judgment
+# 3. Aegis sync check — warn if aegis-share/source/ changed without running the pipeline
 
 set -uo pipefail
 
@@ -122,7 +124,27 @@ ${DETAIL}"
   fi
 fi
 
-# ==== 2. Aegis sync check ====
+# ==== 2. Markdown link check ====
+
+# Deliberately scanned repository-wide rather than only over changed files: the
+# failure this catches is a link going dead because its TARGET moved or was
+# deleted, and the file holding the link is then untouched. Scoping to the diff
+# would have missed the case that motivated the check (docs/adr/ deleted on
+# 2026-07-29, dead links left in files the same commit did not edit).
+LINKS_AVAILABLE=true
+if command -v python3 >/dev/null 2>&1; then
+  LINKS=$(python3 "$ROOT/scripts/check-md-links.py" 2>&1)
+  LINKS_RC=$?
+  if [ $LINKS_RC -ne 0 ]; then
+    emit_block "dead markdown links. Fix the paths before ending the turn." "$LINKS"
+  fi
+else
+  # A missing interpreter downgrades the step; it never silently passes
+  # (AGENTS.md, "Degraded Environments"). Reported in the summary below.
+  LINKS_AVAILABLE=false
+fi
+
+# ==== 3. Aegis sync check ====
 
 RULES_CHANGED=$(printf '%s' "$ALL_FILES" | grep -c '^aegis-share/source/' || true)
 
@@ -144,11 +166,14 @@ if [ "$RULES_CHANGED" -gt 0 ]; then
   fi
 fi
 
+LINK_NOTE="md links: clean"
+[ "$LINKS_AVAILABLE" = "false" ] && LINK_NOTE="md links: SKIPPED (python3 not installed)"
+
 if [ "$CODE_CHANGED" -gt 0 ]; then
   SIM_NOTE="similarity: clean"
   [ "$SIM_AVAILABLE" = "false" ] && SIM_NOTE="similarity: SKIPPED (similarity-ts not installed)"
-  jq -n --arg sim "$SIM_NOTE" '{"systemMessage":("✅ Stop gate: typecheck / lint / format pass (knip: clean, " + $sim + ", aegis: synced)")}'
+  jq -n --arg sim "$SIM_NOTE" --arg links "$LINK_NOTE" '{"systemMessage":("✅ Stop gate: typecheck / lint / format pass (knip: clean, " + $sim + ", " + $links + ", aegis: synced)")}'
 else
-  echo '{"systemMessage":"✅ Stop gate: no code-relevant changes (quality gate skipped, aegis: synced)"}'
+  jq -n --arg links "$LINK_NOTE" '{"systemMessage":("✅ Stop gate: no code-relevant changes (quality gate skipped, " + $links + ", aegis: synced)")}'
 fi
 exit 0
