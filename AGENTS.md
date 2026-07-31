@@ -161,6 +161,14 @@ Before every commit, review the uncommitted diff (users trigger it as `/review-d
 
 Design-time verification of interaction-complex features uses the same flat pinned-agent pattern (`/verify-spec specs/<feature>.spec.md`, ADR-0015): dispatch the `spec-verifier` agent (hunter) — it formalizes the spec and returns the machine + candidate counterexamples — then dispatch the `spec-checker` agent with the machine and candidates; it replays each in a hunt-blind context and returns the CONFIRMED survivors. Both preload the `verify-spec` skill (ADR-0010 discipline). Design-time only — no commit gate.
 
+## Aegis adapter templates
+
+**Never run `deploy-adapters`, whatever the notice says.** On the pinned `@fuwasegu/aegis@1.7.0` (`.mcp.json`), aegis responses have repeatedly ended with `Aegis adapter templates may be outdated. Run npx @fuwasegu/aegis deploy-adapters to update.`, and `aegis-setup`'s SKILL.md lists it as a setup step. Running it on 2026-07-31 overwrote the whole `aegis:start`/`aegis:end` block below with the vendor template — reverting that day's edits to it, replacing this project's path example with one from another codebase, and appending a second copy of the block to `CLAUDE.md`, which ADR-0008 keeps at `@AGENTS.md` alone precisely so one rule has one home. It reports each file as created/updated/unchanged and asks nothing first.
+
+The block below is edited by hand and diverges from the template on purpose. Anything written inside it is what `deploy-adapters` discards, which is why this warning sits outside it. If the template genuinely gains something worth having, diff it in by hand.
+
+The command also writes copies of this block and of the aegis skills under `.cursor/` and `.codex/`. Those were deleted (ADR-0026) after the Cursor one was found still calling `intent_tags` "recommended" — three months stale, contradicting both the block below and the guard that blocks the omission, with no hook on the Cursor side to catch it. Running `deploy-adapters` recreates them, which is a second reason not to.
+
 <!-- aegis:start -->
 ## Aegis Process Enforcement
 

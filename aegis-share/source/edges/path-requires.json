@@ -77,6 +77,13 @@
     "specificity": 0
   },
   {
+    "edge_id": "7bc96273-514e-4c19-9ba9-6df578952eaa",
+    "source_value": "AGENTS.md",
+    "target_doc_id": "adr-0026",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "7da347a2-f629-4ab2-b583-c9f0bf7fe8ba",
     "source_value": ".claude/agents/**",
     "target_doc_id": "adr-0015",
