@@ -11,10 +11,11 @@
 # the finder→verifier pairing uses) — so one session's state cannot leak into a
 # different one. That clear is conditional, and the block below is both the
 # mechanism and the reasoning: a SessionStart re-firing for the session already
-# running keeps the markers, while a missing or unreadable `session_id` still
-# clears unconditionally. The rule for membership is "every marker under .claude/
-# that a hook creates", not the list down there: enumerating is how one gets
-# forgotten when another is added. They are the `.claude/.*` entries in .gitignore.
+# running keeps the markers unless `source` says otherwise (ADR-0028), while a
+# missing or unreadable `session_id` still clears unconditionally. The rule for
+# membership is "every marker under .claude/ that a hook creates", not the list
+# down there: enumerating is how one gets forgotten when another is added. They
+# are the `.claude/.*` entries in .gitignore.
 
 set -uo pipefail
 
@@ -36,34 +37,57 @@ ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 # from documentation, per ADR-0022; `scripts/test-review-gate.py` pins both
 # branches.
 #
+# `source` narrows it further (ADR-0028). The payload carries one of `startup`,
+# `resume`, `clear`, `compact`, `fork`, and two of those begin a different body of
+# work no matter what the id says: `clear` starts a new conversation in place, and
+# `fork` splits one off. Those always clear. It is an EXTRA trigger, not a
+# replacement — which `source` an MCP reconnect reports is still unobserved, so
+# keying on `source` alone would undo the fix above if a reconnect reports
+# `startup`.
+#
+# `resume` is deliberately NOT in that list, and the reason is measured rather
+# than reasoned. It was in the first draft, because ADR-0027 named `/resume` as an
+# id-reuse risk. But `resume` is observed firing inside continuous work here — one
+# logged instance carried an id that matched the remembered one — and that single
+# occurrence cost a stamp within minutes of the draft landing, reinstating the
+# treadmill ADR-0027 exists to stop. How often it recurs is unmeasured and does not
+# matter: once was enough. The id-reuse risk stays accepted, as ADR-0027 had it.
+#
 # Accepted residual risk, in the unsafe direction, stated rather than papered
 # over. `pre-bash-guard.sh` authorises a commit on `.review-stamp` merely
 # EXISTING, and ADR-0019 already stopped edits from clearing it, so this clear
 # was the last backstop against a stamp earned in one context authorising a
-# commit in an unrelated one. It was unconditional before; now `session_id`
-# equality is the only discriminator. Three ways that loses. Two are unsafe: an
-# id reused after the tree changed out of band (`/resume`, a restored container
-# snapshot), and two concurrent sessions sharing one `.claude/` directory, where
-# the second to fire reads the first's id. The third is safe and is the price of
-# the clear and the record not being one atomic step — killed between them, this
-# hook leaves the id unwritten and the next same-session fire clears again for
-# nothing. Reordering does not fix it, it inverts it: recording first would let
-# an interrupted run skip a clear it owed. Neither unsafe case is checkable from
-# inside this repository —
-# the payload's uniqueness and lifetime are the platform's to guarantee and no
-# real payload has been captured here. Before leaning on this mechanism further,
-# search the SessionStart payload documentation and settle it.
+# commit in an unrelated one. It was unconditional before. What remains: two
+# concurrent sessions sharing one `.claude/` directory, where the second to fire
+# reads the first's id, and any id reuse arriving under a `source` not listed
+# above. Neither is checkable from inside this repository — the payload's
+# uniqueness and lifetime are the platform's to guarantee, and no real payload
+# has been captured here.
+#
+# One more, failing safe: the clear and the record are two filesystem steps, so a
+# hook killed between them leaves the id unwritten and the next same-session fire
+# clears again for nothing. Reordering does not fix it, it inverts it — recording
+# first would let an interrupted run skip a clear it owed.
 SESSION_ID=""
+SESSION_SOURCE=""
 if command -v jq >/dev/null 2>&1 && [ -n "$INPUT" ]; then
   SESSION_ID="$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)"
+  SESSION_SOURCE="$(printf '%s' "$INPUT" | jq -r '.source // empty' 2>/dev/null || true)"
 fi
+
+# Fail-safe again: an unrecognised or absent `source` is NOT treated as "keep".
+# Only `clear` and `fork` force one; everything else falls back to the id check.
+FORCE_CLEAR=""
+case "$SESSION_SOURCE" in
+  clear|fork) FORCE_CLEAR="yes" ;;
+esac
 
 PREV_SESSION_ID=""
 if [ -f "$ROOT/.claude/.session-id" ]; then
   PREV_SESSION_ID="$(cat "$ROOT/.claude/.session-id" 2>/dev/null || true)"
 fi
 
-if [ -n "$SESSION_ID" ] && [ "$SESSION_ID" = "$PREV_SESSION_ID" ]; then
+if [ -z "$FORCE_CLEAR" ] && [ -n "$SESSION_ID" ] && [ "$SESSION_ID" = "$PREV_SESSION_ID" ]; then
   echo "[env-check] SessionStart re-fired for the session already running — gate markers kept."
 else
   # `.session-id` is deliberately NOT in this list: it is the memory the check
