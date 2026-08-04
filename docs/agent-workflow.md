@@ -10,7 +10,7 @@ Claude Code でこのリポジトリを開発するための作業マニュア�
 >
 > 品質検証は **専用サブエージェント** が担う。`.claude/agents/` で挙動を固定し、手順スキルを `skills:` frontmatter で preload し、「見つける役」とは別の fresh context が反証する（find ≠ verify）:
 >
-> - **コミット前レビュー**（`review-diff` skill を preload、ADR-0015）= **作った後に壊す** — 親が2段を順に dispatch: `code-reviewer`（finder、候補を返す）→ `review-verifier`（候補を実コードで反証）。verifier 完走でコミットゲートを stamp。どちらも depth-1 で親が直接待つ（ネストの子待ちを撤去）
+> - **コミット前レビュー**（`review-diff` skill を preload、ADR-0015）= **作った後に壊す** — 親が2段を**ユーザーの入力を挟まず続けて** dispatch: `code-reviewer`（finder、候補を返す）→ `review-verifier`（候補を実コードで反証）。verifier 完走でコミットゲートを stamp。どちらも depth-1 で親が直接待つ（ネストの子待ちを撤去）
 > - **spec 検証**（`verify-spec` skill を preload、ADR-0015）= **作る前に壊す** — 親が2段: `spec-verifier`（hunter、仕様を状態機械化し反例候補を返す）→ `spec-checker`（各 trace を machine で再生検証）。design-time / 非ゲート。review と同じくフラット2段でネストの子待ちを撤去
 >
 > 2 つの基盤がその判断を支える: **Aegis**（何に従うか＝ADR/ルールを決定論的に返す MCP）と **Superpowers**（どう進めるか＝方法論スキル群）。パーミッション・hooks が安全性を自動で担保。
@@ -59,6 +59,7 @@ Claude Code でこのリポジトリを開発するための作業マニュア�
   │     diff を読む。typecheck / test 実行。/review-diff (ADR-0015):
   │     親が code-reviewer(finder)を dispatch → 候補を受け取り →
   │     review-verifier を dispatch → 実コードで反証 → 重大度順 survivors →
+  │     この finder→verifier はユーザーの入力を挟まず続けて走る。
   │     verifier 完走でコミットゲートを stamp(finder が同一 diff で先行した
   │     場合のみ)。指摘は parent が直接修正 → そこで終了(ADR-0019。
   │     修正編集では stamp は消えない。再レビュー工程は無い)。
@@ -88,7 +89,7 @@ Claude Code でこのリポジトリを開発するための作業マニュア�
 | **`skills:` frontmatter で preload** | 手順が確実にコンテキストに入る | skill 全文が起動時に注入される。手順の single source は skill 側に一元化 |
 | **find と verify を別 context に分離** | find ≠ verify の独立性 | 見つけた本人ではなく、探索結果を知らない別コンテキストが反証する |
 
-レビュー（ADR-0015）は **親がフラットに2段 dispatch** する。どちらも depth-1 で親が直接待つため、「サブエージェントが自分の子を待つ」脆い関節がない（この関節は 2026-07-10 に評決ロストを2回起こした）:
+レビュー（ADR-0015）は **親がフラットに2段 dispatch** する。どちらも depth-1 で親が直接待つため、「サブエージェントが自分の子を待つ」脆い関節がない（この関節は 2026-07-10 に評決ロストを2回起こした）。2段は **ユーザーの入力を挟まず続けて走る**（finder の完了通知がセッションを自動で再開する）。ただし既定の背景実行だと親のターンは起動時点でいったん終わるので、2段が 1 ターンにまとまるわけではない — そこを 1 ターンに収めるためのフラグが `run_in_background: false`。効くかどうかも含め、このフラグについて観測できていることは `review-diff` step 0 にある:
 
 ```
 親セッション
@@ -109,7 +110,7 @@ spec 検証も同じフラット2段（design-time / 非ゲートなので stamp
 ### 2.1 コミット前レビュー — 作った後に壊す（finder + verifier、ADR-0015）
 
 **agents**: [`code-reviewer`](../.claude/agents/code-reviewer.md)（finder）+ [`review-verifier`](../.claude/agents/review-verifier.md)（verifier）。どちらも [`review-diff`](../.claude/skills/review-diff/SKILL.md) skill を preload、model: sonnet、permissionMode: auto（下の「パーミッション」を参照）。
-**起動**: parent が2段を順に dispatch（ユーザーは `/review-diff [high]`）。**verifier の完走がコミットゲートを stamp する**。
+**起動**: parent が2段をユーザーの入力を挟まず続けて dispatch（ユーザーは `/review-diff [high]`）。**verifier の完走がコミットゲートを stamp する**。
 参照: ADR-0009（規律）, ADR-0011（旧機構）, ADR-0015（フラット化）
 
 コミット前に **「本当にバグっていないか？ 規約に違反していないか？」** を fresh context の finder が網羅探索し、別の fresh context の verifier が各指摘を反証する。通らないとコミットできない。
@@ -144,7 +145,7 @@ spec 検証も同じフラット2段（design-time / 非ゲートなので stamp
 ### 2.2 spec 検証 — 作る前に壊す（hunter + checker、ADR-0015）
 
 **agents**: [`spec-verifier`](../.claude/agents/spec-verifier.md)（hunter）+ [`spec-checker`](../.claude/agents/spec-checker.md)（checker）。どちらも [`verify-spec`](../.claude/skills/verify-spec/SKILL.md) skill を preload、model: opus。
-**起動**: parent が2段を順に dispatch（ユーザーは `/verify-spec specs/x.spec.md`）。**design-time ツールなので stamp はしない**。**単発実行** — parent は自動で再実行しない。反例修正後の再検証はユーザーが明示的に行う新しい 1 パス。
+**起動**: parent が2段をユーザーの入力を挟まず続けて dispatch（ユーザーは `/verify-spec specs/x.spec.md`）。**design-time ツールなので stamp はしない**。**単発実行** — parent は自動で再実行しない。反例修正後の再検証はユーザーが明示的に行う新しい 1 パス。
 参照: ADR-0010（規律）, ADR-0011（旧機構）, ADR-0015（フラット化）
 
 仕様を状態機械として書き下し、**「戻る・リロード・二重送信・権限変更の合わせ技で壊せるか？」** をエージェントに試させる。
@@ -180,7 +181,7 @@ eval: `scripts/evals/verify-spec/`（シード反例を持つ spec fixture で
 | 独立した並列実装ユニット（共有ファイルなし・出力依存なし） | `general-purpose` を 1 メッセージで複数 dispatch | sonnet |
 | 長期自律・複雑な移行・弱い結果からのエスカレーション | 上記を | opus |
 
-依存関係のあるユニットは逐次実行するか parent に残す。同じファイルを編集するユニットは並列化しない。
+依存関係のあるユニットは逐次実行するか parent に残す。同じファイルを編集するユニットは並列化しない。並列ユニットには `run_in_background: false` を付けない — 同時に synchronous dispatch した束が並列のまま走るかは未検証で、確認できるまで既定（背景）に置く（AGENTS.md「Delegation」）。
 
 ---
 

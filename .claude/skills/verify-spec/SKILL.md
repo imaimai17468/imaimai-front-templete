@@ -14,7 +14,7 @@ Benchmarking (2026-07-04) collapsed the old parallel workflow (4 hunt lanes, ~80
 
 ## Routing — how this runs
 
-- **Human invoked `/verify-spec <path>` (you are the parent session):** (1) dispatch the `spec-verifier` agent (hunter) with the spec path — it returns `{ machine, ambiguities, candidates, incomplete }`; (2) dispatch the `spec-checker` agent, passing the machine and candidates verbatim (even if zero) — it returns the verified survivors; (3) integrate. Do NOT run the steps below in the parent context — the fresh agent contexts are the point.
+- **Human invoked `/verify-spec <path>` (you are the parent session):** (0) dispatch both agents with `run_in_background: false`, for the same reason as `review-diff`'s step 0 (that skill holds the reasoning and the caveat); (1) dispatch the `spec-verifier` agent (hunter) with the spec path — it returns `{ machine, ambiguities, candidates, incomplete }`; (2) dispatch the `spec-checker` agent, passing the machine and candidates verbatim (even if zero) — it returns the verified survivors; (3) integrate. Do NOT run the steps below in the parent context — the fresh agent contexts are the point.
 - **You are the `spec-verifier` agent (hunter, this skill is preloaded):** execute Formalize + Hunt (Steps 1–2) and return the machine + candidates. Do not replay, do not dispatch anything.
 - **You are the `spec-checker` agent (this skill is preloaded):** execute Verify + Return (Steps 3–4) against the machine and candidates handed to you.
 
