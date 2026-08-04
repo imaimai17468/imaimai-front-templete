@@ -67,6 +67,10 @@ HOOKS = (
     # Sourced by pre-bash-guard.sh and post-bash-stamp-consume.sh — the single
     # definition of "does this command land a commit". Without it, both abort.
     "lib-commit-shape.sh",
+    # The SessionStart marker clear. It decides whether a stamp survives into the
+    # next SessionStart, so it belongs here for the same reason the others do:
+    # writing `.session-id` by hand would pass whatever the hook actually contains.
+    "session-start-env-check.sh",
 )
 
 (WORK / ".claude/hooks").mkdir(parents=True)
@@ -84,6 +88,15 @@ pathlib.Path(".gitignore").write_text(
             ".finder-done",
             ".finder-hash",
             ".pair-ok",
+            # Written by session-start-env-check.sh. Un-ignored it would enter the
+            # hash, and the SessionStart cases below would break the very pairing
+            # they then assert on.
+            ".session-id",
+            # No case exercises these two, so they are here to keep the claim above
+            # literally true rather than approximately: the list is the real
+            # .gitignore's `.claude/.*` entries, or it is a claim that drifts.
+            ".aegis-stamp",
+            ".aegis-unavailable",
         )
     )
     + "\n"
@@ -194,6 +207,31 @@ def clear_stamp():
         "pre-agent-review-clear.sh",
         {"tool_name": "Agent", "tool_input": {"subagent_type": "code-reviewer"}},
     )
+
+
+def session_id_file():
+    """The remembered session id, or None when the hook dropped it.
+
+    Asserted directly because this file IS the mechanism: every other SessionStart
+    assertion below is downstream of whether it holds the right value.
+    """
+    path = WORK / ".claude/.session-id"
+    return path.read_text() if path.exists() else None
+
+
+def session_start(session_id=None):
+    """Fire the SessionStart env-check, with or without a `session_id`.
+
+    The clear is conditional on session identity: a SessionStart re-firing for the
+    session already running must not discard markers that session earned. Pass
+    None for the fail-safe branch — an absent field must clear exactly as this
+    hook did before the check existed, so a payload shape this repository has not
+    observed can never leave a stamp standing.
+    """
+    payload = {"hook_event_name": "SessionStart"}
+    if session_id is not None:
+        payload["session_id"] = session_id
+    return raw_hook("session-start-env-check.sh", payload)
 
 
 def edit(rel_path, body):
@@ -515,6 +553,43 @@ for shape in (LAND, f"{LAND};true", f"{LAND}&&true", f"{LAND}|cat", f"({LAND})",
 print("the next task needs its own review")
 pathlib.Path("fileC.txt").write_text("C\n")
 check("unrelated unreviewed task", gate(), "BLOCK")
+
+print("a SessionStart clears the stamp only when the session actually changed")
+review()
+check("stamped before any SessionStart", stamped(), True)
+session_start("session-AAA")
+check("first SessionStart (unseen id) clears", stamped(), False)
+
+check("id recorded on the clearing branch", session_id_file(), "session-AAA")
+
+review()
+session_start("session-AAA")
+check("same id re-firing keeps the stamp", stamped(), True)
+session_start("session-BBB")
+check("a different id clears", stamped(), False)
+check("id updated to the new session", session_id_file(), "session-BBB")
+
+# Mid-cycle, which is where a future edit splitting the clear block would show:
+# after a completed review only `.review-stamp` is left, because the verifier's
+# stop consumes the pairing markers (ADR-0022). Between the finder finishing and
+# the verifier being dispatched they are still on disk, so this is the only point
+# at which "keeps them as one block" is observable at all.
+dispatch("code-reviewer")
+stop("finder")
+check("mid-cycle: the finder marker is on disk", finder_marked(), True)
+session_start("session-BBB")
+check("same id re-firing keeps the finder marker", finder_marked(), True)
+dispatch("review-verifier")
+stop("verifier")
+# And the pairing still holds across it — a SessionStart writes only `.session-id`,
+# which is ignored, so an in-flight review is not voided by one.
+check("a SessionStart mid-cycle does not void the pass", stamped(), True)
+
+review()
+session_start(None)
+check("payload without session_id clears (fail-safe)", stamped(), False)
+# The memory is dropped too, so the next SessionStart cannot match a stale id.
+check("id forgotten when the payload carries none", session_id_file(), None)
 
 print()
 if failures:

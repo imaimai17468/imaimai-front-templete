@@ -10,7 +10,7 @@
 # every commit. Hence one definition.
 #
 # `.claude/.review-stamp`, `.finder-done`, `.finder-hash`, `.pair-ok`,
-# `.aegis-stamp` and `.aegis-unavailable` are all .gitignore'd, so
+# `.aegis-stamp`, `.aegis-unavailable` and `.session-id` are all .gitignore'd, so
 # `--exclude-standard` already keeps the gate's own markers out of the hash. If a
 # new marker is ever added, it MUST be added to .gitignore too, or writing it
 # would change the hash it is meant to be compared against.

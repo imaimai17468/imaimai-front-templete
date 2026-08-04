@@ -252,6 +252,13 @@
     "specificity": 0
   },
   {
+    "edge_id": "f47ab38c-593f-4c75-b8a6-4dbc5d204f52",
+    "source_value": ".claude/hooks/**",
+    "target_doc_id": "adr-0027",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "f95a502b-20d7-4073-b4ca-53885bbf933b",
     "source_value": ".claude/agents/**",
     "target_doc_id": "adr-0011",

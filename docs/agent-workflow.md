@@ -326,7 +326,8 @@ Claude Code のイベントに応じて自動実行されるシェルスクリ�
     ・新サイクル開始イベントは4つのマーカーを**まとめて**リセットする
       — code-reviewer dispatch (pre-agent-review-clear.sh)
       / aegis_compile_context 呼び出し (pre-aegis-compile-guard.sh)
-      / セッション開始 (session-start-env-check.sh)
+      / セッション開始 (session-start-env-check.sh — 条件付き、同一セッション
+        再発火時は保持。ADR-0027)
     ・上記3マーカーは review-verifier 完走時にもまとめて消費される
     ・.review-stamp だけの固有の消え方: git commit 後にツリーがクリーンなとき
       (post-bash-stamp-consume.sh)
