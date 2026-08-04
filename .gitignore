@@ -65,3 +65,4 @@ storybook-static
 .claude/.pair-ok
 .claude/.aegis-stamp
 .claude/.aegis-unavailable
+.claude/.session-id
