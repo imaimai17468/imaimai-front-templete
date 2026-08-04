@@ -219,18 +219,22 @@ def session_id_file():
     return path.read_text() if path.exists() else None
 
 
-def session_start(session_id=None):
-    """Fire the SessionStart env-check, with or without a `session_id`.
+def session_start(session_id=None, source=None):
+    """Fire the SessionStart env-check with an optional `session_id` / `source`.
 
-    The clear is conditional on session identity: a SessionStart re-firing for the
-    session already running must not discard markers that session earned. Pass
-    None for the fail-safe branch — an absent field must clear exactly as this
-    hook did before the check existed, so a payload shape this repository has not
-    observed can never leave a stamp standing.
+    The clear is conditional on session identity, and `source` overrides it: a
+    SessionStart re-firing for the session already running must not discard
+    markers that session earned, but `clear` / `fork` begin a different body of
+    work regardless of the id (`resume` is deliberately excluded — see the cases
+    below and ADR-0028). Pass None for either to drive
+    the fail-safe branches — an absent field must never mean "keep", so a payload
+    shape this repository has not observed can never leave a stamp standing.
     """
     payload = {"hook_event_name": "SessionStart"}
     if session_id is not None:
         payload["session_id"] = session_id
+    if source is not None:
+        payload["source"] = source
     return raw_hook("session-start-env-check.sh", payload)
 
 
@@ -590,6 +594,52 @@ session_start(None)
 check("payload without session_id clears (fail-safe)", stamped(), False)
 # The memory is dropped too, so the next SessionStart cannot match a stale id.
 check("id forgotten when the payload carries none", session_id_file(), None)
+
+print("a matching id does not save a stamp when `source` starts new work")
+# Each case first records the id, then earns a stamp, then re-fires with the SAME
+# id — the keep-branch's exact precondition — so the only thing under test is
+# whether `source` overrides it (ADR-0028).
+for i, new_work in enumerate(("clear", "fork")):
+    sid = f"session-new-{i}"
+    session_start(sid, source="startup")
+    review()
+    session_start(sid, source=new_work)
+    check(f"id matches but source={new_work} still clears", stamped(), False)
+
+# `resume` is the one that looks like it belongs above and does not: it fires
+# inside continuous work here, so forcing a clear on it costs a whole pass. This
+# case is the guard against putting it back (ADR-0028).
+for i, same_work in enumerate(("compact", "startup", "resume")):
+    sid = f"session-same-{i}"
+    session_start(sid, source="startup")
+    review()
+    session_start(sid, source=same_work)
+    check(f"id matches and source={same_work} keeps", stamped(), True)
+
+# An unrecognised source must fall back to the id check, never to "keep".
+session_start("session-unknown", source="something-unheard-of")
+review()
+session_start("session-different", source="something-unheard-of")
+check("an unknown source with a new id still clears", stamped(), False)
+review()
+session_start("session-different", source="something-unheard-of")
+check("an unknown source falls back to the id check", stamped(), True)
+
+# A `source` that is not a string at all. Two cases, not one: `jq`'s `// empty`
+# folds JSON null into absence, while a number survives as a raw string and then
+# fails the `case` — different paths through the same expression. `session_start`
+# cannot express either (its `source=None` omits the field, the way this file's
+# own OMIT sentinel exists to distinguish elsewhere), so these go through
+# `raw_hook`. Both must land on the id check, never on "keep" by default.
+for label, bad_source in (("null", None), ("42", 42)):
+    sid = f"session-{label}-source"
+    session_start(sid, source="startup")
+    review()
+    raw_hook(
+        "session-start-env-check.sh",
+        {"hook_event_name": "SessionStart", "session_id": sid, "source": bad_source},
+    )
+    check(f"source: {label} falls back to the id check", stamped(), True)
 
 print()
 if failures:

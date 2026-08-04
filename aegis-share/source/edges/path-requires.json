@@ -77,6 +77,13 @@
     "specificity": 0
   },
   {
+    "edge_id": "7aa1a5b1-0b49-4415-bcc8-a85ea61edf1c",
+    "source_value": ".claude/hooks/**",
+    "target_doc_id": "adr-0028",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "7bc96273-514e-4c19-9ba9-6df578952eaa",
     "source_value": "AGENTS.md",
     "target_doc_id": "adr-0026",
