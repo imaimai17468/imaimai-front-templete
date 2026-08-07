@@ -2,7 +2,7 @@
 
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 
 const CYCLE = ["light", "dark"] as const;
@@ -30,13 +30,17 @@ export function needsThemeNormalization(theme: string | undefined): boolean {
   return theme !== undefined && !CYCLE.some((v) => v === theme);
 }
 
+// ハイドレーション検出用。購読対象の外部システムは存在しないため subscribe は
+// 何も通知しない。サーバスナップショット false がそのまま SSR ガードになる。
+const emptySubscribe = () => () => {};
+
 export function ModeToggle() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   // system モード廃止前に保存された localStorage の "system" など、CYCLE 外の
   // 永続値を light に正規化する（放置すると <html> に不正クラスが残る）。
@@ -51,7 +55,7 @@ export function ModeToggle() {
 
   const { current, next } = resolveThemeCycle(theme, mounted);
 
-  const handleClick = useCallback(() => {
+  const toggleTheme = useCallback(() => {
     if (mounted) {
       setTheme(next);
     }
@@ -61,13 +65,13 @@ export function ModeToggle() {
     <Button
       variant="outline"
       size="icon"
-      onClick={handleClick}
+      onClick={toggleTheme}
       aria-disabled={!mounted}
       className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
       aria-label={mounted ? ACTION_LABELS[current] : "テーマを切り替え"}
     >
-      <Sun className="dark:-rotate-90 h-5 w-5 rotate-0 scale-100 transition-all dark:scale-0" />
-      <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+      <Sun className="dark:-rotate-90 size-5 rotate-0 scale-100 opacity-100 transition dark:scale-75 dark:opacity-0" />
+      <Moon className="absolute size-5 rotate-90 scale-75 opacity-0 transition dark:rotate-0 dark:scale-100 dark:opacity-100" />
     </Button>
   );
 }

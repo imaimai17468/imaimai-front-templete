@@ -17,7 +17,7 @@ export const UserSchema = z.object({
 export type User = z.infer<typeof UserSchema>;
 
 export const UserWithEmailSchema = UserSchema.extend({
-  email: z.string().email(),
+  email: z.email(),
 });
 
 export type UserWithEmail = z.infer<typeof UserWithEmailSchema>;
@@ -33,7 +33,7 @@ export type UpdateUser = z.infer<typeof UpdateUserSchema>;
 
 /** @public アバター URL 更新用スキーマ。テンプレ用途で公開、派生実装で使う想定。 */
 export const UpdateAvatarSchema = z.object({
-  avatarUrl: z.string().url(),
+  avatarUrl: z.url(),
 });
 
 /** @public UpdateAvatarSchema と対になる型。 */

@@ -11,6 +11,10 @@ import { getCurrentUserFn } from "@/server/fn/user";
 import "@/styles.css";
 
 export const Route = createRootRoute({
+  loader: async () => {
+    const user = await getCurrentUserFn();
+    return { user };
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -18,10 +22,6 @@ export const Route = createRootRoute({
       { title: "imaimai-front-templete" },
     ],
   }),
-  loader: async () => {
-    const user = await getCurrentUserFn();
-    return { user };
-  },
   component: RootComponent,
   notFoundComponent: () => <p>ページが見つかりません</p>,
 });

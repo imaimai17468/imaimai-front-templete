@@ -15,7 +15,7 @@ type ProfilePageProps = {
 
 export const ProfilePage = ({ user }: ProfilePageProps) => {
   return (
-    <div className="container mx-auto flex h-screen max-w-2xl flex-col items-center justify-center">
+    <div className="container mx-auto flex min-h-dvh max-w-2xl flex-col items-center justify-center">
       <h1 className="mb-8 text-3xl">Profile</h1>
 
       <div className="space-y-6">

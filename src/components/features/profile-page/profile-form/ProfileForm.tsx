@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Camera, Loader2 } from "lucide-react";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
@@ -37,6 +37,17 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
+  // Object URL(外部リソース)の解放を表示中の previewUrl に同期する。
+  // 差し替え時は古い URL の cleanup が走り、アンマウント時も解放される。
+  useEffect(() => {
+    if (!previewUrl) {
+      return undefined;
+    }
+    return () => {
+      URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
   const form = useForm<FormData>({
     resolver: zodResolver(UpdateUserSchema),
     defaultValues: {
@@ -67,8 +78,9 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
         break;
     }
 
+    const nextPreviewUrl = URL.createObjectURL(file);
     setPendingFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    setPreviewUrl(nextPreviewUrl);
   };
 
   const onSubmit = async (data: FormData) => {
@@ -107,7 +119,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
       >
         <div className="flex items-center gap-6">
           <div className="relative">
-            <Avatar className="h-24 w-24">
+            <Avatar className="size-24">
               <AvatarImage src={avatarUrl || undefined} alt={displayName} />
               <AvatarFallback className="text-2xl">
                 {displayName.charAt(0).toUpperCase()}
@@ -119,7 +131,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
               className="absolute right-0 bottom-0 cursor-pointer rounded-full border bg-primary p-2 text-primary-foreground transition-transform hover:scale-110"
               disabled={isPending}
             >
-              <Camera className="h-4 w-4" />
+              <Camera className="size-4" />
             </button>
             <input
               ref={fileInputRef}
@@ -173,8 +185,8 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
         >
           {isPending ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Updating...
+              <Loader2 className="mr-2 size-4 motion-safe:animate-spin" />
+              Updating…
             </>
           ) : (
             "Update Profile"
