@@ -5,7 +5,7 @@
 # NOTE ON THE FILENAME. This is a `SubagentStop` hook, not a `PostToolUse` one.
 # The `post-agent-` prefix is kept deliberately: ADR-0013, ADR-0015 and ADR-0019
 # each name this file, and an ADR records what was decided at the time and is
-# never rewritten (AGENTS.md, "ADR form"), so renaming would leave three records
+# never rewritten (the "write-adr" skill), so renaming would leave three records
 # pointing at a path that does not exist. ADR-0022 records the move.
 #
 # WHY THE EVENT IS SubagentStop (ADR-0022). `PostToolUse(Agent)` fires when the

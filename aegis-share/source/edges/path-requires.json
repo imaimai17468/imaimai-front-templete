@@ -112,9 +112,23 @@
     "specificity": 0
   },
   {
+    "edge_id": "65ae2d01-96df-4aa5-b941-31ed9374e085",
+    "source_value": ".claude/settings.json",
+    "target_doc_id": "adr-0004",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
     "edge_id": "6ad8a6ce-9367-4fd0-b707-1eab9cc68795",
     "source_value": "aegis-share/source/**",
     "target_doc_id": "adr-0021",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "74c9e370-b8ba-4f1d-9aa2-3abb1809bfdc",
+    "source_value": ".claude/agents/**",
+    "target_doc_id": "adr-0004",
     "priority": -1,
     "specificity": 0
   },
@@ -185,6 +199,13 @@
     "edge_id": "a16abcd6-d5e0-4dcb-8d44-3927bbeb466f",
     "source_value": ".claude/skills/review-diff/**",
     "target_doc_id": "adr-0011",
+    "priority": -1,
+    "specificity": 0
+  },
+  {
+    "edge_id": "a57aa75a-3a60-43fb-9e01-5fb5abbd680a",
+    "source_value": "AGENTS.md",
+    "target_doc_id": "adr-0030",
     "priority": -1,
     "specificity": 0
   },

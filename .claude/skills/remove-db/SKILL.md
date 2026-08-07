@@ -260,7 +260,7 @@ this procedure keeps:
   removing auth — circular advice for a fork that just ran it. Drop that
   sentence and the profile-feature deletion list with it.
 - ADRs: inside this repository, never delete one — a retired decision is
-  superseded, not removed (AGENTS.md, "ADR form"). A fork is the documented
+  superseded, not removed (the `write-adr` skill). A fork is the documented
   exception, because it is a different repository: `docs/FORKING.md` section 3
   lets it drop the ADRs that only record this template's own process history, and
   requires dropping the matching `source/edges/` entries and re-running the share
