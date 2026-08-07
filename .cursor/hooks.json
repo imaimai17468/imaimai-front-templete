@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "subagentStop": [
+      {
+        "command": ".cursor/hooks/subagent-stop-review-stamp.sh",
+        "matcher": "code-reviewer"
+      }
+    ]
+  }
+}
