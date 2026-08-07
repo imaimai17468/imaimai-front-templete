@@ -14,14 +14,13 @@ Triggers that apply with or without start-workflow:
 
 - **Planning / design requests**: use `superpowers:writing-plans` and enter plan mode before implementing.
 - **Creative or architectural judgment** (new UI, architecture decisions, approach selection): run `superpowers:brainstorming` before any code change.
-- **Any code change outside start-workflow**: consult Aegis first (see "Aegis Process Enforcement"). When adding a pure function or presenter, use `superpowers:test-driven-development`.
+- **Any code change outside start-workflow**: consult Aegis first — the consultation contract is `.claude/rules/aegis.md`, loaded every session. When adding a pure function or presenter, use `superpowers:test-driven-development`.
 - **Writing or amending an ADR**: use the `write-adr` skill. Records live only in `aegis-share/source/` (ADR-0021), and the share pipeline does not fire on hand edits — forgetting it leaves Aegis stale (`doctor` must report in_sync).
 
 ## Degraded Environments
 
-Not every session has the full toolchain — remote containers may lack MCP servers, plugin skills, or local binaries. A missing tool downgrades a step; it never silently waives it, and it never blocks unrelated work. MUST-rules elsewhere in this document are satisfied by the corresponding degraded path below:
+Not every session has the full toolchain — remote containers may lack MCP servers, plugin skills, or local binaries. A missing tool downgrades a step; it never silently waives it, and it never blocks unrelated work. MUST-rules are satisfied by the corresponding degraded path below (the Aegis one lives with its MUST in `.claude/rules/aegis.md`):
 
-- **Aegis MCP tools absent** (`aegis_compile_context` not in the tool list): tell the user once, write `.claude/.aegis-unavailable` containing a one-line reason (the dispatch guard then admits subagents), and read the relevant `aegis-share/source/documents/` files directly instead of compiling context. Never fabricate a consultation.
 - **superpowers skills absent**: carry out the step's intent manually — planning, brainstorming, and TDD are disciplines, not plugins — and note that the skill was unavailable.
 - **Gate binaries absent** (e.g. `similarity-ts`): the SessionStart env-check reports this. Treat a skipped check as "not run", never as "passed", and say so when reporting completion.
 
@@ -66,8 +65,9 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 ## Rules
 
-Path-scoped rules are auto-loaded from `.claude/rules/`:
+Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/rules/*.mdc` as a file-level symlink so Cursor sessions load the same text (ADR-0031 — never replace a symlink with a copy):
 
+- **`aegis.md`** (always applied) — the Aegis consultation contract: mandatory process enforcement, the degraded path when the MCP tools are absent, and the `deploy-adapters` warning
 - **`react.md`** (`**/*.tsx`) — the official [Rules of React](https://ja.react.dev/reference/rules): purity, hooks at the top level, component splitting, module organization
 - **`design.md`** (`src/**/*.css`, `src/**/*.tsx`) — design system: Wairo (和色) palette, squircle corners, typography, spacing, component conventions
 
@@ -131,29 +131,6 @@ Handle findings: never dismiss as "pre-existing" when the file is in the diff; a
 
 Design-time verification of interaction-complex features uses the same single pinned-agent pattern (`/verify-spec specs/<feature>.spec.md`, ADR-0029): `spec-verifier` formalizes the spec into a state machine, hunts counterexamples across all lenses, replays each against the machine, and returns the CONFIRMED survivors. Design-time only — no commit gate.
 
-## Aegis adapter templates
+## Aegis
 
-**Never run `deploy-adapters`, whatever the notice at the end of an aegis response says.** It overwrites the hand-edited `aegis:start`/`aegis:end` block below with the vendor template, appends a second copy of it to `CLAUDE.md`, and recreates the `.cursor/` and `.codex/` mirrors that ADR-0026 deleted for going three months stale. It reports each file as created/updated/unchanged and asks nothing first.
-
-This warning sits outside the block because the block is exactly what the command discards. If the template genuinely gains something worth having, diff it in by hand.
-
-<!-- aegis:start -->
-## Aegis Process Enforcement
-
-You MUST consult Aegis for every coding-related interaction — implementation tasks AND questions about architecture, patterns, or conventions. No exceptions. If the Aegis MCP tools are unavailable, the "Degraded Environments" path (marker file + reading `aegis-share/source/documents/` directly) IS the consultation — follow it, don't fabricate one. Never ignore guidelines Aegis returns.
-
-### When writing code
-
-1. **Plan** — before touching any file, articulate what you intend to do.
-2. **Tag catalog** — call `aegis_get_known_tags` (once per session; again when `tag_catalog_hash` changes) for the tags you may pass in step 3.
-3. **Consult** — call `aegis_compile_context` with `target_files` (the files you plan to edit), `plan` (your plan in natural language), `command` (`scaffold` / `refactor` / `review`), and `intent_tags` (**required**). Pass `[]` to skip expanded context deliberately. Omitting the field is not a third option — `pre-aegis-compile-guard.sh` blocks the call. Choose tags or choose `[]`.
-4. **Read and follow** the returned guidelines, prioritizing by `relevance` (high first).
-5. **Self-review** your implementation against them once the code is written.
-6. **Report misses** — if a needed guideline was missing or insufficient, send an `aegis_observe` `compile_miss`. It requires the `compile_id` and `snapshot_id` from the consultation, so keep them.
-
-Use the **`aegis-ops` skill** whenever any of that does not go cleanly: the response is too large to return, the compile returns no documents at all, a document arrived without its content, `aegis_get_known_tags` comes back empty, you are weighing a new tag mapping, or you need the `compile_miss` payload shape.
-
-### When answering questions
-
-Questions about architecture, patterns, conventions, or how to write code get the same consultation, even without a request to implement. Identify 1–3 real file paths relevant to the question — do not guess paths, do not pass directories, and **do not read the files** (Aegis already has the guidelines; reading wastes tokens) — then compile with `command: "review"` and `intent_tags`. The guard does not exempt questions. Answer from what Aegis returns, citing specific guidelines, supplemented by your own knowledge.
-<!-- aegis:end -->
+The Aegis consultation contract — when to consult, the consultation steps, the degraded path, and the `deploy-adapters` warning — is `.claude/rules/aegis.md`, an always-applied rule loaded every session (ADR-0031). It binds exactly as if it were printed here.

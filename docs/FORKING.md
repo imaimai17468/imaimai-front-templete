@@ -34,7 +34,9 @@ clone した直後に置き換えるべき値と、残す/捨てるファイル�
 **再利用する（そのまま持っていく）**
 
 - `.claude/skills/`, `.claude/agents/`, `.claude/hooks/`, `.claude/rules/` —
-  スキル・エージェント定義・ゲート・パススコープのルール
+  スキル・エージェント定義・ゲート・ルール（Aegis 契約 + パススコープ）
+- `.cursor/rules/` — `.claude/rules/` へのファイル単位 symlink（ADR-0031）。
+  実体を置かないこと — コピーはドリフトする（ADR-0026 の教訓）
 - `.claude/settings.json` — 権限境界（ADR-0004）。プロジェクト固有のコマンドを
   足す場合は `allow` の広さが境界の一部であることに注意
 - `scripts/evals/` — レビュー品質の回帰スイート

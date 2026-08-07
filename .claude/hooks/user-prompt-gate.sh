@@ -4,8 +4,9 @@
 #    window, so a compile_context call from a previous prompt cannot satisfy
 #    the pre-agent-aegis-guard for this one.
 # 2. Inject a one-line pointer to AGENTS.md. The directives themselves live in
-#    AGENTS.md ("Workflow", "Aegis Process Enforcement", "Degraded
-#    environments") — this hook deliberately does not duplicate them.
+#    AGENTS.md ("Workflow", "Degraded Environments") and in
+#    .claude/rules/aegis.md (the Aegis consultation contract, ADR-0031) —
+#    this hook deliberately does not duplicate them.
 
 set -euo pipefail
 

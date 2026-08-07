@@ -359,9 +359,9 @@ finder→verifier からの統合):
 
 ### ルール (`AGENTS.md`)
 
-毎セッションにロードされるコーディング規約。ADR-0030 以降、この文書が運ぶのは指示（directive）だけ — 根拠は引用先の ADR が、手順・トラブルシュートは skill（`write-adr` / `aegis-ops`）が持ち、AGENTS.md はそこへのポインタを置く。パススコープの詳細ルール (`.claude/rules/react.md`、`design.md`) は対象パス編集時に自動ロード。
+毎セッションにロードされるコーディング規約。ADR-0030 以降、この文書が運ぶのは指示（directive）だけ — 根拠は引用先の ADR が、手順・トラブルシュートは skill（`write-adr` / `aegis-ops`）が持ち、AGENTS.md はそこへのポインタを置く。Aegis のプロセス契約は ADR-0031 で `.claude/rules/aegis.md`（常時適用）へ分離。パススコープの詳細ルール (`.claude/rules/react.md`、`design.md`) は対象パス編集時に自動ロード。`.claude/rules/` の各ファイルは `.cursor/rules/*.mdc` へファイル単位 symlink でミラーされ、Cursor セッションも同じ本文を読む（コピー禁止 — ADR-0031）。
 
-参照: ADR-0008（常時ロードの一元化）, ADR-0030（指示だけを運ぶ）
+参照: ADR-0008（常時ロードの一元化）, ADR-0030（指示だけを運ぶ）, ADR-0031（Aegis 契約の分離と Cursor symlink）
 
 ---
 
