@@ -198,10 +198,10 @@ eval: `scripts/evals/verify-spec/`（シード反例を持つ spec fixture で
 ADR とルールを管理する **コンテキストコンパイラ**。全ドキュメントを読ませる代わりに、必要なドキュメントだけを決定論的に返す。経路は2つあり、返り値も別の節に入る:
 
 - **エッジ**（`path-requires` / `command-requires`）→ `base`。ファイルパスとコマンドから辿る。
-- **タグ**（`tag-mappings`）→ `expanded`。`intent_tags` から辿る。パスに相関しない意図がここに乗る。例と追加基準は AGENTS.md step 2 と ADR-0023 を参照。
+- **タグ**（`tag-mappings`）→ `expanded`。`intent_tags` から辿る。パスに相関しない意図がここに乗る。例と追加基準（reach test）は [`aegis-ops`](../.claude/skills/aegis-ops/SKILL.md) skill と ADR-0023 を参照。
 - **使い所**: `/start-workflow` step 2 で `aegis_compile_context({ target_files, plan, command, intent_tags })` を呼び、関連 ADR / ルールを relevance スコア付きで取得。カタログは `aegis_get_known_tags` で引く。subagent dispatch 前は `pre-agent-aegis-guard.sh` が未呼び出しをブロック。
 - **データ**: `aegis-share/`（git 管理の共有バンドル: `source/documents/` の Markdown + `source/edges/` の glob→doc_id + `source/tag-mappings.json` の tag→doc_id）と `.aegis/aegis.db`（gitignore 済みローカル SQLite、SessionStart で自動構築）。`manifest.json` の `includes_tag_mappings` が false なら `expanded` は発火しない。
-- **メンテ**: `aegis-share/source/` が canonical。新規 ADR・既存編集とも `source/documents/`（+必要なら `source/edges/`）を編集し、`share-format` → `share-lint` → `share-materialize` → `share-export` で DB とバンドルへ反映（`aegis_import_doc` の直接投入は source と乖離を生むため使わない）。`aegis_sync_docs` は file-anchored な文書を再アンカーする道具で、ADR-0021 以降どの文書も file-anchored ではないため実質 no-op。compile miss は `aegis_observe` → `/aegis-triage`。
+- **メンテ**: `aegis-share/source/` が canonical。ADR の起票・編集から share パイプラインの実行までの手順一式は [`write-adr`](../.claude/skills/write-adr/SKILL.md) skill が持つ（ADR-0030。`aegis_import_doc` の直接投入は source と乖離を生むため使わない）。compile が綺麗に通らないとき（過大応答・content 欠落・空カタログ・miss 報告）は [`aegis-ops`](../.claude/skills/aegis-ops/SKILL.md) skill。`aegis_sync_docs` は file-anchored な文書を再アンカーする道具で、ADR-0021 以降どの文書も file-anchored ではないため実質 no-op。compile miss は `aegis_observe` → `/aegis-triage`。
 - 詳細は `aegis-share/source/documents/` の ADR を参照。
 
 ### 3.2 Superpowers（プラグイン: `superpowers@claude-plugins-official`）— 「どう進めるか」
@@ -255,8 +255,8 @@ ADR-0029 が `review-verifier` / `spec-checker` を削除した後の構成）�
 `permissionMode: auto` で動くため、上の表のうち **`allow` にも `ask` にも
 載っていない Bash** は対話プロンプトではなく分類器の審査を通る。`deny` と
 `ask` はそのまま効く（`ask` は auto でもプロンプトを出す —— ADR-0004 の
-2026-07-28 amend）。理由と出典は AGENTS.md「Permission mode for the pinned
-agents」。
+2026-07-28 amend）。auto を選んだ理由と出典は ADR-0004 の 2026-08-07 amend
+（AGENTS.md にあった「Permission mode」節は ADR-0030 でそこへ移送された）。
 
 ### Hooks
 
@@ -359,9 +359,9 @@ finder→verifier からの統合):
 
 ### ルール (`AGENTS.md`)
 
-毎セッションにロードされるコーディング規約。Design Philosophy / Knowledge Currency / Code Practices / Rules of React / Testing / Commits / Agents の各セクションとして凝縮。パススコープの詳細ルール (`.claude/rules/react.md`、`design.md`) は対象パス編集時に自動ロード。
+毎セッションにロードされるコーディング規約。ADR-0030 以降、この文書が運ぶのは指示（directive）だけ — 根拠は引用先の ADR が、手順・トラブルシュートは skill（`write-adr` / `aegis-ops`）が持ち、AGENTS.md はそこへのポインタを置く。パススコープの詳細ルール (`.claude/rules/react.md`、`design.md`) は対象パス編集時に自動ロード。
 
-参照: ADR-0008
+参照: ADR-0008（常時ロードの一元化）, ADR-0030（指示だけを運ぶ）
 
 ---
 
@@ -386,15 +386,14 @@ finder→verifier からの統合):
 ```
 canonical は aegis-share/source/（import_doc の直接投入は乖離を生むため不使用）
 
-[新しい ADR の追加]  source/documents/adr-NNNN.md を書く（frontmatter + 本文。写しは無い）
-                     + source/edges/*.json に必要な edge を追加
-                     → npx aegis share-format → share-lint → share-materialize → share-export（4 コマンドを順に実行）
-[既存 ADR の編集]    source/documents/adr-NNNN.md を編集（写しは無い）
-                     → 同上の share パイプライン（doctor で in_sync を確認）
+[新しい ADR の追加]  /write-adr skill の手順に従う（起票判断 · MADR-lite 形式 ·
+                     連番 · edge 追加 · share パイプライン実行まで一式を保持）
+[既存 ADR の編集]    同じく /write-adr skill（手編集では share パイプラインは
+                     発火しないので自分で実行し doctor で in_sync を確認）
 [タグの追加]         source/tag-mappings.json に {tag, doc_id, confidence, source} を追加
-                     → 同上の share パイプライン
-                     ※ 追加基準は ADR-0023 / AGENTS.md step 2。エッジで既に
-                       到達できる文書へのタグは足さない（語彙だけ増える）
+                     → share パイプライン（コマンドは /write-adr skill の Publish 節）
+                     ※ 追加基準（reach test）は ADR-0023 / aegis-ops skill。エッジで
+                       既に到達できる文書へのタグは足さない（語彙だけ増える）
 [hydrate 直後]       追加操作なし（file-anchored な文書は無い / ADR-0021）
 [compile miss]       aegis_observe({ event_type: "compile_miss", ... })
                      → /aegis-triage で分析 → proposals → 承認
@@ -402,7 +401,7 @@ canonical は aegis-share/source/（import_doc の直接投入は乖離を生む
 
 ### ADR
 
-非自明な設計判断がされたら新しい ADR を追加。MADR-lite テンプレートを使用（AGENTS.md の「ADR form」参照）。番号は厳密に連番。
+非自明な設計判断がされたら新しい ADR を追加。起票するかの判断基準・MADR-lite 形式・連番規則・amendment の作法は [`/write-adr`](../.claude/skills/write-adr/SKILL.md) skill が持つ（旧 AGENTS.md「ADR form」を ADR-0030 で移送）。
 
 ### スキル / エージェント / プロンプトのチューニング
 
@@ -483,6 +482,7 @@ canonical は aegis-share/source/（import_doc の直接投入は乖離を生む
 | `/review-diff` | `code-reviewer` agent を dispatch するコミット前レビュー |
 | `/verify-spec` | `spec-verifier` agent を dispatch する状態機械仕様の反例探索 |
 | `/remove-db` | DB / 認証 / ストレージの外科的除去 |
+| `/write-adr` | ADR の新規起票・amendment（起票判断・MADR-lite 形式・連番・edge・share パイプライン） |
 | `/empirical-prompt-tuning` | スキル / エージェント / プロンプトの反復改善 |
 | `/launch-checklist` | リリース前の総合監査 |
 | `/lighthouse-audit` | 全ページの Lighthouse 監査 |
@@ -491,6 +491,7 @@ canonical は aegis-share/source/（import_doc の直接投入は乖離を生む
 | `/aegis-setup` | Aegis ナレッジベースの初期構築 |
 | `/aegis-bulk-import` | ルール / ADR の一括インポート |
 | `/aegis-triage` | pending observations の分析・proposal 生成 |
+| `/aegis-ops` | compile が綺麗に通らないときのトラブルシュート（過大応答・content 欠落・空カタログ・タグ追加判断・miss 報告） |
 | `/repo-audit` | 最良モデルによるオンデマンド監査（ゲートが拾えない領域を既存レールへ）(ADR-0014) |
 
 ### ファイル配置
