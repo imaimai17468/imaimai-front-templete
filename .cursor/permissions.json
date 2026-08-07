@@ -1,0 +1,83 @@
+// Cursor IDE agent permissions (JSONC).
+// Derived from ADR-0004's decisions about .claude/settings.json `permissions`
+// (not a literal 1:1 copy of its current allow array — see the bun note below).
+// Allow entries are security decisions: Cursor has no deterministic deny list,
+// so anything risky is left OFF this allowlist and falls through to approval.
+// terminalAllowlist entries are case-sensitive prefixes (`cmd:args` applies a
+// glob to the args); mcpAllowlist entries (`server:tool`) are case-insensitive
+// and glob-capable.
+{
+  // `server:tool` entries; server names are the keys in .cursor/mcp.json.
+  // NOTE: once this key exists it replaces the in-app MCP allowlist entirely,
+  // so any other MCP tool to auto-approve must be added here too.
+  "mcpAllowlist": [
+    "aegis:*",
+    "aegis-admin:*",
+    // plugin/built-in servers have no mcp.json key and get prefixed runtime
+    // ids (e.g. plugin-context7-context7), so match by glob
+    "*context7*:*",
+    "*chrome-devtools*:*",
+    "*cursor-ide-browser*:*"
+  ],
+  "terminalAllowlist": [
+    // read-only inspection
+    "tree",
+    "ls",
+    "grep",
+    "rg",
+    "cat",
+    "head",
+    "tail",
+    "wc",
+    // non-destructive creation / output (`echo` is deliberately absent: with
+    // redirection it overwrites arbitrary files and no deny list backstops it)
+    "mkdir",
+    "touch",
+    "ffmpeg",
+    // git (read + staging; `git branch` is omitted because a prefix entry
+    // would also auto-approve `git branch -D`, which ADR-0004 denies)
+    "git status",
+    "git log",
+    "git diff",
+    "git show",
+    "git blame",
+    "git add",
+    "git stash",
+    // gh (read-only views; `gh api` is deliberately absent — it can mutate
+    // PRs/repos via -X, bypassing the approval the gh pr verbs get)
+    "gh pr view",
+    "gh pr list",
+    "gh pr diff",
+    "gh run view",
+    // bun package management
+    "bun install",
+    "bun remove",
+    "bun pm",
+    // bun scripts, enumerated per ADR-0004 (never `bun run` as a bare prefix);
+    // `cmd:args` form so script names containing `:` stay literal
+    "bun:run lint",
+    "bun:run lint:fix",
+    "bun:run format",
+    "bun:run format:fix",
+    "bun:run check",
+    "bun:run check:fix",
+    "bun:run typecheck",
+    "bun:run test",
+    "bun:run knip",
+    "bun:run generate-routes",
+    "bun:run cf-typegen",
+    // wrangler (read-only / codegen)
+    "wrangler types",
+    "wrangler d1 list",
+    "wrangler tail"
+  ],
+  "autoRun": {
+    // Steering hints for the Auto-review classifier — NOT enforcement.
+    // The deterministic deny list lives in .claude/settings.json (ADR-0004).
+    "block_instructions": [
+      "Never run destructive or history-rewriting commands in this repo: rm -rf / rm -r, git push --force (any variant), git reset --hard, git clean, git branch -D, git checkout . / git checkout --, git restore . / git restore --, git commit --amend, interactive rebase, sudo, chmod -R.",
+      "Never read or modify .env, .env.local, .env.development, .env.production, or .claude/.review-stamp.",
+      "Deploy, DB-schema, and publish commands always require explicit user approval: bun run deploy / preview / db:push / db:generate, wrangler deploy / d1 execute / r2 / secret, drizzle-kit, git commit, git push, gh pr create/edit/close/merge, gh api, bun add, bunx."
+    ]
+  }
+}
