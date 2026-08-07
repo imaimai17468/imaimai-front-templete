@@ -23,6 +23,9 @@ what to read. The spec pipeline has its own eval at
 - `fx-NN/prior-report.md` — was the prior report for delta-scenario fixtures.
   Retired input: ADR-0019 deleted delta mode, so nothing passes it any more.
 - `results/<date>-<label>.md` — one file per run set.
+- `results/<date>-<label>/fx-NN.md` — the report each fixture's agent actually
+  returned, saved verbatim so the run set's narrative can be checked against its
+  source. Runs before 2026-08-07 have none.
 
 ## Run protocol (parent session, clean tree required)
 
@@ -51,7 +54,13 @@ Per fixture:
    wall time, and for each survivor whether `fix` is concretely actionable rather
    than a restatement, whether `acceptance` is checkable, and whether a
    decision-needing finding listed credible options instead of an invented answer.
-4. `git apply -R scripts/evals/review-diff/fx-NN/seed.patch`;
+   **Save the agent's returned report verbatim** to
+   `results/<date>-<label>/fx-NN.md`. Extract it from the run transcript rather
+   than retyping it. Without this a results file's narrative about *how* the agent
+   reasoned is the runner's own account of a transcript nobody else can open — a
+   review of the 2026-08-07 run raised exactly that and could call it neither true
+   nor false, which is why this step exists.
+3. `git apply -R scripts/evals/review-diff/fx-NN/seed.patch`;
    verify `git status --short` is clean.
 
 Run fixtures one at a time, never in parallel — they share source files and
@@ -114,6 +123,6 @@ rather than leaving it for someone to discover.
   `results/2026-07-10-delta-mode.md` and `results/2026-07-12-fx08-large-diff.md`
   are kept as the record of what delta mode bought.
 - Nothing yet measures `fix` / `acceptance` quality (ADR-0020) beyond the
-  per-survivor notes step 3 asks for. There is no seeded fixture whose expected
+  per-survivor notes step 2 asks for. There is no seeded fixture whose expected
   answer is a *fix*, so a degraded fix proposal on an otherwise correctly-found
   defect would not score as a miss.
