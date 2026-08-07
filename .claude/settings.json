@@ -152,7 +152,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "mcp__aegis__aegis_compile_context|mcp__aegis-admin__aegis_compile_context",
+        "matcher": "mcp__aegis__aegis_compile_context|mcp__aegis-admin__aegis_compile_context|MCP:aegis_compile_context",
         "hooks": [
           {
             "type": "command",
@@ -163,7 +163,7 @@
         ]
       },
       {
-        "matcher": "Agent",
+        "matcher": "Agent|Task",
         "hooks": [
           {
             "type": "command",
@@ -180,7 +180,7 @@
         ]
       },
       {
-        "matcher": "Bash",
+        "matcher": "Bash|Shell",
         "hooks": [
           {
             "type": "command",
@@ -193,7 +193,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "mcp__aegis__aegis_compile_context|mcp__aegis-admin__aegis_compile_context",
+        "matcher": "mcp__aegis__aegis_compile_context|mcp__aegis-admin__aegis_compile_context|MCP:aegis_compile_context",
         "hooks": [
           {
             "type": "command",
@@ -204,7 +204,7 @@
         ]
       },
       {
-        "matcher": "mcp__aegis-admin__aegis_sync_docs|mcp__aegis-admin__aegis_import_doc",
+        "matcher": "mcp__aegis-admin__aegis_sync_docs|mcp__aegis-admin__aegis_import_doc|MCP:aegis_sync_docs|MCP:aegis_import_doc",
         "hooks": [
           {
             "type": "command",
@@ -215,7 +215,7 @@
         ]
       },
       {
-        "matcher": "Bash",
+        "matcher": "Bash|Shell",
         "hooks": [
           {
             "type": "command",

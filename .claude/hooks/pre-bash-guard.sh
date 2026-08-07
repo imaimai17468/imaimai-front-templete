@@ -14,9 +14,37 @@ set -euo pipefail
 INPUT=$(cat)
 TOOL=$(printf '%s' "$INPUT" | jq -r '.tool_name // ""')
 
-if [ "$TOOL" != "Bash" ]; then
-  exit 0
-fi
+# Two harnesses invoke this file. Claude Code sends tool_name "Bash"; Cursor's
+# third-party hook loader runs the same registration but delivers its own
+# payload, where the terminal tool is named "Shell" (payload captured in this
+# repository on 2026-08-07, Cursor 3.14.27 — the event name arrives as
+# "preToolUse" and CLAUDE_PROJECT_DIR is provided as a compatibility alias).
+# Anything else (Read, Task, MCP tools) passes through.
+case "$TOOL" in
+  Bash|Shell) ;;
+  *) exit 0 ;;
+esac
+
+# Emit a deny in both dialects at once: Claude Code reads the legacy
+# decision/reason pair (scripts/test-review-gate.py keys on the literal
+# "block"), Cursor reads hookSpecificOutput.permissionDecision. Cursor was
+# observed honoring exactly this combined output (Guard 3 blocked a live
+# command in a Cursor session, 2026-08-07). Claude Code has NOT been observed
+# parsing the combined shape — both fields agree on the outcome, so the
+# accepted risk is a parser that rejects the coexistence outright, not a
+# divergent decision; one live Claude Code smoke test of any deny site would
+# settle it.
+deny() { # $1 = reason
+  jq -n --arg reason "$1" '{
+    decision: "block",
+    reason: $reason,
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: $reason
+    }
+  }'
+}
 
 CMD=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""')
 
@@ -46,10 +74,7 @@ if [ "$FIRST_WORD" = "git" ]; then
   esac
 fi
 if printf '%s' "$SCRUBBED" | grep -qE '(^|[[:space:]"'\''`={}:,;&|<>(/-])\.env(\.(local|development|production))?([[:space:]"'\''`{}:,;&|<>)*]|$)'; then
-  jq -n '{
-    decision: "block",
-    reason: "PreToolUse(Bash): this command references a protected env file (.env / .env.local / .env.development / .env.production). Reading or writing these is denied regardless of tool (ADR-0004, amended by ADR-0013). Use .env.local.example for documented placeholders. If this is a false positive (e.g. the literal string in a message), rephrase the command without the filename."
-  }'
+  deny "PreToolUse(Bash): this command references a protected env file (.env / .env.local / .env.development / .env.production). Reading or writing these is denied regardless of tool (ADR-0004, amended by ADR-0013). Use .env.local.example for documented placeholders. If this is a false positive (e.g. the literal string in a message), rephrase the command without the filename."
   exit 0
 fi
 
@@ -134,10 +159,7 @@ if [ -n "$FIND_ASK" ]; then
   # stopping allow-listed `cat .env.local`. Whether a hook's `ask` prompts for an
   # already-allowed command is unstated, and a guard that silently does nothing
   # is worse than a strict one. Revisit if that behaviour is ever confirmed.
-  jq -n --arg why "$FIND_ASK" '{
-    decision: "block",
-    reason: ("PreToolUse(Bash): this `find` is refused because " + $why + " (ADR-0004, amended 2026-07-29). A find scoped to a subdirectory, without -exec/-execdir/-ok/-okdir/-delete/-fprint/-fls, runs unattended — narrow it if that is enough. If the broad form is genuinely needed, ask the user to run it.")
-  }'
+  deny "PreToolUse(Bash): this \`find\` is refused because ${FIND_ASK} (ADR-0004, amended 2026-07-29). A find scoped to a subdirectory, without -exec/-execdir/-ok/-okdir/-delete/-fprint/-fls, runs unattended — narrow it if that is enough. If the broad form is genuinely needed, ask the user to run it."
   exit 0
 fi
 
@@ -169,10 +191,7 @@ fi
 # gate wider than it is.
 case "$NORM" in
   *.review-stamp*)
-    jq -n '{
-      decision: "block",
-      reason: "PreToolUse(Bash): this command names the review gate'\''s marker file (.review-stamp). Only the gate hooks may create or consume it — a Bash command that writes it forges the commit gate. Reads are refused too because a lexical guard cannot tell them apart: use `ls -la .claude/` to see its state without naming it. If it genuinely needs clearing, ask the user."
-    }'
+    deny "PreToolUse(Bash): this command names the review gate's marker file (.review-stamp). Only the gate hooks may create or consume it — a Bash command that writes it forges the commit gate. Reads are refused too because a lexical guard cannot tell them apart: use \`ls -la .claude/\` to see its state without naming it. If it genuinely needs clearing, ask the user."
     exit 0
     ;;
 esac
@@ -195,10 +214,7 @@ esac
 # verify, so it is not something to depend on.
 LIB="$(dirname "$0")/lib-commit-shape.sh"
 if [ ! -f "$LIB" ]; then
-  jq -n '{
-    decision: "block",
-    reason: "PreToolUse(Bash): the commit-gate helper .claude/hooks/lib-commit-shape.sh is missing, so whether this command lands a commit cannot be decided. Refusing rather than risking an unreviewed commit. Restore the file."
-  }'
+  deny "PreToolUse(Bash): the commit-gate helper .claude/hooks/lib-commit-shape.sh is missing, so whether this command lands a commit cannot be decided. Refusing rather than risking an unreviewed commit. Restore the file."
   exit 0
 fi
 # shellcheck source=lib-commit-shape.sh
@@ -218,10 +234,7 @@ fi
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 
 if [ ! -f "$ROOT/.claude/.review-stamp" ]; then
-  jq -n '{
-    decision: "block",
-    reason: "PreToolUse(Bash): the review gate has not been stamped. Dispatch the code-reviewer agent, then the review-verifier agent (or run /review-diff), on the uncommitted diff before committing. Fixing what the verifier confirms does not require another review (ADR-0019) — the stamp survives those edits, so commit once the findings are addressed."
-  }'
+  deny "PreToolUse(Bash): the review gate has not been stamped. Dispatch the code-reviewer agent, then the review-verifier agent (or run /review-diff), on the uncommitted diff before committing. Fixing what the verifier confirms does not require another review (ADR-0019) — the stamp survives those edits, so commit once the findings are addressed."
   exit 0
 fi
 

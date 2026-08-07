@@ -10,7 +10,11 @@ INPUT=$(cat)
 TOOL=$(printf '%s' "$INPUT" | jq -r '.tool_name // ""')
 
 case "$TOOL" in
-  mcp__aegis__aegis_compile_context|mcp__aegis-admin__aegis_compile_context)
+  # Claude Code names MCP tools mcp__<server>__<tool>; Cursor names them
+  # MCP:<tool> with no server segment (payload captured 2026-08-07, so the
+  # Cursor form cannot distinguish the agent surface from the admin one —
+  # both were accepted here anyway).
+  mcp__aegis__aegis_compile_context|mcp__aegis-admin__aegis_compile_context|MCP:aegis_compile_context)
     ;;
   *)
     exit 0
@@ -22,9 +26,15 @@ HAS_TAGS=$(printf '%s' "$INPUT" | jq '(.tool_input.intent_tags // null) == null'
 
 if [ "$HAS_TAGS" = "true" ]; then
   REASON="PreToolUse(aegis_compile_context): intent_tags is missing. Per CLAUDE.md / AGENTS.md, omitting intent_tags is not allowed. Pass intent_tags: [] to explicitly skip expanded context, or call aegis_get_known_tags first and provide 1-3 relevant tags."
+  # Both dialects at once — see pre-bash-guard.sh.
   jq -n --arg reason "$REASON" '{
     decision: "block",
-    reason: $reason
+    reason: $reason,
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: $reason
+    }
   }'
   exit 0
 fi

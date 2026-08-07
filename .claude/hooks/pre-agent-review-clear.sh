@@ -18,9 +18,12 @@ set -euo pipefail
 INPUT=$(cat)
 TOOL=$(printf '%s' "$INPUT" | jq -r '.tool_name // ""')
 
-if [ "$TOOL" != "Agent" ]; then
-  exit 0
-fi
+# "Agent" is Claude Code's dispatch tool, "Task" is Cursor's (see
+# pre-bash-guard.sh for the payload capture).
+case "$TOOL" in
+  Agent|Task) ;;
+  *) exit 0 ;;
+esac
 
 # Only a `code-reviewer` dispatch starts a review cycle. Every other Agent
 # dispatch — an Explore scout, a parallel implementation unit — must leave an

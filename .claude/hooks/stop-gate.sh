@@ -15,7 +15,14 @@ ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "$ROOT"
 
 INPUT=$(cat)
-STOP_ACTIVE=$(printf '%s' "$INPUT" | jq -r '.stop_hook_active // false' 2>/dev/null || echo false)
+# `stop_hook_active` is Claude Code's "this Stop was already blocked once"
+# flag. Cursor's stop payload carries `loop_count` (auto-followups already
+# triggered) instead — and it runs Claude-registered stop hooks with NO loop
+# limit (loop_limit defaults to null for third-party hooks), so without this
+# mapping a pre-existing failure would re-block forever there.
+STOP_ACTIVE=$(printf '%s' "$INPUT" | jq -r \
+  'if (.stop_hook_active == true) or ((.loop_count // 0) > 0) then "true" else "false" end' \
+  2>/dev/null || echo false)
 
 # Emit a block — downgraded to a warning when this Stop was already blocked
 # once (stop_hook_active), to prevent an unfixable failure from looping.

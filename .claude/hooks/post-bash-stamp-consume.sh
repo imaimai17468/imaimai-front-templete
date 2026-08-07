@@ -24,7 +24,12 @@ set -uo pipefail
 INPUT=$(cat)
 TOOL=$(printf '%s' "$INPUT" | jq -r '.tool_name // ""')
 
-[ "$TOOL" = "Bash" ] || exit 0
+# "Bash" is Claude Code's terminal tool, "Shell" is Cursor's (see
+# pre-bash-guard.sh for the payload capture).
+case "$TOOL" in
+  Bash|Shell) ;;
+  *) exit 0 ;;
+esac
 
 # Skip in subagent (sidechain) sessions — the stamp is the parent session's
 # state, and a dispatched worker's Bash use must not consume it. Same guard as
@@ -73,7 +78,16 @@ ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 # tree holding only .claude/ state counts as clean.
 if [ -z "$(git -C "$ROOT" status --porcelain 2>/dev/null || echo dirty)" ]; then
   rm -f "$ROOT/.claude/.review-stamp"
-  jq -n '{systemMessage: "Review stamp consumed: the reviewed changes are fully committed (ADR-0019). The next task needs its own review."}'
+  # systemMessage is Claude Code's user-visible channel; Cursor ignores it, so
+  # the same text also rides hookSpecificOutput.additionalContext, which both
+  # harnesses inject into the conversation.
+  jq -n '{
+    systemMessage: "Review stamp consumed: the reviewed changes are fully committed (ADR-0019). The next task needs its own review.",
+    hookSpecificOutput: {
+      hookEventName: "PostToolUse",
+      additionalContext: "Review stamp consumed: the reviewed changes are fully committed (ADR-0019). The next task needs its own review."
+    }
+  }'
 fi
 
 exit 0

@@ -30,9 +30,13 @@ set -euo pipefail
 INPUT=$(cat)
 TOOL=$(printf '%s' "$INPUT" | jq -r '.tool_name // ""')
 
-if [ "$TOOL" != "Agent" ]; then
-  exit 0
-fi
+# Claude Code names the dispatch tool "Agent"; Cursor's third-party hook loader
+# runs this same registration and names it "Task" (see pre-bash-guard.sh for the
+# 2026-08-07 payload capture this rests on).
+case "$TOOL" in
+  Agent|Task) ;;
+  *) exit 0 ;;
+esac
 
 # Skip in subagent (sidechain) sessions — this guard is a parent-only workflow check.
 TRANSCRIPT=$(printf '%s' "$INPUT" | jq -r '.transcript_path // ""' 2>/dev/null || true)
@@ -43,8 +47,11 @@ if [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ]; then
 fi
 
 SUBTYPE=$(printf '%s' "$INPUT" | jq -r '.tool_input.subagent_type // ""')
+# `Explore`/`explore` and the two guide helpers differ only in which harness
+# spawns them; `explore` and `cursor-guide` are Cursor's names for the same two
+# exemption kinds (read-only search; harness Q&A that touches no repository code).
 case "$SUBTYPE" in
-  claude-code-guide|Explore|statusline-setup|keybindings-help|code-reviewer|spec-verifier)
+  claude-code-guide|Explore|statusline-setup|keybindings-help|code-reviewer|spec-verifier|explore|cursor-guide)
     exit 0
     ;;
 esac
@@ -62,7 +69,14 @@ fi
 
 REASON="PreToolUse(Agent): no aegis_compile_context call recorded since the last user prompt (.claude/.aegis-stamp is missing). Call aegis_compile_context with target_files / plan / command / intent_tags before dispatching a subagent (see AGENTS.md). For read-only search, use subagent_type Explore instead. If the Aegis MCP tools are genuinely unavailable in this session, write .claude/.aegis-unavailable containing a one-line reason and retry."
 
+# Both dialects at once — Claude Code reads decision/reason, Cursor reads
+# hookSpecificOutput.permissionDecision (see pre-bash-guard.sh).
 jq -n --arg reason "$REASON" '{
   decision: "block",
-  reason: $reason
+  reason: $reason,
+  hookSpecificOutput: {
+    hookEventName: "PreToolUse",
+    permissionDecision: "deny",
+    permissionDecisionReason: $reason
+  }
 }'

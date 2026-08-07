@@ -42,6 +42,25 @@ INPUT=$(cat)
 # consultation must not stamp the dispatch gate (ADR-0013).
 TOOL_RESPONSE=$(printf '%s' "$INPUT" | jq -r 'if .tool_response then "present" else "absent" end' 2>/dev/null || true)
 if [ "${TOOL_RESPONSE:-absent}" = "absent" ]; then
+  # Cursor's third-party hook loader delivers the result as `.tool_output` — a
+  # JSON *string* — instead of `.tool_response` (payload captured 2026-08-07;
+  # Cursor also routes failures to a separate postToolUseFailure event this
+  # registration does not listen on). Success stamps; anything unparseable or
+  # error-shaped stays fail-closed, per ADR-0013. The near-miss cross-check
+  # below is not attempted on this shape: debug_info is not reachable through
+  # the stringified content blocks, and the stamp is the load-bearing part.
+  CURSOR_OK=$(printf '%s' "$INPUT" | jq -r '
+    if has("tool_output") then
+      (.tool_output | try fromjson catch {isError: true}
+       | if type == "object" then
+           (if (.isError // .is_error // false) == false then "ok" else "error" end)
+         elif type == "array" then "ok"
+         else "error" end)
+    else "no" end' 2>/dev/null || echo no)
+  if [ "$CURSOR_OK" = "ok" ]; then
+    ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+    touch "$ROOT/.claude/.aegis-stamp"
+  fi
   exit 0
 fi
 # tool_response may be an object ({isError, content}) or a bare array of

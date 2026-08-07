@@ -55,9 +55,29 @@ INPUT=$(cat)
 # stamp (fail-closed) AND a visible warning, because a gate that quietly stops
 # gating is worse than one that fails loudly.
 EVENT=$(printf '%s' "$INPUT" | jq -r '.hook_event_name // ""' 2>/dev/null || true)
-if [ "$EVENT" != "SubagentStop" ]; then
-  jq -n --arg ev "${EVENT:-<absent>}" '{
-    systemMessage: ("⚠️ post-agent-review-stamp.sh received hook_event_name=" + $ev + " but only SubagentStop proves the review agent FINISHED (ADR-0022). No stamp was written. Check the SubagentStop registration in .claude/settings.json.")
+# "SubagentStop" is Claude Code's spelling; Cursor's third-party hook loader
+# runs the same registration and delivers "subagentStop" — captured live in
+# this repository on 2026-08-07 from a real code-reviewer completion payload
+# (subagent_type "code-reviewer", status "completed"). Both spellings prove
+# the same fact; anything else is a mis-registration and stays refused.
+case "$EVENT" in
+  SubagentStop|subagentStop) ;;
+  *)
+    jq -n --arg ev "${EVENT:-<absent>}" '{
+      systemMessage: ("⚠️ post-agent-review-stamp.sh received hook_event_name=" + $ev + " but only SubagentStop proves the review agent FINISHED (ADR-0022). No stamp was written. Check the SubagentStop registration in .claude/settings.json.")
+    }'
+    exit 0
+    ;;
+esac
+
+# Cursor's payload carries a `status` field Claude Code's does not:
+# completed | error | aborted. An errored or aborted agent has verified
+# nothing, so only "completed" may stamp; a payload without the field (every
+# Claude Code payload) skips this check rather than failing it.
+STATUS=$(printf '%s' "$INPUT" | jq -r '.status // ""' 2>/dev/null || true)
+if [ -n "$STATUS" ] && [ "$STATUS" != "completed" ]; then
+  jq -n --arg st "$STATUS" '{
+    systemMessage: ("⛔ Review stamp NOT written: the code-reviewer stopped with status=" + $st + ", so it produced no findings report. Re-run the review on the current tree.")
   }'
   exit 0
 fi
@@ -111,11 +131,18 @@ ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 # explicitly null" into one bucket, which put a null — the harness stating there
 # is no message — on the stamping side, contradicting the rule stated just above.
 # A null is present-and-empty, so it counts as blank.
+# `last_assistant_message` is Claude Code's field. Cursor's hooks doc names
+# `summary` for the subagent's report, but the one real subagentStop payload
+# captured here (2026-08-07) carried NEITHER field — in that session the stamp
+# rode the "absent" branch below, warning included. The summary fallback stays
+# for the documented case; Claude's field wins when both somehow appear.
 REPORTED=$(printf '%s' "$INPUT" | jq -r '
-  if (has("last_assistant_message") | not) then "absent"
-  elif (.last_assistant_message == null) then "blank"
-  elif ((.last_assistant_message | tostring | gsub("\\s"; "")) == "") then "blank"
-  else "present" end' 2>/dev/null || echo absent)
+  def classify(v): if v == null then "blank"
+    elif ((v | tostring | gsub("\\s"; "")) == "") then "blank"
+    else "present" end;
+  if has("last_assistant_message") then classify(.last_assistant_message)
+  elif has("summary") then classify(.summary)
+  else "absent" end' 2>/dev/null || echo absent)
 [ -n "$REPORTED" ] || REPORTED=absent
 
 if [ "$REPORTED" = "blank" ]; then

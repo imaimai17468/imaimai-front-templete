@@ -22,8 +22,12 @@ for step in "${STEPS[@]}"; do
   OUT=$($AEGIS "$step" 2>&1)
   RC=$?
   if [ $RC -ne 0 ]; then
+    # systemMessage is Claude Code's channel; Cursor ignores it, and a silent
+    # sync failure means a stale share bundle — so the same text also rides
+    # additionalContext, which both harnesses inject.
     printf '%s' "$OUT" | jq -Rs --arg step "$step" \
-      '{systemMessage: ("[aegis-share-sync] " + $step + " failed. Fix manually: npx -y @fuwasegu/aegis@<ver> " + $step + "\n\n" + .)}'
+      '("[aegis-share-sync] " + $step + " failed. Fix manually: npx -y @fuwasegu/aegis@<ver> " + $step + "\n\n" + .) as $msg
+       | {systemMessage: $msg, hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: $msg}}'
     exit 0
   fi
 done
