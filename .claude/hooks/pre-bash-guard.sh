@@ -234,7 +234,7 @@ fi
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 
 if [ ! -f "$ROOT/.claude/.review-stamp" ]; then
-  deny "PreToolUse(Bash): the review gate has not been stamped. Dispatch the code-reviewer agent, then the review-verifier agent (or run /review-diff), on the uncommitted diff before committing. Fixing what the verifier confirms does not require another review (ADR-0019) — the stamp survives those edits, so commit once the findings are addressed."
+  deny "PreToolUse(Bash): the review gate has not been stamped. Dispatch the code-reviewer agent (or run /review-diff) on the uncommitted diff before committing — its completion writes the stamp (ADR-0029). Never create the stamp by hand and never ask the user to; a manual marker forges the gate. Fixing what the review confirms does not require another review (ADR-0019) — the stamp survives those edits, so commit once the findings are addressed."
   exit 0
 fi
 
