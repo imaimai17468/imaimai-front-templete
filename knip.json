@@ -8,9 +8,5 @@
     "src/lib/utils.ts"
   ],
   "project": ["src/**/*.{ts,tsx,css}"],
-  "ignore": [
-    "src/router.tsx",
-    "src/server/cloudflare.ts",
-    "src/test/**/*.{ts,tsx}"
-  ]
+  "ignore": ["src/server/cloudflare.ts", "src/test/**/*.{ts,tsx}"]
 }
