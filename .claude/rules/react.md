@@ -1,6 +1,8 @@
 ---
-paths:
-  - "**/*.tsx"
+description: Rules of React — purity, hooks at the top level, component splitting, module organization
+globs: **/*.tsx
+alwaysApply: false
+paths: **/*.tsx
 ---
 
 # React Purity (not caught by linters)

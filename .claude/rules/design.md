@@ -1,7 +1,8 @@
 ---
-paths:
-  - "src/**/*.css"
-  - "src/**/*.tsx"
+description: Design system — Wairo (和色) palette, squircle corners, typography, spacing, component conventions
+globs: src/**/*.css,src/**/*.tsx
+alwaysApply: false
+paths: src/**/*.css, src/**/*.tsx
 ---
 
 # Design System
