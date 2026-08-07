@@ -72,6 +72,7 @@
     "oxlint": "1.76.0",
     "oxlint-plugin-react-doctor": "0.9.5",
     "oxlint-tsgolint": "7.0.2001",
+    "react-grab": "0.1.50",
     "tailwindcss": "4.3.2",
     "tw-animate-css": "1.3.6",
     "typescript": "7.0.2",
