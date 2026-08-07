@@ -1,5 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": [".oxlintrc.react-doctor.json"],
   "plugins": [
     "typescript",
     "unicorn",
@@ -11,7 +12,8 @@
   ],
   "jsPlugins": [
     "./tools/oxlint-plugins/style-rules.js",
-    "./tools/oxlint-plugins/arch-rules.js"
+    "./tools/oxlint-plugins/arch-rules.js",
+    { "name": "react-doctor", "specifier": "oxlint-plugin-react-doctor" }
   ],
   "categories": {
     "correctness": "error",

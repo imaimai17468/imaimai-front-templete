@@ -66,6 +66,7 @@
     "lefthook": "2.1.10",
     "oxfmt": "0.60.0",
     "oxlint": "1.76.0",
+    "oxlint-plugin-react-doctor": "0.9.5",
     "oxlint-tsgolint": "7.0.2001",
     "tailwindcss": "4.3.2",
     "tw-animate-css": "1.3.6",
