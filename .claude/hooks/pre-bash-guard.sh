@@ -158,16 +158,20 @@ fi
 # the same unsolved problem — ask the user if one genuinely needs clearing.
 #
 # Lexical, therefore defeatable by obfuscation, exactly like Guard 1 — and the
-# `permissions.deny` entries added alongside it cover the `Write`/`Edit` tools,
-# which a Bash guard cannot see. Same honest framing as ADR-0017: together these
-# raise forging from "allow-listed and silent" to "requires deliberate evasion that
-# is visible in the transcript". Neither is a boundary against an agent that has
-# decided to cheat.
+# `permissions.deny` entry alongside it covers the file-editing tools, which a Bash
+# guard cannot see. Same honest framing as ADR-0017: together these raise forging
+# from "allow-listed and silent" to "requires deliberate evasion that is visible in
+# the transcript". Neither is a boundary against an agent that has decided to cheat.
+#
+# One name, not four. ADR-0024 listed `.finder-done`, `.finder-hash` and `.pair-ok`
+# here alongside `.review-stamp`; ADR-0029 deleted those three with the second
+# dispatch they paired, so refusing them would refuse nothing and would read as a
+# gate wider than it is.
 case "$NORM" in
-  *.review-stamp*|*.finder-done*|*.finder-hash*|*.pair-ok*)
+  *.review-stamp*)
     jq -n '{
       decision: "block",
-      reason: "PreToolUse(Bash): this command names one of the review gate'\''s marker files (.review-stamp / .finder-done / .finder-hash / .pair-ok). Only the gate hooks may create or consume them — a Bash command that writes one forges the commit gate. Reads are refused too because a lexical guard cannot tell them apart: use `ls -la .claude/` to see their state without naming one. If a marker genuinely needs clearing, ask the user."
+      reason: "PreToolUse(Bash): this command names the review gate'\''s marker file (.review-stamp). Only the gate hooks may create or consume it — a Bash command that writes it forges the commit gate. Reads are refused too because a lexical guard cannot tell them apart: use `ls -la .claude/` to see its state without naming it. If it genuinely needs clearing, ask the user."
     }'
     exit 0
     ;;

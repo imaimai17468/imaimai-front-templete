@@ -136,7 +136,7 @@ src/
 - **[AGENTS.md](./AGENTS.md)** — 常時ロードされるコーディング規約 (凝縮版を直接記載、ADR-0008)
 - **Aegis KB (`aegis-share/source/documents/`)** — 主要設計判断の長期記録 (なぜ今こう決まっているのか)
 
-`/start-workflow` は ticket 粒度の作業をエージェントが検知して自律的に invoke します（手動でも呼べます）。trivial な 1 行修正・config 1 値・docs only な変更はこのフローに乗せず直接編集します。コミット前のレビューは `/review-diff` が担います — 親が `code-reviewer`（finder、候補を返す）→ `review-verifier`（候補を実コードで反証）をフラットに順次 dispatch し、finder が同一 diff で先行した場合のみ verifier の完走がコミットゲートを stamp します（ADR-0015）。レビューが完走するまで `git commit` はフックでブロックされます（ADR-0013）。verifier を通過した所見への修正は stamp を消さないので再レビューは不要です — find → verify → fix → done の一発勝負です（ADR-0019/0020）。レビューパイプライン自体の品質は golden eval（`scripts/evals/`）で回帰計測されます（ADR-0014）。コミット・PR はエージェントが AGENTS.md の規律に従って提案し、ユーザー確認後に実行します。
+`/start-workflow` は ticket 粒度の作業をエージェントが検知して自律的に invoke します（手動でも呼べます）。trivial な 1 行修正・config 1 値・docs only な変更はこのフローに乗せず直接編集します。コミット前のレビューは `/review-diff` が担います — 親が `code-reviewer` を1体 dispatch し、そのエージェントが「候補の網羅探索 → 重複統合 → 実コードでの反証 → 生存分の返却」を1コンテキストで通します。完走（かつ報告が空でないこと）がコミットゲートを stamp します（ADR-0029）。レビューが完走するまで `git commit` はフックでブロックされます（ADR-0013）。返ってきた所見への修正は stamp を消さないので再レビューは不要です — find → verify → fix → done の一発勝負です（ADR-0019/0020）。反証を別 context に置く独立性は仕組みから規律に落ちており、その受容したリスクは ADR-0029 に記録されています。レビューパイプライン自体の品質は golden eval（`scripts/evals/`）で回帰計測されます（ADR-0014）。コミット・PR はエージェントが AGENTS.md の規律に従って提案し、ユーザー確認後に実行します。
 
 ## shadcn/ui
 

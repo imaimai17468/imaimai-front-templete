@@ -85,14 +85,7 @@
       "Edit(./.env.local)",
       "Edit(./.env.development)",
       "Edit(./.env.production)",
-      "Write(./.claude/.review-stamp)",
-      "Edit(./.claude/.review-stamp)",
-      "Write(./.claude/.finder-done)",
-      "Edit(./.claude/.finder-done)",
-      "Write(./.claude/.finder-hash)",
-      "Edit(./.claude/.finder-hash)",
-      "Write(./.claude/.pair-ok)",
-      "Edit(./.claude/.pair-ok)"
+      "Edit(./.claude/.review-stamp)"
     ],
     "ask": [
       "Bash(git commit:*)",
@@ -196,13 +189,7 @@
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-agent-review-clear.sh",
             "timeout": 5,
-            "statusMessage": "Review gate: starting a cycle, recording the tree the finder will read..."
-          },
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-agent-review-pair.sh",
-            "timeout": 5,
-            "statusMessage": "Review gate: checking the tree is unchanged since the finder dispatch..."
+            "statusMessage": "Review gate: starting a cycle, clearing the previous stamp..."
           }
         ]
       },
@@ -259,20 +246,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-agent-review-stamp.sh finder",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-agent-review-stamp.sh",
             "timeout": 3,
-            "statusMessage": "Review gate: recording the diff the finder reviewed..."
-          }
-        ]
-      },
-      {
-        "matcher": "review-verifier",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-agent-review-stamp.sh verifier",
-            "timeout": 3,
-            "statusMessage": "Review gate: stamping the commit gate after the verifier..."
+            "statusMessage": "Review gate: stamping the commit gate after the review..."
           }
         ]
       }

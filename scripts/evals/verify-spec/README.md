@@ -1,7 +1,10 @@
 # verify-spec golden eval
 
-Seeded-loophole spec fixtures measuring the flat spec pipeline
-(`spec-verifier` hunter + `spec-checker`, ADR-0010/0015). Each fixture is a
+Seeded-loophole spec fixtures measuring the spec pipeline (the single
+`spec-verifier` agent, ADR-0010/0029). Runs before 2026-08-07 measured two agents
+(`spec-verifier` hunter + `spec-checker`, ADR-0015), so their token figures are
+the sum of two contexts; they stay the comparison targets, read as totals. Each
+fixture is a
 `*.spec.md` state machine with a **deliberate design loophole** plus an
 `expected.md` naming the counterexample the pipeline must find.
 
@@ -13,15 +16,17 @@ working tree, so a run touches no source and needs no `git apply`.
 
 Per fixture:
 
-1. Dispatch the `spec-verifier` agent (hunter) with the fixture spec path — it
-   returns `{ machine, ambiguities, candidates, incomplete }`. The dispatch
-   prompt MUST restrict reading to the fixture's spec file itself — not its
-   `expected.md`, sibling fixtures, or this README (answer contamination;
-   the same rule as the review-diff eval).
-2. Dispatch the `spec-checker` agent with that machine + candidates — it
-   returns the CONFIRMED/PLAUSIBLE survivors. Same read restriction.
+1. Dispatch the `spec-verifier` agent with the fixture spec path — it runs all
+   four stages in one context and returns
+   `{ machine, ambiguities, counterexamples, incomplete }` with only the
+   CONFIRMED/PLAUSIBLE survivors. The dispatch prompt MUST restrict reading to the
+   fixture's spec file itself — not its `expected.md`, sibling fixtures, or this
+   README (answer contamination; the same rule as the review-diff eval).
+2. Record how many candidates the hunt raised and how many the replay refuted.
+   Since ADR-0029 both stages share one context, a run that confirms everything
+   it hunted is the failure mode to watch for, not a strong result.
 3. Score off the survivors (below). Record subagent tokens + wall time for
-   both dispatches.
+   the dispatch.
 
 No commit-gate stamp is involved (design-time). Run fixtures one at a time.
 

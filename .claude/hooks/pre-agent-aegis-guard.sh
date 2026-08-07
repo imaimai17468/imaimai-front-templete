@@ -44,7 +44,7 @@ fi
 
 SUBTYPE=$(printf '%s' "$INPUT" | jq -r '.tool_input.subagent_type // ""')
 case "$SUBTYPE" in
-  claude-code-guide|Explore|statusline-setup|keybindings-help|code-reviewer|review-verifier|spec-verifier|spec-checker)
+  claude-code-guide|Explore|statusline-setup|keybindings-help|code-reviewer|spec-verifier)
     exit 0
     ;;
 esac

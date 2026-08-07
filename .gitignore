@@ -60,9 +60,6 @@ storybook-static
 # claude code runtime artifacts
 .claude/scheduled_tasks.lock
 .claude/.review-stamp
-.claude/.finder-done
-.claude/.finder-hash
-.claude/.pair-ok
 .claude/.aegis-stamp
 .claude/.aegis-unavailable
 .claude/.session-id

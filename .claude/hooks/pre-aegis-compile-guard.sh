@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # PreToolUse(aegis_compile_context) combined guard:
 # 1. Block calls that omit intent_tags (must be [] or a tag array)
-# 2. Clear .review-stamp to start a new implementation cycle
+# 2. Clear .review-stamp to start a new implementation cycle (the only gate
+#    marker left since ADR-0029)
 
 set -euo pipefail
 
@@ -28,12 +29,11 @@ if [ "$HAS_TAGS" = "true" ]; then
   exit 0
 fi
 
-# --- Side effect: clear review stamp + finder marker for new cycle ---
+# --- Side effect: clear the review stamp for a new cycle ---
+# One marker, not four. ADR-0029 deleted the other three along with the second
+# review dispatch they paired, so listing them here would name files nothing
+# creates. `pre-bash-guard.sh`'s Guard 3 carries the names and the history.
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-rm -f \
-  "$ROOT/.claude/.review-stamp" \
-  "$ROOT/.claude/.finder-done" \
-  "$ROOT/.claude/.finder-hash" \
-  "$ROOT/.claude/.pair-ok"
+rm -f "$ROOT/.claude/.review-stamp"
 
 exit 0

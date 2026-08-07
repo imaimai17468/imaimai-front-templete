@@ -7,9 +7,10 @@
 # with no signal. This hook makes the degrade visible at session start.
 #
 # It also clears the per-session gate markers — the aegis consultation window and
-# degrade markers, and the four of the review cycle (`.review-stamp` plus the three
-# the finder→verifier pairing uses) — so one session's state cannot leak into a
-# different one. That clear is conditional, and the block below is both the
+# degrade markers, and the review cycle's `.review-stamp` — so one session's state
+# cannot leak into a different one. (Until ADR-0029 the review cycle had four
+# markers; the other three existed only to pair two dispatches, and went with the
+# second one.) That clear is conditional, and the block below is both the
 # mechanism and the reasoning: a SessionStart re-firing for the session already
 # running keeps the markers unless `source` says otherwise (ADR-0028), while a
 # missing or unreadable `session_id` still clears unconditionally. The rule for
@@ -96,10 +97,7 @@ else
   rm -f \
     "$ROOT/.claude/.aegis-stamp" \
     "$ROOT/.claude/.aegis-unavailable" \
-    "$ROOT/.claude/.review-stamp" \
-    "$ROOT/.claude/.finder-done" \
-    "$ROOT/.claude/.finder-hash" \
-    "$ROOT/.claude/.pair-ok"
+    "$ROOT/.claude/.review-stamp"
 
   if [ -n "$SESSION_ID" ]; then
     printf '%s' "$SESSION_ID" > "$ROOT/.claude/.session-id"

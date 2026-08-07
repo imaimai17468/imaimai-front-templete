@@ -8,10 +8,10 @@ Claude Code でこのリポジトリを開発するための作業マニュア�
 
 > **`/start-workflow` → Aegis → 設計 → 実装 → `/review-diff` → commit → PR**
 >
-> 品質検証は **専用サブエージェント** が担う。`.claude/agents/` で挙動を固定し、手順スキルを `skills:` frontmatter で preload し、「見つける役」とは別の fresh context が反証する（find ≠ verify）:
+> 品質検証は **専用サブエージェント 1 体が内部を 4 段階で実行する**（ADR-0029、ADR-0015 の2エージェント構成を統合）。`.claude/agents/` で挙動を固定し、手順スキルを `skills:` frontmatter で preload する。find ≠ verify（review）/ hunt ≠ replay（spec）はもう「別 context に分離する仕掛け」ではなく「同一 context 内で守るべき規律」——反証段が再検証した `file:line`（review）や machine の行・ガード番号（spec）を必ず添えるのが、その格下げの埋め合わせ:
 >
-> - **コミット前レビュー**（`review-diff` skill を preload、ADR-0015）= **作った後に壊す** — 親が2段を**ユーザーの入力を挟まず続けて** dispatch: `code-reviewer`（finder、候補を返す）→ `review-verifier`（候補を実コードで反証）。verifier 完走でコミットゲートを stamp。どちらも depth-1 で親が直接待つ（ネストの子待ちを撤去）
-> - **spec 検証**（`verify-spec` skill を preload、ADR-0015）= **作る前に壊す** — 親が2段: `spec-verifier`（hunter、仕様を状態機械化し反例候補を返す）→ `spec-checker`（各 trace を machine で再生検証）。design-time / 非ゲート。review と同じくフラット2段でネストの子待ちを撤去
+> - **コミット前レビュー**（`review-diff` skill を preload、ADR-0029）= **作った後に壊す** — 親が `code-reviewer` を1回 dispatch。中で Stage A find → B dedup → C refute → D return が順に走り、完走がそのままコミットゲートを stamp する。depth-1 で親が直接待つ（ネストの子待ちはこれまでどおり無い）
+> - **spec 検証**（`verify-spec` skill を preload、ADR-0029）= **作る前に壊す** — 親が `spec-verifier` を1回 dispatch。中で Stage A formalize → B hunt → C replay → D return が順に走る。design-time / 非ゲート
 >
 > 2 つの基盤がその判断を支える: **Aegis**（何に従うか＝ADR/ルールを決定論的に返す MCP）と **Superpowers**（どう進めるか＝方法論スキル群）。パーミッション・hooks が安全性を自動で担保。
 
@@ -45,8 +45,9 @@ Claude Code でこのリポジトリを開発するための作業マニュア�
   │     短いブリーフィング: 目的 · 対象ファイル · 受入基準 · 検証手順。
   │     複雑な作業 → superpowers:writing-plans。要件があいまい → brainstorming。
   │     非自明な状態遷移 (ウィザード · 認証フロー · 非同期ガード · 権限分岐)
-  │     → specs/<feature>.spec.md を書いて spec-verifier (hunter) → spec-checker
-  │       (checker) のフラット2エージェントで反例探索 (ADR-0010/0015)。
+  │     → specs/<feature>.spec.md を書いて spec-verifier を1体 dispatch。
+  │       内部で formalize → hunt → replay → return の4段階を通し、
+  │       反例候補を自ら再生検証する (ADR-0010/0029)。
   │       CONFIRMED の反例を設計に反映してから実装へ。
   │
   ├ 5. Implement                                ← Superpowers + Aegis
@@ -55,14 +56,13 @@ Claude Code でこのリポジトリを開発するための作業マニュア�
   │     独立並列ユニット → 複数 general-purpose (model: sonnet) を
   │     1 メッセージで並列 dispatch。TDD 対象 → superpowers:test-driven-development。
   │
-  ├ 6. レビュー                                  ← code-reviewer + review-verifier
-  │     diff を読む。typecheck / test 実行。/review-diff (ADR-0015):
-  │     親が code-reviewer(finder)を dispatch → 候補を受け取り →
-  │     review-verifier を dispatch → 実コードで反証 → 重大度順 survivors →
-  │     この finder→verifier はユーザーの入力を挟まず続けて走る。
-  │     verifier 完走でコミットゲートを stamp(finder が同一 diff で先行した
-  │     場合のみ)。指摘は parent が直接修正 → そこで終了(ADR-0019。
-  │     修正編集では stamp は消えない。再レビュー工程は無い)。
+  ├ 6. レビュー                                  ← code-reviewer (1体、4段階を内部実行)
+  │     diff を読む。typecheck / test 実行。/review-diff (ADR-0029):
+  │     親が code-reviewer を1体 dispatch → 内部で find → dedup → refute →
+  │     return が順に走り、重大度順 survivors を返す → 完走がそのまま
+  │     コミットゲートを stamp。指摘は parent が直接修正 → そこで終了
+  │     (ADR-0019。修正編集では stamp は消えない。再レビュー工程は無い)。
+  │     dispatch 中に親が編集するとゲートに映らない残存ギャップあり (§4)。
   │
   ├ 7. commit (ユーザー確認後)
   │     目的ごとに分割 (1 コミット = 1 つの revert 可能な意図)。
@@ -71,7 +71,7 @@ Claude Code でこのリポジトリを開発するための作業マニュア�
         gh pr create。英語サマリー + 末尾に生成クレジット。
 ```
 
-参照: ADR-0006 (オーケストレーション), ADR-0011 (レビュー・検証), ADR-0012 (parent 直接実装と委譲基準), ADR-0013 (強制ゲートの機構)
+参照: ADR-0006 (オーケストレーション), ADR-0011 (レビュー・検証), ADR-0012 (parent 直接実装と委譲基準), ADR-0013 (強制ゲートの機構), ADR-0015 (フラット2エージェント化), ADR-0029 (1エージェント4段階への統合)
 
 ---
 
@@ -79,95 +79,99 @@ Claude Code でこのリポジトリを開発するための作業マニュア�
 
 品質検証（レビュー・仕様検証）は、親セッションではなく **専用の名前付きサブエージェント** が実行する。親が実装した文脈を見ていない fresh context こそがバイアスチェックになるからだ。
 
-### 2.0 共通パターン — 固定された agent + preload skill + find ≠ verify
+### 2.0 共通パターン — 固定された agent + preload skill + Stage 分離という規律
 
-3 つの仕掛けで「手順が無視されず、かつ独立に検証される」ことを保証する:
+2 つの仕掛けで「手順が無視されない」ことを保証する。ADR-0015 まではここに3つ目として「find と verify を別 context に分離」があったが、ADR-0029 が第二 dispatch を撤去したことでその仕掛けは無くなった。find ≠ verify（review）/ hunt ≠ replay（spec）は今は同一 context 内の規律であり、詳細と受け入れた代償は 2.1 / 2.2 を参照:
 
 | 仕掛け | 実現するもの | 具体 |
 |--------|-------------|------|
 | **agent 定義** (`.claude/agents/*.md`) | 挙動の固定 | system prompt がエージェントの正体。インラインプロンプトのように変質しない |
 | **`skills:` frontmatter で preload** | 手順が確実にコンテキストに入る | skill 全文が起動時に注入される。手順の single source は skill 側に一元化 |
-| **find と verify を別 context に分離** | find ≠ verify の独立性 | 見つけた本人ではなく、探索結果を知らない別コンテキストが反証する |
 
-レビュー（ADR-0015）は **親がフラットに2段 dispatch** する。どちらも depth-1 で親が直接待つため、「サブエージェントが自分の子を待つ」脆い関節がない（この関節は 2026-07-10 に評決ロストを2回起こした）。2段は **ユーザーの入力を挟まず続けて走る**（finder の完了通知がセッションを自動で再開する）。ただし既定の背景実行だと親のターンは起動時点でいったん終わるので、2段が 1 ターンにまとまるわけではない — そこを 1 ターンに収めるためのフラグが `run_in_background: false`。効くかどうかも含め、このフラグについて観測できていることは `review-diff` step 0 にある:
-
-```
-親セッション
-  ├─ dispatch: code-reviewer (finder, sonnet)  depth 1  → 候補を返す
-  └─ dispatch: review-verifier (sonnet)         depth 1  → 候補を反証、完走で stamp
-```
-
-spec 検証も同じフラット2段（design-time / 非ゲートなので stamp フックは無い）:
+レビュー（ADR-0029、ADR-0015 の2エージェント構成を統合）は **親が `code-reviewer` を1回 dispatch** し、その中で Stage A find → B dedup → C refute → D return が順に走る。depth-1 で親が直接待つため、「サブエージェントが自分の子を待つ」脆い関節はない（この関節は 2026-07-10 に評決ロストを2回起こし、ADR-0015 が構造ごと撤去した。ADR-0029 は「統合した agent が検証用の子を dispatch する」形を選択肢として明示的に却下している——それは撤去した関節を呼び戻すことになるため）。dispatch が1回になったので「2段がユーザーの入力を挟まず続けて走るか」という論点自体が消えた。ただし既定の背景実行だと親のターンは起動時点でいったん終わるので、それを 1 ターンに収めるためのフラグ `run_in_background: false` は変わらず必要。効くかどうかについて観測できていることは `review-diff` step 0 にある:
 
 ```
 親セッション
-  ├─ dispatch: spec-verifier (hunter, opus)     depth 1  → machine + 反例候補
-  └─ dispatch: spec-checker (opus)              depth 1  → 各 trace を再生検証
+  └─ dispatch: code-reviewer (sonnet)  depth 1  → 内部で A find → B dedup → C refute → D return、完走で stamp
 ```
 
-移行の経緯（旧 dynamic workflow / コードグラフ → ネスト）は ADR-0011、ネスト → フラット化（review・spec 両方）は ADR-0015 を参照。
+spec 検証も同じ形（design-time / 非ゲートなので stamp フックは無い）:
 
-### 2.1 コミット前レビュー — 作った後に壊す（finder + verifier、ADR-0015）
+```
+親セッション
+  └─ dispatch: spec-verifier (opus)    depth 1  → 内部で A formalize → B hunt → C replay → D return
+```
 
-**agents**: [`code-reviewer`](../.claude/agents/code-reviewer.md)（finder）+ [`review-verifier`](../.claude/agents/review-verifier.md)（verifier）。どちらも [`review-diff`](../.claude/skills/review-diff/SKILL.md) skill を preload、model: sonnet、permissionMode: auto（下の「パーミッション」を参照）。
-**起動**: parent が2段をユーザーの入力を挟まず続けて dispatch（ユーザーは `/review-diff [high]`）。**verifier の完走がコミットゲートを stamp する**。
-参照: ADR-0009（規律）, ADR-0011（旧機構）, ADR-0015（フラット化）
+移行の経緯（旧 dynamic workflow / コードグラフ → ネスト）は ADR-0011、ネスト → フラット2エージェント化（review・spec 両方）は ADR-0015、フラット2エージェント → 1エージェント4段階への統合は ADR-0029 を参照。
 
-コミット前に **「本当にバグっていないか？ 規約に違反していないか？」** を fresh context の finder が網羅探索し、別の fresh context の verifier が各指摘を反証する。通らないとコミットできない。
+### 2.1 コミット前レビュー — 作った後に壊す（1エージェント4段、ADR-0029）
+
+**agent**: [`code-reviewer`](../.claude/agents/code-reviewer.md) 1体。[`review-diff`](../.claude/skills/review-diff/SKILL.md) skill を preload、model: sonnet、permissionMode: auto（下の「パーミッション」を参照）。Stage A 発見 → B 重複統合 → C 反証 → D 返却を1コンテキストで通す。
+**起動**: parent が1体 dispatch して待つ（ユーザーは `/review-diff [high]`）。**完走（かつ報告が空でないこと）がコミットゲートを stamp する**。
+参照: ADR-0009（規律）, ADR-0011（旧機構）, ADR-0015（フラット化）, ADR-0029（1エージェント化）
+
+コミット前に **「本当にバグっていないか？ 規約に違反していないか？」** を単一の fresh context が Stage A〜D の順に、見つけて反証するところまで一人で行う。通らないとコミットできない。
 
 ```
 親が dispatch:
 
-  ① code-reviewer (finder)
-     Step 1: Find — diff (git diff HEAD + untracked) を 1 回読み全観点を同時探索
+  code-reviewer （1体、4段階を内部で順に実行）
+     Stage A: Find — diff (git diff HEAD + untracked) を 1 回読み全観点を同時探索
        · logic / state / integrity / cleanup / rules(AGENTS.md + パススコープ)
-       coverage-first: 確信が持てなくても全部報告。フィルタは verify がやる。
-     Step 2: Dedup — (file, line) で統合し候補を返す（検証も stamp もしない）
-
-  ② review-verifier (verifier) ← 親が候補 JSON を渡して dispatch（候補 0 でも実行）
-     Step 3: Verify — 候補を実コードで「反証せよ (try to REFUTE)」
+       coverage-first: 確信が持てなくても全部報告。フィルタは Stage C がやる。
+     Stage B: Dedup — (file, line) で統合し重大度順に整列
+     Stage C: Refute — 各候補を実コードで「反証せよ (try to REFUTE)」
        · standard: reproduction 1 レンズ
        · high:     correctness · reproduction · scope の 3 レンズ → 過半数で棄却
        CONFIRMED / PLAUSIBLE / REFUTED（迷ったら REFUTED）
-     Step 4: Return — REFUTED を落とし survivors を返す
+       Stage A を書いたのは自分自身なので、その推論を見える状態で反証する
+       ——find ≠ verify が「別 context という仕掛け」から「同一 context 内の
+       規律」に格下げされた代償（下記補足）。埋め合わせとして、全ての判定に
+       再読した file:line を必ず記録する。
+     Stage D: Return — REFUTED を落とし survivors を返す
        生き残りには fix（具体的な修正）と acceptance（確認方法）を必ず付ける
        （判断が要る所見は fix に「決めるべき選択肢」を書く。ADR-0020）
        { effort, findings[], stats }
-     stamp: 手動 touch はしない。verifier 完走で post-agent-review-stamp.sh が自動作成。
+     stamp: 手動 touch はしない。完走で post-agent-review-stamp.sh が自動作成。
 ```
 
 **補足**:
-- **なぜフラット**: 両 agent とも depth-1 で親が直接待つ。ネスト（agent が自分の子を待つ）は 2026-07-10 に評決ロストを2回起こした関節で、それを構造ごと撤去（ADR-0015）。独立性は finder / verifier が別 context である事実で担保。
-- **fail-closed**: verifier が候補を確証できなくても unverified として残す（カバレッジは落とさない）。verifier が完走しなければ stamp は付かず commit はブロック。
+- **なぜフラット（ネストではない）**: depth-1 で親が直接待つ。ネスト（agent が自分の子を待つ）は 2026-07-10 に評決ロストを2回起こした関節で、それを構造ごと撤去（ADR-0015）。ADR-0029 は「統合した agent が検証用の子を dispatch する」形を選択肢として明示的に却下している——それは撤去した関節をそのまま呼び戻すことになるため。
+- **find ≠ verify は仕掛けから規律になった（受け入れた代償）**: ADR-0015 までは「見つけた本人とは別の fresh context が反証する」ことで独立性を機構として担保していた。ADR-0029 は第二 dispatch を統合し、Stage C は Stage A の推論を見える状態のまま反証する。コードを一度も開かずに反証したかどうかは Stage C の `file:line` 引用で可視化されるが、それが起きなくなる保証にはならない——ADR-0029 はこれを事故ではなく承知の上のリスクとして明記している。
+- **fail-closed**: Stage C が候補を確証できなくても unverified として残す（カバレッジは落とさない）。エージェントが完走しなければ stamp は付かず commit はブロック。
 - **モードは1つ**: 未コミット diff 全体を1回見て終わり（ADR-0019）。部分再走の delta モードは撤去済み。
-- **findings の消費者**: parent が verifier の返した `fix` を適用し `acceptance` で確認する。外れると判断したら理由を明示する。1回で終わる以上、修正案まで verifier に出させないと修正だけ誰の判定も受けない（ADR-0020）。
+- **findings の消費者**: parent が返された `fix` を適用し `acceptance` で確認する。外れると判断したら理由を明示する。1回で終わる以上、修正案まで返させないと修正だけ誰の判定も受けない（ADR-0020）。
+- **残存ギャップ**: dispatch 中に親がファイルを編集すると、エージェントが一度も読んでいないツリーに stamp が付く。仕組みの詳細と受け入れた理由は §4「コミットゲート」。
 
-### 2.2 spec 検証 — 作る前に壊す（hunter + checker、ADR-0015）
+### 2.2 spec 検証 — 作る前に壊す（1エージェント4段、ADR-0029）
 
-**agents**: [`spec-verifier`](../.claude/agents/spec-verifier.md)（hunter）+ [`spec-checker`](../.claude/agents/spec-checker.md)（checker）。どちらも [`verify-spec`](../.claude/skills/verify-spec/SKILL.md) skill を preload、model: opus。
-**起動**: parent が2段をユーザーの入力を挟まず続けて dispatch（ユーザーは `/verify-spec specs/x.spec.md`）。**design-time ツールなので stamp はしない**。**単発実行** — parent は自動で再実行しない。反例修正後の再検証はユーザーが明示的に行う新しい 1 パス。
-参照: ADR-0010（規律）, ADR-0011（旧機構）, ADR-0015（フラット化）
+**agent**: [`spec-verifier`](../.claude/agents/spec-verifier.md) 1体。[`verify-spec`](../.claude/skills/verify-spec/SKILL.md) skill を preload、model: opus。Stage A 形式化 → B 反例探索 → C 再生検証 → D 返却を1コンテキストで通す。
+**起動**: parent が1体 dispatch して待つ（ユーザーは `/verify-spec specs/x.spec.md`）。**design-time ツールなので stamp はしない**。**単発実行** — parent は自動で再実行しない。反例修正後の再検証はユーザーが明示的に行う新しい 1 パス。
+参照: ADR-0010（規律）, ADR-0011（旧機構）, ADR-0015（フラット化）, ADR-0029（1エージェント化）
 
-仕様を状態機械として書き下し、**「戻る・リロード・二重送信・権限変更の合わせ技で壊せるか？」** をエージェントに試させる。
+仕様を状態機械として書き下し、**「戻る・リロード・二重送信・権限変更の合わせ技で壊せるか？」** を単一の fresh context に、内部規律だけで hunt から replay まで通させる。
 
 ```
 親が dispatch:
 
-  ① spec-verifier (hunter)
-     Step 1: Formalize — 仕様を構造化状態機械に変換し曖昧箇所を洗い出す
+  spec-verifier （1体、4段階を内部で順に実行）
+     Stage A: Formalize — 仕様を構造化状態機械に変換し曖昧箇所を洗い出す
        machine の整合性 (initial ∈ states, from/to が既知) を自己検算。
-     Step 2: Hunt — depth 以内の legal trace で全観点を同時探索
+     Stage B: Hunt — depth 以内の legal trace で全観点を同時探索
        · invariant / forbidden / liveness / refinement
        武器: 戻る · リロード · 二重クリック · 並行タブ · 権限変更 · 通信エラー
-     返り: { machine, ambiguities, candidates[], incomplete }（再生も dispatch もしない）
-
-  ② spec-checker ← 親が machine + candidates を渡して dispatch
-     Step 3: Verify — 各反例を machine で 1 ステップずつ再生。嘘の反例はここで落ちる。
-     Step 4: Return — { counterexamples[], stats }（design-time なので stamp なし）
+       返り: machine, ambiguities, candidates[]（フィルタは Stage C がやる）
+     Stage C: Replay — 各反例を machine で 1 ステップずつ再生し反証を試みる。
+       Stage B を書いたのは自分自身なので、その推論を見える状態で反証する
+       ——find ≠ verify（review）と同じ格下げの代償（2.1 補足参照）。
+       埋め合わせとして、全ての判定に machine の行・ガード・チェック番号を
+       必ず記録する。
+     Stage D: Return — { machine, ambiguities, counterexamples[], stats }
+       （design-time なので stamp なし）
 ```
 
 eval: `scripts/evals/verify-spec/`（シード反例を持つ spec fixture で
-フラット spec パイプラインを実走検証、ADR-0014/0015）。
+単一エージェントの spec パイプラインを実走検証、ADR-0014/0029）。
 
 **正直な限界**: 「見つけたものは本物」だが「見つからなかった = 安全」ではない。hunt が失敗（outage）した場合は `incomplete: true` で明示し、clean pass と区別する（fail-closed）。
 
@@ -246,12 +250,13 @@ ADR-0004 の 2026-07-29 amend、検査は `scripts/test-bash-guard.py`。
 
 参照: ADR-0004
 
-`.claude/agents/` の4エージェント（`code-reviewer` / `review-verifier` /
-`spec-verifier` / `spec-checker`）は `permissionMode: auto` で動くため、上の表の
-うち **`allow` にも `ask` にも載っていない Bash** は対話プロンプトではなく分類器の
-審査を通る。`deny` と `ask` はそのまま効く（`ask` は auto でもプロンプトを出す ——
-ADR-0004 の 2026-07-28 amend）。理由と出典は AGENTS.md「Permission mode for the
-pinned agents」。
+`.claude/agents/` の2エージェント（`code-reviewer` / `spec-verifier` —
+ADR-0029 が `review-verifier` / `spec-checker` を削除した後の構成）は
+`permissionMode: auto` で動くため、上の表のうち **`allow` にも `ask` にも
+載っていない Bash** は対話プロンプトではなく分類器の審査を通る。`deny` と
+`ask` はそのまま効く（`ask` は auto でもプロンプトを出す —— ADR-0004 の
+2026-07-28 amend）。理由と出典は AGENTS.md「Permission mode for the pinned
+agents」。
 
 ### Hooks
 
@@ -270,11 +275,10 @@ Claude Code のイベントに応じて自動実行されるシェルスクリ�
 | Hook | トリガー | 役割 |
 |------|---------|------|
 | `pre-aegis-compile-guard.sh` | aegis_compile_context | `intent_tags` 未指定をブロック + レビューゲートをリセット（新サイクル開始） |
-| `pre-agent-aegis-guard.sh` | Agent dispatch | `.aegis-stamp` 不在をブロック（例外リストの実体はフック内の `case` 文。4つのレビュー/spec エージェントとハーネス組み込みのものが除外される — ここに写すと古くなるので数えない）。Aegis 不在の環境は `.aegis-unavailable` マーカーで明示的に degrade — ADR-0013 |
-| `pre-agent-review-clear.sh` | Agent dispatch (code-reviewer) | finder 起動＝新サイクル。サイクルのマーカーを全部リセットする（ハッシュは記録しない — 下記の理由） |
-| `pre-agent-review-pair.sh` | Agent dispatch (review-verifier) | `.finder-hash`（finder **完走時**のツリー）と現在のハッシュを比較し、一致していれば `.pair-ok` を作成（ADR-0015 のペアリング検査）。不一致なら理由をその場で報告する — 数分後にコミットが理由不明で弾かれるのを避けるため |
+| `pre-agent-aegis-guard.sh` | Agent dispatch | `.aegis-stamp` 不在をブロック（例外リストの実体はフック内の `case` 文。2つのレビュー/spec エージェント（`code-reviewer` / `spec-verifier`、ADR-0029 で4つから統合）とハーネス組み込みのものが除外される — ここに写すと古くなるので数えない）。Aegis 不在の環境は `.aegis-unavailable` マーカーで明示的に degrade — ADR-0013 |
+| `pre-agent-review-clear.sh` | Agent dispatch (code-reviewer) | dispatch＝新サイクル開始。前サイクルの `.review-stamp` をリセットする（ハッシュは記録しない — ADR-0029 でペアリング検査自体が第二 dispatch と一緒に無くなったため） |
 | `pre-bash-guard.sh` | Bash | 4つのガード（`.env` 遮断 / `find` の到達範囲制限 / ゲートのマーカー参照拒否 / コミットゲート）。判定条件はフック冒頭の番号付きコメントが正 — ADR-0004・ADR-0024 |
-| `lib-commit-shape.sh` / `lib-review-hash.sh` | （フックではない。source される） | 前者は「このコマンドはコミットを着地させるか」の**唯一の定義**（`pre-bash-guard.sh` と `post-bash-stamp-consume.sh` が共有。2つの手書き正規表現がずれて穴になったため — ADR-0024）。後者はペアリング用のツリーハッシュの唯一の定義（ADR-0022） |
+| `lib-commit-shape.sh` | （フックではない。source される） | 「このコマンドはコミットを着地させるか」の**唯一の定義**（`pre-bash-guard.sh` と `post-bash-stamp-consume.sh` が共有。2つの手書き正規表現がずれて穴になったため — ADR-0024）。ペアリング用ツリーハッシュを定義していた `lib-review-hash.sh` は `pre-agent-review-pair.sh` ごと ADR-0029 で削除された |
 
 **ツール実行後 (PostToolUse)** — 同期・スタンプ:
 
@@ -288,7 +292,7 @@ Claude Code のイベントに応じて自動実行されるシェルスクリ�
 
 | Hook | トリガー | 役割 |
 |------|---------|------|
-| `post-agent-review-stamp.sh` | code-reviewer / review-verifier の**完了** | `code-reviewer` 完走時に `.finder-done` を作成; `review-verifier` 完走時に `.finder-done` と `.pair-ok` が両方揃っているときだけ `.review-stamp` を作成し、サイクルのマーカーを消費。**ハッシュ計算はしない** — 「編集が挟まっていないか」は派遣時に判定済み（ADR-0022）。`PostToolUse(Agent)` ではなく `SubagentStop` に登録されている理由も ADR-0022 — Agent ツールは**起動**した時点で返るので、PostToolUse では「派遣した」ことしか証明できない |
+| `post-agent-review-stamp.sh` | code-reviewer の**完了** | `code-reviewer` が完走し、かつ `last_assistant_message` が空でないときだけ `.review-stamp` を作成する（ADR-0029）。ゲートが依拠する事実はこれ一つ——「エージェントが何かを報告して完走した」。呼び出し引数が `finder` / `verifier` / 無指定のどれでも同じに扱う（設定の再読込タイミングが未確認なため、キャッシュされた旧登録が残っても壊れないように — `scripts/test-review-gate.py` が三通りとも検証）。`PostToolUse(Agent)` ではなく `SubagentStop` に登録されている理由は ADR-0022 のまま — Agent ツールは**起動**した時点で返るので、PostToolUse では「派遣した」ことしか証明できない |
 
 **セッション終了時 (Stop)** — 最終ゲート:
 
@@ -299,49 +303,56 @@ Claude Code のイベントに応じて自動実行されるシェルスクリ�
 ### コミットゲート
 
 ```
-ゲートのライフサイクル (フラット finder→verifier、ADR-0015):
+ゲートのライフサイクル (単一エージェント、ADR-0029 — ADR-0015 のフラット
+finder→verifier からの統合):
 
-  スタンプには独立した2つの事実が必要で、観測できる瞬間が違う (ADR-0022):
-    「親が2体のエージェントの間で編集していない」→ 比較する2点でしか判定できない
-    「両エージェントが完走した」                  → SubagentStop でしか判定できない
+  スタンプが依拠する事実は1つだけになった:
+    「code-reviewer が完走し、何かを報告した」 → SubagentStop でしか判定できない
 
-  比較する2点は [finder 完走時 → verifier 派遣時]。どちらのエージェントの
-  実行区間も含まないのが要点で、ここに至るまでに2案が失敗している
-  （verifier 完走時で比較 → verifier の実行が入る / finder 派遣時で比較 →
-   finder の実行が入る。どちらもエージェント自身が作った一時ファイルで無効化された）
+  ADR-0022 まではここにもう1つの事実があった——「親が2体のエージェントの間で
+  編集していない」。dispatch が1回になったことで「間」そのものが無くなり、
+  この事実は判定対象から消えた（下記「残存ギャップ」）。
 
-  .finder-done (finder が完走した証明):
-    作成: code-reviewer 完走時 (post-agent-review-stamp.sh)
-  .finder-hash (finder が完走した時点のツリーのハッシュ = 比較の基準):
-    作成: code-reviewer 完走時 (post-agent-review-stamp.sh)
-  .pair-ok (ペアリング成立の証明):
-    作成: review-verifier 派遣時、.finder-hash と現在のハッシュが一致するとき
-          (pre-agent-review-pair.sh)
-  .review-stamp (コミットゲート):
-    作成: review-verifier 完走時、.finder-done と .pair-ok が両方揃っているときだけ
+  .review-stamp (コミットゲート。現存する唯一のマーカー):
+    作成: code-reviewer 完走時、last_assistant_message が空でないときだけ
           (post-agent-review-stamp.sh — SubagentStop 登録)
 
-  削除は原則で覚える（マーカーごとに列挙すると5個目を足したとき必ず片方が古くなる。
-  実体は .gitignore の `.claude/.*` エントリと各フックの rm -f）:
-    ・新サイクル開始イベントは4つのマーカーを**まとめて**リセットする
+  削除された3マーカー (ADR-0029、第二 dispatch と一緒に撤去):
+    .finder-done / .finder-hash / .pair-ok
+    — それぞれ「finder が完走した証明」「その時点のツリーのハッシュ」
+      「ペアリング成立の証明」を実装していたが、いずれも「2回の dispatch の
+      間に親が編集していないか」を判定するためだけに存在した。判定対象自体が
+      無くなったので、3つとも実体が要らなくなった。
+
+  消え方は変わらず原則で覚える（実体は .gitignore の `.claude/.*` エントリと
+  各フックの rm -f。ADR-0027/0028 の「session_id が一致し、かつ source が
+  clear/fork でないときだけ残す」規則は、対象マーカーが4つから1つに減っても
+  そのまま適用される）:
+    ・新サイクル開始イベントは .review-stamp をリセットする
       — code-reviewer dispatch (pre-agent-review-clear.sh)
       / aegis_compile_context 呼び出し (pre-aegis-compile-guard.sh)
       / セッション開始 (session-start-env-check.sh — 条件付き、同一セッション
         再発火時は保持。ADR-0027)
-    ・上記3マーカーは review-verifier 完走時にもまとめて消費される
-    ・.review-stamp だけの固有の消え方: git commit 後にツリーがクリーンなとき
-      (post-bash-stamp-consume.sh)
+    ・git commit 後にツリーがクリーンなときに消費される (post-bash-stamp-consume.sh、
+      ADR-0019。1スタンプで分割コミットは通し、タスク越えはさせない)
     ・Edit・Write では消えない — 所見の修正で再レビューを起こさないため
       (ADR-0019 が ADR-0013 の該当判断を amend)
 
-  → stamp は「finder が先行し、verifier が同じツリーを検証し、両方が完走した」証明。
-    verifier 単独 dispatch でも、2回の派遣の間に親が編集した場合でも stamp は付かない
-  → レビューがエラー/中断で完走しなければ stamp は付かず、stale stamp は残らない
-  → 逆に、エージェントが自分の実行区間の中でリポジトリ内へ一時ファイルを作って
-    消しても pass は無効化されない。基準点が finder の完走時なので、finder の作業も
-    verifier の作業も比較区間の外にある。ただし finder が**完走後まで残した**ファイルは
-    ツリーの一部なので、それ自体は基準に含まれる（=無効化しない）が、その後に消えれば
-    差分として検出される。ADR-0022 がこの区別を導入した理由
+  → stamp は「code-reviewer が完走し、何かを報告した」ことの証明でしかない。
+  → レビューがエラー/中断で完走しなければ stamp は付かず、stale stamp は残らない。
+
+  残存ギャップ (ADR-0029 が承知の上で受け入れたリスク。scripts/test-review-gate.py
+  の「the stamp is not bound to the tree」節がこの性質を固定している):
+    2エージェント時代は .finder-hash が「finder 完走時のツリー」を基準点として
+    持っていたため、2回の dispatch の間に親が編集すれば stamp は付かなかった。
+    dispatch が1回になった今、その基準点はどこにも無い。だから **エージェントが
+    実行している最中に親がファイルを編集すると、エージェントが一度も読んで
+    いないツリーに対して stamp が付いてしまう**。dispatch → 完了の区間をハッシュ
+    で挟む案は ADR-0022 の時点で両端とも試されて失敗している（エージェント自身が
+    Bash で作る一時ファイルがその区間に入り込み、無実の pass を無効化した）ため、
+    今回も採用されていない。埋め合わせは仕組みではなく規律で、`review-diff`
+    step 0 の「Ordering」スロットが「dispatch 中は編集しない」と親に明示させる
+    一文があるだけ——強制する hook は無い。
   → コミット分割は編集を伴わないので、1 回のレビューで複数コミットに分割できる
   不在時 → git commit は pre-bash-guard.sh がブロック
 ```
@@ -395,7 +406,7 @@ canonical は aegis-share/source/（import_doc の直接投入は乖離を生む
 
 ### スキル / エージェント / プロンプトのチューニング
 
-新規作成・大幅編集時は [`/empirical-prompt-tuning`](../.claude/skills/empirical-prompt-tuning/SKILL.md) を使用。2 回連続で新たな曖昧さが出なくなるまで改善。ただし `code-reviewer` / `review-verifier` agent と `review-diff` skill の load-bearing な変更、およびそのモデル階層変更は、ADR-0014/0015 によりスコア付き golden eval（`scripts/evals/review-diff/`）の実走が必須（この点で empirical-prompt-tuning の従来義務を置換）。`spec-verifier` / `spec-checker` も同じ regime。eval は `scripts/evals/verify-spec/`（tier を判別する fixture sx-01..03）に整備済みで、モデル階層の変更にはスコア付き実走が必須 — 2026-07-12 の比較が両エージェントを opus に据えたので、降格するならその結果を上回る新しい実走が必要（ADR-0014 内の 2026-07-12 解決メモ / AGENTS.md「Model continuity」）。
+新規作成・大幅編集時は [`/empirical-prompt-tuning`](../.claude/skills/empirical-prompt-tuning/SKILL.md) を使用。2 回連続で新たな曖昧さが出なくなるまで改善。ただし `code-reviewer` agent（ADR-0029 で `review-verifier` を統合済み）と `review-diff` skill の load-bearing な変更、およびそのモデル階層変更は、ADR-0014/0029 によりスコア付き golden eval（`scripts/evals/review-diff/`）の実走が必須（この点で empirical-prompt-tuning の従来義務を置換）。ADR-0029 自体の実走ゲートは `results/2026-07-29-briefing-skeleton.md` のベースラインとの比較——統合後のパイプラインが期待所見を落とす、または無害な fixture に過検知するなら、単発ノイズの範囲を超えた分だけこの ADR は revert 対象になる（ADR-0029 の Consequences）。`spec-verifier` agent（ADR-0029 で `spec-checker` を統合済み）も同じ regime。eval は `scripts/evals/verify-spec/`（tier を判別する fixture sx-01..03）に整備済みで、モデル階層の変更にはスコア付き実走が必須 — 2026-07-12 の比較が両エージェントを opus に据えたので、降格するならその結果を上回る新しい実走が必要（ADR-0014 内の 2026-07-12 解決メモ / AGENTS.md「Model continuity」）。
 
 ### 監査 / eval サイクル（ADR-0014）
 
@@ -425,11 +436,11 @@ canonical は aegis-share/source/（import_doc の直接投入は乖離を生む
 | 状況 | 対応 |
 |------|------|
 | 原因不明のバグ | `superpowers:systematic-debugging` を挿入 |
-| レビューを走らせる | `/review-diff`（= 親が `code-reviewer` finder → `review-verifier` を順に dispatch、`high` で深掘り、ADR-0015）。所見を修正したらそこで終わり、再実行は不要（ADR-0019） |
+| レビューを走らせる | `/review-diff`（= 親が `code-reviewer` を1体 dispatch、内部で find → dedup → refute → return、`high` で refute を深掘り、ADR-0029）。所見を修正したらそこで終わり、再実行は不要（ADR-0019） |
 | リポジトリ健全性の点検 | `/repo-audit` — ゲートが拾えない領域を最良モデルで監査し既存レールへ (ADR-0014) |
-| 設計の状態遷移だけ検証 | `spec-verifier` agent を dispatch (= `/verify-spec specs/<feature>.spec.md`) |
+| 設計の状態遷移だけ検証 | `spec-verifier` agent を dispatch (= `/verify-spec specs/<feature>.spec.md`)。内部で formalize → hunt → replay → return が走る (ADR-0029) |
 | 並列マルチエージェント | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` をセッション単位で自分でセット（settings.json ではデフォルト無効） |
-| agent / skill 自体の編集 | `/empirical-prompt-tuning` で検証してからマージ（`code-reviewer`/`review-diff` の load-bearing 変更とモデル階層変更は ADR-0014 の golden eval 必須 — §5 参照） |
+| agent / skill 自体の編集 | `/empirical-prompt-tuning` で検証してからマージ（`code-reviewer`/`review-diff` の load-bearing 変更とモデル階層変更は ADR-0014/0029 の golden eval 必須 — §5 参照） |
 | DB/認証/ストレージ除去 | `/remove-db` スキルで一括除去 |
 | 推移的依存の脆弱性 | upstream を追跡。`overrides` は追加しない (ADR-0002) |
 
@@ -459,10 +470,8 @@ canonical は aegis-share/source/（import_doc の直接投入は乖離を生む
 
 | agent | preload skill | 役割 |
 |-------|--------------|------|
-| `code-reviewer` | `review-diff` | コミット前レビューの **finder**（候補を返すだけ） |
-| `review-verifier` | `review-diff` | コミット前レビューの **verifier**（候補を反証、完走でゲート stamp）(ADR-0015) |
-| `spec-verifier` | `verify-spec` | spec 検証の **hunter**（formalize + hunt、反例候補を返す）(ADR-0015) |
-| `spec-checker` | `verify-spec` | spec 検証の **checker**（反例を machine で再生検証）(ADR-0015) |
+| `code-reviewer` | `review-diff` | コミット前レビューを単独で完走（find→dedup→refute→return の4段階、完走でゲート stamp）(ADR-0029、`review-verifier` を統合) |
+| `spec-verifier` | `verify-spec` | spec 検証を単独で完走（formalize→hunt→replay→return の4段階、反例候補の再生検証まで行う）(ADR-0029、`spec-checker` を統合) |
 | `Explore` | — | 読み取り専用の探索・検索 |
 | `general-purpose` | — | 汎用（並列実装ユニット） |
 

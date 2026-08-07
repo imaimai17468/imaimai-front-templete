@@ -286,7 +286,7 @@ check("with stamp", dispatch(), "PASS")
 
 print("exemptions and the auditable degrade")
 clear()
-for exempt in ("Explore", "code-reviewer", "review-verifier", "spec-verifier", "spec-checker"):
+for exempt in ("Explore", "code-reviewer", "spec-verifier"):
     check(f"{exempt} without a stamp", dispatch(exempt), "PASS")
 UNAVAILABLE.write_text("aegis MCP tools absent in this session\n")
 check("general-purpose under .aegis-unavailable", dispatch(), "PASS")

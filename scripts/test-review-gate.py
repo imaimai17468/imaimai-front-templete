@@ -7,18 +7,25 @@ hooks into it, and drives the sequences the gate has to get right: a review, a
 fix (which must never need a second review), a multi-commit split on one stamp,
 and an unrelated unreviewed task. It also pins the distinction ADR-0022 turns
 on — launching a review agent is not finishing one — and, since ADR-0022's
-residual gap was closed, what a verifier has to have said for its stop to count.
-The section titled "a verifier that stopped without reporting has verified
+residual gap was closed, what the review agent has to have said for its stop to
+count. The section titled "a review that stopped without reporting has reviewed
 nothing" is the authoritative statement of that; both outcomes it pins (refuse on
 a blank message, stamp-with-a-warning when the field is absent) are asserted
 there rather than described here. Nothing touches this repository, apart from
 reading `.claude/settings.json` to confirm the real wiring.
 
+Since ADR-0029 the gate rests on ONE fact — the `code-reviewer` agent finished
+having reported something — so the blank-message check above carries all of it.
+The pairing cases this suite used to run (a parent edit between two dispatches
+voids the cycle, an agent's own scratch files do not) are gone with the second
+dispatch they were about; what replaced them is the section titled "the stamp is
+not bound to the tree", which pins the residual gap ADR-0029 accepted rather than
+leaving it undescribed.
+
 Run it after changing any hook it drives — the `HOOKS` tuple below is the
-authoritative list, including `lib-review-hash.sh`, which the pairing hooks source.
-Prose duplicating that list goes stale the next time a hook is added, which already
-happened once. Exits non-zero on a mismatch, so it works as a pre-flight check
-rather than a report to read.
+authoritative list. Prose duplicating that list goes stale the next time a hook is
+added, which already happened once. Exits non-zero on a mismatch, so it works as a
+pre-flight check rather than a report to read.
 """
 
 import atexit
@@ -51,19 +58,17 @@ HOOKS = (
     "pre-bash-guard.sh",
     "post-agent-review-stamp.sh",
     "post-bash-stamp-consume.sh",
-    # The cycle-start clear and the pairing comparison (ADR-0015/0022). Driven as
-    # real hooks so a case fails if either stops doing its job — writing the marker
-    # files directly would pass no matter what these contain.
+    # The cycle-start clear (ADR-0009/0029). Driven as a real hook so a case fails
+    # if it stops doing its job — writing the marker file directly would pass no
+    # matter what it contains. `pre-agent-review-pair.sh` and `lib-review-hash.sh`
+    # used to sit here too; ADR-0029 deleted both with the second dispatch.
     "pre-agent-review-clear.sh",
-    "pre-agent-review-pair.sh",
     # `post-edit-check.sh` used to be listed here, so that the "a fix needs no second
     # review" assertions ran through the hook that had once cleared the stamp on every
     # edit. ADR-0025 deleted that hook, so nothing runs on an edit any more and those
     # assertions now test what they always meant to: that a plain write does not
     # disturb the stamp. What no longer has a mechanism behind it is the guarantee
     # that some hook could not start clearing it again — see the comment on `edit()`.
-    # Sourced by the two pre-agent hooks; without it they abort.
-    "lib-review-hash.sh",
     # Sourced by pre-bash-guard.sh and post-bash-stamp-consume.sh — the single
     # definition of "does this command land a commit". Without it, both abort.
     "lib-commit-shape.sh",
@@ -77,20 +82,18 @@ HOOKS = (
 for hook_name in HOOKS:
     shutil.copy(REPO / ".claude/hooks" / hook_name, WORK / ".claude/hooks" / hook_name)
 os.chdir(WORK)
-# Must match the real .gitignore's `.claude/.*` marker entries. A marker that is
-# NOT ignored enters the working-tree hash, so writing it would change the hash it
-# is about to be compared against — the gate would then never stamp.
+# Must match the real .gitignore's `.claude/.*` marker entries. Nothing hashes the
+# working tree any more (ADR-0029 removed the pairing check), so an un-ignored
+# marker no longer breaks the gate outright — but it would still show up as an
+# untracked file in the commit-shape cases below, and the list is kept faithful to
+# the real .gitignore so that "these are the markers" stays a fact rather than an
+# approximation.
 pathlib.Path(".gitignore").write_text(
     "\n".join(
         f".claude/{name}"
         for name in (
             ".review-stamp",
-            ".finder-done",
-            ".finder-hash",
-            ".pair-ok",
-            # Written by session-start-env-check.sh. Un-ignored it would enter the
-            # hash, and the SessionStart cases below would break the very pairing
-            # they then assert on.
+            # Written by session-start-env-check.sh.
             ".session-id",
             # No case exercises these two, so they are here to keep the claim above
             # literally true rather than approximately: the list is the real
@@ -132,20 +135,15 @@ def raw_hook(name, payload, args=()):
 
 
 def dispatch(subagent_type):
-    """Fire the PreToolUse(Agent) hooks for a dispatch, as the harness does.
+    """Fire the PreToolUse(Agent) hook for a dispatch, as the harness does.
 
-    Both are registered on matcher `Agent` and each filters on
-    `tool_input.subagent_type`, so both are invoked for every dispatch — running
-    both here means a case fails if either starts reacting to the wrong agent.
-
-    A verifier dispatch is where the pairing hash is *compared* (ADR-0022). The
-    baseline it is compared against is recorded elsewhere — at the finder's
-    completion, by `stop("finder")` — so that the compared window holds neither
-    agent's own execution.
+    It is registered on matcher `Agent` and filters on
+    `tool_input.subagent_type`, so it is invoked for every dispatch and must react
+    only to `code-reviewer` — the cases below dispatch other agent types to pin
+    that.
     """
     payload = {"tool_name": "Agent", "tool_input": {"subagent_type": subagent_type}}
-    raw_hook("pre-agent-review-clear.sh", payload)
-    return raw_hook("pre-agent-review-pair.sh", payload)
+    return raw_hook("pre-agent-review-clear.sh", payload)
 
 
 # Distinguishes "the payload carries no such key" from "the key is there and empty".
@@ -154,14 +152,16 @@ def dispatch(subagent_type):
 OMIT = object()
 
 
-def stop(role, agent_type=None, message="findings: none surviving"):
+def stop(role="", agent_type=None, message="findings: none surviving"):
     """Fire post-agent-review-stamp.sh exactly as its registration does.
 
-    `.claude/settings.json` registers it twice under `SubagentStop`, once per
-    matcher, passing `finder` or `verifier` as an argument — the role does NOT come
-    from the payload. That indirection exists because 20 of 23 captured payloads
-    carried `agent_type: ""` (ADR-0022). Pass `role=""` to exercise the
-    argument-less fallback that still reads `agent_type`.
+    `.claude/settings.json` registers it ONCE under `SubagentStop`, on matcher
+    `code-reviewer`, passing no argument (ADR-0029). `role` is still a parameter
+    because the hook must tolerate one: a settings file the harness has not
+    re-read still passes `finder` or `verifier`, and under the ADR-0022 script
+    `finder` meant "record a baseline, do not stamp" — which would wedge every
+    commit in such a session. The cases below pin all three invocations behaving
+    identically.
 
     `message=OMIT` drops `last_assistant_message` entirely, modelling a harness that
     does not supply it.
@@ -182,23 +182,13 @@ def gate():
 
 
 def review():
-    """One complete, well-formed review pass: dispatch → finish, twice, in order."""
+    """One complete, well-formed review pass: dispatch → finish (ADR-0029)."""
     dispatch("code-reviewer")
-    stop("finder")
-    dispatch("review-verifier")
-    stop("verifier")
+    stop()
 
 
 def stamped():
     return (WORK / ".claude/.review-stamp").exists()
-
-
-def finder_marked():
-    return (WORK / ".claude/.finder-done").exists()
-
-
-def paired():
-    return (WORK / ".claude/.pair-ok").exists()
 
 
 def clear_stamp():
@@ -261,18 +251,22 @@ def check(label, actual, expected):
 
 
 def check_settings_wiring():
-    """Confirm .claude/settings.json really wires the roles the cases below assume.
+    """Confirm .claude/settings.json really wires the stamp the cases below assume.
 
-    Every case calls stop("finder") / stop("verifier") with the role hardcoded
-    here, and none of it reads settings.json — so swapping the two arguments or
-    typoing a matcher would leave this whole suite green and break only the live
-    gate. That is the exact class of defect ADR-0022 exists to fix, discovered
-    live rather than by a test, so it gets one.
+    None of the cases read settings.json, so a typoed matcher would leave this
+    whole suite green and break only the live gate. That is the exact class of
+    defect ADR-0022 exists to fix, discovered live rather than by a test, so it
+    gets one.
 
-    Scoped to the two matchers by name on purpose: asserting anything about entry
+    Scoped to the matcher by name on purpose: asserting anything about entry
     count, ordering, or "no other entries" would break on unrelated future
     SubagentStop registrations, and the harness's semantics for overlapping
     matchers are not independently verified.
+
+    What is asserted about the argument is only that the shipped registration
+    passes none (ADR-0029). The hook must still *tolerate* `finder` and
+    `verifier`, because a harness that has not re-read this file keeps sending
+    them — that tolerance is pinned by the cases below, not here.
     """
     entries = json.loads((REPO / ".claude/settings.json").read_text())["hooks"].get(
         "SubagentStop", []
@@ -286,13 +280,18 @@ def check_settings_wiring():
                         return h["command"].strip()
         return None
 
-    for matcher, role in (("code-reviewer", "finder"), ("review-verifier", "verifier")):
-        cmd = command_for(matcher)
-        check(
-            f"settings.json wires {matcher} to the {role} role",
-            cmd is not None and cmd.endswith(f" {role}"),
-            True,
-        )
+    cmd = command_for("code-reviewer")
+    check("settings.json stamps on code-reviewer", cmd is not None, True)
+    check(
+        "...and passes no role argument",
+        cmd is not None and cmd.endswith("post-agent-review-stamp.sh"),
+        True,
+    )
+    check(
+        "no review-verifier matcher survives",
+        command_for("review-verifier") is None,
+        True,
+    )
 
 
 def check_hooks_executable():
@@ -331,7 +330,7 @@ pathlib.Path("fileA.ts").write_text("export const a = 1;\n")
 sh("git add -A")
 sh(f"{LAND} -qm init")
 
-print("the real settings.json wires the roles this suite assumes")
+print("the real settings.json wires the stamp this suite assumes")
 check_settings_wiring()
 check_hooks_executable()
 
@@ -357,116 +356,72 @@ launch_out = raw_hook(
         "tool_input": {"subagent_type": "code-reviewer"},
     },
 )
-check("finder LAUNCH writes no finder marker", finder_marked(), False)
+check("a LAUNCH-shaped payload earns no stamp", gate(), "BLOCK")
 check("mis-registration is reported, not silent", "SubagentStop" in launch_out, True)
-raw_hook(
-    "post-agent-review-stamp.sh",
-    {
-        "hook_event_name": "PostToolUse",
-        "tool_name": "Agent",
-        "tool_input": {"subagent_type": "review-verifier"},
-    },
-)
-check("verifier LAUNCH earns no stamp", gate(), "BLOCK")
 
-# The role arrives as an argument from the matcher-scoped registration, NOT from
-# the payload. A version of this fix branched on `agent_type`, and 20 of 23 real
-# captured payloads carry `agent_type: ""` — so the field is not something to
-# depend on even though both pinned agents do populate it.
-print("the role comes from the registration argument, not the payload")
-edit("fileA.ts", "export const a = 4;\n")
-dispatch("code-reviewer")
-stop("finder", agent_type="")
-check("finder role with an empty agent_type still marks", finder_marked(), True)
-dispatch("review-verifier")
-stop("verifier", agent_type="")
-check("verifier role with an empty agent_type still stamps", gate(), "PASS")
+# ADR-0029 removed the role branch: the shipped registration passes no argument,
+# but a harness that has not re-read settings.json keeps sending the ADR-0022 ones.
+# Under the old script `finder` meant "record a baseline, do not stamp", so a
+# cached registration would have wedged every commit in that session. All three
+# invocations must therefore behave identically.
+print("the invocation argument does not change the outcome (ADR-0029)")
+for arg, label in (("", "no argument"), ("finder", "a stale `finder`"), ("verifier", "a stale `verifier`")):
+    clear_stamp()
+    edit("fileA.ts", f"export const a = 4{len(label)};\n")
+    check(f"{label} still stamps", (stop(arg), gate())[1], "PASS")
 
-print("with no argument it falls back to agent_type")
+# `agent_type` is not consulted at all — the SubagentStop matcher is what selects
+# the agent. 20 of 23 real captured payloads carry `agent_type: ""`, so a script
+# branching on it would refuse most legitimate stops.
+print("agent_type is not what selects the stamp")
+clear_stamp()
 edit("fileA.ts", "export const a = 5;\n")
-dispatch("code-reviewer")
-stop("", agent_type="code-reviewer")
-check("fallback finder", finder_marked(), True)
-dispatch("review-verifier")
-stop("", agent_type="review-verifier")
-check("fallback verifier", gate(), "PASS")
+stop("", agent_type="")
+check("an empty agent_type still stamps", gate(), "PASS")
 
-print("an unrecognised role does nothing")
+# The residual gap ADR-0029 accepted, pinned so it is a recorded property rather
+# than an undocumented surprise. With one dispatch there is no window to hash, so
+# an edit landing while the agent runs is invisible to the gate. The two-agent
+# pairing check caught exactly this and went away with the second dispatch.
+print("the stamp is not bound to the tree (ADR-0029 residual gap)")
+clear_stamp()
 edit("fileA.ts", "export const a = 6;\n")
 dispatch("code-reviewer")
-stop("finder")
-dispatch("review-verifier")
-stop("", agent_type="")
-check("no role and no agent_type earns no stamp", gate(), "BLOCK")
-check("...and leaves the cycle's markers untouched", finder_marked() and paired(), True)
-stop("", agent_type="Explore")
-check("an unrelated agent earns no stamp", gate(), "BLOCK")
-stop("verifier")
-check("the real verifier still stamps afterwards", gate(), "PASS")
+edit("fileA.ts", "export const a = 7;\n")  # the parent edits while the agent runs
+stop()
+check("a mid-run edit does NOT block the commit", gate(), "PASS")
 
-print("a verifier alone cannot stamp (ADR-0015 pairing)")
-edit("fileA.ts", "export const a = 7;\n")
-clear_stamp()
-sh("rm -f .claude/.finder-hash")  # as if no finder had ever completed
-dispatch("review-verifier")
-check("no finder dispatch means no pairing", paired(), False)
-stop("verifier")
-check("verifier with no finder", gate(), "BLOCK")
-
-# The pairing invariant is decided at DISPATCH, not at completion (ADR-0022). It
-# must catch the parent editing between the two dispatches — and must NOT be moved
-# by the agents' own filesystem use during their runs, which is what an earlier
-# completion-time version did, voiding passes where the parent changed nothing.
-print("the parent editing between the two dispatches voids the cycle")
-edit("fileA.ts", "export const a = 8;\n")
-dispatch("code-reviewer")
-stop("finder")
-edit("fileA.ts", "export const a = 9;\n")  # the parent edits mid-window
-pair_out = dispatch("review-verifier")
-check("mid-window edit breaks the pairing", paired(), False)
-check("and it is reported, not silent", "changed between" in pair_out, True)
-stop("verifier")
-check("so no stamp is earned", gate(), "BLOCK")
+# The cycle-start clear must react to `code-reviewer` and to nothing else, or an
+# Explore scout dispatched after a review would silently discard the stamp.
+print("only a code-reviewer dispatch starts a new cycle")
 review()
-check("a clean pass after it", gate(), "PASS")
+check("stamped before the unrelated dispatch", gate(), "PASS")
+dispatch("Explore")
+check("an Explore dispatch leaves the stamp alone", gate(), "PASS")
+dispatch("code-reviewer")
+check("a code-reviewer dispatch clears it", gate(), "BLOCK")
+stop()
+check("and the completion re-earns it", gate(), "PASS")
 
-# The pairing baseline is the tree at the finder's COMPLETION (ADR-0022), so
-# neither agent's own execution is inside the compared window. Two earlier designs
-# each included one and were voided by the agents' own scratch files. The second
-# case below is the one that matters: an earlier version of this test removed the
-# scratch file before the verifier's dispatch, which only proved the transient case
-# and left the real one — residue surviving past the finder's own stop — untested.
-print("an agent's filesystem use during its own run does NOT void the pass")
+# An agent's own scratch files used to matter enormously: two ADR-0022 designs
+# hashed a window containing one agent's run and were voided by files that agent
+# created itself. Nothing hashes anything now (ADR-0029), so the case is kept only
+# to pin that the churn is genuinely inert rather than merely believed to be.
+print("an agent's filesystem use during its own run is inert")
+clear_stamp()
 edit("fileA.ts", "export const a = 10;\n")
 dispatch("code-reviewer")
-# Both the create and the remove happen inside the finder's own run — i.e. before
-# its SubagentStop, which is where the baseline is taken. Removing it *after* that
-# stop would be a change in the parent's window and SHOULD void the pass; that
-# direction is covered by the mid-window-edit case above.
-pathlib.Path("agent-scratch.ts").write_text("export const scratch = 1;\n")
-os.remove("agent-scratch.ts")
-stop("finder")
-dispatch("review-verifier")
-check("transient churn leaves the pairing intact", paired(), True)
-stop("verifier")
-check("the pass still stamps", gate(), "PASS")
-
-print("...including residue the finder never cleaned up")
-edit("fileA.ts", "export const a = 11;\n")
-dispatch("code-reviewer")
 pathlib.Path("agent-leftover.ts").write_text("export const forgotten = 1;\n")
-stop("finder")  # the finder stops WITHOUT removing its scratch file
-dispatch("review-verifier")  # still present here — it is part of the baseline tree
-check("leftover residue leaves the pairing intact", paired(), True)
-stop("verifier")
-check("the pass still stamps", gate(), "PASS")
+stop()  # the agent stops WITHOUT removing its scratch file
+check("leftover residue does not prevent the stamp", gate(), "PASS")
 os.remove("agent-leftover.ts")
 
-print("a verifier that stopped without reporting has verified nothing")
+print("a review that stopped without reporting has reviewed nothing")
 # The gap ADR-0022 recorded and deferred, and which then fired for real: on
-# 2026-07-30 a review-verifier died on an API 529 mid-run, and the two marker files
-# alone stamped the gate. Both marker facts hold in every case below — the only
-# variable is what the agent said.
+# 2026-07-30 a review agent died on an API 529 mid-run, and the marker files alone
+# stamped the gate. Since ADR-0029 this check is the ENTIRE gate — the two marker
+# facts that used to stand beside it are gone — so each case below is the only
+# thing between a dead dispatch and an authorised commit.
 for label, msg, want_stamp in (
     ("a real verdict stamps", "CONFIRMED: 2 findings survive", True),
     ("an empty message does not", "", False),
@@ -479,9 +434,7 @@ for label, msg, want_stamp in (
 ):
     edit("fileA.ts", f"export const a = {len(label)};\n")
     dispatch("code-reviewer")
-    stop("finder")
-    dispatch("review-verifier")
-    out = stop("verifier", message=msg)
+    out = stop(message=msg)
     check(label, stamped(), want_stamp)
     if msg is OMIT:
         check("...and says the check was skipped", "could not be checked" in out, True)
@@ -573,20 +526,14 @@ session_start("session-BBB")
 check("a different id clears", stamped(), False)
 check("id updated to the new session", session_id_file(), "session-BBB")
 
-# Mid-cycle, which is where a future edit splitting the clear block would show:
-# after a completed review only `.review-stamp` is left, because the verifier's
-# stop consumes the pairing markers (ADR-0022). Between the finder finishing and
-# the verifier being dispatched they are still on disk, so this is the only point
-# at which "keeps them as one block" is observable at all.
+# Mid-cycle: a SessionStart landing between the dispatch and the completion must
+# not stop the pass from stamping. Since ADR-0029 there is one marker and it does
+# not exist yet at that point, so what this pins is that the clear leaves nothing
+# behind that the completion then trips over.
 dispatch("code-reviewer")
-stop("finder")
-check("mid-cycle: the finder marker is on disk", finder_marked(), True)
+check("mid-cycle: no stamp yet", stamped(), False)
 session_start("session-BBB")
-check("same id re-firing keeps the finder marker", finder_marked(), True)
-dispatch("review-verifier")
-stop("verifier")
-# And the pairing still holds across it — a SessionStart writes only `.session-id`,
-# which is ignored, so an in-flight review is not voided by one.
+stop()
 check("a SessionStart mid-cycle does not void the pass", stamped(), True)
 
 review()

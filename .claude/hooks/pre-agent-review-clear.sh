@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # PreToolUse(Agent), code-reviewer only: start a review cycle.
 #
-# One duty: clear every marker from any previous cycle, so a stale stamp cannot
-# leak through a review that fails, times out, or is interrupted (ADR-0009's
-# "cleared at the next review launch", kept by ADR-0011/0015).
+# One duty: clear the stamp from any previous cycle, so a stale one cannot leak
+# through a review that fails, times out, or is interrupted (ADR-0009's "cleared
+# at the next review launch", kept by ADR-0011/0015/0029).
 #
-# This hook deliberately does NOT sample the pairing hash, though an earlier
-# version did (ADR-0022). The ADR-0015 invariant is about the window the PARENT
-# controls, and that window begins when the finder hands control back — not when it
-# is launched. Sampling here put the finder's whole run inside the window, so a
-# scratch file the finder left behind voided an innocent pass. The baseline is now
-# taken at the finder's completion by post-agent-review-stamp.sh, and compared at
-# the verifier's dispatch by pre-agent-review-pair.sh.
+# This hook samples nothing. An earlier version hashed the working tree here for
+# the ADR-0015 pairing check, and that was wrong twice over: the window the
+# invariant was about began when the finder handed control back rather than when
+# it was launched, so hashing here put the finder's whole run inside it and a
+# scratch file it left behind voided an innocent pass (ADR-0022). ADR-0029 then
+# removed the pairing check outright along with the second dispatch, so there is
+# no window left to sample either end of.
 
 set -euo pipefail
 
@@ -22,9 +22,9 @@ if [ "$TOOL" != "Agent" ]; then
   exit 0
 fi
 
-# Only the finder dispatch (cycle start) clears the gate. The review-verifier
-# dispatch that follows must NOT clear it — it runs later in the same cycle, and
-# `pre-agent-review-pair.sh` handles it.
+# Only a `code-reviewer` dispatch starts a review cycle. Every other Agent
+# dispatch — an Explore scout, a parallel implementation unit — must leave an
+# already-earned stamp alone.
 SUBTYPE=$(printf '%s' "$INPUT" | jq -r '.tool_input.subagent_type // ""')
 if [ "$SUBTYPE" != "code-reviewer" ]; then
   exit 0
@@ -41,10 +41,6 @@ fi
 
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 
-# New cycle: drop every marker a previous cycle may have left.
-rm -f \
-  "$ROOT/.claude/.review-stamp" \
-  "$ROOT/.claude/.finder-done" \
-  "$ROOT/.claude/.finder-hash" \
-  "$ROOT/.claude/.pair-ok"
+# New cycle: drop the stamp a previous cycle may have left.
+rm -f "$ROOT/.claude/.review-stamp"
 exit 0
