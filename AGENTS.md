@@ -57,7 +57,9 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 **Dead code first / phased execution:** Before structural refactors on files >300 LOC, remove dead code first (separate commit). Break multi-file refactors into phases of ≤5 files — complete, verify, get approval before each next phase.
 
-**Senior dev standard:** Don't settle for "simplest approach" when architecture is flawed, state is duplicated, or patterns are inconsistent. Ask: "What would a perfectionist senior dev reject in code review?" Fix it.
+**Senior dev standard:** Don't settle for "simplest approach" when architecture is flawed, state is duplicated, or patterns are inconsistent. Ask: "What would a perfectionist senior dev reject in code review?" Fix it. Following the majority convention is an acceptable default, but when a better approach is known, take it.
+
+**Comments explain the code directly below them — nothing else.** No narration, no supplements, no restating the obvious. If code needs a comment to be understood, strengthen the types or the structure until it doesn't; a comment is never the fix for unclear code.
 
 **Verification before completion:** Never report done without running the project's type-checker and linter, fixing ALL errors. If none configured, state that explicitly.
 
@@ -81,11 +83,13 @@ The next rule is not path-scoped — it applies whenever you write any instructi
 
 White-box testing: tests cover internal logic paths and branches, not just inputs/outputs. Pure functions require 100% branch coverage.
 
-## Commits
+## Commits & Pull Requests
 
 - **One commit = one purpose.** If two changes could be reverted independently, split them — drive-by fixes are always a separate commit. Never `git add -A`/`git add .`; stage explicit paths, use `git add -p` to split hunks within a file.
 - First line states **what improves**, not what you did. Prefixes: `feat` / `fix` / `refactor` / `test` / `docs` / `chore` (intent-based). Body in Japanese; `fix`/`refactor` include a *why* line. End with a `Co-Authored-By:` trailer crediting the current model.
 - Do not commit without explicit user confirmation.
+- **Prose (PR descriptions, review comments, code comments): state only the core, plainly.** No decoration, no exhaustive detail. Write in general language the reader understands — never tool output, internal variable names, or domain/project-internal coinages.
+- **History:** while a PR is Draft, keep its commits clean (rebase freely). Once review has started, never rewrite reviewed commits — add fixes on top and integrate preserving the commit/review order (typically a merge commit).
 
 ## Agents
 
