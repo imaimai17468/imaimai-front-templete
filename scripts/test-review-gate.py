@@ -444,6 +444,82 @@ for label, msg, want_stamp in (
     # stamp would inherit the previous case's stamp and pass for the wrong reason.
     clear_stamp()
 
+
+def cursor_stop(status="completed", summary=OMIT, loop_count=0):
+    """Fire the stamp hook with a Cursor-shaped subagentStop payload.
+
+    Shape taken from two payloads captured live on 2026-08-07 in a Cursor cloud
+    agent session running this repository's real hooks: camelCase
+    `hook_event_name`, `subagent_type`, `status` (completed | error | aborted),
+    `loop_count`, and — when the harness supplies the agent's report — `summary`.
+    Neither carried `last_assistant_message`; an earlier desktop capture the
+    same day carried neither report field at all, which is the `summary=OMIT`
+    case below.
+    """
+    payload = {
+        "hook_event_name": "subagentStop",
+        "subagent_type": "code-reviewer",
+        "status": status,
+        "loop_count": loop_count,
+    }
+    if summary is not OMIT:
+        payload["summary"] = summary
+    return raw_hook("post-agent-review-stamp.sh", payload)
+
+
+# The refusals above are visible in Claude Code through systemMessage, which
+# Cursor ignores — a blank-report refusal there used to be silent until the
+# commit gate fired later with no stated cause (2026-08-07, ending with an agent
+# asking the user to hand-create the marker). The hook now rides the refusal on
+# followup_message, the one documented subagentStop output Cursor consumes, and
+# only on the first loop (Claude-registered hooks run in Cursor with no followup
+# cap). These cases pin the emission side; whether Cursor consumes it from this
+# hook is not testable here.
+print("the Cursor dialect stamps and refuses like the Claude one")
+for label, kwargs, want_stamp, want_followup in (
+    ("a completed stop with a summary stamps",
+     dict(summary="findings: none surviving"), True, False),
+    ("an aborted stop does not stamp",
+     dict(status="aborted", summary="partial text"), False, False),
+    ("an errored stop does not stamp",
+     dict(status="error", summary="partial text"), False, False),
+    ("a blank summary does not stamp, and the refusal rides a followup",
+     dict(summary=""), False, True),
+    ("a null summary does not stamp, and the refusal rides a followup",
+     dict(summary=None), False, True),
+    ("no followup after the first loop",
+     dict(summary="", loop_count=1), False, False),
+):
+    edit("fileA.ts", f"export const a = {len(label)};\n")
+    dispatch("code-reviewer")
+    out = cursor_stop(**kwargs)
+    check(label, stamped(), want_stamp)
+    check(
+        f"...followup {'present' if want_followup else 'absent'}",
+        "followup_message" in out,
+        want_followup,
+    )
+    clear_stamp()
+
+# The desktop capture that carried neither report field: nothing to judge, so it
+# stamps and says the check was skipped — same contract as the Claude OMIT case.
+edit("fileA.ts", "export const a = 901;\n")
+dispatch("code-reviewer")
+out = cursor_stop()
+check("neither report field stamps, with a warning", stamped(), True)
+check("...and says the check was skipped", "could not be checked" in out, True)
+clear_stamp()
+
+# The followup stays scoped to the camelCase dialect: what Claude Code does with
+# an unknown followup_message field has not been observed, so its payloads must
+# keep producing exactly the pre-change output.
+edit("fileA.ts", "export const a = 902;\n")
+dispatch("code-reviewer")
+out = stop(message="")
+check("a Claude-dialect blank refusal carries no followup",
+      "followup_message" in out, False)
+clear_stamp()
+
 # Restore the invariant the following sections run on — a stamp earned by a clean
 # pass. The loop above deliberately ends with none, and the next section asserts that
 # editing a reviewed file still passes the gate, which needs one.

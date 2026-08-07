@@ -74,6 +74,11 @@ esac
 # completed | error | aborted. An errored or aborted agent has verified
 # nothing, so only "completed" may stamp; a payload without the field (every
 # Claude Code payload) skips this check rather than failing it.
+#
+# No followup_message here, unlike the blank-report refusal below: Cursor
+# documents the field as consumed only when status is "completed"
+# (https://cursor.com/docs/hooks#subagentstop), so on this branch it would be
+# dead weight — and the parent already sees the failed dispatch itself.
 STATUS=$(printf '%s' "$INPUT" | jq -r '.status // ""' 2>/dev/null || true)
 if [ -n "$STATUS" ] && [ "$STATUS" != "completed" ]; then
   jq -n --arg st "$STATUS" '{
@@ -146,9 +151,30 @@ REPORTED=$(printf '%s' "$INPUT" | jq -r '
 [ -n "$REPORTED" ] || REPORTED=absent
 
 if [ "$REPORTED" = "blank" ]; then
-  jq -n '{
-    systemMessage: "⛔ Review stamp NOT written: the code-reviewer stopped without a final message, so it produced no findings report — a crashed or interrupted review looks exactly like this. Re-run the review on the current tree."
-  }'
+  MSG="⛔ Review stamp NOT written: the code-reviewer stopped without a final message, so it produced no findings report — a crashed or interrupted review looks exactly like this. Re-run the review on the current tree."
+  # In a Cursor session this refusal used to be invisible: systemMessage is
+  # Claude Code's channel and Cursor ignores it (see post-bash-stamp-consume.sh),
+  # so the first sign was `git commit` being refused later with no stated cause —
+  # which on 2026-08-07 ended with an agent asking the user to create the marker
+  # by hand. followup_message is the one documented subagentStop output Cursor
+  # consumes (https://cursor.com/docs/hooks#subagentstop), so the refusal rides
+  # it on the Cursor dialect. Emitted only when loop_count == 0: Claude-registered
+  # hooks run in Cursor with NO followup cap (loop_limit defaults to null for
+  # third-party hooks per the docs), so an unconditional followup could loop a
+  # failing review forever. Scoped to the camelCase event name because what
+  # Claude Code does with an unknown followup_message field has not been
+  # observed here. scripts/test-review-gate.py pins the emission; whether Cursor
+  # actually consumes it from this hook has not been observed yet — no real
+  # blank refusal has occurred in a Cursor session since this was added.
+  LOOP_COUNT=$(printf '%s' "$INPUT" | jq -r '.loop_count // 0' 2>/dev/null || echo 0)
+  if [ "$EVENT" = "subagentStop" ] && [ "$LOOP_COUNT" = "0" ]; then
+    jq -n --arg msg "$MSG" '{
+      systemMessage: $msg,
+      followup_message: ($msg + " Do NOT create the stamp file by hand and do NOT ask the user to — a manual marker forges the commit gate. Re-dispatch the code-reviewer agent (/review-diff) instead.")
+    }'
+  else
+    jq -n --arg msg "$MSG" '{systemMessage: $msg}'
+  fi
   exit 0
 fi
 
