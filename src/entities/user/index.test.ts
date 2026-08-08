@@ -23,14 +23,12 @@ describe("UpdateUserSchema", () => {
 
   it("should return the required message when the name is empty", () => {
     const result = UpdateUserSchema.safeParse({ name: "" });
-    if (result.success) throw new Error("expected parse failure");
-    expect(result.error.issues[0]?.message).toBe("Name is required");
+    expect(result.error?.issues[0]?.message).toBe("Name is required");
   });
 
   it("should return the length message when the name has 51 characters", () => {
     const result = UpdateUserSchema.safeParse({ name: "a".repeat(51) });
-    if (result.success) throw new Error("expected parse failure");
-    expect(result.error.issues[0]?.message).toBe(
+    expect(result.error?.issues[0]?.message).toBe(
       "Name must be 50 characters or less"
     );
   });

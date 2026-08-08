@@ -23,7 +23,14 @@ const sqlStatements: string[] = [];
 
 // テストユーザー
 console.log("  → Users...");
-const testUsers = [
+type SeedUser = {
+  id: string;
+  name: string;
+  email: string;
+  emailVerified: number;
+  image: string | null;
+};
+const testUsers: SeedUser[] = [
   {
     id: "test-user-1",
     name: "テストユーザー",
@@ -40,19 +47,19 @@ const testUsers = [
   },
 ];
 
-for (const user of testUsers) {
+testUsers.forEach((user) => {
   sqlStatements.push(
     `INSERT OR IGNORE INTO users (id, name, email, email_verified, image, created_at, updated_at) VALUES (
       '${user.id}',
       '${user.name}',
       '${user.email}',
       ${user.emailVerified},
-      ${user.image ? `'${user.image}'` : "NULL"},
+      ${user.image === null ? "NULL" : `'${user.image}'`},
       ${now},
       ${now}
     );`
   );
-}
+});
 
 // SQLファイル保存
 const sqlContent = sqlStatements.join("\n");
@@ -71,12 +78,11 @@ const wranglerToml = fs.readFileSync(
   path.join(process.cwd(), "wrangler.toml"),
   "utf-8"
 );
-const dbNameMatch = wranglerToml.match(/database_name\s*=\s*"([^"]+)"/);
-if (!dbNameMatch) {
+const dbName = wranglerToml.match(/database_name\s*=\s*"([^"]+)"/)?.[1];
+if (dbName === undefined) {
   console.error("❌ database_name not found in wrangler.toml");
   process.exit(1);
 }
-const dbName = dbNameMatch[1];
 
 console.log("🚀 Executing SQL...");
 const result = spawnSync(

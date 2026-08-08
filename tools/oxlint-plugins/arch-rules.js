@@ -246,13 +246,14 @@ const SKIP_STEMS = new Set(["index"]);
 
 const componentFileNaming = {
   create(context) {
-    const filename = context.filename || context.getFilename?.();
+    const filename = context.filename ?? context.getFilename?.();
     if (!filename) return {};
 
-    const basename = filename.split("/").pop() || "";
+    const basename = filename.slice(filename.lastIndexOf("/") + 1);
     const withoutExt = basename.replace(/\.(tsx?|jsx?)$/, "");
 
     if (
+      withoutExt === "" ||
       SKIP_STEMS.has(withoutExt) ||
       withoutExt.endsWith(".test") ||
       withoutExt.endsWith(".spec")
@@ -261,7 +262,7 @@ const componentFileNaming = {
 
     const expectedName = withoutExt
       .split(".")
-      .map((s) => s[0].toUpperCase() + s.slice(1))
+      .map((s) => (s.length === 0 ? s : s[0].toUpperCase() + s.slice(1)))
       .join("");
 
     if (!isComponentName(expectedName)) return {};
@@ -316,6 +317,128 @@ const componentFileNaming = {
   },
 };
 
+// Layer contract from ADR-0016: routes → server/fn → gateways → entities,
+// imports flow downward only. Only the bans the ADR states are encoded here —
+// side categories (components, lib outside drizzle) stay unrestricted.
+const LAYER_BANS = [
+  {
+    layer: "src/routes",
+    bans: [
+      {
+        target: "src/gateways",
+        message:
+          "Routes must not import gateways directly — go through a server function in src/server/fn (ADR-0016).",
+      },
+      {
+        target: "src/lib/drizzle",
+        message:
+          "Routes must not touch persistence — src/lib/drizzle is owned by gateways (ADR-0016).",
+      },
+    ],
+  },
+  {
+    layer: "src/server/fn",
+    bans: [
+      {
+        target: "src/routes",
+        message:
+          "Server functions must not import routes — imports flow downward only (ADR-0016).",
+      },
+    ],
+  },
+  {
+    layer: "src/gateways",
+    bans: [
+      {
+        target: "src/routes",
+        message:
+          "Gateways must not import routes — imports flow downward only (ADR-0016).",
+      },
+      {
+        target: "src/server/fn",
+        message:
+          "Gateways must not import server functions — imports flow downward only (ADR-0016).",
+      },
+      {
+        target: "src/components",
+        message: "Gateways never import components (ADR-0016).",
+      },
+    ],
+  },
+  {
+    layer: "src/entities",
+    bans: [
+      {
+        target: "src/routes",
+        message:
+          "Entities import nothing from the layers above — routes are above entities (ADR-0016).",
+      },
+      {
+        target: "src/server/fn",
+        message:
+          "Entities import nothing from the layers above — server functions are above entities (ADR-0016).",
+      },
+      {
+        target: "src/gateways",
+        message:
+          "Entities import nothing from the layers above — gateways are above entities (ADR-0016).",
+      },
+    ],
+  },
+];
+
+const SRC_MARKER = "/src/";
+
+const resolveImportTarget = (fileSrcDir, specifier) => {
+  if (specifier.startsWith("@/")) return `src/${specifier.slice(2)}`;
+  if (specifier.startsWith(".")) {
+    const parts = fileSrcDir.split("/");
+    specifier.split("/").forEach((segment) => {
+      if (segment === ".") return;
+      if (segment === "..") parts.pop();
+      else parts.push(segment);
+    });
+    return parts.join("/");
+  }
+  return null;
+};
+
+const layerBoundaries = {
+  create(context) {
+    const filename = context.filename ?? context.getFilename?.();
+    if (!filename) return {};
+
+    const srcIndex = filename.lastIndexOf(SRC_MARKER);
+    if (srcIndex === -1) return {};
+    const srcPath = filename.slice(srcIndex + 1);
+    const fileSrcDir = srcPath.slice(0, srcPath.lastIndexOf("/"));
+
+    const layerEntry = LAYER_BANS.find((entry) =>
+      srcPath.startsWith(`${entry.layer}/`)
+    );
+    if (!layerEntry) return {};
+
+    const checkImportSource = (node) => {
+      const source = node.source;
+      if (!source || typeof source.value !== "string") return;
+      const target = resolveImportTarget(fileSrcDir, source.value);
+      if (target === null) return;
+      const violated = layerEntry.bans.find(
+        (ban) => target === ban.target || target.startsWith(`${ban.target}/`)
+      );
+      if (violated !== undefined) {
+        context.report({ message: violated.message, node });
+      }
+    };
+
+    return {
+      ImportDeclaration: checkImportSource,
+      ExportNamedDeclaration: checkImportSource,
+      ExportAllDeclaration: checkImportSource,
+    };
+  },
+};
+
 const plugin = {
   meta: { name: "arch-rules" },
   rules: {
@@ -324,6 +447,7 @@ const plugin = {
     "component-file-naming": componentFileNaming,
     "test-naming-format": testNamingFormat,
     "single-expect": singleExpect,
+    "layer-boundaries": layerBoundaries,
   },
 };
 

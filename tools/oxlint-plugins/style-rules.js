@@ -41,7 +41,9 @@ const noTailwindArbitrary = {
         } else if (val.type === "JSXExpressionContainer") {
           const expr = val.expression;
           if (expr.type === "TemplateLiteral") {
-            expr.quasis.forEach((quasi) => checkString(quasi.value.raw, node));
+            expr.quasis.forEach((quasi) => {
+              checkString(quasi.value.raw, node);
+            });
           } else if (
             (expr.type === "Literal" || expr.type === "StringLiteral") &&
             typeof expr.value === "string"
@@ -80,7 +82,9 @@ const noTailwindOpacity = {
         } else if (val.type === "JSXExpressionContainer") {
           const expr = val.expression;
           if (expr.type === "TemplateLiteral") {
-            expr.quasis.forEach((quasi) => checkString(quasi.value.raw, node));
+            expr.quasis.forEach((quasi) => {
+              checkString(quasi.value.raw, node);
+            });
           } else if (
             (expr.type === "Literal" || expr.type === "StringLiteral") &&
             typeof expr.value === "string"

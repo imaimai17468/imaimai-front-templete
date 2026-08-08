@@ -17,7 +17,8 @@
   ],
   "categories": {
     "correctness": "error",
-    "suspicious": "error"
+    "suspicious": "error",
+    "perf": "error"
   },
   "rules": {
     "complexity": "error",
@@ -76,11 +77,14 @@
     "@typescript-eslint/strict-boolean-expressions": "error",
     "@typescript-eslint/strict-void-return": "error",
     "unicorn/throw-new-error": "error",
-    "oxc/no-accumulating-spread": "error",
+    "import/no-cycle": "error",
     "import/no-unassigned-import": "off",
+    "react/jsx-no-constructed-context-values": "error",
+    "vitest/no-conditional-in-test": "error",
     "style-rules/no-loops": "error",
     "style-rules/no-tailwind-arbitrary": "error",
     "style-rules/no-tailwind-opacity": "error",
+    "arch-rules/layer-boundaries": "error",
     "arch-rules/no-size-props": "error",
     "arch-rules/one-component-per-file": "error",
     "arch-rules/component-file-naming": "error",
@@ -105,6 +109,18 @@
       "files": ["**/*.d.ts"],
       "rules": {
         "unicorn/require-module-specifiers": "off"
+      }
+    },
+    {
+      "files": ["tools/oxlint-plugins/**"],
+      "rules": {
+        "@typescript-eslint/no-unsafe-assignment": "off",
+        "@typescript-eslint/no-unsafe-argument": "off",
+        "@typescript-eslint/no-unsafe-call": "off",
+        "@typescript-eslint/no-unsafe-member-access": "off",
+        "@typescript-eslint/no-unsafe-return": "off",
+        "@typescript-eslint/strict-boolean-expressions": "off",
+        "@typescript-eslint/unbound-method": "off"
       }
     },
     {

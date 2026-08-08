@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import plugin from "./style-rules.js";
 
 const createMockContext = () => ({
-  report: vi.fn(),
+  report: vi.fn<(descriptor: { message: string; node: unknown }) => void>(),
 });
 
 const makeClassNameNode = (value: string) => ({
@@ -315,6 +315,122 @@ describe("no-tailwind-opacity", () => {
     const visitors = rule.create(context);
     const node = makeNonClassNameNode("id", "text-gray-800/80");
     visitors.JSXAttribute(node);
+    expect(context.report).not.toHaveBeenCalled();
+  });
+});
+
+describe("no-tailwind-arbitrary (defensive branches)", () => {
+  const rule = plugin.rules["no-tailwind-arbitrary"];
+
+  it("should not report when the className attribute has no value", () => {
+    const context = createMockContext();
+    const visitors = rule.create(context);
+
+    visitors.JSXAttribute({ name: { name: "className" }, value: null });
+
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when the className expression is a function call", () => {
+    const context = createMockContext();
+    const visitors = rule.create(context);
+    const node = {
+      name: { name: "className" },
+      value: {
+        type: "JSXExpressionContainer",
+        expression: { type: "CallExpression" },
+      },
+    };
+
+    visitors.JSXAttribute(node);
+
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when the className expression is a numeric literal", () => {
+    const context = createMockContext();
+    const visitors = rule.create(context);
+    const node = {
+      name: { name: "className" },
+      value: {
+        type: "JSXExpressionContainer",
+        expression: { type: "Literal", value: 42 },
+      },
+    };
+
+    visitors.JSXAttribute(node);
+
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when the className value is an unknown node type", () => {
+    const context = createMockContext();
+    const visitors = rule.create(context);
+    const node = {
+      name: { name: "className" },
+      value: { type: "JSXElement" },
+    };
+
+    visitors.JSXAttribute(node);
+
+    expect(context.report).not.toHaveBeenCalled();
+  });
+});
+
+describe("no-tailwind-opacity (defensive branches)", () => {
+  const rule = plugin.rules["no-tailwind-opacity"];
+
+  it("should not report when the className attribute has no value", () => {
+    const context = createMockContext();
+    const visitors = rule.create(context);
+
+    visitors.JSXAttribute({ name: { name: "className" }, value: null });
+
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when the className expression is a function call", () => {
+    const context = createMockContext();
+    const visitors = rule.create(context);
+    const node = {
+      name: { name: "className" },
+      value: {
+        type: "JSXExpressionContainer",
+        expression: { type: "CallExpression" },
+      },
+    };
+
+    visitors.JSXAttribute(node);
+
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when the className expression is a numeric literal", () => {
+    const context = createMockContext();
+    const visitors = rule.create(context);
+    const node = {
+      name: { name: "className" },
+      value: {
+        type: "JSXExpressionContainer",
+        expression: { type: "Literal", value: 42 },
+      },
+    };
+
+    visitors.JSXAttribute(node);
+
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when the className value is an unknown node type", () => {
+    const context = createMockContext();
+    const visitors = rule.create(context);
+    const node = {
+      name: { name: "className" },
+      value: { type: "JSXElement" },
+    };
+
+    visitors.JSXAttribute(node);
+
     expect(context.report).not.toHaveBeenCalled();
   });
 });

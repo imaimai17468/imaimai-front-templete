@@ -6,12 +6,12 @@
  * pinned to the `<userId>/avatar.<ext>` shape before any bucket access.
  */
 
-const AVATAR_MIME_TO_EXTENSION: Record<string, string> = {
-  "image/png": "png",
-  "image/jpeg": "jpg",
-  "image/webp": "webp",
-  "image/gif": "gif",
-};
+const AVATAR_MIME_TO_EXTENSION = new Map([
+  ["image/png", "png"],
+  ["image/jpeg", "jpg"],
+  ["image/webp", "webp"],
+  ["image/gif", "gif"],
+]);
 
 // Read-side extension tolerance. The write path always normalizes to the
 // canonical lowercase extensions above, but avatar objects written before
@@ -22,7 +22,7 @@ const AVATAR_MIME_TO_EXTENSION: Record<string, string> = {
 // variants (case-insensitively) keeps existing avatars serving without
 // widening the actual attack surface.
 const AVATAR_READ_EXTENSIONS = new Set([
-  ...Object.values(AVATAR_MIME_TO_EXTENSION),
+  ...AVATAR_MIME_TO_EXTENSION.values(),
   "jpeg",
 ]);
 
@@ -34,12 +34,9 @@ const AVATAR_KEY_PATTERN = /^[A-Za-z0-9_-]+\/avatar\.([A-Za-z0-9]+)$/;
  * non-image types are all rejected).
  */
 export const avatarExtensionForMime = (mimeType: string): string | null =>
-  // Object.hasOwn: a bare bracket lookup would resolve inherited
-  // Object.prototype members ("__proto__", "constructor", …) to truthy
-  // values and slip past the allow-list.
-  Object.hasOwn(AVATAR_MIME_TO_EXTENSION, mimeType)
-    ? AVATAR_MIME_TO_EXTENSION[mimeType]
-    : null;
+  // Map.get consults own entries only — Object.prototype members
+  // ("__proto__", "constructor", …) can never satisfy the allow-list.
+  AVATAR_MIME_TO_EXTENSION.get(mimeType) ?? null;
 
 /**
  * Upload size ceiling in bytes. Exported so the client-side pre-check and the
@@ -80,8 +77,11 @@ export const avatarSizeRejection = (
  * `jpeg` so legacy avatar objects remain readable (see AVATAR_READ_EXTENSIONS).
  */
 export const isValidAvatarKey = (key: string): boolean => {
-  const match = AVATAR_KEY_PATTERN.exec(key);
-  return match !== null && AVATAR_READ_EXTENSIONS.has(match[1].toLowerCase());
+  const extension = AVATAR_KEY_PATTERN.exec(key)?.[1];
+  return (
+    extension !== undefined &&
+    AVATAR_READ_EXTENSIONS.has(extension.toLowerCase())
+  );
 };
 
 /**
