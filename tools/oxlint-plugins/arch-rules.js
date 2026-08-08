@@ -253,6 +253,7 @@ const componentFileNaming = {
     const withoutExt = basename.replace(/\.(tsx?|jsx?)$/, "");
 
     if (
+      withoutExt === "" ||
       SKIP_STEMS.has(withoutExt) ||
       withoutExt.endsWith(".test") ||
       withoutExt.endsWith(".spec")
@@ -261,7 +262,7 @@ const componentFileNaming = {
 
     const expectedName = withoutExt
       .split(".")
-      .map((s) => s[0].toUpperCase() + s.slice(1))
+      .map((s) => (s.length === 0 ? s : s[0].toUpperCase() + s.slice(1)))
       .join("");
 
     if (!isComponentName(expectedName)) return {};
