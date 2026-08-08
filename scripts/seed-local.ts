@@ -23,7 +23,14 @@ const sqlStatements: string[] = [];
 
 // テストユーザー
 console.log("  → Users...");
-const testUsers = [
+type SeedUser = {
+  id: string;
+  name: string;
+  email: string;
+  emailVerified: number;
+  image: string | null;
+};
+const testUsers: SeedUser[] = [
   {
     id: "test-user-1",
     name: "テストユーザー",
@@ -40,19 +47,19 @@ const testUsers = [
   },
 ];
 
-for (const user of testUsers) {
+testUsers.forEach((user) => {
   sqlStatements.push(
     `INSERT OR IGNORE INTO users (id, name, email, email_verified, image, created_at, updated_at) VALUES (
       '${user.id}',
       '${user.name}',
       '${user.email}',
       ${user.emailVerified},
-      ${user.image ? `'${user.image}'` : "NULL"},
+      ${user.image === null ? "NULL" : `'${user.image}'`},
       ${now},
       ${now}
     );`
   );
-}
+});
 
 // SQLファイル保存
 const sqlContent = sqlStatements.join("\n");
