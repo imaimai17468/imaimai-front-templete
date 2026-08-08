@@ -20,7 +20,7 @@ export function resolveThemeCycle(
   const matched = CYCLE.find((v) => v === rawTheme);
   const current = mounted ? (matched ?? "light") : "light";
   const index = CYCLE.indexOf(current);
-  const next = CYCLE[(index + 1) % CYCLE.length];
+  const next = CYCLE[(index + 1) % CYCLE.length] ?? CYCLE[0];
   return { current, next };
 }
 

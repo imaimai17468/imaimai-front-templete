@@ -26,16 +26,17 @@ export const fetchCurrentUser = async (): Promise<UserWithEmail | null> => {
     .where(eq(users.id, authUser.id))
     .limit(1);
 
-  if (!profile.length) {
+  const [profileRow] = profile;
+  if (profileRow === undefined) {
     return null;
   }
 
   const rawUser = {
-    id: profile[0].id,
-    name: profile[0].name,
-    avatarUrl: profile[0].image,
-    createdAt: profile[0].createdAt.toISOString(),
-    updatedAt: profile[0].updatedAt.toISOString(),
+    id: profileRow.id,
+    name: profileRow.name,
+    avatarUrl: profileRow.image,
+    createdAt: profileRow.createdAt.toISOString(),
+    updatedAt: profileRow.updatedAt.toISOString(),
     email: authUser.email,
   };
 

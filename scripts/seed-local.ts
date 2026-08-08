@@ -78,12 +78,11 @@ const wranglerToml = fs.readFileSync(
   path.join(process.cwd(), "wrangler.toml"),
   "utf-8"
 );
-const dbNameMatch = wranglerToml.match(/database_name\s*=\s*"([^"]+)"/);
-if (!dbNameMatch) {
+const dbName = wranglerToml.match(/database_name\s*=\s*"([^"]+)"/)?.[1];
+if (dbName === undefined) {
   console.error("❌ database_name not found in wrangler.toml");
   process.exit(1);
 }
-const dbName = dbNameMatch[1];
 
 console.log("🚀 Executing SQL...");
 const result = spawnSync(
