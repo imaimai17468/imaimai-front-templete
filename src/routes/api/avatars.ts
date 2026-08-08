@@ -14,7 +14,7 @@ export const Route = createFileRoute("/api/avatars")({
 
         const url = new URL(request.url);
         const key = url.searchParams.get("key");
-        if (!key || !isOwnAvatarKey(key, session.user.id)) {
+        if (key === null || !isOwnAvatarKey(key, session.user.id)) {
           return Response.json({ error: "Invalid key" }, { status: 400 });
         }
 

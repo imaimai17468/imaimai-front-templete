@@ -63,7 +63,7 @@ export const updateUserAvatar = async (
   file: File
 ): Promise<{ success: boolean; error?: string; avatarUrl?: string }> => {
   const fileExt = avatarExtensionForMime(file.type);
-  if (!fileExt) {
+  if (fileExt === null) {
     return { success: false, error: "Unsupported image type" };
   }
   const key = `${userId}/avatar.${fileExt}`;
