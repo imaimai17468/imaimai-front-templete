@@ -52,6 +52,16 @@ Corollaries of "You Might Not Need an Effect" for things that genuinely live out
 - **useReducer for stable callbacks** — A callback that closes over state breaks identity stability — `useCallback` can't help because its deps include the state. `useReducer` eliminates this by design: `dispatch` is identity-stable and state access moves into the reducer. Reach for `useReducer` when callbacks and state are intertwined, not only when state shape is complex.
 - **Reactive vs procedural API** — Libraries offer both reactive APIs (re-render on change: `watch()`, `useSWR`) and procedural APIs (get current value on demand: `getValues()`, `useMutation`). Match the API to the trigger: display-driven → reactive, user-action-driven → procedural/mutation. Don't use `useSWR` for user-initiated fetches; don't use `watch()` inside event handlers.
 
+# Testable Behavior Extraction (not caught by linters)
+
+When internal state drives a component's behavior or appearance, structure it so every branch is drivable from outside — tests inject inputs and assert outputs. Needing a chain of setup interactions on the component itself, or a test-only backdoor, to reach a code branch means the design hid what should have been an input.
+
+- **State transitions → exported pure functions** — Branching transition logic is an exported pure function; event handlers call it: `setState(transition(state, input))`. Reducer ceremony (action types, dispatch, switch) is not required for this — reach for `useReducer` when the "useReducer for stable callbacks" reason is present — not merely to structure transitions. Tests call the function directly (coverage bar: AGENTS.md "Testing").
+- **Branching render → a component taking the discriminant as props** — When state selects between visuals, each variant is its own component, and the selection itself is a component whose props carry the discriminating state, typed as a discriminated union so one variant cannot receive another's data. Both are pure props → JSX mappings: tests render each branch by passing the state directly, with no setup interactions.
+- **What remains in the parent** — `useState`, handlers calling the transition functions, and JSX passing state down. The parent holds no branch worth testing, so its test is a thin wiring check.
+- **What stays internal** — Presentation-local state with no branch worth testing (hover, a tooltip's open flag) stays inside; externalizing it couples parents to state that is not their concern. The dividing question: does a test need to reach a branch on this value? Yes → extract as above. No → keep it internal.
+- **Never expose internals for tests** — no exported setters, no mocked hooks, no test-only props. An initial-state prop (`defaultOpen`) is a real API under "Generic component naming", not a test hook — that tests can start from any state is a byproduct.
+
 # Module Organization (not caught by linters)
 
 - **No pass-through layers** — Don't create components that only receive props and forward them to a child. If a component adds no logic, layout, or abstraction, it's a useless intermediate layer that deepens the dependency chain and obscures data flow. Keep the tree flat where possible.
