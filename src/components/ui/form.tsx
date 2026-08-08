@@ -139,7 +139,7 @@ function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   const { error, formMessageId } = useFormField();
   const body = error ? (error.message ?? "") : props.children;
 
-  if (!body) {
+  if (body == null || body === "") {
     return null;
   }
 

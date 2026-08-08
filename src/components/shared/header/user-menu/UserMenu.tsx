@@ -19,7 +19,7 @@ type UserMenuProps = {
 
 export const UserMenu = ({ user }: UserMenuProps) => {
   const avatarUrl = user.avatarUrl;
-  const name = user.name || "User";
+  const name = user.name === null || user.name === "" ? "User" : user.name;
   const email = user.email;
 
   return (
@@ -30,7 +30,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
           className="cursor-pointer rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         >
           <Avatar className="size-8">
-            <AvatarImage src={avatarUrl || undefined} alt={name} />
+            <AvatarImage src={avatarUrl ?? undefined} alt={name} />
             <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
         </button>

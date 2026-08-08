@@ -40,7 +40,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
   // Object URL(外部リソース)の解放を表示中の previewUrl に同期する。
   // 差し替え時は古い URL の cleanup が走り、アンマウント時も解放される。
   useEffect(() => {
-    if (!previewUrl) {
+    if (previewUrl === null) {
       return undefined;
     }
     return () => {
@@ -51,7 +51,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
   const form = useForm<FormData>({
     resolver: zodResolver(UpdateUserSchema),
     defaultValues: {
-      name: user.name || "",
+      name: user.name ?? "",
     },
   });
 
@@ -83,13 +83,13 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
     setPreviewUrl(nextPreviewUrl);
   };
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = (data: FormData) => {
     startTransition(async () => {
       if (pendingFile) {
         const avatarData = new globalThis.FormData();
         avatarData.append("avatar", pendingFile);
         const avatarResult = await uploadAvatarFn({ data: avatarData });
-        if ("error" in avatarResult && avatarResult.error) {
+        if ("error" in avatarResult && avatarResult.error !== undefined) {
           toast.error(avatarResult.error);
           return;
         }
@@ -100,7 +100,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
       formData.append("name", data.name);
 
       const result = await updateProfileFn({ data: formData });
-      if ("error" in result && result.error) {
+      if ("error" in result && result.error !== undefined) {
         toast.error(result.error);
       } else {
         toast.success("Profile updated successfully");
@@ -108,8 +108,9 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
     });
   };
 
-  const displayName = user.name || "User";
-  const avatarUrl = previewUrl || user.avatarUrl;
+  const displayName =
+    user.name === null || user.name === "" ? "User" : user.name;
+  const avatarUrl = previewUrl ?? user.avatarUrl;
 
   return (
     <Form {...form}>
@@ -120,7 +121,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
         <div className="flex items-center gap-6">
           <div className="relative">
             <Avatar className="size-24">
-              <AvatarImage src={avatarUrl || undefined} alt={displayName} />
+              <AvatarImage src={avatarUrl ?? undefined} alt={displayName} />
               <AvatarFallback className="text-2xl">
                 {displayName.charAt(0).toUpperCase()}
               </AvatarFallback>
