@@ -1,0 +1,4 @@
+{
+  "name": "my-app",
+  "install": "bash scripts/cloud-agent-install.sh"
+}
