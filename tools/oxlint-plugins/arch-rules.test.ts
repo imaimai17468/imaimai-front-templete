@@ -4,6 +4,7 @@ import plugin from "./arch-rules.js";
 const makeContext = () => ({
   report: vi.fn<(descriptor: { message: string; node: unknown }) => void>(),
 });
+
 const makeLayerContext = (filename: string | undefined) => ({
   filename,
   report: vi.fn<(descriptor: { message: string; node: unknown }) => void>(),
@@ -776,6 +777,7 @@ describe("single-expect", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 });
+
 describe("layer-boundaries", () => {
   const rule = plugin.rules["layer-boundaries"];
 
@@ -1040,5 +1042,781 @@ describe("layer-boundaries", () => {
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
+  });
+});
+
+describe("no-size-props (defensive branches)", () => {
+  const rule = plugin.rules["no-size-props"];
+
+  it("should not report when the attribute has no parent element", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.JSXAttribute({ name: { name: "width" }, parent: null });
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when the element name is a namespaced identifier", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const node = {
+      name: { name: "width" },
+      parent: { name: { type: "JSXNamespacedName" } },
+    };
+
+    // Act
+    visitors.JSXAttribute(node);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+});
+
+describe("one-component-per-file (defensive branches)", () => {
+  const rule = plugin.rules["one-component-per-file"];
+
+  it("should report when a default-exported component follows an already-exported one", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const named = {
+      declaration: {
+        type: "VariableDeclaration",
+        declarations: [
+          {
+            id: { type: "Identifier", name: "Card" },
+            init: { type: "ArrowFunctionExpression" },
+          },
+        ],
+      },
+    };
+    const defaultExport = {
+      declaration: { type: "FunctionDeclaration", id: { name: "Page" } },
+    };
+
+    // Act
+    visitors.ExportNamedDeclaration?.(named);
+    visitors.ExportDefaultDeclaration?.(defaultExport);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when a named export has no declaration", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportNamedDeclaration?.({ declaration: null });
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a named export is a class declaration", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportNamedDeclaration?.({
+      declaration: { type: "ClassDeclaration", id: { name: "Card" } },
+    });
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a named export is an anonymous function declaration", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportNamedDeclaration?.({
+      declaration: { type: "FunctionDeclaration", id: null },
+    });
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a variable declarator uses a destructuring pattern", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const node = {
+      declaration: {
+        type: "VariableDeclaration",
+        declarations: [{ id: { type: "ObjectPattern" } }],
+      },
+    };
+
+    // Act
+    visitors.ExportNamedDeclaration?.(node);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a component-named variable has no initializer", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const node = {
+      declaration: {
+        type: "VariableDeclaration",
+        declarations: [
+          { id: { type: "Identifier", name: "Card" }, init: null },
+        ],
+      },
+    };
+
+    // Act
+    visitors.ExportNamedDeclaration?.(node);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a component-named variable is initialized by a call", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const node = {
+      declaration: {
+        type: "VariableDeclaration",
+        declarations: [
+          {
+            id: { type: "Identifier", name: "Card" },
+            init: { type: "CallExpression" },
+          },
+        ],
+      },
+    };
+
+    // Act
+    visitors.ExportNamedDeclaration?.(node);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a default export has no declaration", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportDefaultDeclaration?.({ declaration: null });
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a default export is an arrow function", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportDefaultDeclaration?.({
+      declaration: { type: "ArrowFunctionExpression" },
+    });
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a default export is an anonymous function expression", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportDefaultDeclaration?.({
+      declaration: { type: "FunctionExpression", id: null },
+    });
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a default export function has a lowercase name", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportDefaultDeclaration?.({
+      declaration: { type: "FunctionDeclaration", id: { name: "helper" } },
+    });
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+});
+
+describe("test-naming-format (defensive branches)", () => {
+  const rule = plugin.rules["test-naming-format"];
+
+  it("should report when it.only() has a non-conforming name", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const node = {
+      callee: {
+        type: "MemberExpression",
+        object: { type: "Identifier", name: "it" },
+        property: { name: "only" },
+      },
+      arguments: [{ type: "Literal", value: "bad name" }],
+    };
+
+    // Act
+    visitors.CallExpression(node);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when the member callee has no property and the name is bad", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const node = {
+      callee: {
+        type: "MemberExpression",
+        object: { type: "Identifier", name: "it" },
+        property: null,
+      },
+      arguments: [{ type: "Literal", value: "bad name" }],
+    };
+
+    // Act
+    visitors.CallExpression(node);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when it() is called without arguments", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const node = {
+      callee: { type: "Identifier", name: "it" },
+      arguments: [],
+    };
+
+    // Act
+    visitors.CallExpression(node);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when the test name is a template literal", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const node = {
+      callee: { type: "Identifier", name: "it" },
+      arguments: [{ type: "TemplateLiteral" }],
+    };
+
+    // Act
+    visitors.CallExpression(node);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when the test name is a numeric literal", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const node = {
+      callee: { type: "Identifier", name: "it" },
+      arguments: [{ type: "Literal", value: 42 }],
+    };
+
+    // Act
+    visitors.CallExpression(node);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when it.skip() has a non-conforming name", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const node = {
+      callee: {
+        type: "MemberExpression",
+        object: { type: "Identifier", name: "it" },
+        property: { name: "skip" },
+      },
+      arguments: [{ type: "Literal", value: "bad name" }],
+    };
+
+    // Act
+    visitors.CallExpression(node);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a non-test object method is called with a bad name", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const node = {
+      callee: {
+        type: "MemberExpression",
+        object: { type: "Identifier", name: "foo" },
+        property: { name: "only" },
+      },
+      arguments: [{ type: "Literal", value: "bad name" }],
+    };
+
+    // Act
+    visitors.CallExpression(node);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+});
+
+describe("single-expect (defensive branches)", () => {
+  const rule = plugin.rules["single-expect"];
+
+  const testNode = {
+    type: "CallExpression",
+    callee: { type: "Identifier", name: "it" },
+    arguments: [
+      { type: "Literal", value: "should do X when Y" },
+      { type: "ArrowFunctionExpression" },
+    ],
+  };
+
+  it("should not report when a call inside a test has no callee", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const expectNode = {
+      type: "CallExpression",
+      callee: { type: "Identifier", name: "expect" },
+      arguments: [],
+    };
+
+    // Act
+    visitors.CallExpression(testNode);
+    visitors.CallExpression({ type: "CallExpression", callee: null });
+    visitors.CallExpression(expectNode);
+    visitors["CallExpression:exit"](testNode);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a member call inside a test targets a non-expect object", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const memberCall = {
+      type: "CallExpression",
+      callee: {
+        type: "MemberExpression",
+        object: { type: "Identifier", name: "foo" },
+        property: { name: "bar" },
+      },
+    };
+
+    // Act
+    visitors.CallExpression(testNode);
+    visitors.CallExpression(memberCall);
+    visitors.CallExpression(memberCall);
+    visitors["CallExpression:exit"](testNode);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a member call inside a test has no callee object", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const memberCall = {
+      type: "CallExpression",
+      callee: {
+        type: "MemberExpression",
+        object: null,
+        property: { name: "x" },
+      },
+    };
+
+    // Act
+    visitors.CallExpression(testNode);
+    visitors.CallExpression(memberCall);
+    visitors.CallExpression(memberCall);
+    visitors["CallExpression:exit"](testNode);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not track a test call when it has no callback", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const bareTest = {
+      type: "CallExpression",
+      callee: { type: "Identifier", name: "it" },
+      arguments: [{ type: "Literal", value: "should do X when Y" }],
+    };
+
+    // Act
+    visitors.CallExpression(bareTest);
+    visitors["CallExpression:exit"](bareTest);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not track a test call when its second argument is not a function", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const stringTest = {
+      type: "CallExpression",
+      callee: { type: "Identifier", name: "it" },
+      arguments: [
+        { type: "Literal", value: "should do X when Y" },
+        { type: "Literal", value: "not a function" },
+      ],
+    };
+
+    // Act
+    visitors.CallExpression(stringTest);
+    visitors["CallExpression:exit"](stringTest);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should ignore an exit event when the call is not a test", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const plainCall = {
+      type: "CallExpression",
+      callee: { type: "Identifier", name: "helper" },
+    };
+
+    // Act
+    visitors["CallExpression:exit"](plainCall);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should ignore an exit event when no test scope was entered", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+
+    // Act
+    visitors["CallExpression:exit"](testNode);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when member-style expect calls exceed one inside a test", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const softExpect = {
+      type: "CallExpression",
+      callee: {
+        type: "MemberExpression",
+        object: { type: "Identifier", name: "expect" },
+        property: { name: "soft" },
+      },
+    };
+
+    // Act
+    visitors.CallExpression(testNode);
+    visitors.CallExpression(softExpect);
+    visitors.CallExpression(softExpect);
+    visitors["CallExpression:exit"](testNode);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+});
+
+describe("component-file-naming (defensive branches)", () => {
+  const rule = plugin.rules["component-file-naming"];
+
+  it("should return no visitors when the context has no filename source", () => {
+    // Arrange
+    const context = makeContext();
+
+    // Act
+    const visitors = rule.create(context);
+
+    // Assert
+    expect(visitors.ExportNamedDeclaration).toBeUndefined();
+  });
+
+  it("should use getFilename when the filename property is absent", () => {
+    // Arrange
+    const context = {
+      ...makeContext(),
+      getFilename: () => "/src/components/Card.tsx",
+    };
+    const visitors = rule.create(context);
+    const node = {
+      declaration: { type: "FunctionDeclaration", id: { name: "Other" } },
+    };
+
+    // Act
+    visitors.ExportNamedDeclaration?.(node);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should return no visitors when the filename ends with a slash", () => {
+    // Arrange
+    const context = { ...makeContext(), filename: "/src/components/" };
+
+    // Act
+    const visitors = rule.create(context);
+
+    // Assert
+    expect(visitors.ExportNamedDeclaration).toBeUndefined();
+  });
+
+  it("should skip the empty leading segment when the file name starts with a dot", () => {
+    // Arrange
+    const context = { ...makeContext(), filename: "/src/components/.card.tsx" };
+    const visitors = rule.create(context);
+    const node = {
+      declaration: { type: "FunctionDeclaration", id: { name: "Other" } },
+    };
+
+    // Act
+    visitors.ExportNamedDeclaration?.(node);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should return no visitors when the expected name is not component-like", () => {
+    // Arrange
+    const context = { ...makeContext(), filename: "/src/lib/_helpers.ts" };
+
+    // Act
+    const visitors = rule.create(context);
+
+    // Assert
+    expect(visitors.ExportNamedDeclaration).toBeUndefined();
+  });
+
+  it("should not report when a named export has no declaration", () => {
+    // Arrange
+    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportNamedDeclaration?.({ declaration: null });
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a named export is a type alias", () => {
+    // Arrange
+    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportNamedDeclaration?.({
+      declaration: { type: "TSTypeAliasDeclaration" },
+    });
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a variable declarator uses a destructuring pattern", () => {
+    // Arrange
+    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const visitors = rule.create(context);
+    const node = {
+      declaration: {
+        type: "VariableDeclaration",
+        declarations: [{ id: { type: "ObjectPattern" } }],
+      },
+    };
+
+    // Act
+    visitors.ExportNamedDeclaration?.(node);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a lowercase variable is exported", () => {
+    // Arrange
+    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const visitors = rule.create(context);
+    const node = {
+      declaration: {
+        type: "VariableDeclaration",
+        declarations: [
+          {
+            id: { type: "Identifier", name: "helper" },
+            init: { type: "ArrowFunctionExpression" },
+          },
+        ],
+      },
+    };
+
+    // Act
+    visitors.ExportNamedDeclaration?.(node);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a component-named variable has no initializer", () => {
+    // Arrange
+    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const visitors = rule.create(context);
+    const node = {
+      declaration: {
+        type: "VariableDeclaration",
+        declarations: [
+          { id: { type: "Identifier", name: "Other" }, init: null },
+        ],
+      },
+    };
+
+    // Act
+    visitors.ExportNamedDeclaration?.(node);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a component-named variable is initialized by a call", () => {
+    // Arrange
+    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const visitors = rule.create(context);
+    const node = {
+      declaration: {
+        type: "VariableDeclaration",
+        declarations: [
+          {
+            id: { type: "Identifier", name: "Other" },
+            init: { type: "CallExpression" },
+          },
+        ],
+      },
+    };
+
+    // Act
+    visitors.ExportNamedDeclaration?.(node);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a default export has no declaration", () => {
+    // Arrange
+    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportDefaultDeclaration?.({ declaration: null });
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a default export is an arrow function", () => {
+    // Arrange
+    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportDefaultDeclaration?.({
+      declaration: { type: "ArrowFunctionExpression" },
+    });
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a default export is an anonymous function expression", () => {
+    // Arrange
+    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportDefaultDeclaration?.({
+      declaration: { type: "FunctionExpression", id: null },
+    });
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when an exported arrow component does not match the file name", () => {
+    // Arrange
+    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const visitors = rule.create(context);
+    const node = {
+      declaration: {
+        type: "VariableDeclaration",
+        declarations: [
+          {
+            id: { type: "Identifier", name: "Other" },
+            init: { type: "ArrowFunctionExpression" },
+          },
+        ],
+      },
+    };
+
+    // Act
+    visitors.ExportNamedDeclaration?.(node);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a default-exported function does not match the file name", () => {
+    // Arrange
+    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportDefaultDeclaration?.({
+      declaration: { type: "FunctionDeclaration", id: { name: "Other" } },
+    });
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
   });
 });
