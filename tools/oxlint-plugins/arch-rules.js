@@ -246,10 +246,10 @@ const SKIP_STEMS = new Set(["index"]);
 
 const componentFileNaming = {
   create(context) {
-    const filename = context.filename || context.getFilename?.();
+    const filename = context.filename ?? context.getFilename?.();
     if (!filename) return {};
 
-    const basename = filename.split("/").pop() || "";
+    const basename = filename.slice(filename.lastIndexOf("/") + 1);
     const withoutExt = basename.replace(/\.(tsx?|jsx?)$/, "");
 
     if (

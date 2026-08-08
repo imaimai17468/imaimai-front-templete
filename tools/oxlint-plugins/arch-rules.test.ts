@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import plugin from "./arch-rules.js";
 
-const makeContext = () => ({ report: vi.fn() });
+const makeContext = () => ({
+  report: vi.fn<(descriptor: { message: string; node: unknown }) => void>(),
+});
 
 describe("no-size-props", () => {
   const rule = plugin.rules["no-size-props"];

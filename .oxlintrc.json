@@ -108,6 +108,18 @@
       }
     },
     {
+      "files": ["tools/oxlint-plugins/**"],
+      "rules": {
+        "@typescript-eslint/no-unsafe-assignment": "off",
+        "@typescript-eslint/no-unsafe-argument": "off",
+        "@typescript-eslint/no-unsafe-call": "off",
+        "@typescript-eslint/no-unsafe-member-access": "off",
+        "@typescript-eslint/no-unsafe-return": "off",
+        "@typescript-eslint/strict-boolean-expressions": "off",
+        "@typescript-eslint/unbound-method": "off"
+      }
+    },
+    {
       "files": ["src/routes/index.tsx"],
       "rules": {
         "jsx-a11y/no-noninteractive-tabindex": [

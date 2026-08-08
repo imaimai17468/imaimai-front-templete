@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import plugin from "./style-rules.js";
 
 const createMockContext = () => ({
-  report: vi.fn(),
+  report: vi.fn<(descriptor: { message: string; node: unknown }) => void>(),
 });
 
 const makeClassNameNode = (value: string) => ({
