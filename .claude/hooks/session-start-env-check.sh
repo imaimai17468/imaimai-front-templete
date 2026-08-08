@@ -113,13 +113,20 @@ command -v jq >/dev/null 2>&1 || MISSING+=("jq (ALL guard hooks parse their inpu
 command -v bun >/dev/null 2>&1 || MISSING+=("bun (the Stop quality gate and lefthook's pre-commit/pre-push checks cannot run)")
 [ -x "$HOME/.cargo/bin/similarity-ts" ] || command -v similarity-ts >/dev/null 2>&1 || MISSING+=("similarity-ts (Stop gate skips duplicate-type/function detection; install: cargo install similarity-ts)")
 command -v python3 >/dev/null 2>&1 || MISSING+=("python3 (Stop gate skips the markdown dead-link check; the gate-behaviour test scripts under scripts/ cannot run either)")
+# A capability probe, not a version compare: what old node lacks is
+# `module.registerHooks`, which @cloudflare/vite-plugin imports at module top
+# level, so loading vite.config.ts fails wherever it is loaded. Observed on
+# node 22.14: `bun run build` exits 1, while knip prints "Error loading
+# vite.config.ts" and still exits 0 — the Stop gate's knip layer loses its
+# vite-config analysis with no failing exit code to show for it.
+node -e 'if (typeof require("node:module").registerHooks !== "function") process.exit(1)' >/dev/null 2>&1 || MISSING+=("node with module.registerHooks — see engines in package.json (vite build fails; knip still exits 0 but cannot analyze vite.config.ts)")
 
 if [ "${#MISSING[@]}" -gt 0 ]; then
   echo "[env-check] This session runs DEGRADED — missing gate dependencies:"
   printf '  - %s\n' "${MISSING[@]}"
   echo "[env-check] Per AGENTS.md 'Degraded environments': state the degrade to the user once, and do not treat skipped checks as passed."
 else
-  echo "[env-check] Gate dependencies present (jq, bun, similarity-ts, python3)."
+  echo "[env-check] Gate dependencies present (jq, bun, similarity-ts, python3, node with module.registerHooks)."
 fi
 
 echo "[env-check] Note: MCP tools (aegis) and plugin skills (superpowers) cannot be probed from shell. If aegis_compile_context is not in your tool list, follow AGENTS.md 'Degraded environments' (.claude/.aegis-unavailable marker)."
