@@ -17,7 +17,8 @@
   ],
   "categories": {
     "correctness": "error",
-    "suspicious": "error"
+    "suspicious": "error",
+    "perf": "error"
   },
   "rules": {
     "complexity": "error",
@@ -76,8 +77,10 @@
     "@typescript-eslint/strict-boolean-expressions": "error",
     "@typescript-eslint/strict-void-return": "error",
     "unicorn/throw-new-error": "error",
-    "oxc/no-accumulating-spread": "error",
+    "import/no-cycle": "error",
     "import/no-unassigned-import": "off",
+    "react/jsx-no-constructed-context-values": "error",
+    "vitest/no-conditional-in-test": "error",
     "style-rules/no-loops": "error",
     "style-rules/no-tailwind-arbitrary": "error",
     "style-rules/no-tailwind-opacity": "error",
