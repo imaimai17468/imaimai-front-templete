@@ -22,10 +22,13 @@ TanStack Start + TypeScript + Tailwind CSS + shadcn/ui を使用したモダン�
 ```bash
 git clone <your-repo-url>
 cd <your-repo-name>
+mise install   # Node / Bun を mise.toml の版で用意
 bun install
 cp .env.local.example .env.local
 bun run dev
 ```
+
+[mise](https://mise.jdx.dev/) を使わない場合は、`package.json` の `engines.node` を満たす Node と、`mise.toml` が指定する版の Bun を手動で用意してください。Cursor Cloud Agent 環境では `.cursor/environment.json` が同じセットアップ（`scripts/cloud-agent-install.sh`）を自動実行します。shims の PATH 追記は rc ファイルを読むシェルにしか効かないため、rc を読まない非対話シェルからは `mise exec -- <コマンド>` で実行してください。
 
 http://localhost:5173 でアクセス。`@cloudflare/vite-plugin` により、`bun run dev` でも Cloudflare D1 / R2 バインディングが有効です。
 
@@ -61,6 +64,7 @@ AI エージェント用の Aegis ナレッジベース（`.aegis/`、gitignore 
 
 ## Tools
 
+- **[mise](https://mise.jdx.dev/)** — Node / Bun のバージョン固定 (`mise.toml`)
 - **[shadcn/ui](https://ui.shadcn.com/)** — UI components (`components.json`)
 - **[TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)** — Type checker (Go-native `tsc`)
 - **[oxlint](https://oxc.rs/docs/guide/usage/linter)** — Linter (`.oxlintrc.json`)
