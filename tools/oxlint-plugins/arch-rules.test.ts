@@ -4,6 +4,14 @@ import plugin from "./arch-rules.js";
 const makeContext = () => ({
   report: vi.fn<(descriptor: { message: string; node: unknown }) => void>(),
 });
+const makeLayerContext = (filename: string | undefined) => ({
+  filename,
+  report: vi.fn<(descriptor: { message: string; node: unknown }) => void>(),
+});
+
+const importNode = (specifier: unknown) => ({
+  source: { value: specifier },
+});
 
 describe("no-size-props", () => {
   const rule = plugin.rules["no-size-props"];
@@ -763,6 +771,272 @@ describe("single-expect", () => {
     visitors.CallExpression(todoNode);
     visitors.CallExpression(expectNode);
     visitors["CallExpression:exit"](todoNode);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+});
+describe("layer-boundaries", () => {
+  const rule = plugin.rules["layer-boundaries"];
+
+  it("should report when a route imports a gateway via alias", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/profile.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/gateways/user"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a route imports drizzle infrastructure via alias", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/drizzle/db"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when a route imports a server function", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/profile.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/server/fn/user"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a route imports a non-drizzle lib module", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/auth/session"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when a gateway imports a component", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/gateways/user/index.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/components/ui/button"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a gateway imports a server function", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/gateways/user/index.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/server/fn/profile"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when a gateway imports an entity", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/gateways/user/index.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/entities/user"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when an entity imports a gateway directory index", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/entities/user/index.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/gateways"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when an entity imports a route", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/entities/user/index.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/routes/profile"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a server function imports a route", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/server/fn/user.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/routes/profile"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when a server function imports a gateway", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/server/fn/user.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/gateways/user"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when a route imports a gateway via relative path", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/profile.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("../gateways/user"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when a route imports a sibling route via relative path", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/profile.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("./login"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a relative path escapes the src directory", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/profile.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("../../tools/helper"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when importing a bare package specifier", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/profile.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("react"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should return no visitors when the file is outside src", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/tools/oxlint-plugins/arch-rules.js"
+    );
+
+    // Act
+    const visitors = rule.create(context);
+
+    // Assert
+    expect(visitors.ImportDeclaration).toBeUndefined();
+  });
+
+  it("should return no visitors when the file is not in a chain layer", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/components/ui/button.tsx");
+
+    // Act
+    const visitors = rule.create(context);
+
+    // Assert
+    expect(visitors.ImportDeclaration).toBeUndefined();
+  });
+
+  it("should return no visitors when filename is unavailable", () => {
+    // Arrange
+    const context = makeLayerContext(undefined);
+
+    // Act
+    const visitors = rule.create(context);
+
+    // Assert
+    expect(visitors.ImportDeclaration).toBeUndefined();
+  });
+
+  it("should report when a banned module is re-exported via export-from", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/profile.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportNamedDeclaration?.(importNode("@/gateways/user"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a banned module is re-exported via export-all", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/profile.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportAllDeclaration?.(importNode("@/gateways/user"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when an export declaration has no source", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/profile.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportNamedDeclaration?.({ source: null });
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when the import source value is not a string", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/profile.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode(42));
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
