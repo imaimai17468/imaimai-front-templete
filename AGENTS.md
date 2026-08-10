@@ -70,10 +70,10 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/rules/*.mdc` as a file-level symlink so Cursor sessions load the same text (ADR-0031 — never replace a symlink with a copy):
 
 - **`aegis.md`** (always applied) — the Aegis consultation contract: mandatory process enforcement, the degraded path when the MCP tools are absent, and the `deploy-adapters` warning
-- **`react.md`** (`**/*.tsx`) — the official [Rules of React](https://ja.react.dev/reference/rules): purity, hooks at the top level, component splitting, module organization
+- **`react.md`** (`**/*.tsx`) — the official [Rules of React](https://ja.react.dev/reference/rules): purity, hooks at the top level, component splitting, module organization — project-independent principles only; this repository's concrete placements are in ADR-0016
 - **`design.md`** (`src/**/*.css`, `src/**/*.tsx`) — design system: Wairo (和色) palette, squircle corners, typography, spacing, component conventions
 
-`src/` is layered — `routes/` → `server/fn/` → `gateways/` → `entities/`, imports flow downward only, and `server/fn/` is the authorization boundary. The contract is ADR-0016; Aegis serves it for any `src/**` edit.
+`src/` is layered — `routes/` → `server/fn/` → `gateways/` → `entities/`, imports flow downward only, and `server/fn/` is the authorization boundary. The same contract fixes the placement homes: `src/components/` (`features/` for domain UI, `shared/<name>/` for cross-feature UI, `ui/` for shadcn CLI output — never rename `ui/`, `components.json` aliases resolve to it) and `src/lib/` for framework/infrastructure adapters and generic non-component values. The contract is ADR-0016; Aegis serves it for any `src/**` edit.
 
 The next rule is not path-scoped — it applies whenever you write any instruction document, whatever the file type:
 
