@@ -1,0 +1,20 @@
+diff --git a/src/routes/api/avatars.ts b/src/routes/api/avatars.ts
+--- a/src/routes/api/avatars.ts
++++ b/src/routes/api/avatars.ts
+@@ -1,4 +1,5 @@
+ import { createFileRoute } from "@tanstack/react-router";
++import { fetchAvatar } from "@/gateways/avatar";
+ import { readAvatarForCurrentUser } from "@/server/fn/avatar";
+ 
+ export const getAvatarResponse = async (
+@@ -5,6 +6,10 @@ export const getAvatarResponse = async (
+   request: Request
+ ): Promise<Response> => {
+   const url = new URL(request.url);
++  const untrustedKey = url.searchParams.get("key");
++  if (untrustedKey !== null) {
++    await fetchAvatar(untrustedKey);
++  }
+   const result = await readAvatarForCurrentUser(url.searchParams.get("key"));
+   switch (result.kind) {
+     case "unauthorized":

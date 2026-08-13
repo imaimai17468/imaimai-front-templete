@@ -114,6 +114,7 @@ rather than leaving it for someone to discover.
 | fx-06 | clean diff (benign constant extraction) | NONE — any confirmed finding is a false positive |
 | fx-07 | multi-file mixed (benign rename + state bug) | premature setPendingFile(null) discards avatar on failed upload; the rename must NOT be flagged |
 | fx-08 | large mixed diff, 8 files (6 benign + swallowed-error + inverted size check) | both defects found, zero FPs on the benign majority. Its `delta.patch` half is **retired** — ADR-0019 deleted delta mode; run the full half only |
+| fx-09 | authorization/persistence boundary (route reads R2 before auth) | caller-supplied key reaches a gateway from the route before the server/fn authorization boundary |
 
 ## Known coverage gaps (debt)
 
