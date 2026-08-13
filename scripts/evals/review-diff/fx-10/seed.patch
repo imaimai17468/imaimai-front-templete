@@ -1,0 +1,45 @@
+diff --git a/src/components/features/profile-page/profile-form/ProfileForm.tsx b/src/components/features/profile-page/profile-form/ProfileForm.tsx
+index 95974a6..f2e5a44 100644
+--- a/src/components/features/profile-page/profile-form/ProfileForm.tsx
++++ b/src/components/features/profile-page/profile-form/ProfileForm.tsx
+@@ -18,10 +18,7 @@ import {
+ import { Input } from "@/components/ui/input";
+ import type { UserWithEmail } from "@/entities/user";
+ import { UpdateUserSchema } from "@/entities/user";
+-import {
+-  avatarSizeRejection,
+-  MAX_AVATAR_BYTES,
+-} from "@/lib/storage/avatar-validation";
++import { MAX_AVATAR_BYTES } from "@/lib/storage/avatar-validation";
+ import { updateProfileFn, uploadAvatarFn } from "@/server/fn/profile";
+ 
+ // similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
+@@ -63,19 +60,15 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
+     const file = e.target.files?.[0];
+     if (!file) return;
+ 
+-    // Same two reasons the server distinguishes, so the message matches what
+-    // actually went wrong rather than blaming size for an empty file.
+-    switch (avatarSizeRejection(file.size)) {
+-      case "empty":
+-        toast.error("That file is empty. Please select another one.");
+-        return;
+-      case "too-large":
+-        toast.error(
+-          `Please keep file size under ${MAX_AVATAR_BYTES / 1024 / 1024}MB`
+-        );
+-        return;
+-      case null:
+-        break;
++    if (file.size <= 0) {
++      toast.error("That file is empty. Please select another one.");
++      return;
++    }
++    if (file.size > 2 * 1024 * 1024) {
++      toast.error(
++        `Please keep file size under ${MAX_AVATAR_BYTES / 1024 / 1024}MB`
++      );
++      return;
+     }
+ 
+     const nextPreviewUrl = URL.createObjectURL(file);

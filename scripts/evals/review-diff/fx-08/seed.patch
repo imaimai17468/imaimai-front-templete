@@ -1,5 +1,5 @@
 diff --git a/src/components/shared/header/user-menu/UserMenu.tsx b/src/components/shared/header/user-menu/UserMenu.tsx
-index 62132f8..e8cc7f9 100644
+index 591dae9..7fc2316 100644
 --- a/src/components/shared/header/user-menu/UserMenu.tsx
 +++ b/src/components/shared/header/user-menu/UserMenu.tsx
 @@ -18,7 +18,7 @@ type UserMenuProps = {
@@ -8,23 +8,23 @@ index 62132f8..e8cc7f9 100644
  export const UserMenu = ({ user }: UserMenuProps) => {
 -  const avatarUrl = user.avatarUrl;
 +  const avatarSrc = user.avatarUrl;
-   const name = user.name || "User";
+   const name = user.name === null || user.name === "" ? "User" : user.name;
    const email = user.email;
  
 @@ -30,7 +30,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
            className="cursor-pointer rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
          >
-           <Avatar className="h-8 w-8">
--            <AvatarImage src={avatarUrl || undefined} alt={name} />
-+            <AvatarImage src={avatarSrc || undefined} alt={name} />
+           <Avatar className="size-8">
+-            <AvatarImage src={avatarUrl ?? undefined} alt={name} />
++            <AvatarImage src={avatarSrc ?? undefined} alt={name} />
              <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
            </Avatar>
          </button>
 diff --git a/src/gateways/user/index.ts b/src/gateways/user/index.ts
-index f4e479b..6d23c7f 100644
+index fff648a..ed974a8 100644
 --- a/src/gateways/user/index.ts
 +++ b/src/gateways/user/index.ts
-@@ -54,7 +54,7 @@ export const updateUser = async (
+@@ -55,7 +55,7 @@ export const updateUser = async (
        .where(eq(users.id, userId));
      return { success: true };
    } catch {
@@ -45,10 +45,10 @@ index 905d1e9..af01fff 100644
    await authClient.signIn.social({ provider: "google", callbackURL: "/" });
  };
 diff --git a/src/lib/storage/avatar-validation.ts b/src/lib/storage/avatar-validation.ts
-index ce2df39..4e29de0 100644
+index 6d8af56..1d7305d 100644
 --- a/src/lib/storage/avatar-validation.ts
 +++ b/src/lib/storage/avatar-validation.ts
-@@ -68,7 +68,7 @@ export const avatarSizeRejection = (
+@@ -65,7 +65,7 @@ export const avatarSizeRejection = (
    if (size <= 0) {
      return "empty";
    }
@@ -92,17 +92,17 @@ index 8152747..041e224 100644
        </div>
      </div>
 diff --git a/src/server/cloudflare.ts b/src/server/cloudflare.ts
-index 3737882..1fbdf63 100644
+index 5a36127..29251a6 100644
 --- a/src/server/cloudflare.ts
 +++ b/src/server/cloudflare.ts
-@@ -6,4 +6,5 @@
- // eslint-disable-next-line import/no-unresolved
+@@ -4,4 +4,5 @@
+ // in that environment.
  import { env as runtimeEnv } from "cloudflare:workers";
  
 +/** The Worker's bindings. Typed by `wrangler types` (ADR-0005), never by hand. */
  export const getCloudflareEnv = (): CloudflareEnv => runtimeEnv;
 diff --git a/src/test-setup.ts b/src/test-setup.ts
-index db66787..cf802eb 100644
+index d9f2b99..a16029e 100644
 --- a/src/test-setup.ts
 +++ b/src/test-setup.ts
 @@ -2,6 +2,7 @@ import "@testing-library/jest-dom/vitest";
@@ -110,6 +110,6 @@ index db66787..cf802eb 100644
  import { afterEach } from "vitest";
  
 +// No-op scrollTo shim for the jsdom test environment.
- window.scrollTo = () => {};
- 
- afterEach(() => {
+ if (typeof window !== "undefined") {
+   window.scrollTo = () => {};
+ }

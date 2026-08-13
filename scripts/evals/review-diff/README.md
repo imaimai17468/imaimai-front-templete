@@ -83,6 +83,11 @@ rather than leaving it for someone to discover.
 - **missed** — an expected finding absent from the surviving findings.
 - **false positive** — a surviving CONFIRMED finding not in expected.md and
   not listed as acceptable-extra.
+- **fix-degraded** — for fixtures whose expected.md has an
+  `Expected fix properties` section: the finding was found but its returned
+  `fix` does not satisfy the named properties. Record it beside
+  found/missed/false-positive; a found defect with a degraded remedy is not a
+  clean pass (ADR-0020).
 - Staleness: if `seed.patch` no longer applies, regenerate or retire the
   fixture in the same run and note it in the results file.
 - **Close calls need repeated runs.** Environment/config variance alone can
@@ -115,6 +120,7 @@ rather than leaving it for someone to discover.
 | fx-07 | multi-file mixed (benign rename + state bug) | premature setPendingFile(null) discards avatar on failed upload; the rename must NOT be flagged |
 | fx-08 | large mixed diff, 8 files (6 benign + swallowed-error + inverted size check) | both defects found, zero FPs on the benign majority. Its `delta.patch` half is **retired** — ADR-0019 deleted delta mode; run the full half only |
 | fx-09 | authorization/persistence boundary (route reads R2 before auth) | caller-supplied key reaches a gateway from the route before the server/fn authorization boundary |
+| fx-10 | fix quality (client size ceiling inlined as a drifted literal) | drift found AND the returned `fix` restores the shared constant/classifier — re-aligning the literal in place scores **fix-degraded** |
 
 ## Known coverage gaps (debt)
 
@@ -123,7 +129,7 @@ rather than leaving it for someone to discover.
   `prior-report.md` / `delta.patch` inputs and the delta measurements in
   `results/2026-07-10-delta-mode.md` and `results/2026-07-12-fx08-large-diff.md`
   are kept as the record of what delta mode bought.
-- Nothing yet measures `fix` / `acceptance` quality (ADR-0020) beyond the
-  per-survivor notes step 2 asks for. There is no seeded fixture whose expected
-  answer is a *fix*, so a degraded fix proposal on an otherwise correctly-found
-  defect would not score as a miss.
+- `fix` / `acceptance` quality (ADR-0020) is probed by exactly one fixture and
+  one defect shape: fx-10's shared-constant drift. A degraded remedy on any
+  other defect shape still scores clean beyond the per-survivor notes step 2
+  asks for.

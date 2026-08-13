@@ -1,5 +1,5 @@
 # fx-08 (large mixed diff — realistic-scale probe)
-base: ce149e0 (regenerated 2026-07-29; any tree where seed.patch applies)
+base: cccbbe820423a17b32e2e062d025a626f0a70d0d
 
 Eight files: six benign edits + two seeded defects. Measures (a) detection
 inside a noisy multi-file diff and (b) FP resistance on the benign majority.
@@ -22,7 +22,8 @@ inside a noisy multi-file diff and (b) FP resistance on the benign majority.
 - src/components/shared/header/user-menu/UserMenu.tsx (pure local rename)
 
 ## Acceptable extras
-- none
+- a remark on `src/test-setup.ts`'s `typeof window` guard (context of the
+  regenerated seed, not a seeded line)
 
 ## Detection is not blind here
 The size defect breaks `src/lib/storage/avatar-validation.test.ts`, so a reviewer
@@ -53,3 +54,20 @@ Two lessons from that rebuild, kept because they cost a run:
   false claims, which is the argument for the rule the third attempt follows:
   describe what the code does, assert nothing about why it is needed.
 - `delta.patch` was deleted rather than regenerated: ADR-0019 removed delta mode.
+
+## Regeneration note (2026-08-11)
+Three of eight files' context lines had evolved (UserMenu's declaration
+block and Avatar markup, cloudflare.ts's comment block, test-setup.ts's
+`typeof window` guard around the scrollTo shim), so the 2026-07-29 seed
+stopped applying.
+Rebuilt to the same shape — six benign edits + the same two defect natures —
+against the current tree. The benign comment texts from the 2026-07-29
+rebuild were kept verbatim (their wording cost two voided runs to get right;
+see the note above). Typecheck and lint verified clean with the seed
+applied.
+The `typeof window` guard around the scrollTo shim now sits in this seed's
+context lines; a remark on it is listed as an acceptable extra above so the
+FP measurement stays about the seeded edits.
+
+Revalidated on 2026-08-13 after importing the regenerated patch into main:
+apply, reverse-apply, typecheck and lint all succeeded at the base above.

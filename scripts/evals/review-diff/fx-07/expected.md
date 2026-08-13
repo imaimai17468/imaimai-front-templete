@@ -1,5 +1,5 @@
 # fx-07 (multi-file mixed — discrimination probe)
-base: 6b4a56dbdc463e5fd8a4e5ec098f74884de6fed2
+base: cccbbe820423a17b32e2e062d025a626f0a70d0d
 
 Two files: one benign edit + one seeded defect. Measures discrimination —
 finding the real defect while NOT flagging the benign change.
@@ -19,3 +19,16 @@ finding the real defect while NOT flagging the benign change.
 
 ## Acceptable extras
 - none
+
+## Regeneration note (2026-08-11)
+Both hunks stopped applying: ProfileForm's error check gained
+`!== undefined`, and UserMenu's declaration block and Avatar markup were
+both rewritten (name fallback, `|| undefined` → `?? undefined` on the
+avatar src, `h-8 w-8` → `size-8`), so the 2026-07 seed's context lines no
+longer matched. Rebuilt to the same shape — same defect
+nature (setPendingFile(null) hoisted above the error check), same benign
+rename — against the current tree; typecheck and lint verified clean with
+the seed applied.
+
+Revalidated on 2026-08-13 after importing the regenerated patch into main:
+apply, reverse-apply, typecheck and lint all succeeded at the base above.
