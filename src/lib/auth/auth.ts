@@ -3,6 +3,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { getDb } from "@/lib/drizzle/db";
 import * as schema from "@/lib/drizzle/schema";
 import { getCloudflareEnv } from "@/server/cloudflare";
+import { requireAuthSecret } from "./required-secret";
 
 const buildAuth = () => {
   const env = getCloudflareEnv();
@@ -19,15 +20,22 @@ const buildAuth = () => {
   // absent from the populated `process.env` and the guard is false in every
   // environment. Without this throw, a missing secret silently signs sessions
   // with a published constant.
-  if (!env.BETTER_AUTH_SECRET) {
-    throw new Error(
-      "BETTER_AUTH_SECRET is not set. Register it with `wrangler secret put BETTER_AUTH_SECRET` for a deployed Worker, or set it in .env.local for local development."
-    );
-  }
+  const authSecret = requireAuthSecret(
+    "BETTER_AUTH_SECRET",
+    env.BETTER_AUTH_SECRET
+  );
+  const googleClientId = requireAuthSecret(
+    "GOOGLE_CLIENT_ID",
+    env.GOOGLE_CLIENT_ID
+  );
+  const googleClientSecret = requireAuthSecret(
+    "GOOGLE_CLIENT_SECRET",
+    env.GOOGLE_CLIENT_SECRET
+  );
 
   return betterAuth({
     baseURL: env.BETTER_AUTH_URL,
-    secret: env.BETTER_AUTH_SECRET,
+    secret: authSecret,
     database: drizzleAdapter(getDb(), {
       provider: "sqlite",
       schema: {
@@ -39,8 +47,8 @@ const buildAuth = () => {
     }),
     socialProviders: {
       google: {
-        clientId: env.GOOGLE_CLIENT_ID ?? "",
-        clientSecret: env.GOOGLE_CLIENT_SECRET ?? "",
+        clientId: googleClientId,
+        clientSecret: googleClientSecret,
       },
     },
     session: {
