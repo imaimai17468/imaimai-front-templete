@@ -8,6 +8,7 @@
     "generate-routes": "tsr generate",
     "dev": "vite dev",
     "build": "vite build",
+    "bundle:analyze": "vite build && wrangler deploy --dry-run --outdir .wrangler/bundle-analysis --metafile .wrangler/bundle-analysis/meta.json",
     "lint": "oxlint --type-aware src tools",
     "lint:fix": "oxlint --type-aware --fix src tools",
     "format": "oxfmt --check src tools",
@@ -46,7 +47,7 @@
     "react-hook-form": "7.83.0",
     "sonner": "2.0.7",
     "tailwind-merge": "3.6.0",
-    "zod": "4.0.10"
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.44.0",
@@ -81,5 +82,6 @@
   },
   "engines": {
     "node": "^22.15.0 || >=23.5.0"
-  }
+  },
+  "packageManager": "bun@1.3.1"
 }

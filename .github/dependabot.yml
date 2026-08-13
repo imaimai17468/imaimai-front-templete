@@ -10,6 +10,10 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    groups:
+      tanstack:
+        patterns:
+          - "@tanstack/*"
     commit-message:
       prefix: chore
       include: scope
