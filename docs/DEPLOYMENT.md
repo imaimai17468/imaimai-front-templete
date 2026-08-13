@@ -92,16 +92,17 @@ wrangler secret delete <NAME>               # 不要になった名前を削除
 | `BETTER_AUTH_SECRET` | 自前生成 | 変更すると既存セッションが全て無効になる（再ログインが必要） |
 | `GOOGLE_CLIENT_SECRET` | Google Cloud Console | 先に新しいシークレットを発行し、登録後に旧シークレットを失効させる |
 
-`BETTER_AUTH_SECRET` は `src/lib/auth/auth.ts` で `betterAuth({ secret: ... })` に
-**明示的に渡している**。better-auth 自身のフォールバックは `process.env` を読み、
+`src/lib/auth/auth.ts` は `BETTER_AUTH_SECRET` / `GOOGLE_CLIENT_ID` /
+`GOOGLE_CLIENT_SECRET` を認証設定へ**明示的に渡している**。
+better-auth 自身のシークレットフォールバックは `process.env` を読み、
 Workers が `process.env` を埋めるのは `nodejs_compat_populate_process_env` が有効な
 場合（既定になるのは `compatibility_date` が 2025-04-01 以降）に限られる。現在の
 `compatibility_date` はこれを満たすが、明示的な配線はそのフラグの既定値に依存しない
 （ADR-0018）ので外さないこと。
 
-値が未設定の場合、`buildAuth()` は既定シークレットにフォールバックせず**例外を
-投げる**（メッセージに `wrangler secret put BETTER_AUTH_SECRET` を明示）。
-つまり登録漏れの症状は「認証が静かに脆弱になる」ではなく「認証経路が失敗する」。
+いずれかの値が未設定の場合、`buildAuth()` は**例外を投げる**（メッセージに対応する
+`wrangler secret put <NAME>` を明示）。つまり登録漏れの症状は、既定値や空の OAuth
+設定へのサイレントフォールバックではなく「認証経路が失敗する」。
 better-auth 自身の既定シークレット検出は本番判定に `NODE_ENV` を使うが、`NODE_ENV`
 は Worker の binding ではないため `process.env` が埋まっても現れず、全環境で作動
 しない。この throw が唯一の検出手段になる。

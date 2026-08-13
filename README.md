@@ -24,6 +24,8 @@ git clone <your-repo-url>
 cd <your-repo-name>
 mise install   # Node / Bun を mise.toml の版で用意
 bun install
+bun run generate-routes
+bun run cf-typegen
 cp .env.local.example .env.local
 bun run dev
 ```
@@ -42,6 +44,7 @@ AI エージェント用の Aegis ナレッジベース（`.aegis/`、gitignore 
 | ------------------------- | ----------------------------------------------- |
 | `bun run dev`             | Start dev server (with CF bindings via workerd) |
 | `bun run build`           | Production build                                |
+| `bun run bundle:analyze`  | Build and report Worker upload composition      |
 | `bun run preview`         | Build & preview in local workerd                |
 | `bun run deploy`          | Build & deploy to Cloudflare Workers            |
 | `bun run typecheck`       | Type check with tsc (TypeScript 7 native)       |
@@ -115,6 +118,8 @@ src/
 ├── server/
 │   ├── cloudflare.ts       # CloudflareEnv helper (cloudflare:workers)
 │   └── fn/                 # Server functions (createServerFn)
+├── gateways/               # D1 / R2 persistence
+├── entities/               # Domain types and schemas
 ├── components/             # Shared UI components
 │   ├── ui/                 # shadcn/ui primitives
 │   ├── shared/             # Cross-page shared components
@@ -125,12 +130,11 @@ src/
 │   ├── storage/            # R2 ストレージ
 │   └── utils.ts
 ├── router.tsx              # TanStack Router definition
-├── client.tsx              # Browser entry (hydrateRoot)
 ├── ssr.tsx                 # Server entry (Cloudflare Worker handler)
 └── styles.css              # Tailwind v4 tokens
 ```
 
-各ページの機能別コンポーネントは `src/components/features/<feature>/` にコロケーションします。
+配置と import 方向の規約は [AGENTS.md](./AGENTS.md) の `Rules` を参照してください。
 
 ## AI エージェントで開発する
 

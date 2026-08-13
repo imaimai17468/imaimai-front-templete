@@ -39,12 +39,10 @@ Using the **admin** surface tools:
 
 2. aegis_init_confirm({ preview_hash: "<hash from step 1>" })
    → Initializes the project with an empty knowledge base
-
-3. Deploy adapter rules (run in terminal, not an MCP tool):
-   npx @fuwasegu/aegis deploy-adapters
-   → Generates .cursor/rules/aegis-process.mdc
-   → Generates CLAUDE.md / AGENTS.md sections
 ```
+
+For this repository's Aegis policy, follow the
+[workspace Aegis rule](../../rules/aegis.md).
 
 After init, `.aegis/` directory is created with the database. It self-manages its `.gitignore`.
 
@@ -107,7 +105,9 @@ Test the setup by compiling context:
 ```
 aegis_compile_context({
   target_files: ["src/main.ts"],
-  plan: "Add error handling to the main entry point"
+  plan: "Add error handling to the main entry point",
+  command: "review",
+  intent_tags: []
 })
 ```
 
@@ -121,16 +121,8 @@ For Claude Code projects, also add to `.mcp.json`:
 claude mcp add aegis -- npx -y @fuwasegu/aegis --surface agent
 ```
 
-For Codex, add workflow to `AGENTS.md`:
-
-```markdown
-## Aegis Process
-Before writing code:
-1. Call `aegis_compile_context` with target_files and plan
-2. Follow the returned guidelines
-After writing code:
-3. Report compile misses via `aegis_observe`
-```
+For Codex in this repository, follow the
+[workspace Aegis rule](../../rules/aegis.md).
 
 ## SLM Configuration (Optional)
 

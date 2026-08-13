@@ -57,8 +57,6 @@ CLOUDFLARE_ACCOUNT_ID=<your-account-id>
 CLOUDFLARE_D1_DATABASE_ID=<your-d1-database-id>
 CLOUDFLARE_API_TOKEN=<your-api-token>
 
-# Cloudflare R2
-R2_PUBLIC_URL=<your-r2-public-url>
 ```
 
 ### BETTER_AUTH_SECRET の生成
@@ -95,20 +93,13 @@ wrangler d1 list
 
 このトークンを使うのは drizzle-kit の `d1-http` ドライバ (`db:push` /
 `db:generate` / `db:pull` / `db:studio`) だけで、D1 以外の権限は不要。R2 の
-バケット作成と公開 URL 設定は下記の通り Dashboard で行い、このトークンを
-使わない。権限を最小に保つこと自体がこのトークンをディスクに置く唯一の
+バケット作成には Wrangler の認証を使い、このトークンは使わない。権限を
+最小に保つこと自体がこのトークンをディスクに置く唯一の
 緩和策になっている (ADR-0017 の例外条項)。
 
-### R2_PUBLIC_URL の取得
-
-R2バケットを公開アクセス可能にする必要があります。
-
-1. [Cloudflare Dashboard](https://dash.cloudflare.com/) > **R2 Object Storage** > 作成したバケット
-2. **Settings** タブを開く
-3. **パブリック開発 URL** を有効化する（またはカスタムドメインを設定）
-4. 発行されるURLが `R2_PUBLIC_URL` の値（例: `https://pub-xxxxxxxx.r2.dev`）
-
-> **本番環境**: カスタムドメインを設定することも可能です。
+R2 バケットは非公開のまま使用します。アバターは認証と所有権確認を行う
+`/api/avatars` 経由で配信するため、公開エンドポイントやカスタムドメインを
+バケットへ設定しないでください。
 
 ## 4. OAuth認証を設定
 
@@ -123,9 +114,9 @@ R2バケットを公開アクセス可能にする必要があります。
    - `http://localhost:5173/api/auth/callback/google`（開発時）
 6. 作成後、Client ID / Client Secret を `.env.local` に設定
 
-> **本番環境**: 生成元とリダイレクト URI にデプロイ先のURLも追加してください。
-> - 生成元: `https://your-domain.pages.dev`
-> - リダイレクト URI: `https://your-domain.pages.dev/api/auth/callback/google`
+> **本番環境**: 生成元とリダイレクト URI にデプロイ先の Workers オリジンも追加してください。カスタムドメインを使わない場合、既定のオリジンは `<Worker名>.<アカウントサブドメイン>.workers.dev` です。
+> - 生成元: `https://<Worker名>.<アカウントサブドメイン>.workers.dev`
+> - リダイレクト URI: `https://<Worker名>.<アカウントサブドメイン>.workers.dev/api/auth/callback/google`
 
 ## 5. データベースを初期化
 
