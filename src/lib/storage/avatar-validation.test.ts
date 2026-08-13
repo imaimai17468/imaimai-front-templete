@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  avatarContentMatchesMime,
   avatarExtensionForMime,
+  avatarKeyFromUrl,
   avatarSizeRejection,
   isOwnAvatarKey,
   isValidAvatarKey,
@@ -40,6 +42,7 @@ describe("isValidAvatarKey", () => {
     "aB0_-x/avatar.jpg",
     "u/avatar.webp",
     "u/avatar.gif",
+    "user-123/avatars/123e4567-e89b-42d3-a456-426614174000.png",
     // legacy variants tolerated on read (written before the hardening)
     "user-123/avatar.jpeg",
     "user-123/avatar.PNG",
@@ -62,6 +65,7 @@ describe("isValidAvatarKey", () => {
     ["trailing garbage", "user-123/avatar.png.html"],
     ["prefix with dot", "user.123/avatar.png"],
     ["no extension", "user-123/avatar"],
+    ["versioned key with malformed UUID", "user-123/avatars/not-a-uuid.png"],
   ])("rejects %s: %j", (_label, key) => {
     expect(isValidAvatarKey(key)).toBe(false);
   });
@@ -115,5 +119,70 @@ describe("isOwnAvatarKey", () => {
     ["caller id is empty", "/avatar.png", ""],
   ])("should reject the key when %s", (_label, key, userId) => {
     expect(isOwnAvatarKey(key, userId)).toBe(false);
+  });
+});
+
+const imageFile = (mimeType: string, bytes: number[]) =>
+  new File([new Uint8Array(bytes)], "avatar", { type: mimeType });
+
+describe("avatarContentMatchesMime", () => {
+  it.each([
+    ["PNG", "image/png", [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]],
+    ["JPEG", "image/jpeg", [0xff, 0xd8, 0xff, 0xe0]],
+    [
+      "WebP",
+      "image/webp",
+      [0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50],
+    ],
+    ["GIF87a", "image/gif", [0x47, 0x49, 0x46, 0x38, 0x37, 0x61]],
+    ["GIF89a", "image/gif", [0x47, 0x49, 0x46, 0x38, 0x39, 0x61]],
+  ])(
+    "should accept %s bytes when the MIME type matches",
+    async (_label, mimeType, bytes) => {
+      expect(await avatarContentMatchesMime(imageFile(mimeType, bytes))).toBe(
+        true
+      );
+    }
+  );
+
+  it.each([
+    ["PNG MIME with JPEG bytes", "image/png", [0xff, 0xd8, 0xff]],
+    [
+      "WebP MIME with RIFF but no WEBP marker",
+      "image/webp",
+      [0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x4e, 0x4f, 0x50, 0x45],
+    ],
+    ["GIF MIME with a truncated header", "image/gif", [0x47, 0x49, 0x46]],
+    ["unsupported MIME", "image/svg+xml", [0x3c, 0x73, 0x76, 0x67]],
+  ])("should reject content when %s", async (_label, mimeType, bytes) => {
+    expect(await avatarContentMatchesMime(imageFile(mimeType, bytes))).toBe(
+      false
+    );
+  });
+});
+
+describe("avatarKeyFromUrl", () => {
+  it.each([
+    ["legacy key", "/api/avatars?key=user-1%2Favatar.png", "user-1/avatar.png"],
+    [
+      "versioned key",
+      "/api/avatars?key=user-1%2Favatars%2F123e4567-e89b-42d3-a456-426614174000.webp",
+      "user-1/avatars/123e4567-e89b-42d3-a456-426614174000.webp",
+    ],
+  ])(
+    "should return the owned %s when the URL is internal",
+    (_label, avatarUrl, expected) => {
+      expect(avatarKeyFromUrl(avatarUrl, "user-1")).toBe(expected);
+    }
+  );
+
+  it.each([
+    ["external URL", "https://images.example.com/avatar.png"],
+    ["wrong route", "/images/avatar.png?key=user-1%2Favatar.png"],
+    ["foreign key", "/api/avatars?key=user-2%2Favatar.png"],
+    ["missing key", "/api/avatars"],
+    ["malformed key", "/api/avatars?key=..%2Favatar.png"],
+  ])("should return null when the URL contains an %s", (_label, avatarUrl) => {
+    expect(avatarKeyFromUrl(avatarUrl, "user-1")).toBeNull();
   });
 });

@@ -4,26 +4,25 @@ import {
   type UserWithEmail,
   UserWithEmailSchema,
 } from "@/entities/user";
-import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/drizzle/db";
 import { users } from "@/lib/drizzle/schema";
-import { avatarExtensionForMime } from "@/lib/storage/avatar-validation";
-import { uploadToR2 } from "@/lib/storage/r2";
+import {
+  avatarContentMatchesMime,
+  avatarExtensionForMime,
+  avatarKeyFromUrl,
+} from "@/lib/storage/avatar-validation";
+import { deleteFromR2, uploadToR2 } from "@/lib/storage/r2";
 
-export const fetchCurrentUser = async (): Promise<UserWithEmail | null> => {
-  const session = await getSession();
-
-  if (!session?.user) {
-    return null;
-  }
-
+export const fetchCurrentUser = async (
+  userId: string,
+  email: string
+): Promise<UserWithEmail | null> => {
   const db = getDb();
-  const authUser = session.user;
 
   const profile = await db
     .select()
     .from(users)
-    .where(eq(users.id, authUser.id))
+    .where(eq(users.id, userId))
     .limit(1);
 
   const [profileRow] = profile;
@@ -37,7 +36,7 @@ export const fetchCurrentUser = async (): Promise<UserWithEmail | null> => {
     avatarUrl: profileRow.image,
     createdAt: profileRow.createdAt.toISOString(),
     updatedAt: profileRow.updatedAt.toISOString(),
-    email: authUser.email,
+    email,
   };
 
   return UserWithEmailSchema.parse(rawUser);
@@ -59,27 +58,85 @@ export const updateUser = async (
   }
 };
 
+type UpdateUserAvatarResult =
+  | {
+      success: true;
+      avatarUrl: string;
+      cleanup: "complete" | "pending";
+    }
+  | {
+      success: false;
+      error: string;
+      orphanedKey?: string;
+    };
+
 export const updateUserAvatar = async (
   userId: string,
   file: File
-): Promise<{ success: boolean; error?: string; avatarUrl?: string }> => {
+): Promise<UpdateUserAvatarResult> => {
   const fileExt = avatarExtensionForMime(file.type);
-  if (fileExt === null) {
+  if (fileExt === null || !(await avatarContentMatchesMime(file))) {
     return { success: false, error: "Unsupported image type" };
   }
-  const key = `${userId}/avatar.${fileExt}`;
 
+  const db = getDb();
+  let currentAvatarUrl: string | null;
   try {
-    const publicUrl = await uploadToR2(key, file, file.type);
-
-    const db = getDb();
-    await db
-      .update(users)
-      .set({ image: publicUrl, updatedAt: new Date() })
-      .where(eq(users.id, userId));
-
-    return { success: true, avatarUrl: publicUrl };
+    const currentRows = await db
+      .select({ avatarUrl: users.image })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const [currentRow] = currentRows;
+    if (currentRow === undefined) {
+      return { success: false, error: "Failed to upload avatar" };
+    }
+    currentAvatarUrl = currentRow.avatarUrl;
   } catch {
     return { success: false, error: "Failed to upload avatar" };
+  }
+
+  const previousKey =
+    currentAvatarUrl === null
+      ? null
+      : avatarKeyFromUrl(currentAvatarUrl, userId);
+  const key = `${userId}/avatars/${crypto.randomUUID()}.${fileExt}`;
+  let publicUrl: string;
+  try {
+    publicUrl = await uploadToR2(key, file, file.type);
+  } catch {
+    return { success: false, error: "Failed to upload avatar" };
+  }
+
+  try {
+    const updatedRows = await db
+      .update(users)
+      .set({ image: publicUrl, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning({ id: users.id });
+    if (updatedRows.length !== 1) {
+      throw new Error("Avatar update affected an unexpected number of rows");
+    }
+  } catch {
+    try {
+      await deleteFromR2(key);
+      return { success: false, error: "Failed to upload avatar" };
+    } catch {
+      return {
+        success: false,
+        error: "Failed to upload avatar",
+        orphanedKey: key,
+      };
+    }
+  }
+
+  if (previousKey === null) {
+    return { success: true, avatarUrl: publicUrl, cleanup: "complete" };
+  }
+  try {
+    await deleteFromR2(previousKey);
+    return { success: true, avatarUrl: publicUrl, cleanup: "complete" };
+  } catch {
+    return { success: true, avatarUrl: publicUrl, cleanup: "pending" };
   }
 };

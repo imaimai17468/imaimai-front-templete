@@ -13,6 +13,44 @@ const AVATAR_MIME_TO_EXTENSION = new Map([
   ["image/gif", "gif"],
 ]);
 
+const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+const JPEG_SIGNATURE = [0xff, 0xd8, 0xff];
+const RIFF_SIGNATURE = [0x52, 0x49, 0x46, 0x46];
+const WEBP_SIGNATURE = [0x57, 0x45, 0x42, 0x50];
+const GIF87A_SIGNATURE = [0x47, 0x49, 0x46, 0x38, 0x37, 0x61];
+const GIF89A_SIGNATURE = [0x47, 0x49, 0x46, 0x38, 0x39, 0x61];
+
+const hasSignature = (
+  bytes: Uint8Array,
+  signature: number[],
+  offset = 0
+): boolean =>
+  signature.every((expected, index) => bytes[offset + index] === expected);
+
+export const avatarContentMatchesMime = async (
+  file: File
+): Promise<boolean> => {
+  const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  switch (file.type) {
+    case "image/png":
+      return hasSignature(bytes, PNG_SIGNATURE);
+    case "image/jpeg":
+      return hasSignature(bytes, JPEG_SIGNATURE);
+    case "image/webp":
+      return (
+        hasSignature(bytes, RIFF_SIGNATURE) &&
+        hasSignature(bytes, WEBP_SIGNATURE, 8)
+      );
+    case "image/gif":
+      return (
+        hasSignature(bytes, GIF87A_SIGNATURE) ||
+        hasSignature(bytes, GIF89A_SIGNATURE)
+      );
+    default:
+      return false;
+  }
+};
+
 // Read-side extension tolerance. The write path always normalizes to the
 // canonical lowercase extensions above, but avatar objects written before
 // this hardening took the extension straight from the client filename, so
@@ -26,7 +64,24 @@ const AVATAR_READ_EXTENSIONS = new Set([
   "jpeg",
 ]);
 
-const AVATAR_KEY_PATTERN = /^[A-Za-z0-9_-]+\/avatar\.([A-Za-z0-9]+)$/;
+const AVATAR_KEY_PATTERN =
+  /^([A-Za-z0-9_-]+)\/(?:avatar|avatars\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.([A-Za-z0-9]+)$/;
+
+const parseAvatarKey = (
+  key: string
+): { ownerId: string; extension: string } | null => {
+  const match = AVATAR_KEY_PATTERN.exec(key);
+  const ownerId = match?.[1];
+  const extension = match?.[2];
+  if (
+    ownerId === undefined ||
+    extension === undefined ||
+    !AVATAR_READ_EXTENSIONS.has(extension.toLowerCase())
+  ) {
+    return null;
+  }
+  return { ownerId, extension };
+};
 
 /**
  * Returns the storage extension for an allow-listed image MIME type, or
@@ -77,11 +132,7 @@ export const avatarSizeRejection = (
  * `jpeg` so legacy avatar objects remain readable (see AVATAR_READ_EXTENSIONS).
  */
 export const isValidAvatarKey = (key: string): boolean => {
-  const extension = AVATAR_KEY_PATTERN.exec(key)?.[1];
-  return (
-    extension !== undefined &&
-    AVATAR_READ_EXTENSIONS.has(extension.toLowerCase())
-  );
+  return parseAvatarKey(key) !== null;
 };
 
 /**
@@ -90,4 +141,17 @@ export const isValidAvatarKey = (key: string): boolean => {
  * avatar so an authenticated user cannot enumerate others' objects.
  */
 export const isOwnAvatarKey = (key: string, userId: string): boolean =>
-  isValidAvatarKey(key) && key.startsWith(`${userId}/`);
+  parseAvatarKey(key)?.ownerId === userId;
+
+export const avatarKeyFromUrl = (
+  avatarUrl: string,
+  userId: string
+): string | null => {
+  if (!avatarUrl.startsWith("/api/avatars?")) {
+    return null;
+  }
+  const key = new URL(avatarUrl, "https://avatar.internal").searchParams.get(
+    "key"
+  );
+  return key !== null && isOwnAvatarKey(key, userId) ? key : null;
+};

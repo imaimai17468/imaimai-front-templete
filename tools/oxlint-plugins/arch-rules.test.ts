@@ -10,8 +10,12 @@ const makeLayerContext = (filename: string | undefined) => ({
   report: vi.fn<(descriptor: { message: string; node: unknown }) => void>(),
 });
 
-const importNode = (specifier: unknown) => ({
+const importNode = (specifier: unknown, importedNames: string[] = []) => ({
   source: { value: specifier },
+  specifiers: importedNames.map((name) => ({
+    type: "ImportSpecifier",
+    imported: { type: "Identifier", name },
+  })),
 });
 
 describe("no-size-props", () => {
@@ -817,7 +821,7 @@ describe("layer-boundaries", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it("should not report when a route imports a non-drizzle lib module", () => {
+  it("should report when a route imports the session adapter", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
     const visitors = rule.create(context);
@@ -826,7 +830,78 @@ describe("layer-boundaries", () => {
     visitors.ImportDeclaration?.(importNode("@/lib/auth/session"));
 
     // Assert
-    expect(context.report).not.toHaveBeenCalled();
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a route imports Cloudflare bindings directly", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/server/cloudflare"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a route imports Cloudflare Workers directly", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("cloudflare:workers"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a route imports getRequest from TanStack Start", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(
+      importNode("@tanstack/react-start/server", ["getRequest"])
+    );
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it.each(["@/lib/auth/auth", "@/lib/auth/actions"])(
+    "should allow the auth adapter %s when a route imports it",
+    (specifier) => {
+      // Arrange
+      const context = makeLayerContext("/repo/src/routes/login.tsx");
+      const visitors = rule.create(context);
+
+      // Act
+      visitors.ImportDeclaration?.(importNode(specifier));
+
+      // Assert
+      expect(context.report).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([
+    "@/gateways/avatar",
+    "@/lib/auth/session",
+    "@/server/cloudflare",
+    "cloudflare:workers",
+    "@tanstack/react-start/server",
+  ])("should report when a route dynamically imports %s", (specifier) => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportExpression?.(importNode(specifier));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
   });
 
   it("should report when a gateway imports a component", () => {
@@ -848,6 +923,18 @@ describe("layer-boundaries", () => {
 
     // Act
     visitors.ImportDeclaration?.(importNode("@/server/fn/profile"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a gateway imports the session adapter", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/gateways/user/index.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/auth/session"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();

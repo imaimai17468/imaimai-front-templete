@@ -323,6 +323,18 @@ const componentFileNaming = {
 const LAYER_BANS = [
   {
     layer: "src/routes",
+    externalBans: [
+      {
+        source: "cloudflare:workers",
+        message:
+          "Routes must not access Cloudflare bindings directly — delegate through src/server/fn to a gateway (ADR-0016).",
+      },
+      {
+        source: "@tanstack/react-start/server",
+        message:
+          "Routes must not resolve request context directly — delegate to src/server/fn (ADR-0016).",
+      },
+    ],
     bans: [
       {
         target: "src/gateways",
@@ -333,6 +345,16 @@ const LAYER_BANS = [
         target: "src/lib/drizzle",
         message:
           "Routes must not touch persistence — src/lib/drizzle is owned by gateways (ADR-0016).",
+      },
+      {
+        target: "src/lib/auth/session",
+        message:
+          "Routes must not resolve request authentication — delegate to src/server/fn (ADR-0016).",
+      },
+      {
+        target: "src/server/cloudflare",
+        message:
+          "Routes must not access Cloudflare persistence bindings directly — delegate through src/server/fn to a gateway (ADR-0016).",
       },
     ],
   },
@@ -362,6 +384,11 @@ const LAYER_BANS = [
       {
         target: "src/components",
         message: "Gateways never import components (ADR-0016).",
+      },
+      {
+        target: "src/lib/auth",
+        message:
+          "Gateways must not resolve request authentication — derive identity in src/server/fn and pass it downward (ADR-0016).",
       },
     ],
   },
@@ -421,6 +448,13 @@ const layerBoundaries = {
     const checkImportSource = (node) => {
       const source = node.source;
       if (!source || typeof source.value !== "string") return;
+      const externalViolation = layerEntry.externalBans?.find(
+        (ban) => source.value === ban.source
+      );
+      if (externalViolation !== undefined) {
+        context.report({ message: externalViolation.message, node });
+        return;
+      }
       const target = resolveImportTarget(fileSrcDir, source.value);
       if (target === null) return;
       const violated = layerEntry.bans.find(
@@ -433,6 +467,7 @@ const layerBoundaries = {
 
     return {
       ImportDeclaration: checkImportSource,
+      ImportExpression: checkImportSource,
       ExportNamedDeclaration: checkImportSource,
       ExportAllDeclaration: checkImportSource,
     };

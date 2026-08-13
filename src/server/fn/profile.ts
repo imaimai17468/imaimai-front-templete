@@ -1,14 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { UpdateUserSchema } from "@/entities/user";
-import {
-  fetchCurrentUser,
-  updateUser,
-  updateUserAvatar,
-} from "@/gateways/user";
+import { updateUser, updateUserAvatar } from "@/gateways/user";
 import {
   avatarSizeRejection,
   MAX_AVATAR_BYTES,
 } from "@/lib/storage/avatar-validation";
+import { getCurrentUser } from "@/server/fn/user";
 
 export const updateProfileFn = createServerFn({ method: "POST" })
   .validator((data: unknown) => {
@@ -18,7 +15,7 @@ export const updateProfileFn = createServerFn({ method: "POST" })
     return UpdateUserSchema.parse({ name: data.get("name") });
   })
   .handler(async ({ data }) => {
-    const user = await fetchCurrentUser();
+    const user = await getCurrentUser();
     if (!user) {
       return { error: "Not authenticated" } as const;
     }
@@ -50,7 +47,7 @@ export const uploadAvatarFn = createServerFn({ method: "POST" })
     return { file };
   })
   .handler(async ({ data }) => {
-    const user = await fetchCurrentUser();
+    const user = await getCurrentUser();
     if (!user) {
       return { error: "Not authenticated" } as const;
     }
