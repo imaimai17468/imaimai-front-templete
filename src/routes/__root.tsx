@@ -12,6 +12,10 @@ import { Toaster } from "@/components/ui/sonner";
 import { getCurrentUserFn } from "@/server/fn/user";
 import "@/styles.css";
 
+if (import.meta.env.DEV && !import.meta.env.SSR) {
+  void import("react-grab");
+}
+
 export const Route = createRootRoute({
   loader: async () => {
     const user = await getCurrentUserFn();
