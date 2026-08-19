@@ -24,7 +24,15 @@ if [ -z "$VER" ]; then
   echo "[aegis-hydrate] Could not parse the @fuwasegu/aegis version pin from .mcp.json - skipping (fix the pin to re-enable hydration)."
   exit 0
 fi
-AEGIS="npx -y @fuwasegu/aegis@${VER}"
+# Runner: prefer bunx - this repo's package manager (package.json
+# "packageManager") and faster to start than npx. Both resolve the same pinned
+# package, so only startup cost differs. npx is the fallback for environments
+# without bun (AGENTS.md, "Degraded Environments").
+if command -v bunx >/dev/null 2>&1; then
+  AEGIS="bunx @fuwasegu/aegis@${VER}"
+else
+  AEGIS="npx -y @fuwasegu/aegis@${VER}"
+fi
 
 if [ ! -f .aegis/aegis.db ]; then
   echo "[aegis-hydrate] No local Aegis DB - rebuilding it from the aegis-share bundle..."
