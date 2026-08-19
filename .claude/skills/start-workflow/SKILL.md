@@ -58,13 +58,13 @@ Draft a short plan in the parent session. The plan should include:
 - Acceptance criteria
 - Verification steps (`bun run typecheck` / `bun run test` / build / manual smoke test as applicable)
 
-Keep the plan tight. For genuinely complex multi-step work (≥ 5 distinct edits across unrelated areas, or work requiring TDD discipline), delegate the plan-writing itself to `superpowers:writing-plans` or use `superpowers:brainstorming` first. Per ADR-0006, superpowers' methodology skills are tools called from inside this orchestration — not parallel orchestrators. Do not let them auto-trigger as independent decision-makers.
+Keep the plan tight. For genuinely complex multi-step work (≥ 5 distinct edits across unrelated areas, or work requiring TDD discipline), settle the approach before planning it: propose the credible alternatives, get the user's approval, and only then write the plan.
 
 If the feature involves non-obvious state transitions (wizards / multi-step forms, auth or session flows, async guards like disable-while-loading or unsaved-changes, permission branching), write a `specs/<feature>.spec.md` (format: the `verify-spec` skill's "Format" section) and verify it via `/verify-spec specs/<feature>.spec.md`. Per ADR-0029 this is one agent you dispatch and wait on: `spec-verifier` formalizes the spec into a state machine, hunts counterexamples across all lenses, replays each against the machine, and returns the CONFIRMED survivors. Fix the design for every CONFIRMED counterexample before implementing (ADR-0010/0029). Do NOT auto re-run — a repeat verification is a fresh pass the user explicitly asks for after reviewing the findings. The deciding factor is interaction complexity, not scale.
 
 ### 5. Implement
 
-**The parent implements directly by default.** Use `superpowers:test-driven-development` for pure functions and well-specified logic. Nothing checks each edit as you make it (ADR-0025 removed the per-edit lint hook), so run the project's checks yourself at the points step 6 names.
+**The parent implements directly by default.** Pure functions and well-specified logic are written test-first: the failing test, confirmed to fail for the expected reason, then the smallest code that passes it. Nothing checks each edit as you make it (ADR-0025 removed the per-edit lint hook), so run the project's checks yourself at the points step 6 names.
 
 Delegate only when the delegation criteria (AGENTS.md / ADR-0012) are met:
 

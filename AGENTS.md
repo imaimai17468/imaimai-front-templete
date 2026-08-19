@@ -12,16 +12,16 @@ Ticket-granularity work (implement a component, fix a non-trivial bug, refactor 
 
 Triggers that apply with or without start-workflow:
 
-- **Planning / design requests**: use `superpowers:writing-plans` and enter plan mode before implementing.
-- **Creative or architectural judgment** (new UI, architecture decisions, approach selection): run `superpowers:brainstorming` before any code change.
-- **Any code change outside start-workflow**: consult Aegis first — the consultation contract is `.claude/rules/aegis.md`, loaded every session. When adding a pure function or presenter, use `superpowers:test-driven-development`.
+- **Planning / design requests**: enter plan mode before implementing. A plan states the goal in one sentence, the files to create or edit with one line each, the acceptance criteria, and the verification steps.
+- **Creative or architectural judgment** (new UI, architecture decisions, approach selection): propose the approach with its alternatives, and implement only after the user approves. Presenting a design and starting in the same breath skips the gate.
+- **Any code change outside start-workflow**: consult Aegis first — the consultation contract is `.claude/rules/aegis.md`, loaded every session. Pure functions and presenters are written test-first: the failing test, confirmed to fail for the expected reason, then the smallest code that passes it.
+- **Debugging**: reproduce the failure and check what changed recently before forming a hypothesis about the cause; test that hypothesis with the smallest possible change. Do not try changes to see which one sticks.
 - **Writing or amending an ADR**: use the `write-adr` skill. Records live only in `aegis-share/source/` (ADR-0021), and the share pipeline does not fire on hand edits — forgetting it leaves Aegis stale (`doctor` must report in_sync).
 
 ## Degraded Environments
 
-Not every session has the full toolchain — remote containers may lack MCP servers, plugin skills, or local binaries. A missing tool downgrades a step; it never silently waives it, and it never blocks unrelated work. MUST-rules are satisfied by the corresponding degraded path below (the Aegis one lives with its MUST in `.claude/rules/aegis.md`):
+Not every session has the full toolchain — remote containers may lack MCP servers or local binaries. A missing tool downgrades a step; it never silently waives it, and it never blocks unrelated work. MUST-rules are satisfied by the corresponding degraded path below (the Aegis one lives with its MUST in `.claude/rules/aegis.md`):
 
-- **superpowers skills absent**: carry out the step's intent manually — planning, brainstorming, and TDD are disciplines, not plugins — and note that the skill was unavailable.
 - **Gate binaries absent** (e.g. `similarity-ts`): the SessionStart env-check reports this. Treat a skipped check as "not run", never as "passed", and say so when reporting completion.
 
 ## Design Philosophy
