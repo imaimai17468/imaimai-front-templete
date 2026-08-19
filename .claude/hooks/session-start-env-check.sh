@@ -2,12 +2,11 @@
 # SessionStart hook (ADR-0013): environment validation + session marker reset.
 #
 # The enforcement stack assumes tools that not every machine has (similarity-ts
-# binary, python3, Aegis MCP server, plugin-provided skills). Gates that silently
-# skip a missing dependency create sessions whose guarantees differ by machine
-# with no signal. This hook makes the degrade visible at session start.
+# binary, python3, node). Gates that silently skip a missing dependency create
+# sessions whose guarantees differ by machine with no signal. This hook makes the
+# degrade visible at session start.
 #
-# It also clears the per-session gate markers — the aegis consultation window and
-# degrade markers, and the review cycle's `.review-stamp` — so one session's state
+# It also clears the review cycle's `.review-stamp`, so one session's state
 # cannot leak into a different one. (Until ADR-0029 the review cycle had four
 # markers; the other three existed only to pair two dispatches, and went with the
 # second one.) That clear is conditional, and the block below is both the
@@ -89,21 +88,18 @@ if [ -f "$ROOT/.claude/.session-id" ]; then
 fi
 
 if [ -z "$FORCE_CLEAR" ] && [ -n "$SESSION_ID" ] && [ "$SESSION_ID" = "$PREV_SESSION_ID" ]; then
-  echo "[env-check] SessionStart re-fired for the session already running — gate markers kept."
+  echo "[env-check] SessionStart re-fired for the session already running — the gate marker is kept."
 else
   # `.session-id` is deliberately NOT in this list: it is the memory the check
   # above reads, so clearing it would make every SessionStart look like a new
   # session and restore the bug this guard exists to fix.
-  rm -f \
-    "$ROOT/.claude/.aegis-stamp" \
-    "$ROOT/.claude/.aegis-unavailable" \
-    "$ROOT/.claude/.review-stamp"
+  rm -f "$ROOT/.claude/.review-stamp"
 
   if [ -n "$SESSION_ID" ]; then
     printf '%s' "$SESSION_ID" > "$ROOT/.claude/.session-id"
   else
     rm -f "$ROOT/.claude/.session-id"
-    echo "[env-check] SessionStart payload carried no session_id — markers cleared unconditionally (fail-safe)."
+    echo "[env-check] SessionStart payload carried no session_id — the marker is cleared unconditionally (fail-safe)."
   fi
 fi
 
@@ -128,8 +124,6 @@ if [ "${#MISSING[@]}" -gt 0 ]; then
 else
   echo "[env-check] Gate dependencies present (jq, bun, similarity-ts, python3, node with module.registerHooks)."
 fi
-
-echo "[env-check] Note: MCP tools (aegis) and plugin skills (superpowers) cannot be probed from shell. If aegis_compile_context is not in your tool list, follow AGENTS.md 'Degraded environments' (.claude/.aegis-unavailable marker)."
 
 # Model continuity (AGENTS.md, ADR-0014): surface the session model so a
 # non-strongest parent is visible from turn one. SessionStart is the only

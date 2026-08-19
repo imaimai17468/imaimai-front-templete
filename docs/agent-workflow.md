@@ -504,7 +504,7 @@ canonical は aegis-share/source/（import_doc の直接投入は乖離を生む
 | 状態機械の仕様 | `.claude/skills/verify-spec/SKILL.md` の Format セクション |
 | Hooks | [`.claude/hooks/`](../.claude/hooks/) + [`.claude/settings.json`](../.claude/settings.json) |
 | パーミッション | [`.claude/settings.json`](../.claude/settings.json) |
-| MCP サーバー | [`.mcp.json`](../.mcp.json) |
+| MCP サーバー | `.mcp.json`（削除済み） |
 | ADR | `aegis-share/source/documents/` |
 | CI | [`.github/workflows/ci.yaml`](../.github/workflows/ci.yaml)（呼ぶスクリプトは ci.yaml のステップ一覧が実体） |
 | 依存自動更新 | [`.github/dependabot.yml`](../.github/dependabot.yml) |

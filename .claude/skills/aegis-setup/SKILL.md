@@ -42,7 +42,7 @@ Using the **admin** surface tools:
 ```
 
 For this repository's Aegis policy, follow the
-[workspace Aegis rule](../../rules/aegis.md).
+workspace Aegis rule (removed from this repository).
 
 After init, `.aegis/` directory is created with the database. It self-manages its `.gitignore`.
 
@@ -122,7 +122,7 @@ claude mcp add aegis -- npx -y @fuwasegu/aegis --surface agent
 ```
 
 For Codex in this repository, follow the
-[workspace Aegis rule](../../rules/aegis.md).
+workspace Aegis rule (removed from this repository).
 
 ## SLM Configuration (Optional)
 

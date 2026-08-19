@@ -54,12 +54,7 @@ worker-configuration.d.ts
 storybook-static
 .superpowers/
 
-# aegis (runtime DB is local-only; aegis-share/ is version-controlled)
-.aegis/
-
 # claude code runtime artifacts
 .claude/scheduled_tasks.lock
 .claude/.review-stamp
-.claude/.aegis-stamp
-.claude/.aegis-unavailable
 .claude/.session-id

@@ -7,12 +7,12 @@
 // glob to the args); mcpAllowlist entries (`server:tool`) are case-insensitive
 // and glob-capable.
 {
-  // `server:tool` entries; server names are the keys in .cursor/mcp.json.
+  // `server:tool` entries. A project-registered server's name would come from
+  // .cursor/mcp.json, which does not exist here — every current entry is a
+  // plugin/built-in server (see the note below).
   // NOTE: once this key exists it replaces the in-app MCP allowlist entirely,
   // so any other MCP tool to auto-approve must be added here too.
   "mcpAllowlist": [
-    "aegis:*",
-    "aegis-admin:*",
     // plugin/built-in servers have no mcp.json key and get prefixed runtime
     // ids (e.g. plugin-context7-context7), so match by glob
     "*context7*:*",

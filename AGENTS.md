@@ -14,13 +14,13 @@ Triggers that apply with or without start-workflow:
 
 - **Planning / design requests**: enter plan mode before implementing. A plan states the goal in one sentence, the files to create or edit with one line each, the acceptance criteria, and the verification steps.
 - **Creative or architectural judgment** (new UI, architecture decisions, approach selection): propose the approach with its alternatives, and implement only after the user approves. Presenting a design and starting in the same breath skips the gate.
-- **Any code change outside start-workflow**: consult Aegis first — the consultation contract is `.claude/rules/aegis.md`, loaded every session. Pure functions and presenters are written test-first: the failing test, confirmed to fail for the expected reason, then the smallest code that passes it.
+- **Any code change outside start-workflow**: pure functions and presenters are written test-first: the failing test, confirmed to fail for the expected reason, then the smallest code that passes it.
 - **Debugging**: reproduce the failure and check what changed recently before forming a hypothesis about the cause; test that hypothesis with the smallest possible change. Do not try changes to see which one sticks.
 - **Writing or amending an ADR**: use the `write-adr` skill. Records live only in `aegis-share/source/` (ADR-0021), and the share pipeline does not fire on hand edits — forgetting it leaves Aegis stale (`doctor` must report in_sync).
 
 ## Degraded Environments
 
-Not every session has the full toolchain — remote containers may lack MCP servers or local binaries. A missing tool downgrades a step; it never silently waives it, and it never blocks unrelated work. MUST-rules are satisfied by the corresponding degraded path below (the Aegis one lives with its MUST in `.claude/rules/aegis.md`):
+Not every session has the full toolchain — remote containers may lack MCP servers or local binaries. A missing tool downgrades a step; it never silently waives it, and it never blocks unrelated work. MUST-rules are satisfied by the corresponding degraded path below:
 
 - **Gate binaries absent** (e.g. `similarity-ts`): the SessionStart env-check reports this. Treat a skipped check as "not run", never as "passed", and say so when reporting completion.
 
@@ -69,11 +69,10 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/rules/*.mdc` as a file-level symlink so Cursor sessions load the same text (ADR-0031 — never replace a symlink with a copy):
 
-- **`aegis.md`** (always applied) — the Aegis consultation contract: mandatory process enforcement, the degraded path when the MCP tools are absent, and the `deploy-adapters` warning
 - **`react.md`** (`**/*.tsx`) — the official [Rules of React](https://ja.react.dev/reference/rules): purity, hooks at the top level, component splitting, module organization — project-independent principles only; this repository's concrete placements are in ADR-0016
 - **`design.md`** (`src/**/*.css`, `src/**/*.tsx`) — design system: Wairo (和色) palette, squircle corners, typography, spacing, component conventions
 
-`src/` is layered — `routes/` → `server/fn/` → `gateways/` → `entities/`, imports flow downward only, and `server/fn/` is the authorization boundary. The same contract fixes the placement homes: `src/components/` (`features/` for domain UI, `shared/<name>/` for cross-feature UI, `ui/` for shadcn CLI output — never rename `ui/`, `components.json` aliases resolve to it) and `src/lib/` for framework/infrastructure adapters and generic non-component values. The contract is ADR-0016; Aegis serves it for any `src/**` edit.
+`src/` is layered — `routes/` → `server/fn/` → `gateways/` → `entities/`, imports flow downward only, and `server/fn/` is the authorization boundary. The same contract fixes the placement homes: `src/components/` (`features/` for domain UI, `shared/<name>/` for cross-feature UI, `ui/` for shadcn CLI output — never rename `ui/`, `components.json` aliases resolve to it) and `src/lib/` for framework/infrastructure adapters and generic non-component values. The contract is ADR-0016.
 
 The next rule is not path-scoped — it applies whenever you write any instruction document, whatever the file type:
 
@@ -105,7 +104,7 @@ The parent session implements directly by default (ADR-0012). Delegate by **cont
 
 A sequential dispatch whose result the next step needs takes **`run_in_background: false`**. Subagents run in the background by default, so otherwise the parent's turn ends at the launch and the result arrives in a later turn rather than inside the one that asked for it — see `review-diff` step 0 for what has and has not been observed about whether the flag works here, the one place that observation is recorded. The parallel units above stay at the default. Fire-and-forget dispatch and SendMessage resumption are reserved for long-running independent research where mid-course correction is unnecessary.
 
-Briefings must be self-contained — goal, file paths, acceptance criteria, and the relevant guidelines quoted in. Consult Aegis before every dispatch.
+Briefings must be self-contained — goal, file paths, acceptance criteria, and the relevant guidelines quoted in.
 
 **Agent Teams** (experimental; opt in per session by setting `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` yourself — deliberately not preset in `.claude/settings.json`) only when **peer dialogue itself is the value**: competing-hypothesis debugging, review perspectives that challenge each other, cross-layer API negotiation. 3–5 teammates, never editing the same file, one team at a time; no `/resume` support, so avoid them in interruptible sessions. **Nested subagents** (max depth 5) let a worker offload messy exploration to a child scout and keep its own context clean, models getting cheaper with depth (worker `sonnet` → scout `haiku`); the default ceiling is depth 2 and every extra level multiplies token cost, so justify deeper nesting explicitly. Never nest for sequential work — do it inline.
 
@@ -119,7 +118,7 @@ Briefings must be self-contained — goal, file paths, acceptance criteria, and 
 | Code review — `code-reviewer` | `sonnet` (re-run on `opus` only after a demonstrably weak result) |
 | Long-horizon autonomous workers, complex migrations, escalation after a weak result | `opus` |
 
-`.claude/agents/*.md` carries each pinned agent's `permissionMode` and tool grants. Do not change either from memory: ADR-0004 holds why the mode is set in agent frontmatter rather than project settings and what `auto` does and does not relax, and ADR-0014 requires a scored eval run against `scripts/evals/` before any model-tier change. Aegis serves both for a `.claude/agents/**` edit.
+`.claude/agents/*.md` carries each pinned agent's `permissionMode` and tool grants. Do not change either from memory: ADR-0004 holds why the mode is set in agent frontmatter rather than project settings and what `auto` does and does not relax, and ADR-0014 requires a scored eval run against `scripts/evals/` before any model-tier change.
 
 ### Model continuity (non-Fable parent)
 
@@ -134,7 +133,3 @@ Before every commit, review the uncommitted diff (users trigger it as `/review-d
 Handle findings: never dismiss as "pre-existing" when the file is in the diff; apply rules literally; when in doubt, fix. Findings must propose a concrete alternative, respect rule scope qualifiers, and not re-report dismissed findings.
 
 Design-time verification of interaction-complex features uses the same single pinned-agent pattern (`/verify-spec specs/<feature>.spec.md`, ADR-0029): `spec-verifier` formalizes the spec into a state machine, hunts counterexamples across all lenses, replays each against the machine, and returns the CONFIRMED survivors. Design-time only — no commit gate.
-
-## Aegis
-
-The Aegis consultation contract — when to consult, the consultation steps, the degraded path, and the `deploy-adapters` warning — is `.claude/rules/aegis.md`, an always-applied rule loaded every session (ADR-0031). It binds exactly as if it were printed here.

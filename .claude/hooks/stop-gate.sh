@@ -7,7 +7,6 @@
 #      so a pre-existing failure the agent cannot fix does not loop forever
 # 2. Markdown link check — blocking; dead relative links are decidable by opening
 #    the path, so they belong here rather than in a reviewer's judgment
-# 3. Aegis sync check — warn if aegis-share/source/ changed without running the pipeline
 
 set -uo pipefail
 
@@ -46,7 +45,7 @@ if [ -z "$(git status --porcelain)" ]; then
   exit 0
 fi
 
-# ==== Shared file lists (quality gate + aegis sync check) ====
+# ==== Shared file lists (quality gate + link check) ====
 # Full-path, newline-delimited (porcelain + awk would truncate filenames
 # containing spaces and silently skip the gate for them). --no-renames lists
 # both sides of a rename so neither path escapes the checks.
@@ -59,7 +58,7 @@ ALL_FILES=$(printf '%s\n%s' "$CHANGED" "$UNTRACKED" | sort -u)
 CODE_CHANGED=$(printf '%s\n' "$ALL_FILES" | grep -cE '\.(ts|tsx|js|jsx|mjs|cjs|json|css)$' || true)
 
 # Initialised here, not only inside the quality-gate block below, because the
-# summary and the aegis branch both read it and `set -u` aborts the whole hook on an
+# summary reads it and `set -u` aborts the whole hook on an
 # unset name. A docs-only turn skips the quality gate entirely, so similarity is not
 # "unavailable" there — it was never attempted, which the summary states separately.
 SIM_AVAILABLE=true
@@ -172,48 +171,16 @@ else
   LINKS_AVAILABLE=false
 fi
 
-# The skipped-check notes are built HERE, before any branch can exit, because a
-# check that did not run has to be reported on every path out of this hook. The
-# aegis branch below used to `exit 0` before these were assembled, so on a machine
-# without python3 a turn touching aegis-share/source/ ended having said nothing
-# about the link check not running — "never silently pass" held everywhere except
-# that one combination.
+# Computed once here and read by both summary branches below. Nothing between
+# this point and the summary can exit, so the position is for reuse, not order.
 LINK_NOTE="md links: clean"
 [ "$LINKS_AVAILABLE" = "false" ] && LINK_NOTE="md links: SKIPPED (python3 not installed)"
 SIM_NOTE="similarity: clean"
 [ "$SIM_AVAILABLE" = "false" ] && SIM_NOTE="similarity: SKIPPED (similarity-ts not installed)"
 
-# ==== 3. Aegis sync check ====
-
-RULES_CHANGED=$(printf '%s' "$ALL_FILES" | grep -c '^aegis-share/source/' || true)
-
-if [ "$RULES_CHANGED" -gt 0 ]; then
-  TRANSCRIPT=$(printf '%s' "$INPUT" | jq -r '.transcript_path // ""' 2>/dev/null || true)
-
-  AEGIS_CALLED=false
-  if [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ]; then
-    if grep -q 'aegis_sync_docs\|aegis_import_doc\|share-materialize' "$TRANSCRIPT" 2>/dev/null; then
-      AEGIS_CALLED=true
-    fi
-  fi
-
-  if [ "$AEGIS_CALLED" = false ]; then
-    # Carries the skipped-check notes too — see the comment above section 3.
-    SKIPS=""
-    [ "$LINKS_AVAILABLE" = "false" ] && SKIPS=" (${LINK_NOTE})"
-    # Only when the quality gate actually ran — on a docs-only turn similarity was
-    # never attempted, so reporting it as skipped-for-missing-binary would be false.
-    [ "$CODE_CHANGED" -gt 0 ] && [ "$SIM_AVAILABLE" = "false" ] && SKIPS="${SKIPS} (${SIM_NOTE})"
-    jq -n --arg skips "$SKIPS" '{
-      systemMessage: ("⚠️ Aegis sync check: aegis-share/source/ was modified but no knowledge-base update was detected in this session. Run `share-format` -> `share-lint` -> `share-materialize` -> `share-export` with `npx -y @fuwasegu/aegis@<pin in .mcp.json>` (preferred), or use aegis_sync_docs / aegis_import_doc." + $skips)
-    }'
-    exit 0
-  fi
-fi
-
 if [ "$CODE_CHANGED" -gt 0 ]; then
-  jq -n --arg sim "$SIM_NOTE" --arg links "$LINK_NOTE" '{"systemMessage":("✅ Stop gate: typecheck / lint / format pass (knip: clean, " + $sim + ", " + $links + ", aegis: synced)")}'
+  jq -n --arg sim "$SIM_NOTE" --arg links "$LINK_NOTE" '{"systemMessage":("✅ Stop gate: typecheck / lint / format pass (knip: clean, " + $sim + ", " + $links + ")")}'
 else
-  jq -n --arg links "$LINK_NOTE" '{"systemMessage":("✅ Stop gate: no code-relevant changes (quality gate skipped, " + $links + ", aegis: synced)")}'
+  jq -n --arg links "$LINK_NOTE" '{"systemMessage":("✅ Stop gate: no code-relevant changes (quality gate skipped, " + $links + ")")}'
 fi
 exit 0
