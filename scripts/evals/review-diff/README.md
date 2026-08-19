@@ -1,5 +1,7 @@
 # review-diff golden eval
 
+> 過去の記録は当時の ADR 番号を含む。意思決定記録は 2026-08-19 に廃止したので、これらは解決しない参照として意図的に残している — 記録を後から書き換えないため。
+
 Seeded-defect fixtures measuring the review pipeline (the single `code-reviewer`
 agent, ADR-0029). Each fixture is a patch file (self-declared base) + an expected
 findings list. Scores and costs are recorded per run; a model-tier change to

@@ -36,8 +36,6 @@ http://localhost:5173 でアクセス。`@cloudflare/vite-plugin` により、`b
 
 データベース・認証・ストレージのセットアップ手順は [docs/DATABASE_SETUP.md](./docs/DATABASE_SETUP.md)、デプロイ・ロールバック・シークレット運用は [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)、このテンプレートを新規プロジェクトに使う手順は [docs/FORKING.md](./docs/FORKING.md) を参照。
 
-AI エージェント用の Aegis ナレッジベース（`.aegis/`、gitignore 済み）は、初回の Claude Code セッション開始時に SessionStart フックが `aegis-share/`（git 管理のバンドル）から自動構築します。手動で構築する場合: `npx -y @fuwasegu/aegis share-hydrate`
-
 ## Scripts
 
 | Command                   | Description                                     |
@@ -87,7 +85,7 @@ AI エージェント用の Aegis ナレッジベース（`.aegis/`、gitignore 
 | `test-review-gate.py` | レビューゲートのフック挙動を実物に対して検証 |
 | `test-md-links.py` | 上記リンクチェッカー自身の回帰テスト |
 | `test-bash-guard.py` | Bash ガード（`.env` 保護・`find` の到達範囲・コミットゲート）の検証 |
-| `test-aegis-gate.py` | Aegis dispatch ゲートの検証 |
+| `test-review-scope.py` | コミットゲートが判定に使う「レビュー済みパス集合」の検証 |
 
 `test-*.py` は該当フックを触ったときに手で回します（`python3 scripts/test-review-gate.py` など）。未インストールの環境では SessionStart の env-check が欠落を報告し、Stop gate はリンクチェックを「スキップした」と明示します（黙って合格扱いにはなりません）。
 
@@ -138,13 +136,11 @@ src/
 
 ## AI エージェントで開発する
 
-このリポジトリは Claude Code (および superpowers / aegis MCP) を前提に組まれています。これらが使えない環境でも、AGENTS.md「Degraded Environments」の代替経路で動作は継続します（無いツールは明示的に degrade し、黙って省略はしません）。フロー全体・hook 構成・aegis / superpowers の役割分担などは:
+規約は **[AGENTS.md](./AGENTS.md)** 1枚に集約されています。毎セッション自動でロードされ、チケット粒度の作業手順（明確化 → 設計判断 → 計画 → 実装 → 自己チェック → レビュー → コミット）もここにあります。ファイル種別ごとの規約は `.claude/rules/` に置かれ、対象を編集するときだけロードされます。この手順自体は MCP サーバやプラグインの有無に依存しません — 一部のオプション skill（`lighthouse-audit` / `performance-audit` / `launch-checklist`）は `chrome-devtools-mcp` を使いますが、コアの流れには必須ではありません。
 
-- **[docs/agent-workflow.md](./docs/agent-workflow.md)** — タスクの流れ・常時動いている層・メンテナンスループ・特殊フローの全体像
-- **[AGENTS.md](./AGENTS.md)** — 常時ロードされるコーディング規約。指示 (directive) だけを運び、根拠は引用先の ADR、手順・トラブルシュートは skill (`write-adr` / `aegis-ops` 等) が持つ (ADR-0008/0030)
-- **Aegis KB (`aegis-share/source/documents/`)** — 主要設計判断の長期記録 (なぜ今こう決まっているのか)
+コミット前のレビューは `/review-diff` が担います。親が `code-reviewer` を1体 dispatch し、そのエージェントが「候補の網羅探索 → 重複統合 → 実コードでの反証 → 生存分の返却」を1コンテキストで通します。完走がコミットゲートに、そのレビューが読んだパスの一覧を記録します。**そこに無いファイルに触れたコミットはフックがブロックします** — 一方、返ってきた所見への修正は同じパス群なので通り、再レビューは要りません（find → verify → fix → commit の一発勝負）。1回のレビューから複数コミットに分割するのも普通にできます。
 
-`/start-workflow` は ticket 粒度の作業をエージェントが検知して自律的に invoke します（手動でも呼べます）。trivial な 1 行修正・config 1 値・docs only な変更はこのフローに乗せず直接編集します。コミット前のレビューは `/review-diff` が担います — 親が `code-reviewer` を1体 dispatch し、そのエージェントが「候補の網羅探索 → 重複統合 → 実コードでの反証 → 生存分の返却」を1コンテキストで通します。完走（かつ報告が空でないこと）がコミットゲートを stamp します（ADR-0029）。レビューが完走するまで `git commit` はフックでブロックされます（ADR-0013）。返ってきた所見への修正は stamp を消さないので再レビューは不要です — find → verify → fix → done の一発勝負です（ADR-0019/0020）。反証を別 context に置く独立性は仕組みから規律に落ちており、その受容したリスクは ADR-0029 に記録されています。レビューパイプライン自体の品質は golden eval（`scripts/evals/`）で回帰計測されます（ADR-0014）。コミット・PR はエージェントが AGENTS.md の規律に従って提案し、ユーザー確認後に実行します。
+状態遷移が非自明な機能（ウィザード、認証・セッション、非同期ガード、権限分岐）は `specs/<feature>.spec.md` を書いて `/verify-spec` で design-time に検証します。レビューと spec 検証それぞれの品質は golden eval（`scripts/evals/`）で回帰計測されます。コミット・PR はエージェントが AGENTS.md の規律に従って提案し、ユーザー確認後に実行します。
 
 ## shadcn/ui
 

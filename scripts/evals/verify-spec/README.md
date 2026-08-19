@@ -1,5 +1,7 @@
 # verify-spec golden eval
 
+> 過去の記録は当時の ADR 番号を含む。意思決定記録は 2026-08-19 に廃止したので、これらは解決しない参照として意図的に残している — 記録を後から書き換えないため。
+
 Seeded-loophole spec fixtures measuring the spec pipeline (the single
 `spec-verifier` agent, ADR-0010/0029). Runs before 2026-08-07 measured two agents
 (`spec-verifier` hunter + `spec-checker`, ADR-0015), so their token figures are
