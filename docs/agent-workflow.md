@@ -198,10 +198,10 @@ eval: `scripts/evals/verify-spec/`（シード反例を持つ spec fixture で
 ADR とルールを管理する **コンテキストコンパイラ**。全ドキュメントを読ませる代わりに、必要なドキュメントだけを決定論的に返す。経路は2つあり、返り値も別の節に入る:
 
 - **エッジ**（`path-requires` / `command-requires`）→ `base`。ファイルパスとコマンドから辿る。
-- **タグ**（`tag-mappings`）→ `expanded`。`intent_tags` から辿る。パスに相関しない意図がここに乗る。例と追加基準（reach test）は [`aegis-ops`](../.claude/skills/aegis-ops/SKILL.md) skill と ADR-0023 を参照。
+- **タグ**（`tag-mappings`）→ `expanded`。`intent_tags` から辿る。パスに相関しない意図がここに乗る。例と追加基準（reach test）は `aegis-ops` skill（削除済み） と ADR-0023 を参照。
 - **使い所**: `/start-workflow` step 2 で `aegis_compile_context({ target_files, plan, command, intent_tags })` を呼び、関連 ADR / ルールを relevance スコア付きで取得。カタログは `aegis_get_known_tags` で引く。subagent dispatch 前は `pre-agent-aegis-guard.sh` が未呼び出しをブロック。
 - **データ**: `aegis-share/`（git 管理の共有バンドル: `source/documents/` の Markdown + `source/edges/` の glob→doc_id + `source/tag-mappings.json` の tag→doc_id）と `.aegis/aegis.db`（gitignore 済みローカル SQLite、SessionStart で自動構築）。`manifest.json` の `includes_tag_mappings` が false なら `expanded` は発火しない。
-- **メンテ**: `aegis-share/source/` が canonical。ADR の起票・編集から share パイプラインの実行までの手順一式は [`write-adr`](../.claude/skills/write-adr/SKILL.md) skill が持つ（ADR-0030。`aegis_import_doc` の直接投入は source と乖離を生むため使わない）。compile が綺麗に通らないとき（過大応答・content 欠落・空カタログ・miss 報告）は [`aegis-ops`](../.claude/skills/aegis-ops/SKILL.md) skill。`aegis_sync_docs` は file-anchored な文書を再アンカーする道具で、ADR-0021 以降どの文書も file-anchored ではないため実質 no-op。compile miss は `aegis_observe` → `/aegis-triage`。
+- **メンテ**: `aegis-share/source/` が canonical。ADR の起票・編集から share パイプラインの実行までの手順一式は `write-adr` skill（削除済み） が持つ（ADR-0030。`aegis_import_doc` の直接投入は source と乖離を生むため使わない）。compile が綺麗に通らないとき（過大応答・content 欠落・空カタログ・miss 報告）は `aegis-ops` skill（削除済み）。`aegis_sync_docs` は file-anchored な文書を再アンカーする道具で、ADR-0021 以降どの文書も file-anchored ではないため実質 no-op。compile miss は `aegis_observe` → `/aegis-triage`。
 - 詳細は `aegis-share/source/documents/` の ADR を参照。
 
 ### 3.2 Superpowers（プラグイン: `superpowers@claude-plugins-official`）— 「どう進めるか」
@@ -401,7 +401,7 @@ canonical は aegis-share/source/（import_doc の直接投入は乖離を生む
 
 ### ADR
 
-非自明な設計判断がされたら新しい ADR を追加。起票するかの判断基準・MADR-lite 形式・連番規則・amendment の作法は [`/write-adr`](../.claude/skills/write-adr/SKILL.md) skill が持つ（旧 AGENTS.md「ADR form」を ADR-0030 で移送）。
+非自明な設計判断がされたら新しい ADR を追加。起票するかの判断基準・MADR-lite 形式・連番規則・amendment の作法は `/write-adr` skill（削除済み） が持つ（旧 AGENTS.md「ADR form」を ADR-0030 で移送）。
 
 ### スキル / エージェント / プロンプトのチューニング
 

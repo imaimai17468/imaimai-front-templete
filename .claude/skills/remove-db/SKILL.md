@@ -53,7 +53,7 @@ Two things above are easy to misread as deployment removals; they are not:
   alias for that import (step 3). It goes with it.
 
 **Do not delete `src/ssr.tsx`.** It is the Worker entry that `wrangler.toml#main`
-points at (ADR-0007). It calls `createStartHandler` and touches no binding, so
+points at. It calls `createStartHandler` and touches no binding, so
 it survives this procedure untouched — including its
 `satisfies ExportedHandler<CloudflareEnv>` annotation, which still typechecks
 after every binding is gone (`wrangler types` emits an empty `CloudflareEnv`
@@ -161,7 +161,7 @@ Leave `compatibility_flags = ["nodejs_compat"]` in place unless you have
 verified nothing in the remaining build needs it — it is cheap to keep and
 removing it on a hunch is how a deploy breaks in production rather than locally.
 
-Then regenerate the env types, per ADR-0005's edit-then-regenerate ritual:
+Then regenerate the env types — `wrangler.toml` changed, so `cf-typegen` follows:
 
 ```bash
 bun run cf-typegen
@@ -182,8 +182,8 @@ rm -f .env.local .env.local.example
 reason.
 
 After deleting the env files, the only secrets path left is
-`wrangler secret put` — which is where production secrets belong anyway
-(ADR-0017). `docs/DEPLOYMENT.md` stays and still describes it.
+`wrangler secret put` — which is where production secrets belong anyway.
+`docs/DEPLOYMENT.md` stays and still describes it.
 
 ## 5. Update `package.json`
 
@@ -220,7 +220,7 @@ workerd)" row, for instance, describes a capability this procedure removes
 without naming any of the terms. Reading is the check; the greps are a backstop.
 
 Surfaces to go through: `README.md`, `docs/DEPLOYMENT.md`, `docs/FORKING.md`,
-`.claude/settings.json`, and `aegis-share/source/documents/` (amend in place — see below).
+and `.claude/settings.json`.
 
 **Do not strip these while you are in there.** They are the deployment, which
 this procedure keeps:
@@ -248,7 +248,7 @@ this procedure keeps:
   there is no auth left. Generalize the consequence to whatever consumes the
   secret. Step 7's grep is ASCII-only and will not flag that word. Finally, the
   section's closing paragraph, which points local secrets at the deleted env
-  file, becomes "secrets go to `wrangler secret put`" (ADR-0017).
+  file, becomes "secrets go to `wrangler secret put`".
 - `docs/DEPLOYMENT.md`'s rollback commands and their explanation survive. What
   goes is the **重要な限界** block after them (the D1-schema caveat and its
   three-step staged-migration list) — it only matters when a database exists.
@@ -259,24 +259,12 @@ this procedure keeps:
   Section 4 (now 3) also ends by telling the reader to consult `/remove-db` for
   removing auth — circular advice for a fork that just ran it. Drop that
   sentence and the profile-feature deletion list with it.
-- ADRs: inside this repository, never delete one — a retired decision is
-  superseded, not removed (the `write-adr` skill). A fork is the documented
-  exception, because it is a different repository: `docs/FORKING.md` section 3
-  lets it drop the ADRs that only record this template's own process history, and
-  requires dropping the matching `source/edges/` entries and re-running the share
-  pipeline when it does. Either way the two below are **amended in place, never
-  dropped** — they describe mechanisms this removal changes, so a fork that keeps
-  them needs the note and a fork that discards them needs neither.
-  **ADR-0017**'s standing exception exists solely for
-  drizzle-kit's `CLOUDFLARE_API_TOKEN`, so removing drizzle-kit closes it — its
-  own acceptance test ("the remote path works with the token slot empty") is now
-  satisfied trivially. **ADR-0007**'s amendment describes bindings being read
-  through `getCloudflareEnv()` in `src/server/cloudflare.ts`, a file step 1
-  deletes; note that this sub-mechanism no longer applies while the migration
-  decision itself stands. ADR-0005 (`wrangler types`) and the rest of ADR-0007
-  keep governing, since `cf-typegen` and the Worker deployment survive.
-- If Aegis is initialized in your fork and you amended any ADR, sync
-  `aegis-share/source/` and run the share pipeline.
+- Two documented rules stop applying and their homes have to say so.
+  `.env.local.example` and `docs/DATABASE_SETUP.md` describe the standing
+  exception that lets drizzle-kit's `CLOUDFLARE_API_TOKEN` sit on disk; removing
+  drizzle-kit closes that exception, so the wording goes with the files. And
+  `wrangler.toml`'s comment on declaring secrets for `wrangler types` keeps
+  applying to whatever secrets remain — check it names none that were deleted.
 
 ## 7. Residual reference check
 
@@ -295,9 +283,10 @@ Read every hit and decide — a hit is not automatically a leftover. An empty
 result is not evidence the removal is complete either: this finds the eight
 literals above in the paths above, and anything phrased differently or living
 elsewhere is invisible to it. Two exclusions from the path list are deliberate:
-the ADR records keep their D1 / drizzle references as decision history
-(including ADR-0017's amended exception), and generic infra checklists (e.g.
-`.claude/skills/launch-checklist`) keep their generic D1 / R2 mentions.
+the dated eval records under `scripts/evals/` keep whatever D1 / drizzle
+references they hold, because a record describes what was true when it was
+written, and generic infra checklists (e.g. `.claude/skills/launch-checklist`)
+keep their generic D1 / R2 mentions.
 
 Dead markdown links to the deleted database doc need no grep — `python3
 scripts/check-md-links.py` fails on any link whose target is gone, and the Stop
@@ -309,8 +298,9 @@ grep -rn "DATABASE_SETUP" README.md AGENTS.md .claude/ docs/DEPLOYMENT.md docs/F
 ```
 
 Hits inside this skill file are its own instructions, not leftovers. The path
-discipline is the same as above and for the same reason: the Aegis knowledge base
-cites that file as history and must not be "fixed".
+discipline is the same as above and for the same reason: a dated record that
+cites the file describes what was true when it was written and must not be
+"fixed".
 
 ## 8. Verify
 
@@ -348,10 +338,9 @@ bodies in Japanese per that rule):
 3. `chore:` — remove the DB / auth dependencies (package.json / bun.lock)
 4. `docs:` — remove DB- and auth-related documentation. Stage every surface
    step 6 touched: `README.md`, `docs/DEPLOYMENT.md`, `docs/FORKING.md`,
-   `.claude/settings.json`, and the amended `adr-0007` / `adr-0017` documents
-   (plus the regenerated bundle under `aegis-share/`, if your
-   fork runs Aegis). AGENTS.md's Commits discipline forbids `git add -A`, so a
-   surface missing from this list is a surface left uncommitted.
+   `.claude/settings.json`, `.env.local.example` and `wrangler.toml`.
+   AGENTS.md's Commits discipline forbids `git add -A`, so a surface missing
+   from this list is a surface left uncommitted.
 
 Intermediate commits are not individually buildable (e.g. commit 1 deletes the
 vitest stub that commit 2's config change stops referencing) — verify on the

@@ -1,16 +1,16 @@
 ---
 name: verify-spec
-description: Agent-based model checking of a state-machine spec — one agent formalizes, hunts counterexamples, replays each against the machine, and returns the survivors (ADR-0010/0029). Design step of start-workflow for interaction-complex features (wizards, auth/session flows, async guards, permission branching). Pass the spec path as the argument.
+description: Agent-based model checking of a state-machine spec — one agent formalizes, hunts counterexamples, replays each against the machine, and returns the survivors. Design step for interaction-complex features (wizards, auth/session flows, async guards, permission branching). Pass the spec path as the argument.
 user_invocable: true
 ---
 
 # Verify Spec
 
-Design-time model check of a state-machine spec (ADR-0010; single-agent mechanism per ADR-0029, superseding the two-agent pipeline of ADR-0015). The check runs as **one parent-dispatched agent, `spec-verifier`, executing four ordered stages in one fresh context**: formalize the spec, hunt counterexamples, replay each candidate against the machine, return the survivors. Write the spec as a state machine, then the agent tries to break it: "戻る・リロード・二重送信・権限変更の合わせ技で壊せるか？"
+Design-time model check of a state-machine spec. The check runs as **one parent-dispatched agent, `spec-verifier`, executing four ordered stages in one fresh context**: formalize the spec, hunt counterexamples, replay each candidate against the machine, return the survivors. Write the spec as a state machine, then the agent tries to break it: "戻る・リロード・二重送信・権限変更の合わせ技で壊せるか？"
 
-Benchmarking (2026-07-04) collapsed the old parallel workflow (4 hunt lanes, ~800K tokens) to one comprehensive hunter + one checker; ADR-0029 then merged those two into one agent, because the second dispatch's independence was not what made the pipeline expensive.
+Benchmarking (2026-07-04) collapsed the old parallel workflow (4 hunt lanes, ~800K tokens) to one comprehensive hunter + one checker; those two were then merged into one agent, because the second dispatch's independence was not what made the pipeline expensive.
 
-**hunt ≠ replay is now a discipline, not a mechanism.** Stage C shares a context with Stage B and can see the reasoning that produced each candidate. ADR-0029 records that downgrade as its accepted risk; the counterweight is that every verdict must cite the machine row, guard or check number it turned on, so a confirmation that never re-derived the trace is visible in the output.
+**hunt ≠ replay is now a discipline, not a mechanism.** Stage C shares a context with Stage B and can see the reasoning that produced each candidate. That downgrade is the accepted risk of the single-agent shape; the counterweight is that every verdict must cite the machine row, guard or check number it turned on, so a confirmation that never re-derived the trace is visible in the output.
 
 **Honest limit**: "found = real" but "not found ≠ safe." If the hunt fails, the result is an outage, not a clean pass (fail-closed).
 
@@ -23,7 +23,7 @@ Benchmarking (2026-07-04) collapsed the old parallel workflow (4 hunt lanes, ~80
 
 ## When to run
 
-Step 4 of `start-workflow`, for features with non-obvious state transitions: wizards / multi-step forms, auth or session flows, async guards (disable-while-loading, unsaved-changes), permission branching. The deciding factor is interaction complexity, not scale — even three states hide loopholes once back, cancel, retry, reload, double-submit or permission branching are involved. Skip static screens and plain CRUD. Write the spec first (see **Format** below), then run this. Fix the design for every CONFIRMED counterexample before implementing.
+Step 4 of the AGENTS.md Workflow sequence, for features with non-obvious state transitions: wizards / multi-step forms, auth or session flows, async guards (disable-while-loading, unsaved-changes), permission branching. The deciding factor is interaction complexity, not scale — even three states hide loopholes once back, cancel, retry, reload, double-submit or permission branching are involved. Skip static screens and plain CRUD. Write the spec first (see **Format** below), then run this. Fix the design for every CONFIRMED counterexample before implementing.
 
 ## Format
 

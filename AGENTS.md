@@ -8,14 +8,17 @@ This file carries the directives. Step-by-step procedure for a named task lives 
 
 This section is the single source of the process directives. Hooks only point back here — when a hook message and this document disagree, this document wins.
 
-Ticket-granularity work (implement a component, fix a non-trivial bug, refactor a module, add a feature) MUST go through the `start-workflow` skill. Detect this yourself — the user does not need to type `/start-workflow`. Interaction-complex features (wizards, auth/session flows, async guards, permission branching) additionally get a state-machine spec in `specs/` verified by the `verify-spec` workflow before implementation.
+Ticket-granularity work — implement a component, fix a non-trivial bug, refactor a module, add a feature — follows the sequence below. Detect it yourself; the user does not announce it. Trivial edits (a one-line fix, a single config value, docs-only changes) skip it. If unsure which an edit is, follow the sequence: applying it to a borderline-trivial task costs less than skipping it on a borderline-non-trivial one.
 
-Triggers that apply with or without start-workflow:
+Two things are **not** waived by that exemption, because they are disciplines rather than orchestration. Step 2's approval gate applies to any change that embeds a design choice, however few lines it is. Step 5's test-first and debugging rules apply to any change at all — a one-line bug fix is precisely where reproducing the failure before patching it matters most.
 
-- **Planning / design requests**: enter plan mode before implementing. A plan states the goal in one sentence, the files to create or edit with one line each, the acceptance criteria, and the verification steps.
-- **Creative or architectural judgment** (new UI, architecture decisions, approach selection): propose the approach with its alternatives, and implement only after the user approves. Presenting a design and starting in the same breath skips the gate.
-- **Any code change outside start-workflow**: pure functions and presenters are written test-first: the failing test, confirmed to fail for the expected reason, then the smallest code that passes it.
-- **Debugging**: reproduce the failure and check what changed recently before forming a hypothesis about the cause; test that hypothesis with the smallest possible change. Do not try changes to see which one sticks.
+1. **Clarify.** If the acceptance criteria or constraints are ambiguous, resolve it from the codebase, the assets, or git history first. If that fails, ask **one** question — whichever ambiguity blocks the most work. Do not send a checklist.
+2. **Judge the design.** Creative or architectural work — new UI, a new pattern, a choice between credible alternatives — is proposed with its alternatives and implemented only after the user approves. Presenting a design and starting in the same breath skips the gate.
+3. **Plan.** One sentence of goal, the files to create or edit with one line each, the acceptance criteria, and the verification steps (`bun run typecheck` / `bun run check` / `bun run test` / build / manual smoke test, as applicable). Enter plan mode when the user asked for a plan.
+4. **Spec the interaction, when it is complex.** Wizards and multi-step forms, auth or session flows, async guards, permission branching: write `specs/<feature>.spec.md` in the format the `verify-spec` skill defines and run `/verify-spec specs/<feature>.spec.md` before implementing. Fix the design for every CONFIRMED counterexample. The deciding factor is interaction complexity, not scale.
+5. **Implement.** The parent implements directly by default — see Delegation for the exceptions. Pure functions and presenters are written test-first: the failing test, confirmed to fail for the expected reason, then the smallest code that passes it. When debugging, reproduce the failure and check what changed recently before forming a hypothesis, then test that hypothesis with the smallest possible change — never try changes to see which one sticks.
+6. **Self-check.** Read the full diff. Run `bun run typecheck`, `bun run check` and `bun run test` — nothing checks your edits as you make them, and the Stop gate fires only at the end of the turn. Confirm the acceptance criteria from step 3 — and for anything a subagent implemented, read the diff itself rather than the subagent's summary.
+7. **Review, then commit.** See Review. Propose the commit split and wait for the user.
 
 ## Degraded Environments
 
