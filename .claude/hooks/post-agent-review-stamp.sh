@@ -3,12 +3,12 @@
 # having reported something.
 #
 # NOTE ON THE FILENAME. This is a `SubagentStop` hook, not a `PostToolUse` one.
-# The `post-agent-` prefix is kept deliberately: ADR-0013, ADR-0015 and ADR-0019
-# each name this file, and an ADR records what was decided at the time and is
-# never rewritten (the "write-adr" skill), so renaming would leave three records
-# pointing at a path that does not exist. ADR-0022 records the move.
+# The `post-agent-` prefix is historical: the hook was registered on
+# `PostToolUse(Agent)` before that event turned out to fire at dispatch rather
+# than at completion. `.claude/settings.json` and `scripts/test-review-gate.py`
+# both name the file, so renaming it is a change with its own blast radius.
 #
-# WHY THE EVENT IS SubagentStop (ADR-0022). `PostToolUse(Agent)` fires when the
+# WHY THE EVENT IS SubagentStop. `PostToolUse(Agent)` fires when the
 # Agent tool call *returns*, and that call returns as soon as the subagent is
 # launched (every Agent result in this project's transcripts is
 # `status: "async_launched"` — background execution is the platform default). So
@@ -16,20 +16,20 @@
 # whether or not the agent ever produced a verdict. `SubagentStop` is the event
 # that fires when a subagent finishes.
 #
-# WHAT THIS HOOK CHECKS (ADR-0029). One fact, and it is the whole gate:
+# WHAT THIS HOOK CHECKS. One fact, and it is the whole gate:
 #
 #   the review agent finished having reported something
 #
-# ADR-0022 required two. The second — that the parent did not edit between the
-# finder's completion and the verifier's dispatch — existed only because there
-# were two dispatches to have a "between". ADR-0029 merged the finder and the
-# verifier into one `code-reviewer` agent running four internal stages, so
+# An earlier design required two. The second — that the parent did not edit
+# between the finder's completion and the verifier's dispatch — existed only
+# because there were two dispatches to have a "between". Merging the finder and
+# the verifier into one `code-reviewer` agent running four internal stages left
 # `.finder-done`, `.finder-hash`, `.pair-ok`, `pre-agent-review-pair.sh` and
 # `lib-review-hash.sh` are gone with it. What that costs is stated rather than
 # papered over: a parent that edits *while* the agent runs now earns a stamp for
 # a tree the agent never read. Hashing dispatch → completion cannot close it,
 # because the agent holds `Bash` and its own scratch files land inside any such
-# window — ADR-0022 tried both ends and each was voided that way.
+# window — both ends were tried and each was voided that way.
 #
 # The blank-report check below is therefore load-bearing in a way it was not when
 # it was one of three facts.
@@ -64,7 +64,7 @@ case "$EVENT" in
   SubagentStop|subagentStop) ;;
   *)
     jq -n --arg ev "${EVENT:-<absent>}" '{
-      systemMessage: ("⚠️ post-agent-review-stamp.sh received hook_event_name=" + $ev + " but only SubagentStop proves the review agent FINISHED (ADR-0022). No stamp was written. Check the SubagentStop registration in .claude/settings.json.")
+      systemMessage: ("⚠️ post-agent-review-stamp.sh received hook_event_name=" + $ev + " but only SubagentStop proves the review agent FINISHED. No stamp was written. Check the SubagentStop registration in .claude/settings.json.")
     }'
     exit 0
     ;;
@@ -89,7 +89,7 @@ fi
 
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 
-# THE INVOCATION ARGUMENT IS IGNORED, DELIBERATELY (ADR-0029). Under ADR-0022
+# THE INVOCATION ARGUMENT IS IGNORED, DELIBERATELY. An earlier
 # `.claude/settings.json` registered this script twice, passing `finder` or
 # `verifier` to select a branch. There is one agent now and one registration,
 # which passes nothing. Whether the harness re-reads `.claude/settings.json`
@@ -115,7 +115,7 @@ ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 # reviewed nothing, and that is not hypothetical — a review agent died on an API
 # 529 mid-run on 2026-07-30 and the marker files alone stamped an unearned gate.
 #
-# ADR-0022 deferred this check because the field's behaviour was unobserved and
+# This check was once deferred because the field's behaviour was unobserved and
 # "a gate that wedges every commit is worse than the narrow hole it closes". That
 # risk is met by splitting the two cases rather than by skipping the check:
 #   - present but blank/whitespace -> the agent reported nothing. Refuse to stamp.
@@ -204,7 +204,7 @@ printf '%s\n' "$SCOPE" > "$ROOT/.claude/.review-stamp"
 
 if [ "$REPORTED" = "absent" ]; then
   jq -n '{
-    systemMessage: "⚠️ Review stamp written, but this SubagentStop payload carried no last_assistant_message, so whether the review agent actually reported could not be checked (ADR-0022). Confirm you received its findings before committing."
+    systemMessage: "⚠️ Review stamp written, but this SubagentStop payload carried no last_assistant_message, so whether the review agent actually reported could not be checked. Confirm you received its findings before committing."
   }'
 fi
 

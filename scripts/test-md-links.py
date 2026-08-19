@@ -5,7 +5,7 @@
 A link checker that reports "clean" is indistinguishable from one that finds
 nothing at all, so every case it must catch and every case it must not report is
 pinned here. The false-positive half matters as much as the other: this repository
-quotes example link syntax inside code spans and fences (ADR-0021 records the
+quotes example link syntax inside code spans and fences (the knowledge base that
 retired ADR cross-link form that way), and a checker that flagged those would be
 switched off within a day.
 
@@ -245,7 +245,7 @@ else:
 
 # On a case-insensitive filesystem (APFS by default) `Path.exists()` answers True for
 # the wrong case, so a wrong-case link passed the local Stop gate and failed in CI —
-# splitting the local gate from the step meant to be redundant with it (ADR-0013).
+# splitting the local gate from the step meant to be redundant with it.
 # `target_exists` checks each component against real directory entries instead.
 print("a wrong-case target is dead even where the filesystem disagrees")
 check("exact case", "[x](./real.md)\n", [])

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stop combined gate (ADR-0013):
+# Stop combined gate:
 # 1. Quality gate — typecheck / lint / format / knip / similarity (blocking)
 #    — runs only when code-relevant files changed (docs-only turns skip it)
 #    — respects stop_hook_active: if this Stop was already blocked once, a

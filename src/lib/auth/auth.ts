@@ -13,7 +13,7 @@ const buildAuth = () => {
   // compatibility_date >= 2025-04-01
   // (https://developers.cloudflare.com/workers/configuration/environment-variables/).
   // The secret is still handed over explicitly, because explicit wiring does
-  // not depend on that runtime flag staying default (ADR-0018).
+  // not depend on that runtime flag staying default.
   // The absence has to be fatal here: better-auth's own guard against its
   // public default secret only fires when it believes it is in production, and
   // it decides that from NODE_ENV — which is not a Worker binding, so it is

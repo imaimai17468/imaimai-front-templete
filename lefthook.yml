@@ -1,4 +1,4 @@
-# Check-only on pre-commit (ADR-0013): auto-fix (--fix / --write + stage_fixed)
+# Check-only on pre-commit: auto-fix (--fix / --write + stage_fixed)
 # rewrote staged content at commit time, so the committed bytes could differ
 # from what the code-reviewer agent reviewed. A failing check tells the author
 # to run `bun run check:fix` and re-stage — the reviewed diff is what lands.

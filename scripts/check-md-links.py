@@ -14,7 +14,7 @@ Exists because the review pipeline was being used as a link checker. On
 dead relative links left behind in other documents were found by the
 `code-reviewer` agent — three separate times, after three separate claims that
 the rewiring was complete. A dead link is decidable by opening the path, so it
-belongs in a gate, not in a reviewer's judgment (ADR-0013).
+belongs in a gate, not in a reviewer's judgment.
 
 It answers exactly one question: does the target of a relative link resolve to
 something on disk? Anchors are not validated (the target's heading structure is
@@ -41,9 +41,9 @@ SCHEME = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 def strip_code(text):
     """Blank out fenced blocks and inline code spans, preserving line numbers.
 
-    Required, not cosmetic: `aegis-share/source/documents/adr-0021.md` documents
-    the retired ADR cross-link syntax as `` `](0015-flat-review-pipeline.md)` ``,
-    and `.claude/skills/` files show example paths inside fences. Those are
+    Required, not cosmetic: documents here have quoted retired cross-link syntax
+    such as `` `](0015-flat-review-pipeline.md)` `` inside code spans, and
+    `.claude/skills/` files show example paths inside fences. Those are
     quoted text, not links — reporting them would train the reader to ignore this
     check. Replacement is space-for-character so every surviving link keeps its
     real line and column.
@@ -225,7 +225,7 @@ def target_exists(path):
     link passes. CI runs on ext4 and fails it. That split the local gate from the
     CI step that is supposed to be redundant with it — a contributor would be told
     "clean" locally and surprised by CI, which is precisely the equivalence
-    ADR-0013 assumes. So the case is verified explicitly rather than delegated to
+    the gate assumes. So the case is verified explicitly rather than delegated to
     the filesystem.
 
     Directory listings are cached: a document with many links otherwise re-reads the

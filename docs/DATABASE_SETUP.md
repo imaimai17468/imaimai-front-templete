@@ -95,7 +95,9 @@ wrangler d1 list
 `db:generate` / `db:pull` / `db:studio`) だけで、D1 以外の権限は不要。R2 の
 バケット作成には Wrangler の認証を使い、このトークンは使わない。権限を
 最小に保つこと自体がこのトークンをディスクに置く唯一の
-緩和策になっている (ADR-0017 の例外条項)。
+緩和策になっている。秘密をディスクに置かない原則の唯一の例外として許容しているもので、
+常設ではない — リモートスキーマ作業が終わったら削除するかローテーションし、タスクの間に
+置いたままにしない。
 
 R2 バケットは非公開のまま使用します。アバターは認証と所有権確認を行う
 `/api/avatars` 経由で配信するため、公開エンドポイントやカスタムドメインを
@@ -205,7 +207,7 @@ bun run deploy
 このプロジェクトのデプロイ先は Cloudflare **Workers** です（Pages ではありません）。本番環境の値は種類で置き場所が変わります。
 
 - **秘密でない値**（`BETTER_AUTH_URL` など）: `wrangler.toml` の `[vars]` に置き、コミットする。
-- **秘密の値**（`BETTER_AUTH_SECRET` / `GOOGLE_CLIENT_SECRET` など）: `wrangler secret put <NAME>` で登録する。ファイルには絶対に書かない — `.env*` は `.gitignore` 済みかつエージェントからの読み取りも拒否設定です（ADR-0004）。
+- **秘密の値**（`BETTER_AUTH_SECRET` / `GOOGLE_CLIENT_SECRET` など）: `wrangler secret put <NAME>` で登録する。ファイルには絶対に書かない — `.env*` は `.gitignore` 済みかつエージェントからの読み取りも拒否設定です。
 
 ```bash
 wrangler secret put BETTER_AUTH_SECRET

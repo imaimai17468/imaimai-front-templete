@@ -7,8 +7,8 @@
 #
 # They used to carry two hand-written regexes with a comment telling the next
 # editor to "keep the two patterns in step". That is an instruction, and this
-# repository has concluded three times that instructions are not mechanisms
-# (ADR-0001, ADR-0013, ADR-0019). They drifted, and the drift was a hole: the
+# repository has concluded more than once that instructions are not mechanisms.
+# They drifted, and the drift was a hole: the
 # consume side required whitespace after `commit` while the gate accepted any
 # `\bcommit\b`, so `git commit;true` was refused-until-stamped on the way in and
 # then NOT recognised as a landed commit on the way out — leaving a live stamp to

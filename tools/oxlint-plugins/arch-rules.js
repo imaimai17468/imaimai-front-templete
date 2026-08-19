@@ -317,8 +317,8 @@ const componentFileNaming = {
   },
 };
 
-// Layer contract from ADR-0016: routes → server/fn → gateways → entities,
-// imports flow downward only. Only the bans the ADR states are encoded here —
+// Layer contract: routes → server/fn → gateways → entities,
+// imports flow downward only. Only the bans that contract states are encoded here —
 // side categories (components, lib outside drizzle) stay unrestricted.
 const LAYER_BANS = [
   {
@@ -327,34 +327,34 @@ const LAYER_BANS = [
       {
         source: "cloudflare:workers",
         message:
-          "Routes must not access Cloudflare bindings directly — delegate through src/server/fn to a gateway (ADR-0016).",
+          "Routes must not access Cloudflare bindings directly — delegate through src/server/fn to a gateway.",
       },
       {
         source: "@tanstack/react-start/server",
         message:
-          "Routes must not resolve request context directly — delegate to src/server/fn (ADR-0016).",
+          "Routes must not resolve request context directly — delegate to src/server/fn.",
       },
     ],
     bans: [
       {
         target: "src/gateways",
         message:
-          "Routes must not import gateways directly — go through a server function in src/server/fn (ADR-0016).",
+          "Routes must not import gateways directly — go through a server function in src/server/fn.",
       },
       {
         target: "src/lib/drizzle",
         message:
-          "Routes must not touch persistence — src/lib/drizzle is owned by gateways (ADR-0016).",
+          "Routes must not touch persistence — src/lib/drizzle is owned by gateways.",
       },
       {
         target: "src/lib/auth/session",
         message:
-          "Routes must not resolve request authentication — delegate to src/server/fn (ADR-0016).",
+          "Routes must not resolve request authentication — delegate to src/server/fn.",
       },
       {
         target: "src/server/cloudflare",
         message:
-          "Routes must not access Cloudflare persistence bindings directly — delegate through src/server/fn to a gateway (ADR-0016).",
+          "Routes must not access Cloudflare persistence bindings directly — delegate through src/server/fn to a gateway.",
       },
     ],
   },
@@ -364,7 +364,7 @@ const LAYER_BANS = [
       {
         target: "src/routes",
         message:
-          "Server functions must not import routes — imports flow downward only (ADR-0016).",
+          "Server functions must not import routes — imports flow downward only.",
       },
     ],
   },
@@ -374,21 +374,21 @@ const LAYER_BANS = [
       {
         target: "src/routes",
         message:
-          "Gateways must not import routes — imports flow downward only (ADR-0016).",
+          "Gateways must not import routes — imports flow downward only.",
       },
       {
         target: "src/server/fn",
         message:
-          "Gateways must not import server functions — imports flow downward only (ADR-0016).",
+          "Gateways must not import server functions — imports flow downward only.",
       },
       {
         target: "src/components",
-        message: "Gateways never import components (ADR-0016).",
+        message: "Gateways never import components.",
       },
       {
         target: "src/lib/auth",
         message:
-          "Gateways must not resolve request authentication — derive identity in src/server/fn and pass it downward (ADR-0016).",
+          "Gateways must not resolve request authentication — derive identity in src/server/fn and pass it downward.",
       },
     ],
   },
@@ -398,17 +398,17 @@ const LAYER_BANS = [
       {
         target: "src/routes",
         message:
-          "Entities import nothing from the layers above — routes are above entities (ADR-0016).",
+          "Entities import nothing from the layers above — routes are above entities.",
       },
       {
         target: "src/server/fn",
         message:
-          "Entities import nothing from the layers above — server functions are above entities (ADR-0016).",
+          "Entities import nothing from the layers above — server functions are above entities.",
       },
       {
         target: "src/gateways",
         message:
-          "Entities import nothing from the layers above — gateways are above entities (ADR-0016).",
+          "Entities import nothing from the layers above — gateways are above entities.",
       },
     ],
   },

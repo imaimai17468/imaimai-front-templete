@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SessionStart hook (ADR-0013): environment validation + session marker reset.
+# SessionStart hook: environment validation + session marker reset.
 #
 # The enforcement stack assumes tools that not every machine has (similarity-ts
 # binary, python3, node). Gates that silently skip a missing dependency create
@@ -7,11 +7,11 @@
 # degrade visible at session start.
 #
 # It also clears the review cycle's `.review-stamp`, so one session's state
-# cannot leak into a different one. (Until ADR-0029 the review cycle had four
+# cannot leak into a different one. (The review cycle once had four
 # markers; the other three existed only to pair two dispatches, and went with the
 # second one.) That clear is conditional, and the block below is both the
 # mechanism and the reasoning: a SessionStart re-firing for the session already
-# running keeps the markers unless `source` says otherwise (ADR-0028), while a
+# running keeps the markers unless `source` says otherwise, while a
 # missing or unreadable `session_id` still clears unconditionally. The rule for
 # membership is "every marker under .claude/ that a hook creates", not the list
 # down there: enumerating is how one gets forgotten when another is added. They
@@ -34,10 +34,10 @@ ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 # jq all fall through to the unconditional clear this hook did before the check
 # existed. A payload without the field therefore cannot make the gate more
 # permissive than it already was. `session_id` is read here rather than trusted
-# from documentation, per ADR-0022; `scripts/test-review-gate.py` pins both
+# from documentation; `scripts/test-review-gate.py` pins both
 # branches.
 #
-# `source` narrows it further (ADR-0028). The payload carries one of `startup`,
+# `source` narrows it further. The payload carries one of `startup`,
 # `resume`, `clear`, `compact`, `fork`, and two of those begin a different body of
 # work no matter what the id says: `clear` starts a new conversation in place, and
 # `fork` splits one off. Those always clear. It is an EXTRA trigger, not a
@@ -46,12 +46,11 @@ ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 # `startup`.
 #
 # `resume` is deliberately NOT in that list, and the reason is measured rather
-# than reasoned. It was in the first draft, because ADR-0027 named `/resume` as an
-# id-reuse risk. But `resume` is observed firing inside continuous work here — one
+# than reasoned. It was in the first draft, because `/resume` is an id-reuse risk. But `resume` is observed firing inside continuous work here — one
 # logged instance carried an id that matched the remembered one — and that single
 # occurrence cost a stamp within minutes of the draft landing, reinstating the
-# treadmill ADR-0027 exists to stop. How often it recurs is unmeasured and does not
-# matter: once was enough. The id-reuse risk stays accepted, as ADR-0027 had it.
+# treadmill this check exists to stop. How often it recurs is unmeasured and does
+# not matter: once was enough. The id-reuse risk stays accepted.
 #
 # Accepted residual risk, in the unsafe direction, stated rather than papered
 # over. `pre-bash-guard.sh` authorises a commit once `.review-stamp` lists every
@@ -127,7 +126,7 @@ else
   echo "[env-check] Gate dependencies present (jq, bun, similarity-ts, python3, node with module.registerHooks)."
 fi
 
-# Model continuity (AGENTS.md, ADR-0014): surface the session model so a
+# Model continuity (AGENTS.md): surface the session model so a
 # non-strongest parent is visible from turn one. SessionStart is the only
 # hook event that receives `model`, and it is optional; mid-session model
 # switches fire no hook at all — this check catches session start only.

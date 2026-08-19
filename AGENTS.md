@@ -1,14 +1,14 @@
 # Project Instructions
 
-This project runs on **TanStack Start** on Cloudflare Workers (ADR-0007) — not Next.js. APIs and conventions may differ from your training data.
+This project runs on **TanStack Start** on Cloudflare Workers — not Next.js. APIs and conventions may differ from your training data.
 
-This file carries directives. The reasoning behind them lives in the ADRs it cites, and step-by-step procedure lives in the skills it names (ADR-0030) — follow the pointer rather than assuming the summary is the whole rule.
+This file carries the directives. Step-by-step procedure for a named task lives in the skill it names — follow the pointer rather than assuming the summary is the whole rule.
 
 ## Workflow
 
 This section is the single source of the process directives. Hooks only point back here — when a hook message and this document disagree, this document wins.
 
-Ticket-granularity work (implement a component, fix a non-trivial bug, refactor a module, add a feature) MUST go through the `start-workflow` skill (ADR-0006). Detect this yourself — the user does not need to type `/start-workflow`. Interaction-complex features (wizards, auth/session flows, async guards, permission branching) additionally get a state-machine spec in `specs/` verified by the `verify-spec` workflow before implementation (ADR-0010).
+Ticket-granularity work (implement a component, fix a non-trivial bug, refactor a module, add a feature) MUST go through the `start-workflow` skill. Detect this yourself — the user does not need to type `/start-workflow`. Interaction-complex features (wizards, auth/session flows, async guards, permission branching) additionally get a state-machine spec in `specs/` verified by the `verify-spec` workflow before implementation.
 
 Triggers that apply with or without start-workflow:
 
@@ -16,7 +16,6 @@ Triggers that apply with or without start-workflow:
 - **Creative or architectural judgment** (new UI, architecture decisions, approach selection): propose the approach with its alternatives, and implement only after the user approves. Presenting a design and starting in the same breath skips the gate.
 - **Any code change outside start-workflow**: pure functions and presenters are written test-first: the failing test, confirmed to fail for the expected reason, then the smallest code that passes it.
 - **Debugging**: reproduce the failure and check what changed recently before forming a hypothesis about the cause; test that hypothesis with the smallest possible change. Do not try changes to see which one sticks.
-- **Writing or amending an ADR**: use the `write-adr` skill. Records live only in `aegis-share/source/` (ADR-0021), and the share pipeline does not fire on hand edits — forgetting it leaves Aegis stale (`doctor` must report in_sync).
 
 ## Degraded Environments
 
@@ -61,22 +60,24 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 **Comments explain the code directly below them — nothing else.** No narration, no supplements, no restating the obvious. If code needs a comment to be understood, strengthen the types or the structure until it doesn't; a comment is never the fix for unclear code.
 
+**Generated types stay generated:** after any `wrangler.toml` change, run `bun run cf-typegen`. `worker-configuration.d.ts` is its output — never hand-edit it.
+
 **Verification before completion:** Never report done without running the project's type-checker and linter, fixing ALL errors. If none configured, state that explicitly.
 
 **Never escape the type system to move on:** no `as` (except `as const`), `any`, `@ts-ignore`/`@ts-expect-error`/`@ts-nocheck`, non-null `!`, or lint-disable comments to silence an error. Fix the type (narrowing, guards, schema validation, `satisfies`). If you genuinely can't, dispatch a subagent with the right skill; if it still fails, STOP and ask — never silently cast or suppress.
 
 ## Rules
 
-Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/rules/*.mdc` as a file-level symlink so Cursor sessions load the same text (ADR-0031 — never replace a symlink with a copy):
+Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/rules/*.mdc` as a file-level symlink so Cursor sessions load the same text (never replace a symlink with a copy):
 
-- **`react.md`** (`**/*.tsx`) — the official [Rules of React](https://ja.react.dev/reference/rules): purity, hooks at the top level, component splitting, module organization — project-independent principles only; this repository's concrete placements are in ADR-0016
+- **`react.md`** (`**/*.tsx`) — the official [Rules of React](https://ja.react.dev/reference/rules): purity, hooks at the top level, component splitting, module organization — project-independent principles only; this repository's concrete placements are in the paragraph below
 - **`design.md`** (`src/**/*.css`, `src/**/*.tsx`) — design system: Wairo (和色) palette, squircle corners, typography, spacing, component conventions
 
-`src/` is layered — `routes/` → `server/fn/` → `gateways/` → `entities/`, imports flow downward only, and `server/fn/` is the authorization boundary. The same contract fixes the placement homes: `src/components/` (`features/` for domain UI, `shared/<name>/` for cross-feature UI, `ui/` for shadcn CLI output — never rename `ui/`, `components.json` aliases resolve to it) and `src/lib/` for framework/infrastructure adapters and generic non-component values. The contract is ADR-0016.
+`src/` is layered — `routes/` → `server/fn/` → `gateways/` → `entities/`, imports flow downward only, and `server/fn/` is the authorization boundary. The same contract fixes the placement homes: `src/components/` (`features/` for domain UI, `shared/<name>/` for cross-feature UI, `ui/` for shadcn CLI output — never rename `ui/`, `components.json` aliases resolve to it) and `src/lib/` for framework/infrastructure adapters and generic non-component values.
 
 The next rule is not path-scoped — it applies whenever you write any instruction document, whatever the file type:
 
-**Instruction documents.** Point at other files, do not restate them — a copy is correct when written and wrong after the next edit to what it copied (ADR-0030). Never write a claim about another file, commit, tool, or count of any of them without opening or running it in the same turn; if that is not worth the cost, drop the assertive form instead. A grep only matches the literals you predicted, so never offer "expect zero hits" as proof. After changing a step, reconcile every other mention of what it names. The rule extends to the code in front of you, not only to other files: a comment may state what you have seen the code do, never what you meant it to do. "This ordering prevents X" and "a missing binary degrades to Y" are each one execution from proof, and both were written false here and caught by a reviewer before they shipped. Where a comment claims a check is load-bearing, delete the check and watch its test fail; that is the one form of this rule conviction cannot satisfy. Long enumerations rot; prefer a principle. All of this aims at procedures: ADRs and audit records describe decided state rather than action, so summarising one is not the restating this forbids.
+**Instruction documents.** Point at other files, do not restate them — a copy is correct when written and wrong after the next edit to what it copied. Never write a claim about another file, commit, tool, or count of any of them without opening or running it in the same turn; if that is not worth the cost, drop the assertive form instead. A grep only matches the literals you predicted, so never offer "expect zero hits" as proof. After changing a step, reconcile every other mention of what it names. The rule extends to the code in front of you, not only to other files: a comment may state what you have seen the code do, never what you meant it to do. "This ordering prevents X" and "a missing binary degrades to Y" are each one execution from proof, and both were written false here and caught by a reviewer before they shipped. Where a comment claims a check is load-bearing, delete the check and watch its test fail; that is the one form of this rule conviction cannot satisfy. Long enumerations rot; prefer a principle. All of this aims at procedures: An audit record describes decided state rather than action, so summarising one is not the restating this forbids.
 
 ## Testing
 
@@ -92,13 +93,13 @@ White-box testing: tests cover internal logic paths and branches, not just input
 
 ## Agents
 
-Write all agent-facing docs (`.claude/`, AGENTS.md, CLAUDE.md, `aegis-share/source/documents/`) in English.
+Write all agent-facing docs (`.claude/`, AGENTS.md, CLAUDE.md) in English.
 
 ### Delegation
 
-The parent session implements directly by default (ADR-0012). Delegate by **context impact, not task size**:
+The parent session implements directly by default. Delegate by **context impact, not task size**:
 
-- **Parent edits directly**: normal implementation, fixes, integration, and post-review follow-ups — whenever the scope is understood. There is no per-edit lint hook (ADR-0025); checks run across `lefthook.yml`, `.claude/hooks/stop-gate.sh` and `.github/workflows/ci.yaml`. Open the relevant file before stating where a specific check runs — a wrong claim here was once cited by a review to confirm a gap that did not exist.
+- **Parent edits directly**: normal implementation, fixes, integration, and post-review follow-ups — whenever the scope is understood. There is no per-edit lint hook; checks run across `lefthook.yml`, `.claude/hooks/stop-gate.sh` and `.github/workflows/ci.yaml`. Open the relevant file before stating where a specific check runs — a wrong claim here was once cited by a review to confirm a gap that did not exist.
 - **Explore / research subagent**: bulk file reads, log digging, cross-cutting investigation whose raw output the parent won't reference again — only the summary should enter the parent's context.
 - **Parallel implementation subagents**: multiple independent units with no shared files and no output dependency (multiple Agent calls in one message). Dependent units run sequentially — or stay in the parent. Never parallelize units that edit the same file.
 
@@ -118,20 +119,20 @@ Briefings must be self-contained — goal, file paths, acceptance criteria, and 
 | Code review — `code-reviewer` | `sonnet` (re-run on `opus` only after a demonstrably weak result) |
 | Long-horizon autonomous workers, complex migrations, escalation after a weak result | `opus` |
 
-`.claude/agents/*.md` carries each pinned agent's `permissionMode` and tool grants. Do not change either from memory: ADR-0004 holds why the mode is set in agent frontmatter rather than project settings and what `auto` does and does not relax, and ADR-0014 requires a scored eval run against `scripts/evals/` before any model-tier change.
+`.claude/agents/*.md` carries each pinned agent's `permissionMode` and tool grants. Do not change either from memory — the mode lives in agent frontmatter rather than project settings deliberately, and any model-tier change requires a scored eval run against `scripts/evals/` first.
 
 ### Model continuity (non-Fable parent)
 
-Review/verify quality is pinned by preloaded skills and deterministic gates (ADR-0011/0013) and does not depend on the parent model — never re-derive or second-guess a pinned procedure. When the parent session runs on a weaker model than the strongest available (e.g. Opus instead of Fable), escalate **design judgment** — architecture choices, ADR drafting, ambiguous trade-offs — to a subagent on the strongest available model, or stop and ask the user; mechanical implementation stays in the parent. Knowledge Currency applies with extra force: a weaker parent verifies more, not less.
+Review/verify quality is pinned by preloaded skills and deterministic gates and does not depend on the parent model — never re-derive or second-guess a pinned procedure. When the parent session runs on a weaker model than the strongest available (e.g. Opus instead of Fable), escalate **design judgment** — architecture choices, ambiguous trade-offs — to a subagent on the strongest available model, or stop and ask the user; mechanical implementation stays in the parent. Knowledge Currency applies with extra force: a weaker parent verifies more, not less.
 
 ### Review
 
-Before every commit, review the uncommitted diff (users trigger it as `/review-diff`; pass `high` for a deeper multi-lens pass). The review is **one** dispatched agent the parent waits on (ADR-0029): `code-reviewer` runs four ordered stages in its own context — find across all lenses (bugs + AGENTS.md + path-scoped rules), dedup, refute each candidate against the real code, return the survivors — and its completion stamps the commit gate. It is a depth-1 dispatch passed `run_in_background: false`. The `review-diff` skill pins that behavior; the parent's dispatch prompt is not pinned by it, and `review-diff` lists the slots it must fill.
+Before every commit, review the uncommitted diff (users trigger it as `/review-diff`; pass `high` for a deeper multi-lens pass). The review is **one** dispatched agent the parent waits on: `code-reviewer` runs four ordered stages in its own context — find across all lenses (bugs + AGENTS.md + path-scoped rules), dedup, refute each candidate against the real code, return the survivors — and its completion stamps the commit gate. It is a depth-1 dispatch passed `run_in_background: false`. The `review-diff` skill pins that behavior; the parent's dispatch prompt is not pinned by it, and `review-diff` lists the slots it must fill.
 
-**The review is one pass: find → verify → fix → done.** Each surviving finding arrives **with its fix and an acceptance check** (ADR-0020); the parent applies those, saying so if it departs from one, and asks the user where a finding needs a decision. Applying them **keeps** the stamp: it records which paths the reviewer read, and a fix touches those same paths. Committing does not change the set either, so one review covers a multi-commit split. What the stamp does not cover is a path the review never saw — starting new work needs a new review, and the gate names the files.
+**The review is one pass: find → verify → fix → done.** Each surviving finding arrives **with its fix and an acceptance check**; the parent applies those, saying so if it departs from one, and asks the user where a finding needs a decision. Applying them **keeps** the stamp: it records which paths the reviewer read, and a fix touches those same paths. Committing does not change the set either, so one review covers a multi-commit split. What the stamp does not cover is a path the review never saw — starting new work needs a new review, and the gate names the files.
 
 **Do not edit while the dispatch is running.** The stamp is written when the agent finishes, so a path first touched mid-run is recorded as reviewed. Nothing enforces this one.
 
 Handle findings: never dismiss as "pre-existing" when the file is in the diff; apply rules literally; when in doubt, fix. Findings must propose a concrete alternative, respect rule scope qualifiers, and not re-report dismissed findings.
 
-Design-time verification of interaction-complex features uses the same single pinned-agent pattern (`/verify-spec specs/<feature>.spec.md`, ADR-0029): `spec-verifier` formalizes the spec into a state machine, hunts counterexamples across all lenses, replays each against the machine, and returns the CONFIRMED survivors. Design-time only — no commit gate.
+Design-time verification of interaction-complex features uses the same single pinned-agent pattern (`/verify-spec specs/<feature>.spec.md`): `spec-verifier` formalizes the spec into a state machine, hunts counterexamples across all lenses, replays each against the machine, and returns the CONFIRMED survivors. Design-time only — no commit gate.

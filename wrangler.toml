@@ -2,8 +2,7 @@ name = "my-project"
 main = "./src/ssr.tsx"
 # Pinned to the newest date the installed workerd supports, not to today's date:
 # a date beyond that ceiling makes the local runtime refuse to start, so
-# `vite dev` breaks for everyone. Raise it only together with wrangler
-# (ADR-0018).
+# `vite dev` breaks for everyone. Raise it only together with wrangler.
 compatibility_date = "2026-07-15"
 compatibility_flags = ["nodejs_compat"]
 
@@ -20,8 +19,8 @@ bucket_name = "local-avatars"
 BETTER_AUTH_URL = "http://localhost:5173"
 
 # Declared so `wrangler types` emits these on CloudflareEnv deterministically.
-# Values are never here — they are registered with `wrangler secret put`
-# (ADR-0017). Without this block the generator falls back to whatever local env
+# Values are never here — they are registered with `wrangler secret put`.
+# Without this block the generator falls back to whatever local env
 # file it finds, so the type differs between a developer machine and CI.
 #
 # Naming a secret here also makes it required at deploy time, so register it with

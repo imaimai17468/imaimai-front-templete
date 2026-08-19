@@ -3,8 +3,7 @@
     python3 scripts/test-bash-guard.py
 
 The guard carries three decisions that are easy to break and impossible to
-notice: the protected-env-file block (ADR-0004/0013/0017), the `find` gate
-(ADR-0004 amendment 2026-07-29), and the commit gate (ADR-0013/0019). Each case
+notice: the protected-env-file block, the `find` gate, and the commit gate. Each case
 below feeds the real hook a synthetic PreToolUse payload and asserts the decision
 it returns. Nothing in the repository is modified and no command from a case is
 ever executed.
@@ -173,7 +172,7 @@ check(
 )
 check("cat <<'EOF'\nfind / -delete\nEOF", "allow", "heredoc body naming a dangerous find")
 
-print("env protection still blocks (ADR-0004/0013/0017)")
+print("env protection still blocks")
 check("cat .env.local", "block", "direct read")
 check("grep SECRET .env", "block", "grep read")
 check("cat .env.local.example", "allow", "the example file is readable")

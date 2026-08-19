@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# PostToolUse(Bash) hook (ADR-0019): consume .claude/.review-stamp once the
+# PostToolUse(Bash) hook: consume .claude/.review-stamp once the
 # reviewed work is fully committed.
 #
 # The stamp has to outlive a commit — one review covers a multi-commit split
-# (ADR-0013 kept that property deliberately, and committing does not edit
+# (that property is deliberate, and committing does not edit
 # files). But it must not outlive the *task*, or a later, never-reviewed change
 # inherits it. A clean working tree after a commit is the observable end of the
 # reviewed batch: nothing is left of what the review saw, so the stamp has
 # nothing left to authorise.
 #
 # This is one of two mechanisms; the other is the scope check in
-# pre-bash-guard.sh. Neither is sufficient alone — see ADR-0019 for the residual
+# pre-bash-guard.sh. Neither is sufficient alone. The residual
 # gap they leave (a task boundary crossed with leftover dirt in the tree, where
 # the follow-on work touches only already-reviewed files).
 #
@@ -50,7 +50,7 @@ CMD=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""')
 # required whitespace after `commit` while the gate accepted any `\bcommit\b`, so
 # `git commit;true` was gated on the way in and NOT recognised as a landed commit on
 # the way out. A live stamp then authorised the next, unreviewed change: exactly the
-# hole this hook exists to close (ADR-0019). Verified 2026-07-30.
+# hole this hook exists to close. Verified 2026-07-30.
 #
 # Precision still matters more here than there: over-matching *deletes* a stamp the
 # review legitimately earned, so `git log --grep=commit` and
@@ -82,10 +82,10 @@ if [ -z "$(git -C "$ROOT" status --porcelain 2>/dev/null || echo dirty)" ]; then
   # the same text also rides hookSpecificOutput.additionalContext, which both
   # harnesses inject into the conversation.
   jq -n '{
-    systemMessage: "Review stamp consumed: the reviewed changes are fully committed (ADR-0019). The next task needs its own review.",
+    systemMessage: "Review stamp consumed: the reviewed changes are fully committed. The next task needs its own review.",
     hookSpecificOutput: {
       hookEventName: "PostToolUse",
-      additionalContext: "Review stamp consumed: the reviewed changes are fully committed (ADR-0019). The next task needs its own review."
+      additionalContext: "Review stamp consumed: the reviewed changes are fully committed. The next task needs its own review."
     }
   }'
 fi

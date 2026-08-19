@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# PreToolUse(Bash) combined guard (ADR-0013):
+# PreToolUse(Bash) combined guard:
 # 1. .env protection — block any command referencing the protected env files.
 #    permissions.deny stops Read/Write/Edit, but allowed Bash readers (cat,
-#    grep, head, tail, redirections) could walk around it (ADR-0004 amendment).
+#    grep, head, tail, redirections) could walk around it.
 # 2. find gate — prompt for the `find` shapes that reach past the deny list or
 #    run/delete, while leaving scoped path discovery unattended.
 # 3. Gate-marker protection — refuse any command naming the review gate's own
@@ -74,7 +74,7 @@ if [ "$FIRST_WORD" = "git" ]; then
   esac
 fi
 if printf '%s' "$SCRUBBED" | grep -qE '(^|[[:space:]"'\''`={}:,;&|<>(/-])\.env(\.(local|development|production))?([[:space:]"'\''`{}:,;&|<>)*]|$)'; then
-  deny "PreToolUse(Bash): this command references a protected env file (.env / .env.local / .env.development / .env.production). Reading or writing these is denied regardless of tool (ADR-0004, amended by ADR-0013). Use .env.local.example for documented placeholders. If this is a false positive (e.g. the literal string in a message), rephrase the command without the filename."
+  deny "PreToolUse(Bash): this command references a protected env file (.env / .env.local / .env.development / .env.production). Reading or writing these is denied regardless of tool. Use .env.local.example for documented placeholders. If this is a false positive (e.g. the literal string in a message), rephrase the command without the filename."
   exit 0
 fi
 
@@ -83,14 +83,14 @@ fi
 NORM=$(printf '%s' "$CMD" | tr -s '[:space:]' ' ')
 
 # --- Guard 2: find with broad reach, or an action that runs or deletes ---
-# `find` itself is allow-listed (ADR-0004, amended 2026-07-29): path discovery is
+# `find` itself is allow-listed: path discovery is
 # routine agent work and prompting for every `find node_modules/...` bought
 # nothing. Two shapes are not routine, and this guard prompts for them instead of
 # letting the allow rule through:
 #
 #   - A broad search root. `find . -type f | xargs cat` reads every file in the
-#     repository — including the local env file, which under ADR-0017's standing
-#     exception can hold a real D1 API token — using only allow-listed commands.
+#     repository — including the local env file, which under the standing
+#     drizzle-kit exception can hold a real D1 API token — using only allow-listed commands.
 #     Guard 1 never sees it because the command text contains no `.env` literal.
 #     So the reach has to be judged from the root, not from the action.
 #   - `-exec` / `-delete` and relatives. These reach past the `rm -rf` prefixes in
@@ -159,7 +159,7 @@ if [ -n "$FIND_ASK" ]; then
   # stopping allow-listed `cat .env.local`. Whether a hook's `ask` prompts for an
   # already-allowed command is unstated, and a guard that silently does nothing
   # is worse than a strict one. Revisit if that behaviour is ever confirmed.
-  deny "PreToolUse(Bash): this \`find\` is refused because ${FIND_ASK} (ADR-0004, amended 2026-07-29). A find scoped to a subdirectory, without -exec/-execdir/-ok/-okdir/-delete/-fprint/-fls, runs unattended — narrow it if that is enough. If the broad form is genuinely needed, ask the user to run it."
+  deny "PreToolUse(Bash): this \`find\` is refused because ${FIND_ASK}. A find scoped to a subdirectory, without -exec/-execdir/-ok/-okdir/-delete/-fprint/-fls, runs unattended — narrow it if that is enough. If the broad form is genuinely needed, ask the user to run it."
   exit 0
 fi
 
@@ -169,7 +169,8 @@ fi
 # so `touch .claude/.review-stamp` forged a stamp and satisfied Guard 4 with no
 # review having happened at all (verified 2026-07-30). The only thing standing
 # against that was a sentence in the `review-diff` skill telling the agent not to —
-# an instruction, which is the failure mode ADR-0013 exists because of. The same
+# an instruction, and this repository has concluded more than once that
+# instructions are not mechanisms. The same
 # reasoning was already applied to the env files in Guard 1 and simply never
 # extended to the gate's own state.
 #
@@ -181,13 +182,13 @@ fi
 #
 # Lexical, therefore defeatable by obfuscation, exactly like Guard 1 — and the
 # `permissions.deny` entry alongside it covers the file-editing tools, which a Bash
-# guard cannot see. Same honest framing as ADR-0017: together these raise forging
+# guard cannot see. Framed honestly: together these raise forging
 # from "allow-listed and silent" to "requires deliberate evasion that is visible in
 # the transcript". Neither is a boundary against an agent that has decided to cheat.
 #
-# One name, not four. ADR-0024 listed `.finder-done`, `.finder-hash` and `.pair-ok`
-# here alongside `.review-stamp`; ADR-0029 deleted those three with the second
-# dispatch they paired, so refusing them would refuse nothing and would read as a
+# One name, not four. `.finder-done`, `.finder-hash` and `.pair-ok` were listed
+# here alongside `.review-stamp`; all three went with the second dispatch they
+# paired, so refusing them would refuse nothing and would read as a
 # gate wider than it is.
 case "$NORM" in
   *.review-stamp*)
@@ -234,7 +235,7 @@ fi
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 
 if [ ! -f "$ROOT/.claude/.review-stamp" ]; then
-  deny "PreToolUse(Bash): the review gate has not been stamped. Dispatch the code-reviewer agent (or run /review-diff) on the uncommitted diff before committing — its completion writes the stamp (ADR-0029). Never create the stamp by hand and never ask the user to; a manual marker forges the gate."
+  deny "PreToolUse(Bash): the review gate has not been stamped. Dispatch the code-reviewer agent (or run /review-diff) on the uncommitted diff before committing — its completion writes the stamp. Never create the stamp by hand and never ask the user to; a manual marker forges the gate."
   exit 0
 fi
 

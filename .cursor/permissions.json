@@ -1,5 +1,5 @@
 // Cursor IDE agent permissions (JSONC).
-// Derived from ADR-0004's decisions about .claude/settings.json `permissions`
+// Derived from .claude/settings.json's `permissions`
 // (not a literal 1:1 copy of its current allow array — see the bun note below).
 // Allow entries are security decisions: Cursor has no deterministic deny list,
 // so anything risky is left OFF this allowlist and falls through to approval.
@@ -35,7 +35,7 @@
     "touch",
     "ffmpeg",
     // git (read + staging; `git branch` is omitted because a prefix entry
-    // would also auto-approve `git branch -D`, which ADR-0004 denies)
+    // would also auto-approve `git branch -D`, which the deny list refuses)
     "git status",
     "git log",
     "git diff",
@@ -53,7 +53,7 @@
     "bun install",
     "bun remove",
     "bun pm",
-    // bun scripts, enumerated per ADR-0004 (never `bun run` as a bare prefix);
+    // bun scripts, enumerated one by one (never `bun run` as a bare prefix);
     // `cmd:args` form so script names containing `:` stay literal
     "bun:run lint",
     "bun:run lint:fix",
@@ -73,7 +73,7 @@
   ],
   "autoRun": {
     // Steering hints for the Auto-review classifier — NOT enforcement.
-    // The deterministic deny list lives in .claude/settings.json (ADR-0004).
+    // The deterministic deny list lives in .claude/settings.json.
     "block_instructions": [
       "Never run destructive or history-rewriting commands in this repo: rm -rf / rm -r, git push --force (any variant), git reset --hard, git clean, git branch -D, git checkout . / git checkout --, git restore . / git restore --, git commit --amend, interactive rebase, sudo, chmod -R.",
       "Never read or modify .env, .env.local, .env.development, .env.production, or .claude/.review-stamp.",

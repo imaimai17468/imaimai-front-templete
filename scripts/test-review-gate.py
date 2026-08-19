@@ -1,13 +1,13 @@
-"""Exercise the review-gate mechanism (ADR-0019) against the real hook scripts.
+"""Exercise the review-gate mechanism against the real hook scripts.
 
     python3 scripts/test-review-gate.py
 
 Builds a throwaway git repository under the system temp directory, copies the
 hooks into it, and drives the sequences the gate has to get right: a review, a
 fix (which must never need a second review), a multi-commit split on one stamp,
-and an unrelated unreviewed task. It also pins the distinction ADR-0022 turns
-on — launching a review agent is not finishing one — and, since ADR-0022's
-residual gap was closed, what the review agent has to have said for its stop to
+and an unrelated unreviewed task. It also pins the distinction that decides the gate
+— launching a review agent is not finishing one — and, since the gap that left
+open has been closed, what the review agent has to have said for its stop to
 count. The section titled "a review that stopped without reporting has reviewed
 nothing" is the authoritative statement of that; both outcomes it pins (refuse on
 a blank message, stamp-with-a-warning when the field is absent) are asserted
@@ -57,14 +57,14 @@ HOOKS = (
     "pre-bash-guard.sh",
     "post-agent-review-stamp.sh",
     "post-bash-stamp-consume.sh",
-    # The cycle-start clear (ADR-0009/0029). Driven as a real hook so a case fails
+    # The cycle-start clear. Driven as a real hook so a case fails
     # if it stops doing its job — writing the marker file directly would pass no
     # matter what it contains. `pre-agent-review-pair.sh` and `lib-review-hash.sh`
-    # used to sit here too; ADR-0029 deleted both with the second dispatch.
+    # used to sit here too; both went with the second dispatch.
     "pre-agent-review-clear.sh",
     # `post-edit-check.sh` used to be listed here, so that the "a fix needs no second
     # review" assertions ran through the hook that had once cleared the stamp on every
-    # edit. ADR-0025 deleted that hook, so nothing runs on an edit any more and those
+    # edit. That hook was deleted, so nothing runs on an edit any more and those
     # assertions now test what they always meant to: that a plain write does not
     # disturb the stamp. What no longer has a mechanism behind it is the guarantee
     # that some hook could not start clearing it again — see the comment on `edit()`.
@@ -155,9 +155,9 @@ def stop(role="", agent_type=None, message="findings: none surviving"):
     """Fire post-agent-review-stamp.sh exactly as its registration does.
 
     `.claude/settings.json` registers it ONCE under `SubagentStop`, on matcher
-    `code-reviewer`, passing no argument (ADR-0029). `role` is still a parameter
+    `code-reviewer`, passing no argument. `role` is still a parameter
     because the hook must tolerate one: a settings file the harness has not
-    re-read still passes `finder` or `verifier`, and under the ADR-0022 script
+    re-read still passes `finder` or `verifier`, and under the older script
     `finder` meant "record a baseline, do not stamp" — which would wedge every
     commit in such a session. The cases below pin all three invocations behaving
     identically.
@@ -181,7 +181,7 @@ def gate():
 
 
 def review():
-    """One complete, well-formed review pass: dispatch → finish (ADR-0029)."""
+    """One complete, well-formed review pass: dispatch → finish."""
     dispatch("code-reviewer")
     stop()
 
@@ -215,7 +215,7 @@ def session_start(session_id=None, source=None):
     SessionStart re-firing for the session already running must not discard
     markers that session earned, but `clear` / `fork` begin a different body of
     work regardless of the id (`resume` is deliberately excluded — see the cases
-    below and ADR-0028). Pass None for either to drive
+    below). Pass None for either to drive
     the fail-safe branches — an absent field must never mean "keep", so a payload
     shape this repository has not observed can never leave a stamp standing.
     """
@@ -230,8 +230,8 @@ def session_start(session_id=None, source=None):
 def edit(rel_path, body):
     """Write a file the way the harness does.
 
-    A plain write, because no hook fires on an edit — ADR-0025 deleted the only
-    `PostToolUse(Edit|Write|MultiEdit)` registration. That makes this helper an
+    A plain write, because no hook fires on an edit — the only
+    `PostToolUse(Edit|Write|MultiEdit)` registration was deleted. That makes this helper an
     honest model of an edit today. Nothing needs to fire: what the gate reads is
     the set of changed paths, which git reports whether or not a hook watched the
     write. If a hook that reacts to edits is ever added, add it to `HOOKS` and
@@ -253,7 +253,7 @@ def check_settings_wiring():
 
     None of the cases read settings.json, so a typoed matcher would leave this
     whole suite green and break only the live gate. That is the exact class of
-    defect ADR-0022 exists to fix, discovered live rather than by a test, so it
+    defect this suite exists to catch, discovered live rather than by a test, so it
     gets one.
 
     Scoped to the matcher by name on purpose: asserting anything about entry
@@ -262,7 +262,7 @@ def check_settings_wiring():
     matchers are not independently verified.
 
     What is asserted about the argument is only that the shipped registration
-    passes none (ADR-0029). The hook must still *tolerate* `finder` and
+    passes none. The hook must still *tolerate* `finder` and
     `verifier`, because a harness that has not re-read this file keeps sending
     them — that tolerance is pinned by the cases below, not here.
     """
@@ -297,7 +297,8 @@ def check_hooks_executable():
 
     The harness invokes a registered hook by bare path, so a script without the
     executable bit simply does not run — the gate is silently off, which is the
-    failure ADR-0013 exists to prevent. It happened: `pre-agent-review-pair.sh` was
+    failure a deterministic artifact is meant to prevent. It happened:
+    `pre-agent-review-pair.sh` was
     created 644 and could never write `.pair-ok`, so no commit could ever be
     stamped.
 
@@ -343,12 +344,12 @@ check("unreviewed diff", gate(), "BLOCK")
 review()
 check("reviewed diff", gate(), "PASS")
 
-# The defect ADR-0022 fixes: the hook was registered on PostToolUse(Agent), which
+# The defect this pins: the hook was registered on PostToolUse(Agent), which
 # fires when the *launch* returns (`status: "async_launched"`), so dispatching two
 # agents earned a stamp whether or not either produced a verdict. These cases pin
 # the fix from both sides — the hook refuses a launch-shaped payload, and it
 # refuses a finish that carries no report.
-print("launching an agent is not finishing one (ADR-0022)")
+print("launching an agent is not finishing one")
 clear_stamp()
 edit("fileA.ts", "export const a = 4;\n")
 launch_out = raw_hook(
@@ -362,12 +363,12 @@ launch_out = raw_hook(
 check("a LAUNCH-shaped payload earns no stamp", gate(), "BLOCK")
 check("mis-registration is reported, not silent", "SubagentStop" in launch_out, True)
 
-# ADR-0029 removed the role branch: the shipped registration passes no argument,
-# but a harness that has not re-read settings.json keeps sending the ADR-0022 ones.
+# The role branch is gone: the shipped registration passes no argument, but a
+# harness that has not re-read settings.json keeps sending the older ones.
 # Under the old script `finder` meant "record a baseline, do not stamp", so a
 # cached registration would have wedged every commit in that session. All three
 # invocations must therefore behave identically.
-print("the invocation argument does not change the outcome (ADR-0029)")
+print("the invocation argument does not change the outcome")
 for arg, label in (("", "no argument"), ("finder", "a stale `finder`"), ("verifier", "a stale `verifier`")):
     clear_stamp()
     edit("fileA.ts", f"export const a = 4{len(label)};\n")
@@ -382,7 +383,7 @@ edit("fileA.ts", "export const a = 5;\n")
 stop("", agent_type="")
 check("an empty agent_type still stamps", gate(), "PASS")
 
-# The residual gap ADR-0029 accepted, pinned so it is a recorded property rather
+# The residual gap the single-agent shape accepts, pinned so it is a recorded property rather
 # than an undocumented surprise. With one dispatch there is no window to hash, so
 # an edit landing while the agent runs is invisible to the gate. The two-agent
 # pairing check caught exactly this and went away with the second dispatch.
@@ -444,9 +445,9 @@ check("a code-reviewer dispatch clears it", gate(), "BLOCK")
 stop()
 check("and the completion re-earns it", gate(), "PASS")
 
-# An agent's own scratch files used to matter enormously: two ADR-0022 designs
+# An agent's own scratch files used to matter enormously: two earlier designs
 # hashed a window containing one agent's run and were voided by files that agent
-# created itself. Nothing hashes anything now (ADR-0029), so the case is kept only
+# created itself. Nothing hashes anything now, so the case is kept only
 # to pin that the churn is genuinely inert rather than merely believed to be.
 print("an agent's filesystem use during its own run is inert")
 clear_stamp()
@@ -458,9 +459,9 @@ check("leftover residue does not prevent the stamp", gate(), "PASS")
 os.remove("agent-leftover.ts")
 
 print("a review that stopped without reporting has reviewed nothing")
-# The gap ADR-0022 recorded and deferred, and which then fired for real: on
+# The gap that was recorded and deferred, and which then fired for real: on
 # 2026-07-30 a review agent died on an API 529 mid-run, and the marker files alone
-# stamped the gate. Since ADR-0029 this check is the ENTIRE gate — the two marker
+# stamped the gate. This check is now the ENTIRE gate — the two marker
 # facts that used to stand beside it are gone — so each case below is the only
 # thing between a dead dispatch and an authorised commit.
 for label, msg, want_stamp in (
@@ -644,7 +645,7 @@ check("a different id clears", stamped(), False)
 check("id updated to the new session", session_id_file(), "session-BBB")
 
 # Mid-cycle: a SessionStart landing between the dispatch and the completion must
-# not stop the pass from stamping. Since ADR-0029 there is one marker and it does
+# not stop the pass from stamping. There is one marker now and it does
 # not exist yet at that point, so what this pins is that the clear leaves nothing
 # behind that the completion then trips over.
 dispatch("code-reviewer")
@@ -662,7 +663,7 @@ check("id forgotten when the payload carries none", session_id_file(), None)
 print("a matching id does not save a stamp when `source` starts new work")
 # Each case first records the id, then earns a stamp, then re-fires with the SAME
 # id — the keep-branch's exact precondition — so the only thing under test is
-# whether `source` overrides it (ADR-0028).
+# whether `source` overrides it.
 for i, new_work in enumerate(("clear", "fork")):
     sid = f"session-new-{i}"
     session_start(sid, source="startup")
@@ -672,7 +673,7 @@ for i, new_work in enumerate(("clear", "fork")):
 
 # `resume` is the one that looks like it belongs above and does not: it fires
 # inside continuous work here, so forcing a clear on it costs a whole pass. This
-# case is the guard against putting it back (ADR-0028).
+# case is the guard against putting it back.
 for i, same_work in enumerate(("compact", "startup", "resume")):
     sid = f"session-same-{i}"
     session_start(sid, source="startup")

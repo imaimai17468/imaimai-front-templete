@@ -12,7 +12,7 @@ bun run deploy
 
 `vite build && wrangler deploy` を実行する。ビルド成果物ではなく
 `wrangler.toml` の `main`（`./src/ssr.tsx`）がエントリで、Cloudflare 連携は
-`@cloudflare/vite-plugin` が担う（ADR-0007）。
+`@cloudflare/vite-plugin` が担う。
 
 デプロイ前に確認すること:
 
@@ -68,15 +68,14 @@ bun run deploy
 
 **値をコマンドラインに書かないこと。** `wrangler secret put` は値を対話的に受け取り
 エコーもしない。`wrangler secret bulk` に JSON をパイプする形は、既定のシェルでは
-実値がヒストリファイルに残るので使わない (ADR-0017: 秘密は一時的にもファイルへ
-書かない)。同じ理由で `wrangler deploy --secrets-file <path>` も使わない。
+実値がヒストリファイルに残るので使わない（秘密は一時的にもファイルへ書かない）。同じ理由で `wrangler deploy --secrets-file <path>` も使わない。
 
 秘密を**後から追加**する場合も順序は同じ。`[secrets]` に名前を足す前に登録する。
 逆順にすると、既存 Worker のデプロイが必須チェックで失敗する。
 
 ## シークレットのローテーション
 
-秘密情報はファイルに置かず `wrangler secret` で管理する（ADR-0017）。
+秘密情報はファイルに置かず `wrangler secret` で管理する。
 
 ```bash
 wrangler secret list                        # 登録済みの名前を確認（値は出ない）
@@ -98,7 +97,12 @@ better-auth 自身のシークレットフォールバックは `process.env` �
 Workers が `process.env` を埋めるのは `nodejs_compat_populate_process_env` が有効な
 場合（既定になるのは `compatibility_date` が 2025-04-01 以降）に限られる。現在の
 `compatibility_date` はこれを満たすが、明示的な配線はそのフラグの既定値に依存しない
-（ADR-0018）ので外さないこと。
+ので外さないこと。
+
+`compatibility_date` は**インストール済みの `workerd` が対応する最新の日付**に固定する。
+今日の日付に更新しない。`wrangler` を上げるときに一緒に上げるもので、上限は日付を設定して
+`bun run dev` を走らせ、対応日付を名指しするエラーを読んで確かめる。変更後は
+`bun run cf-typegen` を走らせる。
 
 いずれかの値が未設定の場合、`buildAuth()` は**例外を投げる**（メッセージに対応する
 `wrangler secret put <NAME>` を明示）。つまり登録漏れの症状は、既定値や空の OAuth

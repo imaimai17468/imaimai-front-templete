@@ -2,14 +2,14 @@
 # PreToolUse(Agent), code-reviewer only: start a review cycle.
 #
 # One duty: clear the stamp from any previous cycle, so a stale one cannot leak
-# through a review that fails, times out, or is interrupted (ADR-0009's "cleared
-# at the next review launch", kept by ADR-0011/0015/0029).
+# through a review that fails, times out, or is interrupted: the stamp is cleared
+# at the next review launch.
 #
 # This hook samples nothing. An earlier version hashed the working tree here for
-# the ADR-0015 pairing check, and that was wrong twice over: the window the
+# an earlier pairing check, and that was wrong twice over: the window the
 # invariant was about began when the finder handed control back rather than when
 # it was launched, so hashing here put the finder's whole run inside it and a
-# scratch file it left behind voided an innocent pass (ADR-0022). ADR-0029 then
+# scratch file it left behind voided an innocent pass. Merging the two agents then
 # removed the pairing check outright along with the second dispatch, so there is
 # no window left to sample either end of.
 
