@@ -174,8 +174,8 @@
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-agent-review-stamp.sh",
-            "timeout": 3,
-            "statusMessage": "Review gate: stamping the commit gate after the review..."
+            "timeout": 30,
+            "statusMessage": "Review gate: recording what the review covered..."
           }
         ]
       }

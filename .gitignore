@@ -54,6 +54,9 @@ worker-configuration.d.ts
 storybook-static
 .superpowers/
 
+# python bytecode from the scripts/ test harnesses
+__pycache__/
+
 # claude code runtime artifacts
 .claude/scheduled_tasks.lock
 .claude/.review-stamp

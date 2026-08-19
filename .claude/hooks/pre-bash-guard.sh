@@ -234,7 +234,46 @@ fi
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 
 if [ ! -f "$ROOT/.claude/.review-stamp" ]; then
-  deny "PreToolUse(Bash): the review gate has not been stamped. Dispatch the code-reviewer agent (or run /review-diff) on the uncommitted diff before committing — its completion writes the stamp (ADR-0029). Never create the stamp by hand and never ask the user to; a manual marker forges the gate. Fixing what the review confirms does not require another review (ADR-0019) — the stamp survives those edits, so commit once the findings are addressed."
+  deny "PreToolUse(Bash): the review gate has not been stamped. Dispatch the code-reviewer agent (or run /review-diff) on the uncommitted diff before committing — its completion writes the stamp (ADR-0029). Never create the stamp by hand and never ask the user to; a manual marker forges the gate."
+  exit 0
+fi
+
+# The stamp records WHICH PATHS were reviewed, not merely THAT a review ran, so
+# existing is not enough: every changed path now has to appear in it.
+# lib-review-scope.sh carries why this is containment (a split and the review's own
+# fixes both keep working) and the one thing it deliberately does not catch.
+SCOPE_LIB="$(dirname "$0")/lib-review-scope.sh"
+if [ ! -f "$SCOPE_LIB" ]; then
+  deny "PreToolUse(Bash): the commit-gate helper .claude/hooks/lib-review-scope.sh is missing, so whether this commit touches only reviewed files cannot be decided. Refusing rather than risking an unreviewed commit. Restore the file."
+  exit 0
+fi
+# shellcheck source=lib-review-scope.sh
+. "$SCOPE_LIB"
+
+if ! CURRENT_SCOPE=$(cd "$ROOT" && review_scope); then
+  deny "PreToolUse(Bash): whether this commit touches only reviewed files could not be decided, so it is refused rather than risked. Causes: git could not report the current state, e.g. no commits yet on this branch; or a changed path holds a quote, backslash, or control character, which the stamp format cannot represent — rename it."
+  exit 0
+fi
+
+UNREVIEWED=""
+while IFS= read -r SCOPE_PATH; do
+  [ -z "$SCOPE_PATH" ] && continue
+  # -x -F: whole line, literal. A path is not a pattern, and a partial match would
+  # let `src/a.ts` pass as reviewed because `src/a.ts.bak` was. `--` is required
+  # too: a repo-root path may begin with a dash, and grep would then read the line
+  # it is meant to search for as its own options.
+  if ! grep -qxF -- "$SCOPE_PATH" "$ROOT/.claude/.review-stamp" 2>/dev/null; then
+    UNREVIEWED="${UNREVIEWED}
+  - ${SCOPE_PATH}"
+  fi
+done <<EOF
+$CURRENT_SCOPE
+EOF
+
+if [ -n "$UNREVIEWED" ]; then
+  deny "PreToolUse(Bash): these files were not in the diff the review read, so committing now would land code no reviewer saw:${UNREVIEWED}
+
+They appeared after the review that stamped the gate. Fixes to files the review DID read are fine and keep the stamp — this is about files it never saw. Run /review-diff on the current diff; its completion re-records the scope. Never create or edit the stamp by hand."
   exit 0
 fi
 

@@ -178,7 +178,29 @@ if [ "$REPORTED" = "blank" ]; then
   exit 0
 fi
 
-touch "$ROOT/.claude/.review-stamp"
+# The stamp is not a flag, it is the record of which paths this review saw
+# (lib-review-scope.sh carries the shape and the containment rule the gate applies
+# to it). Written, not touched — an empty stamp would authorise anything.
+SCOPE_LIB="$(dirname "$0")/lib-review-scope.sh"
+if [ ! -f "$SCOPE_LIB" ]; then
+  jq -n '{
+    systemMessage: "⚠️ post-agent-review-stamp.sh: .claude/hooks/lib-review-scope.sh is missing, so what this review covered cannot be recorded. No stamp was written and the commit gate stays closed. Restore the file and re-run the review."
+  }'
+  exit 0
+fi
+# shellcheck source=lib-review-scope.sh
+. "$SCOPE_LIB"
+
+# Refusing to stamp is the fail-closed answer: a stamp recorded without a usable
+# scope would contain nothing, refuse every later commit anyway, and do it
+# silently with no explanation.
+if ! SCOPE=$(cd "$ROOT" && review_scope); then
+  jq -n '{
+    systemMessage: "⚠️ post-agent-review-stamp.sh: what this review covered could not be recorded, so no stamp was written and the commit gate stays closed. Causes: git could not report the current state, e.g. no commits yet on this branch; or a changed path holds a quote, backslash, or control character, which the stamp format cannot represent."
+  }'
+  exit 0
+fi
+printf '%s\n' "$SCOPE" > "$ROOT/.claude/.review-stamp"
 
 if [ "$REPORTED" = "absent" ]; then
   jq -n '{

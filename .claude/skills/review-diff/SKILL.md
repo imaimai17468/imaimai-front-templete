@@ -44,15 +44,18 @@ The procedure above is pinned; the dispatch prompt is not — it is written from
 - **Claims to check.** The two or three things you are least sure of, written as claims rather than areas: "confirm this cannot abort under `set -e`" gets checked, "review the hook" does not.
 - **What to challenge hardest.** Name the candidates whose truth would change the fix, and say plainly where the diff contradicts something you believe — that is the cue for Stage C to re-derive rather than wave through. Stage C can see Stage A's reasoning (ADR-0029), so this slot is where you spend the independence the mechanism no longer supplies.
 - **External tool behaviour.** Handled by the parent routing bullet above ("The agent has no web tool…") — nothing to add here beyond following it.
-- **Ordering.** State that you will not edit any file while the dispatch is running. That is the residual gap ADR-0029 accepted: the stamp is no longer bound to a tree hash, so an edit landing mid-run earns a stamp for code the agent never read. Nothing enforces it — the two-agent pairing check that did is gone with the second dispatch.
+- **Ordering.** State that you will not edit any file while the dispatch is running. That is the hole the path-scope mechanism does not close: the stamp is written when the agent finishes, so a path first touched mid-run is recorded as reviewed. Nothing enforces it.
 
 ## When to run
 
 - Step 6 of `start-workflow`, before proposing a commit.
 - Any time the uncommitted diff needs a full review.
 
-**Once per commit.** Fixing what the review confirmed does not require running
-this again — the stamp survives those edits (ADR-0019). The pass ends at the fix.
+**Once per commit.** Applying what the review confirmed does not require running
+this again: the stamp records which paths the reviewer read, and a fix touches
+those same paths. The pass ends at the fix. One review also covers a multi-commit
+split, because committing removes paths from the diff rather than adding any. What
+it does not cover is a file the review never saw — that needs a fresh pass.
 
 ## Effort
 
@@ -60,8 +63,8 @@ this again — the stamp survives those edits (ADR-0019). The pass ends at the f
 - **high**: Stage C uses three lenses (correctness, reproduction, scope) and a finding survives only if it is NOT refuted by a majority. Use for security-sensitive or high-blast-radius diffs.
 
 There is one mode: find over the entire uncommitted diff. The pass runs once per
-commit and ends at the fix (ADR-0019) — there is no re-review mode to reach for,
-and a partial-scope re-run no longer exists.
+commit and ends at the fix — there is no re-review mode to reach for, and a
+partial-scope re-run no longer exists.
 
 ## Procedure
 
@@ -98,7 +101,7 @@ If a finding cites an AGENTS.md rule, read AGENTS.md and respect rule scope qual
 
 **You wrote Stage A, so this stage is where the discipline has to come from you.** The separate verifier agent that used to run it could not see the reasoning that produced a candidate; you can, and ADR-0029 accepted that downgrade knowingly. Re-open the code for each candidate rather than trusting what Stage A concluded about it, and put the `file:line` you re-read into `verification` for **every** verdict, refutations included — that is what makes a code-blind judgement visible in your output rather than indistinguishable from a real one.
 
-**For every finding you do not refute, also decide the fix.** The review is one pass (ADR-0019): the parent applies what you return and commits, so a finding you leave without a fix is a finding whose remedy nobody judged. Two fields per surviving finding:
+**For every finding you do not refute, also decide the fix.** The review is one pass: the parent applies what you return and commits, so a finding you leave without a fix is a finding whose remedy nobody judged. Two fields per surviving finding:
 
 - `fix` — the concrete change. Which file, what it should say instead, and why that shape rather than the alternative you considered. Not a restatement of the problem: "validate the size server-side" is not a fix, "add `avatarSizeRejection(file.size)` to `uploadAvatarFn`'s `inputValidator`, sharing `MAX_AVATAR_BYTES` with the client so the two cannot drift" is.
 - `acceptance` — how the parent confirms it landed, checkable without re-running this review: a command, or a specific observable in the code.
@@ -119,13 +122,13 @@ Report `stats.candidates` and `stats.refuted` honestly even when every candidate
 
 Do NOT manually create `.claude/.review-stamp` — a `SubagentStop` hook stamps it when you finish (ADR-0022/0029).
 
-**Fail-closed (parent responsibility).** The gate is deterministic (ADR-0013) and now needs one fact (ADR-0029): the `code-reviewer` agent finished having reported something — its `SubagentStop` event with a non-blank `last_assistant_message`. Consequences the parent must respect:
-- **Do not edit files while the dispatch is running.** The stamp is no longer bound to a tree hash, so an edit that lands mid-run earns a stamp for code the agent never read. This is the residual gap ADR-0029 accepted when the two-agent pairing check went away with the second dispatch; nothing enforces it. Fix *after* the agent returns — those edits are the ones the stamp survives.
-- Your own `Bash` use does not void the pass — nothing samples the tree any more.
+**Fail-closed (parent responsibility).** The gate needs two facts. One is deterministic and checked: at `SubagentStop` the hook records every changed path, and `pre-bash-guard.sh` later refuses a commit touching a path that is not on that list. The other is not checked: that the agent finished having reported something — its `SubagentStop` with a non-blank `last_assistant_message`. Consequences the parent must respect:
+- **Do not edit files while the dispatch is running.** The stamp is written when the agent finishes, so a path first touched mid-run is recorded as reviewed. This is the hole the mechanism does not close; nothing enforces it. Fix *after* the agent returns — those fixes keep the stamp.
+- Your own `Bash` use does not void the pass — only touching a path the review never saw does.
 - If the dispatch errors, times out, or returns a malformed/empty report, treat the review as NOT done — the findings are unverified. Do not commit; re-dispatch. A completed-but-degenerate response is not a clean pass, and the blank-report check refuses to stamp one.
 
 ## After the review (parent session)
 
 1. Read the surviving findings. Never dismiss a finding as "pre-existing" when the file is in the diff. Apply rules literally; when in doubt, fix.
 2. **Apply each finding's `fix` and check its `acceptance`.** The fix was judged by a context that did not write the code; that is the point of it arriving with the finding. Departing from it is allowed — you can see things the agent could not — but then say so and why, in the commit message or to the user. Where `fix` says the finding needs a decision, ask the user rather than picking for them.
-3. That is **the end of the review** (ADR-0019). Those edits keep the stamp, so commit once every finding is addressed or explicitly justified as out of scope. Running this skill again is a fresh review of a fresh diff, not a follow-up on this one.
+3. That is **the end of the review**. Those edits keep the stamp, so commit once every finding is addressed or explicitly justified as out of scope. Running this skill again is a fresh review of a fresh diff, not a follow-up on this one.

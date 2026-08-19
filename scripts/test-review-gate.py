@@ -14,13 +14,12 @@ a blank message, stamp-with-a-warning when the field is absent) are asserted
 there rather than described here. Nothing touches this repository, apart from
 reading `.claude/settings.json` to confirm the real wiring.
 
-Since ADR-0029 the gate rests on ONE fact — the `code-reviewer` agent finished
-having reported something — so the blank-message check above carries all of it.
-The pairing cases this suite used to run (a parent edit between two dispatches
-voids the cycle, an agent's own scratch files do not) are gone with the second
-dispatch they were about; what replaced them is the section titled "the stamp is
-not bound to the tree", which pins the residual gap ADR-0029 accepted rather than
-leaving it undescribed.
+The gate rests on two facts. That the `code-reviewer` agent finished having
+reported something — the blank-message checks above carry that one. And that the
+tree only holds files it reported on: the stamp lists every changed path, and a
+commit touching a path that is not listed is refused. The sections "a fix to a
+reviewed file keeps the stamp" and "a mid-run edit is recorded as reviewed" pin
+the second fact and the hole it leaves.
 
 Run it after changing any hook it drives — the `HOOKS` tuple below is the
 authoritative list. Prose duplicating that list goes stale the next time a hook is
@@ -72,6 +71,11 @@ HOOKS = (
     # Sourced by pre-bash-guard.sh and post-bash-stamp-consume.sh — the single
     # definition of "does this command land a commit". Without it, both abort.
     "lib-commit-shape.sh",
+    # Sourced by post-agent-review-stamp.sh (to record which paths the review saw)
+    # and by pre-bash-guard.sh (to compare the tree against that list). Without it
+    # the writer refuses to stamp and the gate refuses to decide — both fail
+    # closed, so omitting it here turns every stamped case into a BLOCK.
+    "lib-review-scope.sh",
     # The SessionStart marker clear. It decides whether a stamp survives into the
     # next SessionStart, so it belongs here for the same reason the others do:
     # writing `.session-id` by hand would pass whatever the hook actually contains.
@@ -82,12 +86,12 @@ HOOKS = (
 for hook_name in HOOKS:
     shutil.copy(REPO / ".claude/hooks" / hook_name, WORK / ".claude/hooks" / hook_name)
 os.chdir(WORK)
-# Must match the real .gitignore's `.claude/.*` marker entries. Nothing hashes the
-# working tree any more (ADR-0029 removed the pairing check), so an un-ignored
-# marker no longer breaks the gate outright — but it would still show up as an
-# untracked file in the commit-shape cases below, and the list is kept faithful to
-# the real .gitignore so that "these are the markers" stays a fact rather than an
-# approximation.
+# Must match the real .gitignore's marker entries, which are per-name
+# (`.claude/.review-stamp`, `.claude/.session-id`) rather than a wildcard. The gate
+# reads the working tree's changed paths, and an un-ignored marker would appear
+# among them — the stamp would then have to list itself. Keeping the list faithful
+# to the real .gitignore is what makes "these are the markers" a fact rather than
+# an approximation.
 pathlib.Path(".gitignore").write_text(
     "\n".join(
         f".claude/{name}"
@@ -95,11 +99,6 @@ pathlib.Path(".gitignore").write_text(
             ".review-stamp",
             # Written by session-start-env-check.sh.
             ".session-id",
-            # No case exercises these two, so they are here to keep the claim above
-            # literally true rather than approximately: the list is the real
-            # .gitignore's `.claude/.*` entries, or it is a claim that drifts.
-            ".aegis-stamp",
-            ".aegis-unavailable",
         )
     )
     + "\n"
@@ -231,14 +230,13 @@ def session_start(session_id=None, source=None):
 def edit(rel_path, body):
     """Write a file the way the harness does.
 
-    A plain write, because no hook fires on an edit any more — ADR-0025 deleted the
-    only `PostToolUse(Edit|Write|MultiEdit)` registration. That makes this helper an
-    honest model of an edit today, and it also means this suite can no longer catch a
-    future hook that starts clearing `.review-stamp` on every edit (the ADR-0013
-    behaviour ADR-0019 removed). If such a hook is ever added, add it to `HOOKS` and
-    drive it from here, or the "a fix needs no second review" assertions below go back
-    to passing for the wrong reason. Fixtures stay `.ts` so the Stop gate's
-    code-relevant branch sees them.
+    A plain write, because no hook fires on an edit — ADR-0025 deleted the only
+    `PostToolUse(Edit|Write|MultiEdit)` registration. That makes this helper an
+    honest model of an edit today. Nothing needs to fire: what the gate reads is
+    the set of changed paths, which git reports whether or not a hook watched the
+    write. If a hook that reacts to edits is ever added, add it to `HOOKS` and
+    drive it from here. Fixtures stay
+    `.ts` so the Stop gate's code-relevant branch sees them.
     """
     pathlib.Path(rel_path).write_text(body)
 
@@ -326,6 +324,11 @@ def check_hooks_executable():
 
 sh("git init -q .")
 sh("git config user.email test@example.com && git config user.name test")
+# This machine signs commits by default (`commit.gpgsign=true` globally). A
+# fixture commit that waits on pinentry made this suite flaky and occasionally
+# hung it for minutes — misread once as CPU contention. Repo-local, so it covers
+# every commit the cases below run.
+sh("git config commit.gpgsign false")
 pathlib.Path("fileA.ts").write_text("export const a = 1;\n")
 sh("git add -A")
 sh(f"{LAND} -qm init")
@@ -383,13 +386,51 @@ check("an empty agent_type still stamps", gate(), "PASS")
 # than an undocumented surprise. With one dispatch there is no window to hash, so
 # an edit landing while the agent runs is invisible to the gate. The two-agent
 # pairing check caught exactly this and went away with the second dispatch.
-print("the stamp is not bound to the tree (ADR-0029 residual gap)")
+# The stamp is written at SubagentStop, so a path first touched DURING the run is
+# recorded as reviewed. This is the hole the scope does not close, and it is
+# pinned rather than left undescribed.
+print("a mid-run edit is recorded as reviewed (the residual gap)")
 clear_stamp()
 edit("fileA.ts", "export const a = 6;\n")
 dispatch("code-reviewer")
 edit("fileA.ts", "export const a = 7;\n")  # the parent edits while the agent runs
 stop()
 check("a mid-run edit does NOT block the commit", gate(), "PASS")
+
+# The property the design exists for: editing a file the review already read is
+# what applying a finding's fix looks like, and it keeps the stamp. A path the
+# review never saw does not.
+print("a fix to a reviewed file keeps the stamp")
+clear_stamp()
+edit("fileA.ts", "export const a = 8;\n")
+review()
+check("the reviewed tree commits", gate(), "PASS")
+edit("fileA.ts", "export const a = 9;\n")
+check("re-editing a reviewed file still commits", gate(), "PASS")
+edit("fileB.ts", "export const b = 1;\n")
+check("a file the review never saw blocks", gate(), "BLOCK")
+os.remove("fileB.ts")
+check("removing it restores the covered scope", gate(), "PASS")
+
+print("without the scope library the writer records nothing")
+# The writer sources lib-review-scope.sh from its own directory. Untested,
+# that fail-closed branch is the same shape as the 644-permission incident: a gate
+# that quietly stops deciding. Hiding the copy in WORK models the file being
+# absent without touching the real hooks directory.
+clear_stamp()
+edit("fileA.ts", "export const a = 11;\n")
+dispatch("code-reviewer")
+_lib = pathlib.Path(".claude/hooks/lib-review-scope.sh")
+_hidden = pathlib.Path(".claude/hooks/lib-review-scope.hidden")
+_lib.rename(_hidden)
+try:
+    out = stop()
+    check("no stamp is written", stamped(), False)
+    check("...and it says which file is missing", "lib-review-scope.sh" in out, True)
+finally:
+    _hidden.rename(_lib)
+review()
+check("restoring the library lets a review stamp again", gate(), "PASS")
 
 # The cycle-start clear must react to `code-reviewer` and to nothing else, or an
 # Explore scout dispatched after a review would silently discard the stamp.

@@ -54,10 +54,12 @@ ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 # matter: once was enough. The id-reuse risk stays accepted, as ADR-0027 had it.
 #
 # Accepted residual risk, in the unsafe direction, stated rather than papered
-# over. `pre-bash-guard.sh` authorises a commit on `.review-stamp` merely
-# EXISTING, and ADR-0019 already stopped edits from clearing it, so this clear
-# was the last backstop against a stamp earned in one context authorising a
-# commit in an unrelated one. It was unconditional before. What remains: two
+# over. `pre-bash-guard.sh` authorises a commit once `.review-stamp` lists every
+# currently changed path — not merely because the file exists — so a stamp earned
+# against a different set of files no longer authorises this one, and this clear is
+# a narrower backstop than it was. It still matters where the other context
+# touched the same paths, which two sessions sharing a worktree do by definition.
+# It was unconditional before. What remains: two
 # concurrent sessions sharing one `.claude/` directory, where the second to fire
 # reads the first's id, and any id reuse arriving under a `source` not listed
 # above. Neither is checkable from inside this repository — the payload's
