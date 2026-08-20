@@ -10,13 +10,13 @@ This section is the single source of the process directives. Hooks only point ba
 
 Ticket-granularity work — implement a component, fix a non-trivial bug, refactor a module, add a feature — follows the sequence below. Detect it yourself; the user does not announce it. Trivial edits (a one-line fix, a single config value, docs-only changes) skip it. If unsure which an edit is, follow the sequence: applying it to a borderline-trivial task costs less than skipping it on a borderline-non-trivial one.
 
-Two things are **not** waived by that exemption, because they are disciplines rather than orchestration. Step 2's approval gate applies to any change that embeds a design choice, however few lines it is. Step 5's test-first and debugging rules apply to any change at all — a one-line bug fix is precisely where reproducing the failure before patching it matters most.
+Two things are **not** waived by that exemption, because they are disciplines rather than orchestration. Step 2's approval gate applies to any change that embeds a design choice, however few lines it is. Step 5's debugging rule applies to any change at all — a one-line bug fix is precisely where reproducing the failure before patching it matters most.
 
 1. **Clarify.** If the acceptance criteria or constraints are ambiguous, resolve it from the codebase, the assets, or git history first. If that fails, ask **one** question — whichever ambiguity blocks the most work. Do not send a checklist.
 2. **Judge the design.** Creative or architectural work — new UI, a new pattern, a choice between credible alternatives — is proposed with its alternatives and implemented only after the user approves. Presenting a design and starting in the same breath skips the gate.
 3. **Plan.** One sentence of goal, the files to create or edit with one line each, the acceptance criteria, and the verification steps (`bun run typecheck` / `bun run check` / `bun run test` / build / manual smoke test, as applicable). Enter plan mode when the user asked for a plan.
 4. **Spec the interaction, when it is complex.** Wizards and multi-step forms, auth or session flows, async guards, permission branching: write `specs/<feature>.spec.md` in the format the `verify-spec` skill defines and run `/verify-spec specs/<feature>.spec.md` before implementing. Fix the design for every CONFIRMED counterexample. The deciding factor is interaction complexity, not scale.
-5. **Implement.** The parent implements directly by default — see Delegation for the exceptions. Pure functions and presenters are written test-first: the failing test, confirmed to fail for the expected reason, then the smallest code that passes it. When debugging, reproduce the failure and check what changed recently before forming a hypothesis, then test that hypothesis with the smallest possible change — never try changes to see which one sticks.
+5. **Implement.** The parent implements directly by default — see Delegation for the exceptions. The tests that go with what you add follow Testing. When debugging, reproduce the failure and check what changed recently before forming a hypothesis, then test that hypothesis with the smallest possible change — never try changes to see which one sticks.
 6. **Self-check.** Read the full diff. Run `bun run typecheck`, `bun run check` and `bun run test` — nothing checks your edits as you make them, and the Stop gate fires only at the end of the turn. Confirm the acceptance criteria from step 3 — and for anything a subagent implemented, read the diff itself rather than the subagent's summary.
 7. **Review, then commit.** See Review. Propose the commit split and wait for the user.
 
@@ -84,7 +84,13 @@ The next rule is not path-scoped — it applies whenever you write any instructi
 
 ## Testing
 
-White-box testing: tests cover internal logic paths and branches, not just inputs/outputs. Pure functions require 100% branch coverage.
+Tests are written against the implementation — test-first is not required. What is required is that every branch you added is reached by a test that fails when that branch breaks. White-box: tests cover internal logic paths and branches, not just inputs and outputs. Pure functions require 100% branch coverage, which `vitest.config.mts` enforces per file over an explicit module list — a new pure module joins that list when its test lands, or its coverage is silently no one's problem.
+
+- **A test name states a condition and its result.** The name alone says what broke, without opening the body. Follow the phrasing of the tests around it.
+- **One test, one `expect`, arranged as Arrange / Act / Assert.** A table-driven case is one test per row and obeys the same rule.
+- **A structural result is asserted as one whole object.** Build what the unit produced — fields, a response's status and headers, whatever the shape is — and compare it with `toEqual` in a single `expect`. It fails with the whole shape, where field-by-field expects stop at the first mismatch and hide the rest.
+
+Reaching a component's branches from a test depends on how the component was shaped; `.claude/rules/react.md` (Testable Behavior Extraction) governs that. No gate runs the suite before CI, so step 6's `bun run test` is the only thing between a broken test and a push.
 
 ## Commits & Pull Requests
 
