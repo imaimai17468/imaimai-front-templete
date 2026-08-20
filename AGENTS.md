@@ -61,7 +61,11 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 **Senior dev standard:** Don't settle for "simplest approach" when architecture is flawed, state is duplicated, or patterns are inconsistent. Ask: "What would a perfectionist senior dev reject in code review?" Fix it. Following the majority convention is an acceptable default, but when a better approach is known, take it.
 
-**Comments explain the code directly below them — nothing else.** No narration, no supplements, no restating the obvious. If code needs a comment to be understood, strengthen the types or the structure until it doesn't; a comment is never the fix for unclear code.
+**Comments explain the code directly below them — nothing else.** No narration, no supplements, no restating the obvious. If code needs a comment to be understood, strengthen the types or the structure until it doesn't; a comment is never the fix for unclear code. This holds for every comment you write — in code, in a PR description, in a review.
+
+**A comment's subject never lives outside what it ships with.** An issue or PR number, "see above", another file's behavior, a decision reached in a past review — nothing checks any of these, so they go wrong the moment what they point at moves. Write what the reader needs where they are reading. One exemption, and it turns on who the reference is for: `Closes #123` in a PR body is consumed by the platform, which closes that issue when the PR merges, so it is machinery rather than a claim. `see #456` is addressed to the reader, who now has to leave and come back to understand you — that is the thing this bans. Whether a comment's claim is *true* is Instruction documents' subject, below.
+
+**A comment is not a control mechanism.** Wanting to write one so that a future reader — or a future agent — does not do the wrong thing is the signal to change the structure or the types until the wrong thing does not compile. A warning binds only whoever reads it; a type binds everyone. Reach for the comment once the structural option is genuinely unavailable, not before.
 
 **Generated types stay generated:** after any `wrangler.toml` change, run `bun run cf-typegen`. `worker-configuration.d.ts` is its output — never hand-edit it.
 
@@ -97,7 +101,7 @@ Reaching a component's branches from a test depends on how the component was sha
 - **One commit = one purpose.** If two changes could be reverted independently, split them — drive-by fixes are always a separate commit. Never `git add -A`/`git add .`; stage explicit paths, use `git add -p` to split hunks within a file.
 - First line states **what improves**, not what you did. Prefixes: `feat` / `fix` / `refactor` / `test` / `docs` / `chore` (intent-based). Body in Japanese; `fix`/`refactor` include a *why* line. End with a `Co-Authored-By:` trailer crediting the current model.
 - Do not commit without explicit user confirmation.
-- **Prose (PR descriptions, review comments, code comments): state only the core, plainly.** No decoration, no exhaustive detail. Write in general language the reader understands — never tool output, internal variable names, or domain/project-internal coinages.
+- **Prose (PR descriptions, review comments, code comments): state only the core, plainly.** No decoration, no exhaustive detail. Write in general language the reader understands — never tool output, internal variable names, or domain/project-internal coinages. What such prose may take as its subject is settled by the comment rules in Code Practices.
 - **History:** while a PR is Draft, keep its commits clean (rebase freely). Once review has started, never rewrite reviewed commits — add fixes on top and integrate preserving the commit/review order (typically a merge commit).
 
 ## Agents
