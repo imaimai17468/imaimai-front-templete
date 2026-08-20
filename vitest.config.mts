@@ -17,8 +17,8 @@ export default defineConfig({
     environment: "jsdom",
     isolate: false,
     setupFiles: ["./src/test-setup.ts"],
-    // AGENTS.md「純関数は分岐カバレッジ 100%」の機械化。include が対象の
-    // 全リスト — 新しい純関数モジュールをテスト付きで追加したらここにも足す。
+    // include が対象の全リスト — 新しい純関数モジュールを
+    // テスト付きで追加したらここにも足す。
     coverage: {
       include: [
         "src/entities/**",
