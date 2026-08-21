@@ -37,7 +37,13 @@ rm -rf src/components/features/profile-page
 rmdir src/components/features 2>/dev/null || true
 rm -rf src/components/shared/header/auth-navigation src/components/shared/header/user-menu
 rm -f src/test/cloudflare-workers-stub.ts
+rm -f specs/avatar-read.spec.md specs/avatar-upload.spec.md
+rmdir specs 2>/dev/null || true
 ```
+
+Both spec files describe the avatar flow across D1 and R2, so they lose their
+subject with the feature. Step 7's grep will not flag them: they spell the
+services as bare `D1` and `R2`, which none of its literals match.
 
 `src/routeTree.gen.ts` is gitignored and generated — refresh it with
 `bun run generate-routes` after deleting route files.
@@ -124,7 +130,12 @@ the Worker, and it stays.
 ### `vitest.config.mts` — drop the `cloudflare:workers` alias
 
 The alias only existed to stub that import for `src/server/cloudflare.ts`, which
-step 1 deleted. Remove the `alias` block and the now-unused `node:path` import:
+step 1 deleted. Remove the `alias` block and the now-unused `node:path` import.
+
+Keep the `coverage` block. It is the per-file 100% branch gate that AGENTS.md's
+Testing section names this file as the home of, and dropping it retires that gate
+silently. What changes inside it is the `include` list: prune the entries whose
+paths step 1 deleted, and leave the rest.
 
 ```ts
 import { defineConfig } from "vitest/config";
@@ -139,9 +150,39 @@ export default defineConfig({
     environment: "jsdom",
     isolate: false,
     setupFiles: ["./src/test-setup.ts"],
+    coverage: {
+      include: [
+        "src/lib/utils.ts",
+        "tools/oxlint-plugins/arch-rules.js",
+        "tools/oxlint-plugins/style-rules.js",
+      ],
+      thresholds: {
+        perFile: true,
+        branches: 100,
+      },
+    },
   },
 });
 ```
+
+### `tools/oxlint-plugins/arch-rules.js` — prune the dead layer bans
+
+`LAYER_BANS` encodes the layer contract (routes → server/fn → gateways →
+entities) as import bans. Step 1 deletes every layer below `routes`, so a ban
+whose `layer` or `target` names a deleted path has nothing left to protect.
+Remove those entries together with the cases in `arch-rules.test.ts` that cover
+them: `vitest.config.mts` holds this file at 100% branch coverage, so a pruned
+ban with a surviving test — or the reverse — fails `bun run test`. If every ban
+goes, the `layer-boundaries` rule and its entry in the `plugin` export go too.
+When that happens, also remove `"arch-rules/layer-boundaries": "error"` from
+`.oxlintrc.json`'s `rules` map — the plugin export and that entry name the same
+rule ID, so dropping only one half leaves the config pointing at a rule nothing
+supplies.
+
+**Neither file under `tools/oxlint-plugins/` is deleted.** `arch-rules.js` also
+carries the component and test-shape rules, `style-rules.js` is untouched by this
+procedure, and `.oxlintrc.json` loads both by path under `jsPlugins` — removing
+either file breaks the lint config for the whole fork.
 
 ### `knip.json`
 
@@ -155,6 +196,14 @@ export default defineConfig({
 Delete the `[[d1_databases]]` and `[[r2_buckets]]` blocks and the
 `BETTER_AUTH_URL` entry under `[vars]` (drop `[vars]` entirely if it becomes
 empty). Keep `name`, `main`, `compatibility_date`, and `compatibility_flags`.
+
+Delete the `[secrets]` block and the comment above it. Every name in its
+`required` list is an auth secret this procedure removes, and naming a secret
+there makes it required at deploy time — `docs/DEPLOYMENT.md` carries that
+contract. Leaving the block behind is the one edit in this step that breaks the
+deployment this skill exists to keep: `wrangler deploy` would fail on secrets the
+fork has no way to supply. When a fork introduces a secret of its own, the block
+comes back carrying that name.
 
 Leave `compatibility_flags = ["nodejs_compat"]` in place unless you have
 verified nothing in the remaining build needs it — it is cheap to keep and
@@ -261,9 +310,7 @@ this procedure keeps:
 - Two documented rules stop applying and their homes have to say so.
   `.env.local.example` and `docs/DATABASE_SETUP.md` describe the standing
   exception that lets drizzle-kit's `CLOUDFLARE_API_TOKEN` sit on disk; removing
-  drizzle-kit closes that exception, so the wording goes with the files. And
-  `wrangler.toml`'s comment on declaring secrets for `wrangler types` keeps
-  applying to whatever secrets remain — check it names none that were deleted.
+  drizzle-kit closes that exception, so the wording goes with the files.
 
 ## 7. Residual reference check
 
@@ -274,7 +321,7 @@ treating them as leftovers is what leads to deleting the deployment by mistake.
 
 ```bash
 grep -rn "better-auth\|BETTER_AUTH\|drizzle\|D1Database\|R2Bucket\|AVATARS_BUCKET\|d1_databases\|r2_buckets" \
-  src scripts package.json vite.config.ts vitest.config.mts knip.json wrangler.toml \
+  src scripts tools package.json vite.config.ts vitest.config.mts knip.json wrangler.toml \
   README.md AGENTS.md .claude/settings.json docs/DEPLOYMENT.md docs/FORKING.md
 ```
 
