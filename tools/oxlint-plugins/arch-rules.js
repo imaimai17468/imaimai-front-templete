@@ -317,10 +317,100 @@ const componentFileNaming = {
   },
 };
 
-// Layer contract: routes → server/fn → gateways → entities,
-// imports flow downward only. Only the bans that contract states are encoded here —
-// side categories (components, lib outside drizzle) stay unrestricted.
+// Layer contract: components + routes → client → server/fn → gateways → entities,
+// imports flow downward only. `client` is the UI's single door to data access, so
+// components reach the server boundary through it and never past it. `lib` outside
+// the binding-touching modules stays unrestricted; the banned ones are listed per
+// layer below rather than counted here.
 const LAYER_BANS = [
+  {
+    layer: "src/components",
+    externalBans: [
+      {
+        source: "cloudflare:workers",
+        message:
+          "Components must not access Cloudflare bindings — data access belongs in src/client.",
+      },
+      {
+        source: "@tanstack/react-start/server",
+        message:
+          "Components must not resolve server request context — data access belongs in src/client.",
+      },
+    ],
+    bans: [
+      {
+        target: "src/server",
+        message:
+          "Components must not call server procedures directly — go through src/client.",
+      },
+      {
+        target: "src/gateways",
+        message: "Components must not import gateways — go through src/client.",
+      },
+      {
+        target: "src/lib/drizzle",
+        message:
+          "Components must not touch persistence — src/lib/drizzle is owned by gateways.",
+      },
+      {
+        target: "src/lib/storage/r2",
+        message:
+          "Components must not touch object storage — src/lib/storage/r2 is owned by gateways.",
+      },
+      {
+        target: "src/lib/auth/session",
+        message:
+          "Components must not resolve request authentication — go through src/client.",
+      },
+      {
+        target: "src/lib/auth/auth",
+        message:
+          "Components must not touch the raw Better Auth instance — src/lib/auth/auth reaches persistence and Cloudflare bindings directly; go through src/client.",
+      },
+    ],
+  },
+  {
+    layer: "src/client",
+    externalBans: [
+      {
+        source: "cloudflare:workers",
+        message:
+          "src/client also runs in the browser — it must not access Cloudflare bindings.",
+      },
+      {
+        source: "@tanstack/react-start/server",
+        message:
+          "src/client also runs in the browser — it must not resolve server request context.",
+      },
+    ],
+    bans: [
+      {
+        target: "src/gateways",
+        message:
+          "src/client must not import gateways — cross the boundary through a server procedure.",
+      },
+      {
+        target: "src/lib/drizzle",
+        message:
+          "src/client must not touch persistence — src/lib/drizzle is owned by gateways.",
+      },
+      {
+        target: "src/lib/storage/r2",
+        message:
+          "src/client must not touch object storage — src/lib/storage/r2 is owned by gateways.",
+      },
+      {
+        target: "src/lib/auth/session",
+        message:
+          "src/client must not resolve request authentication — that is the server boundary's job.",
+      },
+      {
+        target: "src/lib/auth/auth",
+        message:
+          "src/client must not touch the raw Better Auth instance — src/lib/auth/auth reaches persistence and Cloudflare bindings directly.",
+      },
+    ],
+  },
   {
     layer: "src/routes",
     externalBans: [

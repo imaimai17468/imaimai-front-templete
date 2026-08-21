@@ -1063,13 +1063,145 @@ describe("layer-boundaries", () => {
 
   it("should return no visitors when the file is not in a chain layer", () => {
     // Arrange
-    const context = makeLayerContext("/repo/src/components/ui/button.tsx");
+    const context = makeLayerContext("/repo/src/lib/utils.ts");
 
     // Act
     const visitors = rule.create(context);
 
     // Assert
     expect(visitors.ImportDeclaration).toBeUndefined();
+  });
+
+  it("should report when a component imports a server procedure", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/components/features/profile-page/ProfilePage.tsx"
+    );
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/server/fn/profile"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a component reads Cloudflare bindings", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/components/shared/header/Header.tsx"
+    );
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("cloudflare:workers"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when a component imports the client data layer", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/components/features/profile-page/profile-form/ProfileForm.tsx"
+    );
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/client/profile"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a component imports the pure avatar validator", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/components/features/profile-page/profile-form/ProfileForm.tsx"
+    );
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/storage/avatar-validation"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when the client layer imports a gateway", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/client/profile.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/gateways/user"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when the client layer imports a server procedure", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/client/profile.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/server/fn/profile"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when a component imports the raw auth instance", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/components/shared/header/Header.tsx"
+    );
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/auth/auth"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when a component imports the client auth actions", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/components/shared/header/auth-navigation/AuthNavigation.tsx"
+    );
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/auth/actions"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when the client layer imports the raw auth instance", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/client/profile.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/auth/auth"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when the client layer resolves server request context", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/client/profile.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@tanstack/react-start/server"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
   });
 
   it("should return no visitors when filename is unavailable", () => {

@@ -24,8 +24,7 @@ import {
   avatarSizeRejection,
   MAX_AVATAR_BYTES,
 } from "@/lib/storage/avatar-validation";
-import { updateProfileFn, uploadAvatarFn } from "@/server/fn/profile";
-import { submitProfile } from "./profile-submit";
+import { submitProfileToServer } from "@/client/profile";
 
 // similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
 type ProfileFormProps = {
@@ -88,13 +87,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: FormData) =>
-      submitProfile(
-        { name: data.name, avatar: pendingFile },
-        {
-          uploadAvatar: async (body) => uploadAvatarFn({ data: body }),
-          updateProfile: async (body) => updateProfileFn({ data: body }),
-        }
-      ),
+      submitProfileToServer({ name: data.name, avatar: pendingFile }),
     onSuccess: async (outcome) => {
       if (outcome.kind === "failed") {
         toast.error(outcome.message);
