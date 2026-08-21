@@ -29,24 +29,26 @@ clone した直後に置き換えるべき値と、残す/捨てるファイル�
 ## 3. 残すもの / 捨てるもの
 
 このリポジトリはアプリ本体より**エージェント運用層のほうが大きい**。どちらの
-性質かで扱いを分ける。
+性質かで扱いを分ける。個別に覚えるものではない — 判定は下の一行で足りる。
 
-**再利用する（そのまま持っていく）**
+**再利用する（そのまま持っていく）**: 規約とゲートを成立させているもの全部。
+規約そのもの（`AGENTS.md`, `CLAUDE.md`, `.claude/`）、それを機械的に強制する側
+（`lefthook.yml`, `.oxlintrc.json`, `.oxfmtrc.json`, `knip.json`,
+`vitest.config.mts`, `tools/oxlint-plugins/`, `scripts/` のゲートスクリプト）、
+レビュー品質の回帰スイート（`scripts/evals/`）。規約は文書だけに書かれている
+わけではないので、強制側を置いていくと規約が黙って効かなくなる。
 
-- `.claude/skills/`, `.claude/agents/`, `.claude/hooks/`, `.claude/rules/` —
-  スキル・エージェント定義・ゲート・パススコープのルール
+個別に注意が要るのは 2 つだけ:
+
 - `.cursor/rules/` — `.claude/rules/` へのファイル単位 symlink。
   実体を置かないこと — コピーはドリフトする
 - `.claude/settings.json` — 権限境界。プロジェクト固有のコマンドを
   足す場合は `allow` の広さが境界の一部であることに注意
-- `scripts/evals/` — レビュー品質の回帰スイート
-- `AGENTS.md`, `CLAUDE.md`, `lefthook.yml`, `.oxlintrc.json`, `knip.json`
 
-**このテンプレート固有の履歴（整理してよい）**
-
-- `scripts/evals/` の過去の計測結果（`results/`）— 実行日時点の記録なので、
-  フォーク先には関係しない
-- `docs/launch-checklist/` の過去レポート（あれば）
+**このテンプレート固有の履歴（整理してよい）**: 実行日時点の記録として書かれた
+もの。skill が日付名で書き出したレポート（`docs/` 配下に skill ごとのディレクトリ
+ができる）と、`scripts/evals/` の過去の計測結果（`results/`）。どちらもフォーク先
+には関係しない。
 
 このテンプレートは意思決定記録を別立てで持たない。ある判断が「なぜ今こうなって
 いるか」は、規約そのもの（AGENTS.md / `.claude/rules/`）と `git log` にある。
