@@ -186,7 +186,7 @@ bun run db:seed:local
 # スキーマからマイグレーション生成
 bun run db:generate
 
-# スキーマを直接DBに反映（開発時）
+# スキーマをリモート D1 に反映（ローカルは db:push:local）
 bun run db:push
 
 # データベースGUIを起動

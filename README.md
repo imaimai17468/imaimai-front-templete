@@ -50,7 +50,7 @@ http://localhost:5173 でアクセス。`@cloudflare/vite-plugin` により、`b
 | `bun run lint:fix`        | Run oxlint with auto-fix                        |
 | `bun run format`          | Check formatting with oxfmt                     |
 | `bun run format:fix`      | Format with oxfmt                               |
-| `bun run check`           | lint + format check (same as pre-push hook)     |
+| `bun run check`           | lint + format check (pre-push runs this and `typecheck`) |
 | `bun run check:fix`       | lint + format with auto-fix                     |
 | `bun run generate-routes` | Regenerate TanStack Router route tree           |
 | `bun run knip`            | Detect unused deps/exports/files                |
@@ -69,6 +69,8 @@ http://localhost:5173 でアクセス。`@cloudflare/vite-plugin` により、`b
 - **[shadcn/ui](https://ui.shadcn.com/)** — UI components (`components.json`)
 - **[TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)** — Type checker (Go-native `tsc`)
 - **[oxlint](https://oxc.rs/docs/guide/usage/linter)** — Linter (`.oxlintrc.json`)
+- **自作 oxlint プラグイン** (`tools/oxlint-plugins/`) — `.oxlintrc.json` の `jsPlugins` から読み込まれる。層契約・コンポーネント命名・1ファイル1コンポーネント・テストの形（1テスト1 expect など）を機械的に強制するので、規約は文書だけでなくここにもある
+- **[react-doctor](https://github.com/millionco/react-doctor)** — React 向け追加ルール (`.oxlintrc.react-doctor.json`)
 - **[oxfmt](https://oxc.rs/docs/guide/usage/formatter)** — Formatter (`.oxfmtrc.json`)
 - **[lefthook](https://github.com/evilmartians/lefthook)** — Git hooks (`lefthook.yml`、`bun install` 時に `prepare` スクリプトで自動セットアップ)
 - **[knip](https://knip.dev/)** — Unused deps/exports/files detection (`knip.json`)
@@ -112,6 +114,7 @@ src/
 │   ├── index.tsx           # Home page
 │   ├── login.tsx           # Login page
 │   ├── profile.tsx         # Profile page (auth guard via beforeLoad)
+│   ├── auth.auth-code-error.tsx  # OAuth failure landing page
 │   └── api/                # API routes (auth catch-all, avatars)
 ├── server/
 │   ├── cloudflare.ts       # CloudflareEnv helper (cloudflare:workers)
@@ -127,8 +130,10 @@ src/
 │   ├── drizzle/            # Drizzle ORM スキーマ
 │   ├── storage/            # R2 ストレージ
 │   └── utils.ts
+├── test/                   # Test helpers (router harness, cloudflare:workers stub)
 ├── router.tsx              # TanStack Router definition
 ├── ssr.tsx                 # Server entry (Cloudflare Worker handler)
+├── test-setup.ts           # Vitest setup
 └── styles.css              # Tailwind v4 tokens
 ```
 
