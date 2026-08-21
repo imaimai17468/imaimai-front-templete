@@ -21,6 +21,7 @@ export default defineConfig({
     // テスト付きで追加したらここにも足す。
     coverage: {
       include: [
+        "src/components/features/profile-page/profile-form/profile-submit.ts",
         "src/entities/**",
         "src/lib/storage/avatar-validation.ts",
         "src/lib/utils.ts",

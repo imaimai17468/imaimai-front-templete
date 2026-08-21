@@ -1,6 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "@tanstack/react-router";
 import { Camera, Loader2 } from "lucide-react";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
@@ -23,6 +25,7 @@ import {
   MAX_AVATAR_BYTES,
 } from "@/lib/storage/avatar-validation";
 import { updateProfileFn, uploadAvatarFn } from "@/server/fn/profile";
+import { submitProfile } from "./profile-submit";
 
 // similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
 type ProfileFormProps = {
@@ -32,7 +35,7 @@ type ProfileFormProps = {
 type FormData = z.infer<typeof UpdateUserSchema>;
 
 export const ProfileForm = ({ user }: ProfileFormProps) => {
-  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -83,29 +86,38 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
     setPreviewUrl(nextPreviewUrl);
   };
 
-  const onSubmit = (data: FormData) => {
-    startTransition(async () => {
-      if (pendingFile) {
-        const avatarData = new globalThis.FormData();
-        avatarData.append("avatar", pendingFile);
-        const avatarResult = await uploadAvatarFn({ data: avatarData });
-        if ("error" in avatarResult && avatarResult.error !== undefined) {
-          toast.error(avatarResult.error);
-          return;
+  const { mutate, isPending } = useMutation({
+    mutationFn: async (data: FormData) =>
+      submitProfile(
+        { name: data.name, avatar: pendingFile },
+        {
+          uploadAvatar: async (body) => uploadAvatarFn({ data: body }),
+          updateProfile: async (body) => updateProfileFn({ data: body }),
         }
-        setPendingFile(null);
+      ),
+    onSuccess: async (outcome) => {
+      if (outcome.kind === "failed") {
+        toast.error(outcome.message);
+        return;
       }
+      // Refetch before dropping the preview: `user` arrives from the route
+      // loader, so without this the form keeps rendering the pre-save value and
+      // the object URL stands in for an avatar that is already stored.
+      await router.invalidate();
+      setPendingFile(null);
+      setPreviewUrl(null);
+      toast.success("Profile updated successfully");
+    },
+    // The validators throw rather than returning `{ error }`, so those paths
+    // reject the mutation and never reach onSuccess. The thrown message is not
+    // vetted for display, so it is not shown.
+    onError: () => {
+      toast.error("Something went wrong. Please try again.");
+    },
+  });
 
-      const formData = new globalThis.FormData();
-      formData.append("name", data.name);
-
-      const result = await updateProfileFn({ data: formData });
-      if ("error" in result && result.error !== undefined) {
-        toast.error(result.error);
-      } else {
-        toast.success("Profile updated successfully");
-      }
-    });
+  const onSubmit = (data: FormData) => {
+    mutate(data);
   };
 
   const displayName =
