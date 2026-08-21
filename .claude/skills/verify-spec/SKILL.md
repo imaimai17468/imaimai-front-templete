@@ -1,7 +1,6 @@
 ---
 name: verify-spec
 description: Agent-based model checking of a state-machine spec — one agent formalizes, hunts counterexamples, replays each against the machine, and returns the survivors. Design step for interaction-complex features (wizards, auth/session flows, async guards, permission branching). Pass the spec path as the argument.
-user_invocable: true
 ---
 
 # Verify Spec

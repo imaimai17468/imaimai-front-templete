@@ -1,7 +1,6 @@
 ---
 name: review-diff
 description: Unified pre-commit review of the uncommitted diff — one agent hunts across all lenses (bugs + AGENTS.md rules), adversarially refutes each candidate against the real code, and returns the survivors with their fixes; its completion stamps the commit gate. Run before every commit, or whenever the uncommitted diff needs a full review. Pass "high" for a deeper multi-lens refute pass.
-user_invocable: true
 ---
 
 # Review Diff

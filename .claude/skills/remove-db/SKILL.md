@@ -1,7 +1,6 @@
 ---
 name: remove-db
 description: Use when forking this template for a project that does not need a database, auth, or file storage — removes Cloudflare D1 / R2 / Better Auth / Drizzle ORM. The Cloudflare Workers deployment stays intact.
-user_invocable: true
 ---
 
 # Remove DB / Auth / Storage

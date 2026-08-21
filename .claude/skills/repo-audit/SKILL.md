@@ -1,7 +1,6 @@
 ---
 name: repo-audit
 description: On-demand repo-wide audit with the best available model — hunts what deterministic gates cannot (drift from the documented conventions, security posture, dependency strategy, doc staleness/DX) and routes outcomes into existing rails (AGENTS.md or the path-scoped rules for conventions; work findings are reported to the user rather than persisted). Use when the user asks for a repo audit, health check, or "what should we improve"; not scheduled, not CI-run.
-user_invocable: true
 ---
 
 # Repo Audit
