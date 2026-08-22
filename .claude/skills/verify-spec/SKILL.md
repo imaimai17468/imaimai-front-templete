@@ -22,7 +22,7 @@ Benchmarking (2026-07-04) collapsed the old parallel workflow (4 hunt lanes, ~80
 
 ## When to run
 
-Step 4 of the AGENTS.md Workflow sequence, for features with non-obvious state transitions: wizards / multi-step forms, auth or session flows, async guards (disable-while-loading, unsaved-changes), permission branching. The deciding factor is interaction complexity, not scale — even three states hide loopholes once back, cancel, retry, reload, double-submit or permission branching are involved. Skip static screens and plain CRUD. Write the spec first (see **Format** below), then run this. Fix the design for every CONFIRMED counterexample before implementing.
+Step 4 of the `ticket-work` skill, for features with non-obvious state transitions: wizards / multi-step forms, auth or session flows, async guards (disable-while-loading, unsaved-changes), permission branching. The deciding factor is interaction complexity, not scale — even three states hide loopholes once back, cancel, retry, reload, double-submit or permission branching are involved. Skip static screens and plain CRUD. Write the spec first (see **Format** below), then run this. Fix the design for every CONFIRMED counterexample before implementing.
 
 ## Format
 

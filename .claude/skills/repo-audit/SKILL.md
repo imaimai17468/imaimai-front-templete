@@ -47,7 +47,7 @@ CI gates own them.
      path-scoped rule file whose scope it falls under. Nothing else records
      conventions.
    - **Work** (something to fix or build) → reported to the user in the audit
-     summary, to run through the AGENTS.md Workflow sequence if they want it.
+     summary, to run through the `ticket-work` skill if they want it.
      There is no plan artifact.
    - **Escalation**: a High-severity security finding is ALSO reported to the
      user immediately in the audit summary, with a proposal to start work on

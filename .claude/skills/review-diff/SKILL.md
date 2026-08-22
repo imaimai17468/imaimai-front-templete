@@ -20,7 +20,7 @@ Benchmarking (2026-07-04) already collapsed the old 5–7-lane parallel workflow
 
 ## Routing — how this runs
 
-- **You are the parent session** (human invoked `/review-diff`, or step 7 of the AGENTS.md Workflow sequence):
+- **You are the parent session** (human invoked `/review-diff`, or step 7 of the `ticket-work` skill):
   1. Dispatch the `code-reviewer` agent on the uncommitted diff, passing the `effort` if the user asked for `high`. Wait for it. It runs all four stages and returns the surviving findings.
   2. Integrate the findings it returns. Do NOT run the stages in the parent context yourself — the fresh agent context is the whole point.
   **The agent has no web tool** (`tools: Read, Bash, Skill`), so it cannot
@@ -46,7 +46,7 @@ The procedure above is pinned; the dispatch prompt is not — it is written from
 
 ## When to run
 
-- Step 7 of the AGENTS.md Workflow sequence, before proposing a commit.
+- Step 7 of the `ticket-work` skill, before proposing a commit.
 - Any time the uncommitted diff needs a full review.
 
 **Once per commit.** Applying what the review confirmed does not require running
