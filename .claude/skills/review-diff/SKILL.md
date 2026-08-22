@@ -1,6 +1,6 @@
 ---
 name: review-diff
-description: Unified pre-commit review of the uncommitted diff — one agent hunts across all lenses (bugs + AGENTS.md rules), adversarially refutes each candidate against the real code, and returns the survivors with their fixes; its completion stamps the commit gate. Run before every commit, or whenever the uncommitted diff needs a full review. Pass "high" for a deeper multi-lens refute pass.
+description: Unified pre-commit review of the uncommitted diff — one agent hunts across all lenses (bugs + AGENTS.md rules), adversarially refutes each candidate against the real code, and returns the survivors with their fixes. Run before every commit, or whenever the uncommitted diff needs a full review. Pass "high" for a deeper multi-lens refute pass.
 ---
 
 # Review Diff
@@ -12,7 +12,7 @@ Fresh-context review of the uncommitted diff before a commit. The review runs as
 - **Stage C — refute**: re-derive each candidate from the real code and try to kill it.
 - **Stage D — return**: the survivors, each with its fix and acceptance check.
 
-It is a depth-1 dispatch the parent waits on directly — never a nested "agent waiting on its own child," which was the fragile joint that lost verdicts under an earlier nested design (2026-07-10 incidents). The agent's completion stamps the commit gate.
+The parent dispatches the reviewer and integrates what it returns; the reviewer dispatches nothing — an agent waiting on its own child was the fragile joint that lost verdicts under an earlier nested design (2026-07-10 incidents).
 
 **find ≠ verify is now a discipline, not a mechanism.** Stage C shares a context with Stage A and can see the reasoning that produced each candidate; the separate verifier that could not was what an earlier design relied on. That downgrade is the accepted risk of the single-agent shape, taken after measuring that the second dispatch was not what made the pipeline expensive — proving the parent had not edited *between* two dispatches was. The counterweight is that every verdict must cite the `file:line` it was re-derived from, so a refutation that never opened the code is visible in the output.
 
@@ -21,7 +21,7 @@ Benchmarking (2026-07-04) already collapsed the old 5–7-lane parallel workflow
 ## Routing — how this runs
 
 - **You are the parent session** (human invoked `/review-diff`, or step 7 of the AGENTS.md Workflow sequence):
-  1. Dispatch the `code-reviewer` agent on the uncommitted diff (this clears any stale stamp — new cycle), passing the `effort` if the user asked for `high`. Wait for it. It runs all four stages and returns the surviving findings; its completion stamps `.claude/.review-stamp`.
+  1. Dispatch the `code-reviewer` agent on the uncommitted diff, passing the `effort` if the user asked for `high`. Wait for it. It runs all four stages and returns the surviving findings.
   2. Integrate the findings it returns. Do NOT run the stages in the parent context yourself — the fresh agent context is the whole point.
   **The agent has no web tool** (`tools: Read, Bash, Skill`), so it cannot
   check a claim about how an external tool behaves — a CLI flag, a config key, a
@@ -42,7 +42,7 @@ The procedure above is pinned; the dispatch prompt is not — it is written from
 - **Claims to check.** The two or three things you are least sure of, written as claims rather than areas: "confirm this cannot abort under `set -e`" gets checked, "review the hook" does not.
 - **What to challenge hardest.** Name the candidates whose truth would change the fix, and say plainly where the diff contradicts something you believe — that is the cue for Stage C to re-derive rather than wave through. Stage C can see Stage A's reasoning, so this slot is where you spend the independence the mechanism no longer supplies.
 - **External tool behaviour.** Handled by the parent routing bullet above ("The agent has no web tool…") — nothing to add here beyond following it.
-- **Ordering.** State that you will not edit any file while the dispatch is running. That is the hole the path-scope mechanism does not close: the stamp is written when the agent finishes, so a path first touched mid-run is recorded as reviewed. Nothing enforces it.
+- **Ordering.** State that you will not edit any file while the dispatch is running — the reviewer reads the tree once, so a file first touched mid-run is one it never saw. Nothing enforces it.
 
 ## When to run
 
@@ -50,10 +50,9 @@ The procedure above is pinned; the dispatch prompt is not — it is written from
 - Any time the uncommitted diff needs a full review.
 
 **Once per commit.** Applying what the review confirmed does not require running
-this again: the stamp records which paths the reviewer read, and a fix touches
-those same paths. The pass ends at the fix. One review also covers a multi-commit
-split, because committing removes paths from the diff rather than adding any. What
-it does not cover is a file the review never saw — that needs a fresh pass.
+this again — a fix touches the paths the reviewer already read. The pass ends at
+the fix. One review also covers a multi-commit split. What it does not cover is a
+file the review never saw — that needs a fresh pass.
 
 ## Effort
 
@@ -118,15 +117,12 @@ Drop REFUTED findings. Sort survivors by verdict (CONFIRMED first) then severity
 
 Report `stats.candidates` and `stats.refuted` honestly even when every candidate died — a pass that refuted everything is a normal outcome and the numbers are how anyone can tell Stage C ran at all.
 
-Do NOT manually create `.claude/.review-stamp` — a `SubagentStop` hook stamps it when you finish.
-
-**Fail-closed (parent responsibility).** The gate needs two facts. One is deterministic and checked: at `SubagentStop` the hook records every changed path, and `pre-bash-guard.sh` later refuses a commit touching a path that is not on that list. The other is not checked: that the agent finished having reported something — its `SubagentStop` with a non-blank `last_assistant_message`. Consequences the parent must respect:
-- **Do not edit files while the dispatch is running.** The stamp is written when the agent finishes, so a path first touched mid-run is recorded as reviewed. This is the hole the mechanism does not close; nothing enforces it. Fix *after* the agent returns — those fixes keep the stamp.
-- Your own `Bash` use does not void the pass — only touching a path the review never saw does.
-- If the dispatch errors, times out, or returns a malformed/empty report, treat the review as NOT done — the findings are unverified. Do not commit; re-dispatch. A completed-but-degenerate response is not a clean pass, and the blank-report check refuses to stamp one.
+**Parent responsibility.** Nothing mechanical checks any of this:
+- **Do not edit files while the dispatch is running.** The reviewer reads the tree once, so a file first touched mid-run is one it never saw. Fix *after* it returns.
+- If the dispatch errors, times out, or returns a malformed/empty report, treat the review as NOT done — the findings are unverified. Do not commit; re-dispatch. A completed-but-degenerate response is not a clean pass.
 
 ## After the review (parent session)
 
 1. Read the surviving findings. Never dismiss a finding as "pre-existing" when the file is in the diff. Apply rules literally; when in doubt, fix.
 2. **Apply each finding's `fix` and check its `acceptance`.** The fix was judged by a context that did not write the code; that is the point of it arriving with the finding. Departing from it is allowed — you can see things the agent could not — but then say so and why, in the commit message or to the user. Where `fix` says the finding needs a decision, ask the user rather than picking for them.
-3. That is **the end of the review**. Those edits keep the stamp, so commit once every finding is addressed or explicitly justified as out of scope. Running this skill again is a fresh review of a fresh diff, not a follow-up on this one.
+3. That is **the end of the review**. Commit once every finding is addressed or explicitly justified as out of scope. Running this skill again is a fresh review of a fresh diff, not a follow-up on this one.

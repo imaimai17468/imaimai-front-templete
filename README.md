@@ -84,12 +84,10 @@ http://localhost:5173 でアクセス。`@cloudflare/vite-plugin` により、`b
 | スクリプト | 役割 |
 | --- | --- |
 | `check-md-links.py` | markdown の相対リンク切れを検出。Stop gate と CI が自動実行 |
-| `test-review-gate.py` | レビューゲートのフック挙動を実物に対して検証 |
 | `test-md-links.py` | 上記リンクチェッカー自身の回帰テスト |
-| `test-bash-guard.py` | Bash ガード（`.env` 保護・`find` の到達範囲・コミットゲート）の検証 |
-| `test-review-scope.py` | コミットゲートが判定に使う「レビュー済みパス集合」の検証 |
+| `test-bash-guard.py` | Bash ガード（`.env` 保護・`find` の到達範囲）の検証 |
 
-`test-*.py` は該当フックを触ったときに手で回します（`python3 scripts/test-review-gate.py` など）。未インストールの環境では SessionStart の env-check が欠落を報告し、Stop gate はリンクチェックを「スキップした」と明示します（黙って合格扱いにはなりません）。
+`test-*.py` は該当フックを触ったときに手で回します（`python3 scripts/test-bash-guard.py` など）。未インストールの環境では SessionStart の env-check が欠落を報告し、Stop gate はリンクチェックを「スキップした」と明示します（黙って合格扱いにはなりません）。
 
 ### similarity-ts のインストール
 
@@ -143,7 +141,7 @@ src/
 
 規約は **[AGENTS.md](./AGENTS.md)** 1枚に集約されています。毎セッション自動でロードされ、チケット粒度の作業手順（明確化 → 設計判断 → 計画 → 実装 → 自己チェック → レビュー → コミット）もここにあります。ファイル種別ごとの規約は `.claude/rules/` に置かれ、対象を編集するときだけロードされます。この手順自体は MCP サーバやプラグインの有無に依存しません — 一部のオプション skill（`lighthouse-audit` / `performance-audit` / `launch-checklist`）は `chrome-devtools-mcp` を使いますが、コアの流れには必須ではありません。
 
-コミット前のレビューは `/review-diff` が担います。親が `code-reviewer` を1体 dispatch し、そのエージェントが「候補の網羅探索 → 重複統合 → 実コードでの反証 → 生存分の返却」を1コンテキストで通します。完走がコミットゲートに、そのレビューが読んだパスの一覧を記録します。**そこに無いファイルに触れたコミットはフックがブロックします** — 一方、返ってきた所見への修正は同じパス群なので通り、再レビューは要りません（find → verify → fix → commit の一発勝負）。1回のレビューから複数コミットに分割するのも普通にできます。
+コミット前のレビューは `/review-diff` が担います。親が `code-reviewer` を1体 dispatch し、そのエージェントが「候補の網羅探索 → 重複統合 → 実コードでの反証 → 生存分の返却」を1コンテキストで通します。返ってきた所見を適用して、そのままコミットします（find → verify → fix → commit の一発勝負）。1回のレビューから複数コミットに分割するのも普通にできます。レビューを機械的に強制する仕組みは置いていません。
 
 状態遷移が非自明な機能（ウィザード、認証・セッション、非同期ガード、権限分岐）は `specs/<feature>.spec.md` を書いて `/verify-spec` で design-time に検証します。レビューと spec 検証それぞれの品質は golden eval（`scripts/evals/`）で回帰計測されます。コミット・PR はエージェントが AGENTS.md の規律に従って提案し、ユーザー確認後に実行します。
 

@@ -76,7 +76,7 @@
     // The deterministic deny list lives in .claude/settings.json.
     "block_instructions": [
       "Never run destructive or history-rewriting commands in this repo: rm -rf / rm -r, git push --force (any variant), git reset --hard, git clean, git branch -D, git checkout . / git checkout --, git restore . / git restore --, git commit --amend, interactive rebase, sudo, chmod -R.",
-      "Never read or modify .env, .env.local, .env.development, .env.production, or .claude/.review-stamp.",
+      "Never read or modify .env, .env.local, .env.development, .env.production.",
       "Deploy, DB-schema, and publish commands always require explicit user approval: bun run deploy / preview / db:push / db:generate, wrangler deploy / d1 execute / r2 / secret, drizzle-kit, git commit, git push, gh pr create/edit/close/merge, gh api, bun add, bunx."
     ]
   }

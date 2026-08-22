@@ -5,9 +5,6 @@
 #    grep, head, tail, redirections) could walk around it.
 # 2. find gate — prompt for the `find` shapes that reach past the deny list or
 #    run/delete, while leaving scoped path discovery unattended.
-# 3. Gate-marker protection — refuse any command naming the review gate's own
-#    marker files, so Bash cannot forge the artifact Guard 4 keys on.
-# 4. Commit gate — block a commit while the review stamp is missing.
 
 set -euo pipefail
 
@@ -26,10 +23,10 @@ case "$TOOL" in
 esac
 
 # Emit a deny in both dialects at once: Claude Code reads the legacy
-# decision/reason pair (scripts/test-review-gate.py keys on the literal
+# decision/reason pair (scripts/test-bash-guard.py keys on the literal
 # "block"), Cursor reads hookSpecificOutput.permissionDecision. Cursor was
-# observed honoring exactly this combined output (Guard 3 blocked a live
-# command in a Cursor session, 2026-08-07). Claude Code has NOT been observed
+# observed honoring exactly this combined output (a guard in this file blocked a
+# live command in a Cursor session, 2026-08-07). Claude Code has NOT been observed
 # parsing the combined shape — both fields agree on the outcome, so the
 # accepted risk is a parser that rejects the coexistence outright, not a
 # divergent decision; one live Claude Code smoke test of any deny site would
@@ -160,121 +157,6 @@ if [ -n "$FIND_ASK" ]; then
   # already-allowed command is unstated, and a guard that silently does nothing
   # is worse than a strict one. Revisit if that behaviour is ever confirmed.
   deny "PreToolUse(Bash): this \`find\` is refused because ${FIND_ASK}. A find scoped to a subdirectory, without -exec/-execdir/-ok/-okdir/-delete/-fprint/-fls, runs unattended — narrow it if that is enough. If the broad form is genuinely needed, ask the user to run it."
-  exit 0
-fi
-
-# --- Guard 3: the review gate's own markers are not writable from Bash ---
-# The gate keys on artifacts under `.claude/` that only hooks are meant to create.
-# Nothing stopped a Bash command from creating one: `Bash(touch:*)` is allow-listed,
-# so `touch .claude/.review-stamp` forged a stamp and satisfied Guard 4 with no
-# review having happened at all (verified 2026-07-30). The only thing standing
-# against that was a sentence in the `review-diff` skill telling the agent not to —
-# an instruction, and this repository has concluded more than once that
-# instructions are not mechanisms. The same
-# reasoning was already applied to the env files in Guard 1 and simply never
-# extended to the gate's own state.
-#
-# Every mention is refused, not only writes. Telling a read from a write lexically
-# needs a verb list, and a verb list rots; `ls -la .claude/` shows every marker's
-# state without naming one, so no diagnostic is lost. Deleting a marker is safe in
-# itself (fail-closed) but is refused too, because separating that from creation is
-# the same unsolved problem — ask the user if one genuinely needs clearing.
-#
-# Lexical, therefore defeatable by obfuscation, exactly like Guard 1 — and the
-# `permissions.deny` entry alongside it covers the file-editing tools, which a Bash
-# guard cannot see. Framed honestly: together these raise forging
-# from "allow-listed and silent" to "requires deliberate evasion that is visible in
-# the transcript". Neither is a boundary against an agent that has decided to cheat.
-#
-# One name, not four. `.finder-done`, `.finder-hash` and `.pair-ok` were listed
-# here alongside `.review-stamp`; all three went with the second dispatch they
-# paired, so refusing them would refuse nothing and would read as a
-# gate wider than it is.
-case "$NORM" in
-  *.review-stamp*)
-    deny "PreToolUse(Bash): this command names the review gate's marker file (.review-stamp). Only the gate hooks may create or consume it — a Bash command that writes it forges the commit gate. Reads are refused too because a lexical guard cannot tell them apart: use \`ls -la .claude/\` to see its state without naming it. If it genuinely needs clearing, ask the user."
-    exit 0
-    ;;
-esac
-
-# --- Guard 4: commit gate (parent session only) ---
-# "Does this land a commit" is answered by lib-commit-shape.sh, shared with
-# post-bash-stamp-consume.sh. The two used to carry separate hand-written regexes
-# plus a comment asking the next editor to keep them in step; they drifted, and the
-# drift was a hole (see that file's header). One definition, so they cannot.
-#
-# Over-matching here is still the safe failure mode — prose in a heredoc or a `-m`
-# body that happens to read `git … commit` only runs the stamp check below, which
-# then passes. Under-matching bypasses the gate, which is what was wrong before:
-# `(git commit)`, `$(git commit)` and the backtick form all escaped it entirely.
-# The source is guarded and fails closed. Unguarded, a missing helper aborted this
-# script under `set -euo pipefail` with no JSON at all — and because this line runs
-# for every command that gets past Guards 1–3, that was a crash on nearly every
-# Bash call, not merely a disabled commit gate. Whether the harness reads a
-# non-JSON, non-zero PreToolUse exit as fail-open is not something this repo can
-# verify, so it is not something to depend on.
-LIB="$(dirname "$0")/lib-commit-shape.sh"
-if [ ! -f "$LIB" ]; then
-  deny "PreToolUse(Bash): the commit-gate helper .claude/hooks/lib-commit-shape.sh is missing, so whether this command lands a commit cannot be decided. Refusing rather than risking an unreviewed commit. Restore the file."
-  exit 0
-fi
-# shellcheck source=lib-commit-shape.sh
-. "$LIB"
-if ! command_lands_a_commit "$CMD"; then
-  exit 0
-fi
-
-# Skip in subagent (sidechain) sessions.
-SIDECHAIN_CHECK=$(printf '%s' "$INPUT" | jq -r '.transcript_path // ""' 2>/dev/null || true)
-if [ -n "$SIDECHAIN_CHECK" ] && [ -f "$SIDECHAIN_CHECK" ]; then
-  if head -1 "$SIDECHAIN_CHECK" 2>/dev/null | grep -q '"isSidechain":true'; then
-    exit 0
-  fi
-fi
-
-ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-
-if [ ! -f "$ROOT/.claude/.review-stamp" ]; then
-  deny "PreToolUse(Bash): the review gate has not been stamped. Dispatch the code-reviewer agent (or run /review-diff) on the uncommitted diff before committing — its completion writes the stamp. Never create the stamp by hand and never ask the user to; a manual marker forges the gate."
-  exit 0
-fi
-
-# The stamp records WHICH PATHS were reviewed, not merely THAT a review ran, so
-# existing is not enough: every changed path now has to appear in it.
-# lib-review-scope.sh carries why this is containment (a split and the review's own
-# fixes both keep working) and the one thing it deliberately does not catch.
-SCOPE_LIB="$(dirname "$0")/lib-review-scope.sh"
-if [ ! -f "$SCOPE_LIB" ]; then
-  deny "PreToolUse(Bash): the commit-gate helper .claude/hooks/lib-review-scope.sh is missing, so whether this commit touches only reviewed files cannot be decided. Refusing rather than risking an unreviewed commit. Restore the file."
-  exit 0
-fi
-# shellcheck source=lib-review-scope.sh
-. "$SCOPE_LIB"
-
-if ! CURRENT_SCOPE=$(cd "$ROOT" && review_scope); then
-  deny "PreToolUse(Bash): whether this commit touches only reviewed files could not be decided, so it is refused rather than risked. Causes: git could not report the current state, e.g. no commits yet on this branch; or a changed path holds a quote, backslash, or control character, which the stamp format cannot represent — rename it."
-  exit 0
-fi
-
-UNREVIEWED=""
-while IFS= read -r SCOPE_PATH; do
-  [ -z "$SCOPE_PATH" ] && continue
-  # -x -F: whole line, literal. A path is not a pattern, and a partial match would
-  # let `src/a.ts` pass as reviewed because `src/a.ts.bak` was. `--` is required
-  # too: a repo-root path may begin with a dash, and grep would then read the line
-  # it is meant to search for as its own options.
-  if ! grep -qxF -- "$SCOPE_PATH" "$ROOT/.claude/.review-stamp" 2>/dev/null; then
-    UNREVIEWED="${UNREVIEWED}
-  - ${SCOPE_PATH}"
-  fi
-done <<EOF
-$CURRENT_SCOPE
-EOF
-
-if [ -n "$UNREVIEWED" ]; then
-  deny "PreToolUse(Bash): these files were not in the diff the review read, so committing now would land code no reviewer saw:${UNREVIEWED}
-
-They appeared after the review that stamped the gate. Fixes to files the review DID read are fine and keep the stamp — this is about files it never saw. Run /review-diff on the current diff; its completion re-records the scope. Never create or edit the stamp by hand."
   exit 0
 fi
 

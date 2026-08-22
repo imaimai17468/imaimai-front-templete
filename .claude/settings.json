@@ -65,8 +65,7 @@
       "Edit(./.env)",
       "Edit(./.env.local)",
       "Edit(./.env.development)",
-      "Edit(./.env.production)",
-      "Edit(./.claude/.review-stamp)"
+      "Edit(./.env.production)"
     ],
     "ask": [
       "Bash(git commit:*)",
@@ -113,7 +112,7 @@
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start-env-check.sh",
             "timeout": 15,
-            "statusMessage": "Env check: gate dependencies + session marker reset..."
+            "statusMessage": "Env check: gate dependencies..."
           }
         ]
       }
@@ -132,50 +131,13 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Agent|Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-agent-review-clear.sh",
-            "timeout": 5,
-            "statusMessage": "Review gate: starting a cycle, clearing the previous stamp..."
-          }
-        ]
-      },
-      {
         "matcher": "Bash|Shell",
         "hooks": [
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-guard.sh",
             "timeout": 30,
-            "statusMessage": "Bash guard: .env protection + review gate check..."
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash|Shell",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-bash-stamp-consume.sh",
-            "timeout": 15,
-            "statusMessage": "Review gate: consume stamp when a commit leaves the tree clean..."
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": "code-reviewer",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-agent-review-stamp.sh",
-            "timeout": 30,
-            "statusMessage": "Review gate: recording what the review covered..."
+            "statusMessage": "Bash guard: .env protection + find gate..."
           }
         ]
       }

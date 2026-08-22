@@ -58,5 +58,4 @@ __pycache__/
 
 # claude code runtime artifacts
 .claude/scheduled_tasks.lock
-.claude/.review-stamp
 .claude/.session-id
