@@ -22,7 +22,8 @@ TanStack Start + TypeScript + Tailwind CSS + shadcn/ui を使用したモダン�
 ```bash
 git clone <your-repo-url>
 cd <your-repo-name>
-mise install   # Node / Bun を mise.toml の版で用意
+mise install                 # Node / Bun を mise.toml の版で用意
+cargo install similarity-ts  # Stop gate の重複検出（Rust 製）
 bun install
 bun run generate-routes
 bun run cf-typegen
@@ -30,38 +31,13 @@ cp .env.local.example .env.local
 bun run dev
 ```
 
+`similarity-ts` が無い環境では SessionStart の env-check が欠落を報告し、Stop gate は重複検出を「スキップした」と明示します（黙って合格扱いにはなりません）。
+
 [mise](https://mise.jdx.dev/) を使わない場合は、`package.json` の `engines.node` を満たす Node と、`mise.toml` が指定する版の Bun を手動で用意してください。Cursor Cloud Agent 環境では `.cursor/environment.json` が同じセットアップ（`scripts/cloud-agent-install.sh`）を自動実行します。shims の PATH 追記は rc ファイルを読むシェルにしか効かないため、rc を読まない非対話シェルからは `mise exec -- <コマンド>` で実行してください。
 
 http://localhost:5173 でアクセス。`@cloudflare/vite-plugin` により、`bun run dev` でも Cloudflare D1 / R2 バインディングが有効です。
 
 データベース・認証・ストレージのセットアップ手順は [docs/DATABASE_SETUP.md](./docs/DATABASE_SETUP.md)、デプロイ・ロールバック・シークレット運用は [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)、このテンプレートを新規プロジェクトに使う手順は [docs/FORKING.md](./docs/FORKING.md)、サーバ境界を oRPC / BFF 構成へ動かす場合の前提は [docs/SERVER_BOUNDARY.md](./docs/SERVER_BOUNDARY.md) を参照。
-
-## Scripts
-
-| Command                   | Description                                     |
-| ------------------------- | ----------------------------------------------- |
-| `bun run dev`             | Start dev server (with CF bindings via workerd) |
-| `bun run build`           | Production build                                |
-| `bun run bundle:analyze`  | Build and report Worker upload composition      |
-| `bun run preview`         | Build & preview in local workerd                |
-| `bun run deploy`          | Build & deploy to Cloudflare Workers            |
-| `bun run typecheck`       | Type check with tsc (TypeScript 7 native)       |
-| `bun run lint`            | Run oxlint (type-aware)                         |
-| `bun run lint:fix`        | Run oxlint with auto-fix                        |
-| `bun run format`          | Check formatting with oxfmt                     |
-| `bun run format:fix`      | Format with oxfmt                               |
-| `bun run check`           | lint + format check (pre-push runs this and `typecheck`) |
-| `bun run check:fix`       | lint + format with auto-fix                     |
-| `bun run generate-routes` | Regenerate TanStack Router route tree           |
-| `bun run knip`            | Detect unused deps/exports/files                |
-| `bun run test`            | Run tests with Vitest                           |
-| `bun run cf-typegen`      | Generate `CloudflareEnv` from `wrangler.toml`   |
-| `bun run db:generate`     | Generate Drizzle migrations from the schema     |
-| `bun run db:push`         | Push the schema to the remote D1 database       |
-| `bun run db:push:local`   | Set up / migrate the local D1 database          |
-| `bun run db:seed:local`   | Seed the local D1 database with dev data        |
-| `bun run db:studio`       | Open Drizzle Studio                             |
-| `bun run db:pull`         | Introspect the remote D1 schema                 |
 
 ## Tools
 
@@ -75,33 +51,6 @@ http://localhost:5173 でアクセス。`@cloudflare/vite-plugin` により、`b
 - **[lefthook](https://github.com/evilmartians/lefthook)** — Git hooks (`lefthook.yml`、`bun install` 時に `prepare` スクリプトで自動セットアップ)
 - **[knip](https://knip.dev/)** — Unused deps/exports/files detection (`knip.json`)
 - **[similarity-ts](https://github.com/mizchi/similarity)** — Code similarity detector
-- **python3** — ゲート用スクリプトの実行環境（下記）
-
-### python3 が要るもの
-
-`scripts/` の Python スクリプトはビルドには関与しませんが、ゲートの一部です。多くの macOS / Linux 環境には既に入っています。入っていなければ SessionStart の env-check が報告するので、そのとき入れれば足ります。
-
-| スクリプト | 役割 |
-| --- | --- |
-| `check-md-links.py` | markdown の相対リンク切れを検出。Stop gate と CI が自動実行 |
-| `test-md-links.py` | 上記リンクチェッカー自身の回帰テスト |
-| `test-bash-guard.py` | Bash ガード（`.env` 保護・`find` の到達範囲）の検証 |
-
-`test-*.py` は該当フックを触ったときに手で回します（`python3 scripts/test-bash-guard.py` など）。未インストールの環境では SessionStart の env-check が欠落を報告し、Stop gate はリンクチェックを「スキップした」と明示します（黙って合格扱いにはなりません）。
-
-### similarity-ts のインストール
-
-`similarity-ts` は Rust 製のため `cargo` が必要です。別途インストールしてプロジェクトルートから実行：
-
-```bash
-cargo install similarity-ts
-
-similarity-ts ./src                  # デフォルト
-similarity-ts ./src --print          # マッチしたコードを表示
-similarity-ts ./src --threshold 0.7  # デフォルトは 0.85
-```
-
-Stop quality gate hook が自動実行するので、手動実行は調査時のみ。未インストールの環境では SessionStart の env-check が欠落を報告し、Stop gate は「スキップした」と明示します（黙って合格扱いにはなりません）。
 
 ## プロジェクト構成
 
@@ -139,11 +88,14 @@ src/
 
 ## AI エージェントで開発する
 
-規約は **[AGENTS.md](./AGENTS.md)** 1枚に集約され、毎セッション自動でロードされます。チケット粒度の作業手順（明確化 → 設計判断 → 計画 → 相互作用の確認 → 実装 → 自己チェック → レビュー → コミット）は `ticket-work` skill が持ち、AGENTS.md はそれを指します。ファイル種別ごとの規約は `.claude/rules/` に置かれ、対象を編集するときだけロードされます。この手順自体は MCP サーバやプラグインの有無に依存しません — 一部のオプション skill（`page-audit` / `launch-checklist`）は `chrome-devtools-mcp` を使いますが、コアの流れには必須ではありません。
+エージェント運用層は4つでできています。
 
-コミット前のレビューは `code-reviewer` エージェントが担います。親が1体 dispatch し、そのエージェントが「候補の網羅探索 → 重複統合 → 実コードでの反証 → 生存分の返却」を1コンテキストで通します。返ってきた所見を適用して、そのままコミットします（find → verify → fix → commit の一発勝負）。1回のレビューから複数コミットに分割するのも普通にできます。レビューを機械的に強制する仕組みは置いていません。
+- **[AGENTS.md](./AGENTS.md)** — 規約の本体。毎セッション自動でロードされます（`CLAUDE.md` はこれを読み込むだけ）
+- **`.claude/rules/`** — ファイル種別ごとの規約。対象を編集するときだけロードされます
+- **`.claude/skills/`** — 名前のついた作業の手順。チケット粒度の作業は `ticket-work` が持ち、AGENTS.md はそれを指します
+- **`.claude/hooks/`** — 規約を機械的に強制する側。SessionStart で依存の欠落を報告し、Bash 実行前にガードを掛け、Stop で品質ゲート（typecheck / lint / format / knip / similarity / markdown リンク）を回します
 
-状態遷移が非自明な機能（ウィザード、認証・セッション、非同期ガード、権限分岐）は、実装前に状態機械として並べ、ガードが全部成立したまま破れる経路と、合法な操作の組み合わせで到達してしまう結果を探します。コミット・PR はエージェントが AGENTS.md の規律に従って提案し、ユーザー確認後に実行します。
+コミット前のレビューは `code-reviewer` エージェントが担い、コミットと PR はエージェントが AGENTS.md の規律に従って提案してユーザー確認後に実行します。
 
 ## shadcn/ui
 

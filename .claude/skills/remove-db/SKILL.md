@@ -256,9 +256,9 @@ paths.
 Do not expect a list of individual lines here. Earlier revisions of this skill
 carried one and it was wrong every time: an enumeration goes stale as soon as
 those documents change, and step 7's greps only catch references that contain a
-matching literal — `README.md`'s "Start dev server (with CF bindings via
-workerd)" row, for instance, describes a capability this procedure removes
-without naming any of the terms. Reading is the check; the greps are a backstop.
+matching literal — `README.md`'s quickstart still copies the env example file
+this procedure deletes, for instance, without naming any of the terms. Reading is
+the check; the greps are a backstop.
 
 Surfaces to go through: `README.md`, `docs/DEPLOYMENT.md`, `docs/FORKING.md`,
 and `.claude/settings.json`.
@@ -266,8 +266,8 @@ and `.claude/settings.json`.
 **Do not strip these while you are in there.** They are the deployment, which
 this procedure keeps:
 
-- README's `Hosting: Cloudflare Workers` line, its `deploy` / `preview` /
-  `cf-typegen` script rows, and the `ssr.tsx` entry in the project structure.
+- README's `Hosting: Cloudflare Workers` line and the `ssr.tsx` entry in the
+  project structure.
 - `docs/DEPLOYMENT.md` itself and every link to it.
 - In `.claude/settings.json`, the `wrangler types` / `wrangler deploy` /
   `wrangler tail` / `wrangler secret:*` entries. Remove only `wrangler d1 *`,
