@@ -138,7 +138,7 @@ For each category in scope, inspect the codebase, configuration, and running app
 |---|------|---------------|
 | 56 | Images have appropriate `alt` attributes | Grep `<img>` tags and check the presence and content of `alt` |
 | 57 | Icon-only buttons / links have an `aria-label` | Check SVG icon buttons. Pattern: `<a aria-label="..."><svg aria-hidden="true"></svg></a>` |
-| 58 | Element roles are recognizable by screen readers | Run a Lighthouse a11y audit (use the `/lighthouse-audit` skill) |
+| 58 | Element roles are recognizable by screen readers | Run a Lighthouse a11y audit (use the `page-audit` skill) |
 
 ### Performance
 
@@ -151,8 +151,8 @@ For each category in scope, inspect the codebase, configuration, and running app
 | 63 | The DB has appropriate indexes | Check the indexes in the schema definition |
 
 Items 59–63 are static heuristics; passing them is not a Core Web Vitals
-measurement. For real LCP / CLS / INP traces run the `/performance-audit`
-skill, the same way item 58 delegates to `/lighthouse-audit`.
+measurement. For real LCP / CLS / INP traces run the `page-audit` skill, which
+item 58 also delegates to.
 
 ### Multi-Environment
 
