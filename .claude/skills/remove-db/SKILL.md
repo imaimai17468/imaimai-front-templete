@@ -32,6 +32,8 @@ tsc / knip / vitest toolchain.
 rm -rf src/lib/auth src/lib/drizzle src/lib/storage
 rm -rf src/entities src/gateways src/server
 rm -rf src/routes/api
+rm -f src/client/user.ts src/client/profile.ts src/client/profile-submit.ts src/client/profile-submit.test.ts
+rmdir src/client 2>/dev/null || true
 rm -f src/routes/login.tsx src/routes/profile.tsx src/routes/auth.auth-code-error.tsx
 rm -rf src/components/features/profile-page
 rmdir src/components/features 2>/dev/null || true
@@ -101,8 +103,15 @@ export const Header = () => {
 
 ### `src/routes/__root.tsx`
 
-- Delete the `getCurrentUserFn` import and the `loader` option.
+- Delete the `fetchCurrentUser` import from `@/client/user` and the `loader` option.
+- Revert `createRootRouteWithContext<{ queryClient: QueryClient }>()` to `createRootRoute`, and drop the `QueryClient` type import — no route needs `queryClient` from context once the loader is gone.
 - Delete `const { user } = Route.useLoaderData();` and render `<Header />` without props.
+
+`src/client/user.ts` and `src/client/profile.ts` import from `src/server`, which
+step 1 removes, so leaving either behind fails `bun run typecheck` rather than
+degrading quietly. `profile-submit.ts` imports nothing and its test imports only
+`vitest` and that module, so those two go as dead code — their only caller was
+`profile.ts`.
 
 ### `src/routes/index.tsx`
 
