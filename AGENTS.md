@@ -55,6 +55,14 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 **Don't present uncertain knowledge as fact.** If you're not sure something is correct — a term, a translation, a convention, a recommendation — verify it before writing it down. Plausible-sounding but invented information reads as authoritative and propagates through docs and code. When you can't verify, say so plainly. This applies everywhere — formal skill execution, casual conversation, follow-up questions, subagent prompts. No exception for "I'm pretty sure."
 
+## Language
+
+**Use the plain word for what happens, in language the reader already has.** A vivid image, a shorthand, or a coined term is cheaper to write and reads as insight, but it substitutes an impression for the mechanism — and it sounds most confident exactly where it is least specific. Name the condition and the consequence separately, each with its own plain verb: "is not detected", "fails", "is skipped".
+
+**When handing a decision back, state the goal, where it stands, what blocks it, and how the options differ — in that order.** The blocker is the one thing the reader cannot reconstruct alone, so it must be a fact rather than an impression.
+
+This governs every text a person reads: replies, plans, reports, commit messages, PR descriptions, review comments, code comments. What such prose may take as its subject is settled by Code Practices; whether its claims are verified, by Knowledge Currency.
+
 ## Code Practices
 
 **Dead code first / phased execution:** Before structural refactors on files >300 LOC, remove dead code first (separate commit). Break multi-file refactors into phases of ≤5 files — complete, verify, get approval before each next phase.
@@ -101,7 +109,7 @@ Reaching a component's branches from a test depends on how the component was sha
 - **One commit = one purpose.** If two changes could be reverted independently, split them — drive-by fixes are always a separate commit. Never `git add -A`/`git add .`; stage explicit paths, use `git add -p` to split hunks within a file.
 - First line states **what improves**, not what you did. Prefixes: `feat` / `fix` / `refactor` / `test` / `docs` / `chore` (intent-based). Body in Japanese; `fix`/`refactor` include a *why* line. End with a `Co-Authored-By:` trailer crediting the current model.
 - Do not commit without explicit user confirmation.
-- **Prose (PR descriptions, review comments, code comments): state only the core, plainly.** No decoration, no exhaustive detail. Write in general language the reader understands — never tool output, internal variable names, or domain/project-internal coinages. What such prose may take as its subject is settled by the comment rules in Code Practices.
+- **Prose:** see Language. Commit-message specifics stay in the bullets above.
 - **History:** while a PR is Draft, keep its commits clean (rebase freely). Once review has started, never rewrite reviewed commits — add fixes on top and integrate preserving the commit/review order (typically a merge commit).
 
 ## Agents
