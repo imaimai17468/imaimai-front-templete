@@ -4,7 +4,6 @@ description: Pre-commit reviewer. Reads the uncommitted diff and runs the whole 
 skills:
   - review-diff
 tools: Read, Bash, Skill
-model: sonnet
 permissionMode: auto
 ---
 
