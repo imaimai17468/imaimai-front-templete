@@ -1,4 +1,4 @@
-import { readAvatarForCurrentUser } from "@/server/fn/avatar";
+import { readAvatarForCurrentUser } from "./avatar-read";
 
 export const getAvatarResponse = async (
   request: Request

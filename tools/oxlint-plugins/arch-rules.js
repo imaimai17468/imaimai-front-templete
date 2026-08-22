@@ -317,7 +317,7 @@ const componentFileNaming = {
   },
 };
 
-// Layer contract: components + routes → client → server/fn → gateways → entities,
+// Layer contract: components + routes → client → server/router → gateways → entities,
 // imports flow downward only. `client` is the UI's single door to data access, so
 // components reach the server boundary through it and never past it. `lib` outside
 // the binding-touching modules stays unrestricted; the banned ones are listed per
@@ -417,19 +417,19 @@ const LAYER_BANS = [
       {
         source: "cloudflare:workers",
         message:
-          "Routes must not access Cloudflare bindings directly — delegate through src/server/fn to a gateway.",
+          "Routes must not access Cloudflare bindings directly — delegate through src/server/router to a gateway.",
       },
       {
         source: "@tanstack/react-start/server",
         message:
-          "Routes must not resolve request context directly — delegate to src/server/fn.",
+          "Routes must not resolve request context directly — delegate to src/server/router.",
       },
     ],
     bans: [
       {
         target: "src/gateways",
         message:
-          "Routes must not import gateways directly — go through a server function in src/server/fn.",
+          "Routes must not import gateways directly — go through a procedure in src/server/router.",
       },
       {
         target: "src/lib/drizzle",
@@ -439,15 +439,15 @@ const LAYER_BANS = [
       {
         target: "src/lib/auth/session",
         message:
-          "Routes must not resolve request authentication — delegate to src/server/fn.",
+          "Routes must not resolve request authentication — delegate to src/server/router.",
       },
       {
         target: "src/server/cloudflare",
         message:
-          "Routes must not access Cloudflare persistence bindings directly — delegate through src/server/fn to a gateway.",
+          "Routes must not access Cloudflare persistence bindings directly — delegate through src/server/router to a gateway.",
       },
       {
-        target: "src/server/fn",
+        target: "src/server/router",
         message:
           "Routes must not call server procedures — a browser-facing route reaches data through src/client, and an HTTP endpoint belongs in the Hono app at src/server/app.",
       },
@@ -456,20 +456,15 @@ const LAYER_BANS = [
         message:
           "Routes must not call HTTP handlers directly — register them on the Hono app at src/server/app.",
       },
-      {
-        target: "src/server/router",
-        message:
-          "Routes must not call oRPC procedures directly — a browser-facing route reaches data through src/client.",
-      },
     ],
   },
   {
-    layer: "src/server/fn",
+    layer: "src/server/router",
     bans: [
       {
         target: "src/routes",
         message:
-          "Server functions must not import routes — imports flow downward only.",
+          "Procedures must not import routes — imports flow downward only.",
       },
     ],
   },
@@ -482,9 +477,9 @@ const LAYER_BANS = [
           "Gateways must not import routes — imports flow downward only.",
       },
       {
-        target: "src/server/fn",
+        target: "src/server/router",
         message:
-          "Gateways must not import server functions — imports flow downward only.",
+          "Gateways must not import procedures — imports flow downward only.",
       },
       {
         target: "src/components",
@@ -493,7 +488,7 @@ const LAYER_BANS = [
       {
         target: "src/lib/auth",
         message:
-          "Gateways must not resolve request authentication — derive identity in src/server/fn and pass it downward.",
+          "Gateways must not resolve request authentication — derive identity in src/server/router and pass it downward.",
       },
     ],
   },
@@ -506,9 +501,9 @@ const LAYER_BANS = [
           "Entities import nothing from the layers above — routes are above entities.",
       },
       {
-        target: "src/server/fn",
+        target: "src/server/router",
         message:
-          "Entities import nothing from the layers above — server functions are above entities.",
+          "Entities import nothing from the layers above — procedures are above entities.",
       },
       {
         target: "src/gateways",

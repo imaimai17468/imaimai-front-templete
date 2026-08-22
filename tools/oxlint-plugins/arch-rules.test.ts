@@ -809,13 +809,13 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it("should report when a route imports a server function", () => {
+  it("should report when a route imports a procedure", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/profile.tsx");
     const visitors = rule.create(context);
 
     // Act
-    visitors.ImportDeclaration?.(importNode("@/server/fn/user"));
+    visitors.ImportDeclaration?.(importNode("@/server/router/user"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -833,7 +833,7 @@ describe("layer-boundaries", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it("should report when a route imports an oRPC procedure directly", () => {
+  it("should report when a route imports a procedure module", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/profile.tsx");
     const visitors = rule.create(context);
@@ -952,13 +952,13 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it("should report when a gateway imports a server function", () => {
+  it("should report when a gateway imports a procedure", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/gateways/user/index.ts");
     const visitors = rule.create(context);
 
     // Act
-    visitors.ImportDeclaration?.(importNode("@/server/fn/profile"));
+    visitors.ImportDeclaration?.(importNode("@/server/router/profile"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -1012,9 +1012,9 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it("should report when a server function imports a route", () => {
+  it("should report when a procedure imports a route", () => {
     // Arrange
-    const context = makeLayerContext("/repo/src/server/fn/user.ts");
+    const context = makeLayerContext("/repo/src/server/router/user.ts");
     const visitors = rule.create(context);
 
     // Act
@@ -1024,9 +1024,9 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it("should not report when a server function imports a gateway", () => {
+  it("should not report when a procedure imports a gateway", () => {
     // Arrange
-    const context = makeLayerContext("/repo/src/server/fn/user.ts");
+    const context = makeLayerContext("/repo/src/server/router/user.ts");
     const visitors = rule.create(context);
 
     // Act
@@ -1116,7 +1116,7 @@ describe("layer-boundaries", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ImportDeclaration?.(importNode("@/server/fn/profile"));
+    visitors.ImportDeclaration?.(importNode("@/server/router/profile"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -1182,7 +1182,7 @@ describe("layer-boundaries", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ImportDeclaration?.(importNode("@/server/fn/profile"));
+    visitors.ImportDeclaration?.(importNode("@/server/router/profile"));
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();

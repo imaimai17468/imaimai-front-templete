@@ -2,7 +2,6 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "src/routes/**/*.{ts,tsx}",
-    "src/server/fn/**/*.ts",
     "scripts/**/*.{ts,js,sh}",
     "src/components/ui/**/*.{ts,tsx}",
     "src/lib/utils.ts"
