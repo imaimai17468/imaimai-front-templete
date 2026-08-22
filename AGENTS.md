@@ -43,14 +43,6 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 **Don't present uncertain knowledge as fact.** If you're not sure something is correct — a term, a translation, a convention, a recommendation — verify it before writing it down. Plausible-sounding but invented information reads as authoritative and propagates through docs and code. When you can't verify, say so plainly. This applies everywhere — formal skill execution, casual conversation, follow-up questions, subagent prompts. No exception for "I'm pretty sure."
 
-## Language
-
-**Use the plain word for what happens, in language the reader already has.** A vivid image, a shorthand, or a coined term is cheaper to write and reads as insight, but it substitutes an impression for the mechanism — and it sounds most confident exactly where it is least specific. Name the condition and the consequence separately, each with its own plain verb: "is not detected", "fails", "is skipped".
-
-**When handing a decision back, state the goal, where it stands, what blocks it, and how the options differ — in that order.** The blocker is the one thing the reader cannot reconstruct alone, so it must be a fact rather than an impression.
-
-This governs every text a person reads: replies, plans, reports, commit messages, PR descriptions, review comments, code comments. What such prose may take as its subject is settled by Code Practices; whether its claims are verified, by Knowledge Currency.
-
 ## Code Practices
 
 **Dead code first / phased execution:** Before structural refactors on files >300 LOC, remove dead code first (separate commit). Break multi-file refactors into phases of ≤5 files — complete, verify, get approval before each next phase.
@@ -75,6 +67,7 @@ Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/
 
 - **`react.md`** (`**/*.tsx`) — the official [Rules of React](https://ja.react.dev/reference/rules): purity, hooks at the top level, component splitting, module organization — project-independent principles only; this repository's concrete placements are in the paragraph below
 - **`design.md`** (`src/**/*.css`, `src/**/*.tsx`) — design system: Wairo (和色) palette, squircle corners, typography, spacing, component conventions
+- **`prose.md`** (no path scope, so it loads every session) — how a sentence is built in anything a person reads, English and Japanese: plain words, what a sentence is allowed to be about, the shapes that read as generated
 
 `src/` is layered — `routes/` → `server/fn/` → `gateways/` → `entities/`, imports flow downward only, and `server/fn/` is the authorization boundary. The same contract fixes the placement homes: `src/components/` (`features/` for domain UI, `shared/<name>/` for cross-feature UI, `ui/` for shadcn CLI output — never rename `ui/`, `components.json` aliases resolve to it) and `src/lib/` for framework/infrastructure adapters and generic non-component values.
 
@@ -99,5 +92,5 @@ Reaching a component's branches from a test depends on how the component was sha
 - **One commit = one purpose.** If two changes could be reverted independently, split them — drive-by fixes are always a separate commit. Never `git add -A`/`git add .`; stage explicit paths, use `git add -p` to split hunks within a file.
 - First line states **what improves**, not what you did. Prefixes: `feat` / `fix` / `refactor` / `test` / `docs` / `chore` (intent-based). Body in Japanese; `fix`/`refactor` include a *why* line. End with a `Co-Authored-By:` trailer crediting the current model.
 - Do not commit without explicit user confirmation.
-- **Prose:** see Language. Commit-message specifics stay in the bullets above.
+- **Prose:** see `.claude/rules/prose.md`. Commit-message specifics stay in the bullets above.
 - **History:** while a PR is Draft, keep its commits clean (rebase freely). Once review has started, never rewrite reviewed commits — add fixes on top and integrate preserving the commit/review order (typically a merge commit).
