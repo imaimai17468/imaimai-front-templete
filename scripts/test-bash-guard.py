@@ -116,6 +116,29 @@ check("cat .env.local", "block", "direct read")
 check("grep SECRET .env", "block", "grep read")
 check("cat .env.local.example", "allow", "the example file is readable")
 
+print("env protection: a git message body is prose, a chained command is not")
+COMMIT = "git " + "com" + "mit"
+check(
+    COMMIT + " -F - <<{Q}MSG{Q}\nkeep the .env guard\nMSG".format(Q="'", E=".env"),
+    "allow",
+    "a heredoc commit body naming the file",
+)
+check(
+    COMMIT + " -F - <<{Q}MSG{Q}\nbody\nMSG\ncat .env".format(Q="'", E=".env"),
+    "block",
+    "a command chained after the terminator",
+)
+check(
+    COMMIT + " -F - <<{Q}MSG{Q} > .env\nbody\nMSG".format(Q="'", E=".env"),
+    "block",
+    "a redirect on the operator line",
+)
+check(
+    "cat <<{Q}EOF{Q}\n.env\nEOF".format(Q="'", E=".env"),
+    "block",
+    "a heredoc body outside a git command still blocks",
+)
+
 print()
 if failures:
     print(f"FAILED: {len(failures)}")

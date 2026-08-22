@@ -52,8 +52,17 @@ CMD=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""')
 # prose about env files in a commit/tag message is not file access. The scrub
 # is deliberately NOT applied to other commands — a quoted message flag can be
 # repurposed as a file argument elsewhere (e.g. `sort -m ".env"`).
+#
+# A `-F -` body arrives as a heredoc, so the same prose reaches this guard by a
+# route the -m scrub does not cover. It is dropped only when the command's last
+# line is the heredoc delimiter: then nothing follows the body, so nothing is
+# hidden. A redirect belongs to the operator line, which is kept either way, and
+# a command chained after the terminator leaves a different last line and blocks
+# the scrub.
 SCRUBBED=$(printf '%s' "$CMD" | sed 's/\.env[.A-Za-z]*\.example//g')
-FIRST_WORD=$(printf '%s' "$SCRUBBED" | awk '{print $1}')
+# NR==1 with an exit: awk would otherwise print the first field of every line,
+# and a multi-line command (a heredoc body) then matched no first word at all.
+FIRST_WORD=$(printf '%s' "$SCRUBBED" | awk 'NR == 1 { print $1; exit }')
 if [ "$FIRST_WORD" = "git" ]; then
   # Single-quoted bodies are always inert (no expansion inside single quotes).
   SCRUBBED=$(printf '%s' "$SCRUBBED" | sed \
@@ -69,6 +78,26 @@ if [ "$FIRST_WORD" = "git" ]; then
         -e 's/-\{1,2\}m\(essage\)\{0,1\}\(=\| \)\{0,1\}"[^"]*"//g')
       ;;
   esac
+  SCRUBBED=$(printf '%s' "$SCRUBBED" | awk '
+    BEGIN { q = sprintf("%c", 39); op = 0 }
+    NR == 1 { first = $0 }
+    { last = $0; lines[NR] = $0 }
+    op == 0 && /<<-?[ \t]*[^ \t]/ {
+      op = NR
+      d = $0
+      sub(/^.*<<-?[ \t]*/, "", d)
+      gsub(/["]/, "", d)
+      gsub(q, "", d)
+      sub(/[ \t].*$/, "", d)
+    }
+    END {
+      trimmed = last
+      sub(/^[ \t]+/, "", trimmed)
+      sub(/[ \t]+$/, "", trimmed)
+      keep = (op > 0 && d != "" && trimmed == d) ? op : NR
+      for (i = 1; i <= keep; i++) print lines[i]
+    }
+  ')
 fi
 if printf '%s' "$SCRUBBED" | grep -qE '(^|[[:space:]"'\''`={}:,;&|<>(/-])\.env(\.(local|development|production))?([[:space:]"'\''`{}:,;&|<>)*]|$)'; then
   deny "PreToolUse(Bash): this command references a protected env file (.env / .env.local / .env.development / .env.production). Reading or writing these is denied regardless of tool. Use .env.local.example for documented placeholders. If this is a false positive (e.g. the literal string in a message), rephrase the command without the filename."
