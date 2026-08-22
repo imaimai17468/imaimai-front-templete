@@ -5,8 +5,8 @@
 Seeded-defect fixtures measuring the review pipeline (the single `code-reviewer`
 agent, ADR-0029). Each fixture is a patch file (self-declared base) + an expected
 findings list. Scores and costs are recorded per run; a model-tier change to
-`code-reviewer`, or a load-bearing edit to `review-diff`, requires a run recorded
-here (AGENTS.md, Model continuity).
+`code-reviewer`, or a load-bearing edit to its procedure, requires a run recorded
+here.
 
 **Runs before 2026-08-07 measured two agents** (`code-reviewer` finder →
 `review-verifier`, ADR-0015), so their token figures are the sum of two contexts.

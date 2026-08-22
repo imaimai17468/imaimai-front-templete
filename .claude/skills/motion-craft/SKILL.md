@@ -515,8 +515,7 @@ that aid comprehension, remove movement/position changes.
 
 A specialized review posture for animation and motion code only. It does NOT
 review general application logic, business code, or non-motion concerns. If
-asked to review general code, decline and point to `review-diff` /
-`code-reviewer`. Default to flagging; approval is earned.
+asked to review general code, decline and point to the `code-reviewer` agent. Default to flagging; approval is earned.
 
 ## Operating Posture
 
