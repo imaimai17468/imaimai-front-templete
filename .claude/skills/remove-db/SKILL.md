@@ -213,8 +213,7 @@ bun run cf-typegen
 
 ```bash
 rm -f drizzle.config.ts
-rm -rf .wrangler                                        # local D1 / R2 state
-rm -f scripts/setup-local-db.sh scripts/seed-local.ts   # keep scripts/audit-direct.sh
+rm -rf .wrangler                # local D1 / R2 state
 rm -f docs/DATABASE_SETUP.md
 rm -f .env.local .env.local.example
 ```
@@ -237,7 +236,7 @@ bun remove better-auth drizzle-orm drizzle-kit dotenv
 database.
 
 Remove these scripts: `db:generate`, `db:push`, `db:studio`, `db:pull`,
-`db:push:local`, `db:seed:local`.
+`db:push:local`.
 
 Keep everything else, explicitly including `deploy`, `preview`, and
 `cf-typegen`.

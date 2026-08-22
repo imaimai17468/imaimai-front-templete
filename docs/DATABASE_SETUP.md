@@ -140,12 +140,9 @@ bun run db:generate
 
 # ローカル D1 に適用
 bun run db:push:local
-
-# テストユーザーを投入
-bun run db:seed:local
 ```
 
-`db:push:local` はローカル D1 をリセットし、`src/lib/drizzle/migrations/` 内の全マイグレーション SQL を適用します。スキーマ変更時も `db:generate` → `db:push:local` の順で実行すれば OK です（ローカルデータはリセットされます）。
+`db:push:local` は `wrangler d1 migrations apply` を `--local` で呼び、`d1_migrations` テーブルに記録されていないマイグレーションだけを適用します。既存のローカルデータは残ります。適用先のディレクトリは `wrangler.toml` の `migrations_dir` が drizzle-kit の出力先を指しています。スキーマ変更時も `db:generate` → `db:push:local` の順で実行してください。
 
 ## 6. 動作確認
 
@@ -175,7 +172,6 @@ Cloudflare Workers ランタイムをエミュレートして実行します。�
 ```bash
 rm -rf .wrangler
 bun run db:push:local
-bun run db:seed:local
 ```
 
 ## 補足：Drizzleコマンド
