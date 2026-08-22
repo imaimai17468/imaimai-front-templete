@@ -10,12 +10,18 @@ set -uo pipefail
 
 INPUT="$(cat 2>/dev/null || true)"
 
+ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+
 MISSING=()
 
 command -v jq >/dev/null 2>&1 || MISSING+=("jq (ALL guard hooks parse their input with jq — the gates are effectively OFF)")
 command -v bun >/dev/null 2>&1 || MISSING+=("bun (the Stop quality gate and lefthook's pre-commit/pre-push checks cannot run)")
 [ -x "$HOME/.cargo/bin/similarity-ts" ] || command -v similarity-ts >/dev/null 2>&1 || MISSING+=("similarity-ts (Stop gate skips duplicate-type/function detection; install: cargo install similarity-ts)")
 command -v python3 >/dev/null 2>&1 || MISSING+=("python3 (Stop gate skips the markdown dead-link check; the gate-behaviour test scripts under scripts/ cannot run either)")
+# The installed hooks, not the binary: `bun run prepare` writes them, and a tree
+# whose .git/hooks are absent runs no pre-commit check while every binary above
+# is present.
+[ -f "$ROOT/.git/hooks/pre-commit" ] || MISSING+=("lefthook hooks not installed — pre-commit/pre-push run nothing (fix: bun run prepare)")
 # A capability probe, not a version compare: what old node lacks is
 # `module.registerHooks`, which @cloudflare/vite-plugin imports at module top
 # level, so loading vite.config.ts fails wherever it is loaded. Observed on
@@ -29,7 +35,7 @@ if [ "${#MISSING[@]}" -gt 0 ]; then
   printf '  - %s\n' "${MISSING[@]}"
   echo "[env-check] Per AGENTS.md 'Degraded environments': state the degrade to the user once, and do not treat skipped checks as passed."
 else
-  echo "[env-check] Gate dependencies present (jq, bun, similarity-ts, python3, node with module.registerHooks)."
+  echo "[env-check] Gate dependencies present (jq, bun, similarity-ts, python3, node with module.registerHooks, lefthook hooks installed)."
 fi
 
 # Model continuity (AGENTS.md): surface the session model so a
