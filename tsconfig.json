@@ -19,6 +19,11 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", "src/routeTree.gen.ts"],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".claude/hooks/**/*.ts",
+    "src/routeTree.gen.ts"
+  ],
   "exclude": ["node_modules"]
 }

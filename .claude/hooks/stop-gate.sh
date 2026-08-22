@@ -157,8 +157,8 @@ fi
 # would have missed the case that motivated the check (docs/adr/ deleted on
 # 2026-07-29, dead links left in files the same commit did not edit).
 LINKS_AVAILABLE=true
-if command -v python3 >/dev/null 2>&1; then
-  LINKS=$(python3 "$ROOT/scripts/check-md-links.py" 2>&1)
+if command -v bun >/dev/null 2>&1; then
+  LINKS=$(bun "$ROOT/.claude/hooks/check-md-links.ts" 2>&1)
   LINKS_RC=$?
   if [ $LINKS_RC -ne 0 ]; then
     # SIM_TAG is empty on a docs-only turn, where section 1 never ran — so this
@@ -166,7 +166,7 @@ if command -v python3 >/dev/null 2>&1; then
     emit_block "dead markdown links. Fix the paths before ending the turn.${SIM_TAG}" "$LINKS"
   fi
 else
-  # A missing interpreter downgrades the step; it never silently passes
+  # A missing runtime downgrades the step; it never silently passes
   # (AGENTS.md, "Degraded Environments"). Reported in the summary below.
   LINKS_AVAILABLE=false
 fi
@@ -174,7 +174,7 @@ fi
 # Computed once here and read by both summary branches below. Nothing between
 # this point and the summary can exit, so the position is for reuse, not order.
 LINK_NOTE="md links: clean"
-[ "$LINKS_AVAILABLE" = "false" ] && LINK_NOTE="md links: SKIPPED (python3 not installed)"
+[ "$LINKS_AVAILABLE" = "false" ] && LINK_NOTE="md links: SKIPPED (bun not installed)"
 SIM_NOTE="similarity: clean"
 [ "$SIM_AVAILABLE" = "false" ] && SIM_NOTE="similarity: SKIPPED (similarity-ts not installed)"
 

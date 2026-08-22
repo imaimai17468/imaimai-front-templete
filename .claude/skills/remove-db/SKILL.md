@@ -325,8 +325,8 @@ elsewhere is invisible to it. One exclusion from the path list is deliberate:
 generic infra checklists (e.g. `.claude/skills/launch-checklist`) keep their
 generic D1 / R2 mentions.
 
-Dead markdown links to the deleted database doc need no grep — `python3
-scripts/check-md-links.py` fails on any link whose target is gone, and the Stop
+Dead markdown links to the deleted database doc need no grep — `bun
+.claude/hooks/check-md-links.ts` fails on any link whose target is gone, and the Stop
 gate runs it over the whole repository. What it cannot see is prose that names
 the file without linking it, so check that separately:
 

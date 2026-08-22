@@ -39,7 +39,7 @@ jobs:
       run: bash scripts/audit-direct.sh
 
     - name: Check markdown links
-      run: python3 scripts/check-md-links.py
+      run: bun .claude/hooks/check-md-links.ts
 
     - name: Run oxlint and oxfmt
       run: bun run check
