@@ -19,8 +19,8 @@ rather than moving to another port.
 ## 2. Confirm the app works
 
 Navigate to the top page, screenshot it, and read the console. Stop on an error screen or a
-5xx. Where the app has authentication, confirm the session is live; ask the user to log in
-when it is not. Do not measure an app you have not seen render.
+5xx. Where the app has authentication, confirm the session is live, and ask the user to log in
+where it is not. Do not measure an app you have not seen render.
 
 ## 3. Pick the targets
 
@@ -33,12 +33,12 @@ available item. An auth-gated page you cannot reach is recorded as
 
 1. `mcp__chrome-devtools__navigate_page`
 2. `mcp__chrome-devtools__lighthouse_audit` with `mode: "navigation"`, once per
-   `device: "desktop"` and `device: "mobile"` — collect the accessibility, SEO and
+   `device: "desktop"` and `device: "mobile"`, collecting the accessibility, SEO and
    best-practices scores with their violations
 3. `mcp__chrome-devtools__performance_start_trace` with `reload: true`, `autoStop: true`,
    then `mcp__chrome-devtools__performance_analyze_insight` on every insight that reported
    findings (`LCPBreakdown`, `DocumentLatency`, `CLSCulprits`, `RenderBlocking`,
-   `SlowCSS`) — collect LCP, CLS and INP
+   `SlowCSS`), collecting LCP, CLS and INP
 
 ## 5. Write the report
 
@@ -46,17 +46,17 @@ available item. An auth-gated page you cannot reach is recorded as
 (`git log --oneline -1`):
 
 ```markdown
-# Page audit — YYYY-MM-DD
+# Page audit: YYYY-MM-DD
 Commit: `{short hash}` {subject}
 
 | Page | Device | A11y | SEO | Best practices | LCP (ms) | CLS | INP (ms) |
 |---|---|---|---|---|---|---|---|
 
 ## {page}
-- **{category} · {rule-id}** — {what, and how many elements} · impact {level} · fix {the change}
-- **LCP** — element {…}, TTFB {ms}, resource load {ms}, render delay {ms}
-- **CLS** — {element} shifted {score}, cause {…}
-- **Render-blocking** — {resource} blocked {ms}
+- **{category} · {rule-id}**: {what, and how many elements} · impact {level} · fix {the change}
+- **LCP**: element {…}, TTFB {ms}, resource load {ms}, render delay {ms}
+- **CLS**: {element} shifted {score}, cause {…}
+- **Render-blocking**: {resource} blocked {ms}
 ```
 
 A page with nothing to report says so in one line. Ratings (web.dev): LCP good < 2500, poor

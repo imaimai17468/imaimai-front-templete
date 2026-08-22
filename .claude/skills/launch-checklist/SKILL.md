@@ -32,7 +32,7 @@ For each category in scope, inspect the codebase, configuration, and running app
 
 ## Checklist
 
-### Security — Cookie
+### Security: Cookie
 
 | # | Item | How to verify |
 |---|------|---------------|
@@ -41,7 +41,7 @@ For each category in scope, inspect the codebase, configuration, and running app
 | 3 | Auth cookies have the `Secure` attribute set | Same as above |
 | 4 | Auth cookies have an appropriate `Domain` attribute | Check the risk of cookie leakage to subdomains. Using the `__Host-` prefix is recommended |
 
-### Security — Input Validation
+### Security: Input Validation
 
 | # | Item | How to verify |
 |---|------|---------------|
@@ -51,7 +51,7 @@ For each category in scope, inspect the codebase, configuration, and running app
 | 8 | SQL injection is prevented | Check usages of raw SQL queries. Confirm the ORM's parameter binding is used |
 | 9 | Usernames are checked for path conflicts and reserved words | Check the username validation logic. Confirm a reserved-word list (`admin`, `contact`, etc.) exists |
 
-### Security — Response Headers
+### Security: Response Headers
 
 | # | Item | How to verify |
 |---|------|---------------|
@@ -59,7 +59,7 @@ For each category in scope, inspect the codebase, configuration, and running app
 | 11 | `X-Frame-Options` or CSP `frame-ancestors` is set | Check response headers. Recommended: `DENY` or `SAMEORIGIN` |
 | 12 | `X-Content-Type-Options: nosniff` is set | Check response headers |
 
-### Security — Other
+### Security: Other
 
 | # | Item | How to verify |
 |---|------|---------------|
@@ -76,7 +76,7 @@ For each category in scope, inspect the codebase, configuration, and running app
 | 23 | Two-factor authentication is enabled on cloud accounts | Manual check (note in the report) |
 | 24 | A Content Security Policy (CSP) is configured | Check response headers |
 
-### Security — Login
+### Security: Login
 
 | # | Item | How to verify |
 |---|------|---------------|
@@ -150,7 +150,7 @@ For each category in scope, inspect the codebase, configuration, and running app
 | 62 | Image sizes are optimized | Check there are no images far larger than their display size |
 | 63 | The DB has appropriate indexes | Check the indexes in the schema definition |
 
-Items 59–63 are static heuristics; passing them is not a Core Web Vitals
+Items 59–63 are static heuristics, and passing them is not a Core Web Vitals
 measurement. For real LCP / CLS / INP traces run the `page-audit` skill, which
 item 58 also delegates to.
 
@@ -183,7 +183,7 @@ item 58 also delegates to.
 Create `docs/launch-checklist/YYYY-MM-DD.md`:
 
 ```markdown
-# Launch Checklist Report — YYYY-MM-DD
+# Launch Checklist Report: YYYY-MM-DD
 
 Commit: `{short hash}` {commit message}
 
@@ -191,11 +191,11 @@ Commit: `{short hash}` {commit message}
 
 | Category | Pass | Fail | N/A | Score |
 |----------|------|------|-----|-------|
-| Security — Cookie | x | x | x | x/x |
-| Security — Input Validation | x | x | x | x/x |
-| Security — Response Headers | x | x | x | x/x |
-| Security — Other | x | x | x | x/x |
-| Security — Login | x | x | x | x/x |
+| Security: Cookie | x | x | x | x/x |
+| Security: Input Validation | x | x | x | x/x |
+| Security: Response Headers | x | x | x | x/x |
+| Security: Other | x | x | x | x/x |
+| Security: Login | x | x | x | x/x |
 | Email | x | x | x | x/x |
 | SEO | x | x | x | x/x |
 | OGP | x | x | x | x/x |
@@ -220,9 +220,9 @@ Commit: `{short hash}` {commit message}
 
 Priority fixes (FAIL items ordered by severity):
 
-1. **[Critical]** {item} — {fix suggestion}
-2. **[Important]** {item} — {fix suggestion}
-3. **[Minor]** {item} — {fix suggestion}
+1. **[Critical]** {item}: {fix suggestion}
+2. **[Important]** {item}: {fix suggestion}
+3. **[Minor]** {item}: {fix suggestion}
 ```
 
 ### 4. Compare with previous
