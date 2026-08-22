@@ -456,6 +456,11 @@ const LAYER_BANS = [
         message:
           "Routes must not call HTTP handlers directly — register them on the Hono app at src/server/app.",
       },
+      {
+        target: "src/server/router",
+        message:
+          "Routes must not call oRPC procedures directly — a browser-facing route reaches data through src/client.",
+      },
     ],
   },
   {

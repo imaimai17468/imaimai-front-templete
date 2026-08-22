@@ -1,16 +1,15 @@
-import { updateProfileFn, uploadAvatarFn } from "@/server/fn/profile";
 import {
   type ProfileSubmitInput,
   type ProfileSubmitOutcome,
   submitProfile,
 } from "./profile-submit";
+import { orpc } from "./orpc";
 
-// The one place the UI's data access binds to the server boundary. Phase 4
-// replaces the two imports above with the oRPC client; the shape stays.
+// The one place the UI's data access binds to the server boundary.
 export const submitProfileToServer = async (
   input: ProfileSubmitInput
 ): Promise<ProfileSubmitOutcome> =>
   submitProfile(input, {
-    uploadAvatar: async (body) => uploadAvatarFn({ data: body }),
-    updateProfile: async (body) => updateProfileFn({ data: body }),
+    uploadAvatar: async (file) => orpc.profile.uploadAvatar.call({ file }),
+    updateProfile: async (name) => orpc.profile.update.call({ name }),
   });

@@ -1,11 +1,7 @@
-import { type QueryClient, queryOptions } from "@tanstack/react-query";
-import { getCurrentUserFn } from "@/server/fn/user";
+import type { QueryClient } from "@tanstack/react-query";
+import { orpc } from "./orpc";
 
-export const currentUserQueryOptions = () =>
-  queryOptions({
-    queryKey: ["current-user"],
-    queryFn: async () => getCurrentUserFn(),
-  });
+export const currentUserQueryOptions = () => orpc.user.current.queryOptions();
 
 // fetchQuery, not ensureQueryData: the latter resolves with cached data without
 // awaiting a refetch, so a route guard built on it keeps admitting a visitor

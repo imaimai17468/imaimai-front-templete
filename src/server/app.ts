@@ -1,6 +1,8 @@
+import { RPCHandler } from "@orpc/server/fetch";
 import { Hono } from "hono";
 import { getAuth } from "@/lib/auth/auth";
 import { getAvatarResponse } from "@/server/handlers/avatar";
+import { router } from "@/server/router";
 
 // Bindings are read through `cloudflare:workers` in src/server/cloudflare.ts
 // rather than Hono's `c.env`, because this app is reached via `app.fetch(request)`
@@ -13,3 +15,15 @@ app.all("/api/auth/*", async (c) => getAuth().handler(c.req.raw));
 // `<img src>` needs a URL too. The bucket stays private; this endpoint is what
 // applies the ownership check before streaming an object.
 app.get("/api/avatars", async (c) => getAvatarResponse(c.req.raw));
+
+const rpc = new RPCHandler(router);
+
+// The procedures. The SSR path reaches the same router in-process through
+// createRouterClient, so this mount is the browser's transport only.
+app.all("/api/rpc/*", async (c) => {
+  const { matched, response } = await rpc.handle(c.req.raw, {
+    prefix: "/api/rpc",
+    context: {},
+  });
+  return matched ? response : c.notFound();
+});

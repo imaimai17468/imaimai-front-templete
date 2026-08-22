@@ -7,8 +7,8 @@ type ServerResult = {
 };
 
 export type ProfileSubmitDeps = {
-  uploadAvatar: (data: FormData) => Promise<ServerResult>;
-  updateProfile: (data: FormData) => Promise<ServerResult>;
+  uploadAvatar: (file: File) => Promise<ServerResult>;
+  updateProfile: (name: string) => Promise<ServerResult>;
 };
 
 export type ProfileSubmitInput = {
@@ -27,17 +27,13 @@ export const submitProfile = async (
   deps: ProfileSubmitDeps
 ): Promise<ProfileSubmitOutcome> => {
   if (input.avatar !== null) {
-    const avatarData = new FormData();
-    avatarData.append("avatar", input.avatar);
-    const avatarResult = await deps.uploadAvatar(avatarData);
+    const avatarResult = await deps.uploadAvatar(input.avatar);
     if (avatarResult.error !== undefined) {
       return { kind: "failed", message: avatarResult.error };
     }
   }
 
-  const profileData = new FormData();
-  profileData.append("name", input.name);
-  const profileResult = await deps.updateProfile(profileData);
+  const profileResult = await deps.updateProfile(input.name);
   if (profileResult.error !== undefined) {
     return { kind: "failed", message: profileResult.error };
   }

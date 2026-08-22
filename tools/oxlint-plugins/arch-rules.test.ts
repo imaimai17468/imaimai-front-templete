@@ -833,6 +833,18 @@ describe("layer-boundaries", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
+  it("should report when a route imports an oRPC procedure directly", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/profile.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/server/router"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
   it("should report when a route imports an HTTP handler directly", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/api/$.ts");
