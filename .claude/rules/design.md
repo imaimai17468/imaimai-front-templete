@@ -55,13 +55,15 @@ not) reads as inconsistency rather than design.
   spaces do not exempt you from contrast checking.
 - Keep distinguishable gray shades to a minimum, because too many similar
   grays make contrast between adjacent surfaces indistinguishable.
+- Use semantic token names in components, never a raw color value.
 
 ### Dark Mode
 
 Dark mode is a paired color scale rather than a separate system. When adding
 a new token, define both light and dark values together. Never invert hex
 values directly, because that shifts hues. Adjust lightness while preserving
-chroma and hue.
+chroma and hue. Token switching carries the whole scheme, so no component
+branches on the mode.
 
 Pure white on dark backgrounds causes eye strain. Use the hue-biased
 off-white defined in `src/styles.css`.
@@ -212,39 +214,17 @@ or grid children, never on elements in normal flow.
 Animate `transform` and `opacity` only, never layout properties, which
 trigger reflow on every frame.
 
-## Do's and Don'ts
+## Decoration
 
-### Do's
-
-- Use semantic token names for colors, never raw color values in components.
-- Let token switching handle dark mode, and don't branch per-component.
-- Follow the spacing tier guidelines above.
-- Use chart colors in their defined order.
-- Pick rounded values from the defined set only.
-- Define all five interactive states (default, hover, focus-visible, active,
-  disabled).
-- Account for all content states (loading, empty, error, populated).
-- Verify WCAG AA contrast for every derived color variant.
-
-### Don'ts
-
-- Don't use pure achromatic grays. Always carry a subtle hue.
-- Don't use primary as a background fill.
-- Don't use radius values outside the defined set.
-- Don't use floating labels.
-- Don't rely on color alone to convey state. Pair it with shape, icon, or
-  text.
-- Don't animate layout properties. Use `transform`/`opacity`.
-- Don't hardcode color values in components. Use semantic tokens.
-- Don't produce AI-generated design clichés. Common tells include: colored
-  left/top border stripe on cards, purple-to-blue gradient backgrounds,
-  gradient text on headings, serif italic on a single hero word, numbered
-  steps (01/02/03) on non-sequential content, badge/eyebrow above H1 with
-  no informational purpose, icon-topped 3-column feature cards, vague
-  aspirational headlines, everything centered, uniform border-radius on all
-  elements, glassmorphism without function, emoji in navigation, cards
-  wrapping everything, big-number stat banners as filler. If a decoration
-  doesn't encode real information, remove it.
+Don't produce AI-generated design clichés. Common tells include: colored
+left/top border stripe on cards, purple-to-blue gradient backgrounds, gradient
+text on headings, serif italic on a single hero word, numbered steps
+(01/02/03) on non-sequential content, badge/eyebrow above H1 with no
+informational purpose, icon-topped 3-column feature cards, vague aspirational
+headlines, everything centered, uniform border-radius on all elements,
+glassmorphism without function, emoji in navigation, cards wrapping
+everything, big-number stat banners as filler. If a decoration doesn't encode
+real information, remove it.
 
 ## Iteration Guide
 
