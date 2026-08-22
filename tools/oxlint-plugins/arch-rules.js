@@ -446,6 +446,16 @@ const LAYER_BANS = [
         message:
           "Routes must not access Cloudflare persistence bindings directly — delegate through src/server/fn to a gateway.",
       },
+      {
+        target: "src/server/fn",
+        message:
+          "Routes must not call server procedures — a browser-facing route reaches data through src/client, and an HTTP endpoint belongs in the Hono app at src/server/app.",
+      },
+      {
+        target: "src/server/handlers",
+        message:
+          "Routes must not call HTTP handlers directly — register them on the Hono app at src/server/app.",
+      },
     ],
   },
   {

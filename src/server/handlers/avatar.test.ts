@@ -3,7 +3,7 @@ import {
   readAvatarForCurrentUser,
   type AvatarReadResult,
 } from "@/server/fn/avatar";
-import { getAvatarResponse } from "./avatars";
+import { getAvatarResponse } from "./avatar";
 
 vi.mock("@/server/fn/avatar", () => ({
   readAvatarForCurrentUser: vi.fn<typeof readAvatarForCurrentUser>(),

@@ -809,7 +809,7 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it("should not report when a route imports a server function", () => {
+  it("should report when a route imports a server function", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/profile.tsx");
     const visitors = rule.create(context);
@@ -818,7 +818,31 @@ describe("layer-boundaries", () => {
     visitors.ImportDeclaration?.(importNode("@/server/fn/user"));
 
     // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when a route imports the Hono app", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/api/$.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/server/app"));
+
+    // Assert
     expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when a route imports an HTTP handler directly", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/api/$.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/server/handlers/avatar"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
   });
 
   it("should report when a route imports the session adapter", () => {
