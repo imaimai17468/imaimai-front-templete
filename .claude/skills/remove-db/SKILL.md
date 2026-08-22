@@ -322,11 +322,9 @@ grep -rn "better-auth\|BETTER_AUTH\|drizzle\|D1Database\|R2Bucket\|AVATARS_BUCKE
 Read every hit and decide — a hit is not automatically a leftover. An empty
 result is not evidence the removal is complete either: this finds the eight
 literals above in the paths above, and anything phrased differently or living
-elsewhere is invisible to it. Two exclusions from the path list are deliberate:
-the dated eval records under `scripts/evals/` keep whatever D1 / drizzle
-references they hold, because a record describes what was true when it was
-written, and generic infra checklists (e.g. `.claude/skills/launch-checklist`)
-keep their generic D1 / R2 mentions.
+elsewhere is invisible to it. One exclusion from the path list is deliberate:
+generic infra checklists (e.g. `.claude/skills/launch-checklist`) keep their
+generic D1 / R2 mentions.
 
 Dead markdown links to the deleted database doc need no grep — `python3
 scripts/check-md-links.py` fails on any link whose target is gone, and the Stop
