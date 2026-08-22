@@ -126,7 +126,7 @@ case-sensitive) patterns — so fix them here explicitly.
 ### Residual auth references
 
 ```bash
-grep -rn "signIn\|signOut\|session\|getCurrentUserFn\|AuthNavigation\|UserMenu\|UserWithEmail" src/
+grep -rn "signIn\|signOut\|session\|currentUserQueryOptions\|AuthNavigation\|UserMenu\|UserWithEmail" src/
 ```
 
 Remove every hit individually.
@@ -176,7 +176,7 @@ export default defineConfig({
 
 ### `tools/oxlint-plugins/arch-rules.js` — prune the dead layer bans
 
-`LAYER_BANS` encodes the layer contract (routes → server/fn → gateways →
+`LAYER_BANS` encodes the layer contract (routes → client → server/router → gateways →
 entities) as import bans. Step 1 deletes every layer below `routes`, so a ban
 whose `layer` or `target` names a deleted path has nothing left to protect.
 Remove those entries together with the cases in `arch-rules.test.ts` that cover
@@ -195,7 +195,6 @@ either file breaks the lint config for the whole fork.
 
 ### `knip.json`
 
-- Remove `"src/server/fn/**/*.ts"` from `entry`.
 - Remove `"src/server/cloudflare.ts"` from `ignore`.
 
 ## 4. Config files

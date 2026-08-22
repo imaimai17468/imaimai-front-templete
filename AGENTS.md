@@ -80,7 +80,7 @@ Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/
 - **`react.md`** (`**/*.tsx`) — the official [Rules of React](https://ja.react.dev/reference/rules): purity, hooks at the top level, component splitting, module organization — project-independent principles only; this repository's concrete placements are in the paragraph below
 - **`design.md`** (`src/**/*.css`, `src/**/*.tsx`) — design system: Wairo (和色) palette, squircle corners, typography, spacing, component conventions
 
-`src/` is layered — `routes/` → `server/fn/` → `gateways/` → `entities/`, imports flow downward only, and `server/fn/` is the authorization boundary. The same contract fixes the placement homes: `src/components/` (`features/` for domain UI, `shared/<name>/` for cross-feature UI, `ui/` for shadcn CLI output — never rename `ui/`, `components.json` aliases resolve to it) and `src/lib/` for framework/infrastructure adapters and generic non-component values.
+`src/` is layered — `routes/` and `components/` → `client/` → `server/router/` → `gateways/` → `entities/`, imports flow downward only. `server/router/` holds the oRPC procedures and is the authorization boundary; `client/` is the UI's only door to them, and `server/app.ts` is the Hono app that owns every `/api/*` endpoint. The same contract fixes the placement homes: `src/components/` (`features/` for domain UI, `shared/<name>/` for cross-feature UI, `ui/` for shadcn CLI output — never rename `ui/`, `components.json` aliases resolve to it) and `src/lib/` for framework/infrastructure adapters and generic non-component values.
 
 The next rule is not path-scoped — it applies whenever you write any instruction document, whatever the file type:
 

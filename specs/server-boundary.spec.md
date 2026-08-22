@@ -23,7 +23,7 @@ outside it, and each is an obligation elsewhere that is **not yet implemented**:
 
 - That neither the resolver nor the context factory memoizes across calls or renders. A memo replay and a fresh derivation are indistinguishable from inside one call. Owed to a lint rule forbidding module-scope mutable state on that path, and to a test asserting two concurrent calls with different sessions get different identities.
 - That no module outside the oRPC router reaches a gateway. Such a call never enters this machine. `arch-rules/layer-boundaries` today bans `src/gateways` imports from `src/routes`, `src/entities`, `src/components`, and `src/client`; `src/lib` and the router's own siblings are unrestricted. Owed to a default-deny rewrite of that rule.
-- That the caller-visible result of each procedure survives the migration. `updateProfileFn` and `uploadAvatarFn` today return `{ error: "Not authenticated" }` as an ordinary value (`src/server/fn/profile.ts`), which this machine models as `anonymous`; whether the browser then sees a 401 or a 200 carrying an error object is a parity question no state machine can settle. Owed to a test.
+- That the caller-visible result of each procedure survives the migration. `profile.update` and `profile.uploadAvatar` return `{ error: "Not authenticated" }` as an ordinary value (`src/server/router/profile.ts`), which this machine models as `anonymous`; whether the browser then sees a 401 or a 200 carrying an error object is a parity question no state machine can settle. Owed to a test.
 
 ## States
 - call-started: a call has begun; no request context has been bound.
