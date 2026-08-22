@@ -41,16 +41,16 @@ http://localhost:5173 でアクセス。`@cloudflare/vite-plugin` により、`b
 
 ## Tools
 
-- **[mise](https://mise.jdx.dev/)** — Node / Bun のバージョン固定 (`mise.toml`)
-- **[shadcn/ui](https://ui.shadcn.com/)** — UI components (`components.json`)
-- **[TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)** — Type checker (Go-native `tsc`)
-- **[oxlint](https://oxc.rs/docs/guide/usage/linter)** — Linter (`.oxlintrc.json`)
-- **自作 oxlint プラグイン** (`tools/oxlint-plugins/`) — `.oxlintrc.json` の `jsPlugins` から読み込まれる。層契約・コンポーネント命名・1ファイル1コンポーネント・テストの形（1テスト1 expect など）を機械的に強制するので、規約は文書だけでなくここにもある
-- **[react-doctor](https://github.com/millionco/react-doctor)** — React 向け追加ルール (`.oxlintrc.react-doctor.json`)
-- **[oxfmt](https://oxc.rs/docs/guide/usage/formatter)** — Formatter (`.oxfmtrc.json`)
-- **[lefthook](https://github.com/evilmartians/lefthook)** — Git hooks (`lefthook.yml`、`bun install` 時に `prepare` スクリプトで自動セットアップ)
-- **[knip](https://knip.dev/)** — Unused deps/exports/files detection (`knip.json`)
-- **[similarity-ts](https://github.com/mizchi/similarity)** — Code similarity detector
+- **[mise](https://mise.jdx.dev/)**：Node / Bun のバージョン固定 (`mise.toml`)
+- **[shadcn/ui](https://ui.shadcn.com/)**：UI components (`components.json`)
+- **[TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)**：Type checker (Go-native `tsc`)
+- **[oxlint](https://oxc.rs/docs/guide/usage/linter)**：Linter (`.oxlintrc.json`)
+- **自作 oxlint プラグイン** (`tools/oxlint-plugins/`)：`.oxlintrc.json` の `jsPlugins` から読み込まれる。層契約・コンポーネント命名・1ファイル1コンポーネント・テストの形（1テスト1 expect など）を機械的に強制するので、規約は文書だけでなくここにもある
+- **[react-doctor](https://github.com/millionco/react-doctor)**：React 向け追加ルール (`.oxlintrc.react-doctor.json`)
+- **[oxfmt](https://oxc.rs/docs/guide/usage/formatter)**：Formatter (`.oxfmtrc.json`)
+- **[lefthook](https://github.com/evilmartians/lefthook)**：Git hooks (`lefthook.yml`、`bun install` 時に `prepare` スクリプトで自動セットアップ)
+- **[knip](https://knip.dev/)**：Unused deps/exports/files detection (`knip.json`)
+- **[similarity-ts](https://github.com/mizchi/similarity)**：Code similarity detector
 
 ## プロジェクト構成
 
@@ -90,10 +90,10 @@ src/
 
 エージェント運用層は4つでできています。
 
-- **[AGENTS.md](./AGENTS.md)** — 規約の本体。毎セッション自動でロードされます（`CLAUDE.md` はこれを読み込むだけ）
-- **`.claude/rules/`** — ファイル種別ごとの規約。対象を編集するときだけロードされます
-- **`.claude/skills/`** — 名前のついた作業の手順。チケット粒度の作業は `ticket-work` が持ち、AGENTS.md はそれを指します
-- **`.claude/hooks/`** — 規約を機械的に強制する側。SessionStart で依存の欠落を報告し、Bash 実行前にガードを掛け、Stop で品質ゲート（typecheck / lint / format / knip / similarity / markdown リンク）を回します
+- **[AGENTS.md](./AGENTS.md)**：規約の本体。毎セッション自動でロードされます（`CLAUDE.md` はこれを読み込むだけ）
+- **`.claude/rules/`**：規約の分冊。path scope を持つものは対象ファイルを編集するときだけ、持たないものは毎セッション読み込まれます
+- **`.claude/skills/`**：名前のついた作業の手順。チケット粒度の作業は `ticket-work` が持ち、AGENTS.md はそれを指します
+- **`.claude/hooks/`**：規約を機械的に強制する側。SessionStart で依存の欠落を報告し、Bash 実行前にガードを掛け、Stop で品質ゲート（typecheck / lint / format / knip / similarity / markdown リンク）を回します
 
 コミット前のレビューは `code-reviewer` エージェントが担い、コミットと PR はエージェントが AGENTS.md の規律に従って提案してユーザー確認後に実行します。
 
