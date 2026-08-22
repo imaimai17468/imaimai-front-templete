@@ -317,119 +317,29 @@ const componentFileNaming = {
   },
 };
 
-// Layer contract: components + routes → client → server/router → gateways → entities,
-// imports flow downward only. `client` is the UI's single door to data access, so
-// components reach the server boundary through it and never past it. `lib` outside
-// the binding-touching modules stays unrestricted; the banned ones are listed per
-// layer below rather than counted here.
+// Layer contract: routes → server/fn → gateways → entities,
+// imports flow downward only. Only the bans that contract states are encoded here —
+// side categories (components, lib outside drizzle) stay unrestricted.
 const LAYER_BANS = [
-  {
-    layer: "src/components",
-    externalBans: [
-      {
-        source: "cloudflare:workers",
-        message:
-          "Components must not access Cloudflare bindings — data access belongs in src/client.",
-      },
-      {
-        source: "@tanstack/react-start/server",
-        message:
-          "Components must not resolve server request context — data access belongs in src/client.",
-      },
-    ],
-    bans: [
-      {
-        target: "src/server",
-        message:
-          "Components must not call server procedures directly — go through src/client.",
-      },
-      {
-        target: "src/gateways",
-        message: "Components must not import gateways — go through src/client.",
-      },
-      {
-        target: "src/lib/drizzle",
-        message:
-          "Components must not touch persistence — src/lib/drizzle is owned by gateways.",
-      },
-      {
-        target: "src/lib/storage/r2",
-        message:
-          "Components must not touch object storage — src/lib/storage/r2 is owned by gateways.",
-      },
-      {
-        target: "src/lib/auth/session",
-        message:
-          "Components must not resolve request authentication — go through src/client.",
-      },
-      {
-        target: "src/lib/auth/auth",
-        message:
-          "Components must not touch the raw Better Auth instance — src/lib/auth/auth reaches persistence and Cloudflare bindings directly; go through src/client.",
-      },
-    ],
-  },
-  {
-    layer: "src/client",
-    externalBans: [
-      {
-        source: "cloudflare:workers",
-        message:
-          "src/client also runs in the browser — it must not access Cloudflare bindings.",
-      },
-      {
-        source: "@tanstack/react-start/server",
-        message:
-          "src/client also runs in the browser — it must not resolve server request context.",
-      },
-    ],
-    bans: [
-      {
-        target: "src/gateways",
-        message:
-          "src/client must not import gateways — cross the boundary through a server procedure.",
-      },
-      {
-        target: "src/lib/drizzle",
-        message:
-          "src/client must not touch persistence — src/lib/drizzle is owned by gateways.",
-      },
-      {
-        target: "src/lib/storage/r2",
-        message:
-          "src/client must not touch object storage — src/lib/storage/r2 is owned by gateways.",
-      },
-      {
-        target: "src/lib/auth/session",
-        message:
-          "src/client must not resolve request authentication — that is the server boundary's job.",
-      },
-      {
-        target: "src/lib/auth/auth",
-        message:
-          "src/client must not touch the raw Better Auth instance — src/lib/auth/auth reaches persistence and Cloudflare bindings directly.",
-      },
-    ],
-  },
   {
     layer: "src/routes",
     externalBans: [
       {
         source: "cloudflare:workers",
         message:
-          "Routes must not access Cloudflare bindings directly — delegate through src/server/router to a gateway.",
+          "Routes must not access Cloudflare bindings directly — delegate through src/server/fn to a gateway.",
       },
       {
         source: "@tanstack/react-start/server",
         message:
-          "Routes must not resolve request context directly — delegate to src/server/router.",
+          "Routes must not resolve request context directly — delegate to src/server/fn.",
       },
     ],
     bans: [
       {
         target: "src/gateways",
         message:
-          "Routes must not import gateways directly — go through a procedure in src/server/router.",
+          "Routes must not import gateways directly — go through a server function in src/server/fn.",
       },
       {
         target: "src/lib/drizzle",
@@ -439,32 +349,22 @@ const LAYER_BANS = [
       {
         target: "src/lib/auth/session",
         message:
-          "Routes must not resolve request authentication — delegate to src/server/router.",
+          "Routes must not resolve request authentication — delegate to src/server/fn.",
       },
       {
         target: "src/server/cloudflare",
         message:
-          "Routes must not access Cloudflare persistence bindings directly — delegate through src/server/router to a gateway.",
-      },
-      {
-        target: "src/server/router",
-        message:
-          "Routes must not call server procedures — a browser-facing route reaches data through src/client, and an HTTP endpoint belongs in the Hono app at src/server/app.",
-      },
-      {
-        target: "src/server/handlers",
-        message:
-          "Routes must not call HTTP handlers directly — register them on the Hono app at src/server/app.",
+          "Routes must not access Cloudflare persistence bindings directly — delegate through src/server/fn to a gateway.",
       },
     ],
   },
   {
-    layer: "src/server/router",
+    layer: "src/server/fn",
     bans: [
       {
         target: "src/routes",
         message:
-          "Procedures must not import routes — imports flow downward only.",
+          "Server functions must not import routes — imports flow downward only.",
       },
     ],
   },
@@ -477,9 +377,9 @@ const LAYER_BANS = [
           "Gateways must not import routes — imports flow downward only.",
       },
       {
-        target: "src/server/router",
+        target: "src/server/fn",
         message:
-          "Gateways must not import procedures — imports flow downward only.",
+          "Gateways must not import server functions — imports flow downward only.",
       },
       {
         target: "src/components",
@@ -488,7 +388,7 @@ const LAYER_BANS = [
       {
         target: "src/lib/auth",
         message:
-          "Gateways must not resolve request authentication — derive identity in src/server/router and pass it downward.",
+          "Gateways must not resolve request authentication — derive identity in src/server/fn and pass it downward.",
       },
     ],
   },
@@ -501,9 +401,9 @@ const LAYER_BANS = [
           "Entities import nothing from the layers above — routes are above entities.",
       },
       {
-        target: "src/server/router",
+        target: "src/server/fn",
         message:
-          "Entities import nothing from the layers above — procedures are above entities.",
+          "Entities import nothing from the layers above — server functions are above entities.",
       },
       {
         target: "src/gateways",
@@ -513,74 +413,6 @@ const LAYER_BANS = [
     ],
   },
 ];
-
-// Default-deny for the modules that reach a binding or a session. LAYER_BANS
-// enumerates who may not import what, so every new layer starts unrestricted and
-// has to be added by hand. These entries invert that: anything not listed as an
-// allowed importer is refused, so a directory added later is denied by default.
-// The two layers that resolve a session per call. Shared so the allow-list below
-// and the module-scope-state rule cannot drift apart.
-const IDENTITY_LAYERS = ["src/server/router", "src/server/handlers"];
-
-const PROTECTED_TARGETS = [
-  {
-    target: "src/gateways",
-    allowed: ["src/server/router", "src/server/handlers"],
-    message:
-      "Only procedures and HTTP handlers may reach a gateway — everything else goes through src/client.",
-  },
-  {
-    target: "src/lib/drizzle",
-    allowed: ["src/gateways", "src/lib/auth/auth"],
-    message: "Persistence is owned by gateways and the auth adapter.",
-  },
-  {
-    target: "src/lib/storage/r2",
-    allowed: ["src/gateways"],
-    message: "Object storage is owned by gateways.",
-  },
-  {
-    target: "src/lib/auth/session",
-    allowed: IDENTITY_LAYERS,
-    message:
-      "Only procedures and HTTP handlers may resolve a session — identity flows downward as an argument.",
-  },
-  {
-    target: "src/lib/auth/auth",
-    allowed: ["src/server/app", "src/lib/auth"],
-    message:
-      "The raw Better Auth instance reaches persistence and bindings — mount it in the Hono app instead.",
-  },
-  {
-    target: "src/server/cloudflare",
-    allowed: [
-      "src/lib/drizzle",
-      "src/lib/storage/r2",
-      "src/lib/auth/auth",
-      "src/gateways",
-    ],
-    message:
-      "Cloudflare bindings are read by the infrastructure adapters and gateways only.",
-  },
-];
-
-const PROTECTED_EXTERNALS = [
-  {
-    source: "cloudflare:workers",
-    allowed: ["src/server/cloudflare"],
-    message:
-      "cloudflare:workers is read in one place — import from src/server/cloudflare instead.",
-  },
-];
-
-// `path` is either a real filename (carries `.ts`) or a resolved import
-// specifier (never does), so both forms have to match a single-file target.
-// One predicate serves both a file target and a directory prefix, so a file
-// named src/lib/auth.ts beside src/lib/auth/ would satisfy the directory entry
-// too. Left as-is: that pair also makes `@/lib/auth` ambiguous to module
-// resolution, so the collision cannot arrive quietly.
-const isUnder = (path, dir) =>
-  path === dir || path === `${dir}.ts` || path.startsWith(`${dir}/`);
 
 const SRC_MARKER = "/src/";
 
@@ -608,68 +440,28 @@ const layerBoundaries = {
     const srcPath = filename.slice(srcIndex + 1);
     const fileSrcDir = srcPath.slice(0, srcPath.lastIndexOf("/"));
 
-    // No early return when the file is outside every LAYER_BANS layer: the
-    // PROTECTED_TARGETS guards below are the default-deny half of this rule and
-    // exist precisely to cover directories nobody registered.
     const layerEntry = LAYER_BANS.find((entry) =>
       srcPath.startsWith(`${entry.layer}/`)
     );
+    if (!layerEntry) return {};
 
     const checkImportSource = (node) => {
       const source = node.source;
       if (!source || typeof source.value !== "string") return;
-      const target = resolveImportTarget(fileSrcDir, source.value);
-
-      // Layer-specific bans first: they carry the message that names the layer
-      // and what it should do instead. The default-deny guards below are the
-      // fallback for what no layer covers, so running them first would shadow
-      // every tailored message with a generic one.
-      if (layerEntry !== undefined) {
-        const externalViolation = layerEntry.externalBans?.find(
-          (ban) => source.value === ban.source
-        );
-        if (externalViolation !== undefined) {
-          context.report({ message: externalViolation.message, node });
-          return;
-        }
-        const violated =
-          target === null
-            ? undefined
-            : layerEntry.bans.find(
-                (ban) =>
-                  target === ban.target || target.startsWith(`${ban.target}/`)
-              );
-        if (violated !== undefined) {
-          context.report({ message: violated.message, node });
-          return;
-        }
-      }
-
-      const externalGuard = PROTECTED_EXTERNALS.find(
-        (guard) => source.value === guard.source
+      const externalViolation = layerEntry.externalBans?.find(
+        (ban) => source.value === ban.source
       );
-      if (
-        externalGuard !== undefined &&
-        !externalGuard.allowed.some((dir) => isUnder(srcPath, dir))
-      ) {
-        context.report({ message: externalGuard.message, node });
+      if (externalViolation !== undefined) {
+        context.report({ message: externalViolation.message, node });
         return;
       }
-      const protectedTarget =
-        target === null
-          ? undefined
-          : PROTECTED_TARGETS.find((guard) => isUnder(target, guard.target));
-      // A module's own directory is exempt only when that directory is itself
-      // named in the target's `allowed` list — as `src/lib/auth` is for the
-      // `src/lib/auth/auth` target, because session.ts needs it in production.
-      // A target whose allow-list names only its consumer layers, like
-      // `src/lib/auth/session`, has no such exemption for a same-directory test.
-      if (
-        protectedTarget !== undefined &&
-        !isUnder(srcPath, protectedTarget.target) &&
-        !protectedTarget.allowed.some((dir) => isUnder(srcPath, dir))
-      ) {
-        context.report({ message: protectedTarget.message, node });
+      const target = resolveImportTarget(fileSrcDir, source.value);
+      if (target === null) return;
+      const violated = layerEntry.bans.find(
+        (ban) => target === ban.target || target.startsWith(`${ban.target}/`)
+      );
+      if (violated !== undefined) {
+        context.report({ message: violated.message, node });
       }
     };
 
@@ -678,57 +470,6 @@ const layerBoundaries = {
       ImportExpression: checkImportSource,
       ExportNamedDeclaration: checkImportSource,
       ExportAllDeclaration: checkImportSource,
-    };
-  },
-};
-
-// Identity is bound per call in this layer, so a module-scope binding that can
-// be reassigned is a place a resolved user could survive into the next request.
-// Scoped to the layer rather than a file list: a procedure added later is covered
-// without being named. The resolver itself sits in src/lib/auth beside a
-// legitimate per-isolate cache, so lint cannot cover it — the concurrency test in
-// src/server/router/middleware.test.ts carries that half.
-
-const CACHE_CONSTRUCTORS = new Set(["Map", "Set", "WeakMap", "WeakSet"]);
-
-// A `const` binding is still a cache when it holds one of these. A `const`
-// holding a plain object or array mutated in place is a known residual gap:
-// src/server/router/index.ts composes the router as exactly that shape, so a
-// blanket ban on module-scope objects would report real, correct code. A
-// namespaced or aliased constructor (`new globalThis.Map()`, an imported alias)
-// escapes too — matching by identifier name was chosen over resolving aliases.
-const holdsMutableCache = (node) =>
-  (node.declarations ?? []).some(
-    (declarator) =>
-      declarator.init?.type === "NewExpression" &&
-      CACHE_CONSTRUCTORS.has(declarator.init.callee?.name)
-  );
-
-const noModuleScopeState = {
-  create(context) {
-    const filename = context.filename ?? context.getFilename?.();
-    if (!filename) return {};
-    const srcIndex = filename.lastIndexOf(SRC_MARKER);
-    if (srcIndex === -1) return {};
-    const srcPath = filename.slice(srcIndex + 1);
-    if (!IDENTITY_LAYERS.some((layer) => isUnder(srcPath, layer))) return {};
-
-    return {
-      VariableDeclaration: (node) => {
-        const parentType = node.parent?.type;
-        if (
-          parentType !== "Program" &&
-          parentType !== "ExportNamedDeclaration"
-        ) {
-          return;
-        }
-        if (node.kind === "const" && !holdsMutableCache(node)) return;
-        context.report({
-          message:
-            "No module-scope cache where identity is resolved — it is bound per call, and a module-scope binding would outlive the request that produced it.",
-          node,
-        });
-      },
     };
   },
 };
@@ -742,7 +483,6 @@ const plugin = {
     "test-naming-format": testNamingFormat,
     "single-expect": singleExpect,
     "layer-boundaries": layerBoundaries,
-    "no-module-scope-state": noModuleScopeState,
   },
 };
 

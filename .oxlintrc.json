@@ -85,7 +85,6 @@
     "style-rules/no-tailwind-arbitrary": "error",
     "style-rules/no-tailwind-opacity": "error",
     "arch-rules/layer-boundaries": "error",
-    "arch-rules/no-module-scope-state": "error",
     "arch-rules/no-size-props": "error",
     "arch-rules/one-component-per-file": "error",
     "arch-rules/component-file-naming": "error",

@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { readAvatarForCurrentUser, type AvatarReadResult } from "./avatar-read";
-import { getAvatarResponse } from "./avatar";
+import {
+  readAvatarForCurrentUser,
+  type AvatarReadResult,
+} from "@/server/fn/avatar";
+import { getAvatarResponse } from "./avatars";
 
-vi.mock("./avatar-read", () => ({
+vi.mock("@/server/fn/avatar", () => ({
   readAvatarForCurrentUser: vi.fn<typeof readAvatarForCurrentUser>(),
 }));
 

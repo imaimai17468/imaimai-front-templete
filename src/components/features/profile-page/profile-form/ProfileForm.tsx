@@ -1,8 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
 import { Camera, Loader2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
@@ -24,8 +22,7 @@ import {
   avatarSizeRejection,
   MAX_AVATAR_BYTES,
 } from "@/lib/storage/avatar-validation";
-import { submitProfileToServer } from "@/client/profile";
-import { currentUserQueryOptions } from "@/client/user";
+import { updateProfileFn, uploadAvatarFn } from "@/server/fn/profile";
 
 // similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
 type ProfileFormProps = {
@@ -35,8 +32,7 @@ type ProfileFormProps = {
 type FormData = z.infer<typeof UpdateUserSchema>;
 
 export const ProfileForm = ({ user }: ProfileFormProps) => {
-  const router = useRouter();
-  const queryClient = useQueryClient();
+  const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -87,36 +83,29 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
     setPreviewUrl(nextPreviewUrl);
   };
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: async (data: FormData) =>
-      submitProfileToServer({ name: data.name, avatar: pendingFile }),
-    onSuccess: async (outcome) => {
-      if (outcome.kind === "failed") {
-        toast.error(outcome.message);
-        return;
-      }
-      // router.invalidate() is what re-runs the loaders that hand `user` down as
-      // a prop, and it is sufficient today: staleTime defaults to 0, so the next
-      // fetchQuery refetches regardless. invalidateQueries is kept so the cached
-      // entry is marked stale even if a non-zero default is set later, or a
-      // component starts observing this query. Dropping the preview only after
-      // both keeps the object URL in place until the stored avatar is in.
-      await queryClient.invalidateQueries(currentUserQueryOptions());
-      await router.invalidate();
-      setPendingFile(null);
-      setPreviewUrl(null);
-      toast.success("Profile updated successfully");
-    },
-    // The validators throw rather than returning `{ error }`, so those paths
-    // reject the mutation and never reach onSuccess. The thrown message is not
-    // vetted for display, so it is not shown.
-    onError: () => {
-      toast.error("Something went wrong. Please try again.");
-    },
-  });
-
   const onSubmit = (data: FormData) => {
-    mutate(data);
+    startTransition(async () => {
+      if (pendingFile) {
+        const avatarData = new globalThis.FormData();
+        avatarData.append("avatar", pendingFile);
+        const avatarResult = await uploadAvatarFn({ data: avatarData });
+        if ("error" in avatarResult && avatarResult.error !== undefined) {
+          toast.error(avatarResult.error);
+          return;
+        }
+        setPendingFile(null);
+      }
+
+      const formData = new globalThis.FormData();
+      formData.append("name", data.name);
+
+      const result = await updateProfileFn({ data: formData });
+      if ("error" in result && result.error !== undefined) {
+        toast.error(result.error);
+      } else {
+        toast.success("Profile updated successfully");
+      }
+    });
   };
 
   const displayName =

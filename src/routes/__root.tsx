@@ -1,27 +1,24 @@
-import type { QueryClient } from "@tanstack/react-query";
 import {
   HeadContent,
   Outlet,
   Scripts,
-  createRootRouteWithContext,
+  createRootRoute,
 } from "@tanstack/react-router";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { Header } from "@/components/shared/header/Header";
 import { ThemeProvider } from "@/components/shared/theme-provider/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
-import { fetchCurrentUser } from "@/client/user";
+import { getCurrentUserFn } from "@/server/fn/user";
 import "@/styles.css";
 
 if (import.meta.env.DEV && !import.meta.env.SSR) {
   void import("react-grab");
 }
 
-export const Route = createRootRouteWithContext<{
-  queryClient: QueryClient;
-}>()({
-  loader: async ({ context }) => {
-    const user = await fetchCurrentUser(context.queryClient);
+export const Route = createRootRoute({
+  loader: async () => {
+    const user = await getCurrentUserFn();
     return { user };
   },
   head: () => ({

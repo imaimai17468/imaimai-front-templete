@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchAvatar, type AvatarObject } from "@/gateways/avatar";
 import { getSession } from "@/lib/auth/session";
-import { readAvatarForCurrentUser } from "./avatar-read";
+import { readAvatarForCurrentUser } from "./avatar";
 
 vi.mock("@/gateways/avatar", () => ({
   fetchAvatar: vi.fn<typeof fetchAvatar>(),

@@ -1,4 +1,5 @@
-import { readAvatarForCurrentUser } from "./avatar-read";
+import { createFileRoute } from "@tanstack/react-router";
+import { readAvatarForCurrentUser } from "@/server/fn/avatar";
 
 export const getAvatarResponse = async (
   request: Request
@@ -29,3 +30,11 @@ export const getAvatarResponse = async (
   const exhaustiveResult: never = result;
   return exhaustiveResult;
 };
+
+export const Route = createFileRoute("/api/avatars")({
+  server: {
+    handlers: {
+      GET: async ({ request }) => getAvatarResponse(request),
+    },
+  },
+});

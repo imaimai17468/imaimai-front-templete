@@ -5,8 +5,6 @@ TanStack Start + TypeScript + Tailwind CSS + shadcn/ui を使用したモダン�
 ## 技術スタック
 
 - **Framework**: TanStack Start (TanStack Router + Vite)
-- **API Layer**: Hono (`/api/*` を単一の splat ルート経由でマウント)
-- **RPC**: oRPC (server-client 境界の契約。SSR はプロセス内呼び出し)
 - **Language**: TypeScript 7 (native compiler)
 - **Styling**: Tailwind CSS v4
 - **UI Components**: shadcn/ui (Radix UI primitives)
@@ -117,13 +115,10 @@ src/
 │   ├── login.tsx           # Login page
 │   ├── profile.tsx         # Profile page (auth guard via beforeLoad)
 │   ├── auth.auth-code-error.tsx  # OAuth failure landing page
-│   └── api/$.ts            # Forwards /api/* to the Hono app
-├── client/                 # UI's data access (query options, fetch helpers)
+│   └── api/                # API routes (auth catch-all, avatars)
 ├── server/
-│   ├── app.ts              # Hono — owns every /api/* endpoint
 │   ├── cloudflare.ts       # CloudflareEnv helper (cloudflare:workers)
-│   ├── handlers/           # HTTP handlers the Hono app registers
-│   └── router/             # oRPC procedures — the authorization boundary
+│   └── fn/                 # Server functions (createServerFn)
 ├── gateways/               # D1 / R2 persistence
 ├── entities/               # Domain types and schemas
 ├── components/             # Shared UI components

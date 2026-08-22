@@ -32,8 +32,6 @@ tsc / knip / vitest toolchain.
 rm -rf src/lib/auth src/lib/drizzle src/lib/storage
 rm -rf src/entities src/gateways src/server
 rm -rf src/routes/api
-rm -f src/client/user.ts src/client/profile.ts src/client/profile-submit.ts src/client/profile-submit.test.ts
-rmdir src/client 2>/dev/null || true
 rm -f src/routes/login.tsx src/routes/profile.tsx src/routes/auth.auth-code-error.tsx
 rm -rf src/components/features/profile-page
 rmdir src/components/features 2>/dev/null || true
@@ -103,15 +101,8 @@ export const Header = () => {
 
 ### `src/routes/__root.tsx`
 
-- Delete the `fetchCurrentUser` import from `@/client/user` and the `loader` option.
-- Revert `createRootRouteWithContext<{ queryClient: QueryClient }>()` to `createRootRoute`, and drop the `QueryClient` type import — no route needs `queryClient` from context once the loader is gone.
+- Delete the `getCurrentUserFn` import and the `loader` option.
 - Delete `const { user } = Route.useLoaderData();` and render `<Header />` without props.
-
-`src/client/user.ts` and `src/client/profile.ts` import from `src/server`, which
-step 1 removes, so leaving either behind fails `bun run typecheck` rather than
-degrading quietly. `profile-submit.ts` imports nothing and its test imports only
-`vitest` and that module, so those two go as dead code — their only caller was
-`profile.ts`.
 
 ### `src/routes/index.tsx`
 
@@ -126,7 +117,7 @@ case-sensitive) patterns — so fix them here explicitly.
 ### Residual auth references
 
 ```bash
-grep -rn "signIn\|signOut\|session\|currentUserQueryOptions\|AuthNavigation\|UserMenu\|UserWithEmail" src/
+grep -rn "signIn\|signOut\|session\|getCurrentUserFn\|AuthNavigation\|UserMenu\|UserWithEmail" src/
 ```
 
 Remove every hit individually.
@@ -176,7 +167,7 @@ export default defineConfig({
 
 ### `tools/oxlint-plugins/arch-rules.js` — prune the dead layer bans
 
-`LAYER_BANS` encodes the layer contract (routes → client → server/router → gateways →
+`LAYER_BANS` encodes the layer contract (routes → server/fn → gateways →
 entities) as import bans. Step 1 deletes every layer below `routes`, so a ban
 whose `layer` or `target` names a deleted path has nothing left to protect.
 Remove those entries together with the cases in `arch-rules.test.ts` that cover
@@ -195,6 +186,7 @@ either file breaks the lint config for the whole fork.
 
 ### `knip.json`
 
+- Remove `"src/server/fn/**/*.ts"` from `entry`.
 - Remove `"src/server/cloudflare.ts"` from `ignore`.
 
 ## 4. Config files
