@@ -782,6 +782,165 @@ describe("single-expect", () => {
   });
 });
 
+const reportedMessage = (
+  context: ReturnType<typeof makeLayerContext>
+): string => context.report.mock.calls[0]?.[0].message ?? "";
+
+const decl = (
+  kind: string,
+  parentType = "Program",
+  init?: { type: string; callee?: { name: string } }
+) => ({
+  kind,
+  parent: { type: parentType },
+  declarations: [{ init }],
+});
+
+describe("no-module-scope-state", () => {
+  const rule = plugin.rules["no-module-scope-state"];
+
+  it("should report when a procedure module declares a reassignable binding", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/server/router/middleware.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.VariableDeclaration?.(decl("let"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when the binding is a module-scope constant", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/server/router/middleware.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.VariableDeclaration?.(decl("const"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when the binding is inside a function body", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/server/router/middleware.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.VariableDeclaration?.(decl("let", "BlockStatement"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when an exported module-scope binding is reassignable", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/server/router/user.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.VariableDeclaration?.(decl("let", "ExportNamedDeclaration"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a module-scope const holds a mutable cache", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/server/router/user.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.VariableDeclaration?.(
+      decl("const", "Program", {
+        type: "NewExpression",
+        callee: { name: "Map" },
+      })
+    );
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when a module-scope const composes the router", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/server/router/index.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.VariableDeclaration?.(
+      decl("const", "Program", { type: "ObjectExpression" })
+    );
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a const declaration carries no declarator list", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/server/router/user.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.VariableDeclaration?.({
+      kind: "const",
+      parent: { type: "Program" },
+    });
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when an HTTP handler declares a reassignable binding", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/server/handlers/avatar-read.ts"
+    );
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.VariableDeclaration?.(decl("let"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should return no visitors when the file is outside the identity layer", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/lib/drizzle/db.ts");
+
+    // Act
+    const visitors = rule.create(context);
+
+    // Assert
+    expect(visitors.VariableDeclaration).toBeUndefined();
+  });
+
+  it("should return no visitors when the file is outside src", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/tools/thing.js");
+
+    // Act
+    const visitors = rule.create(context);
+
+    // Assert
+    expect(visitors.VariableDeclaration).toBeUndefined();
+  });
+
+  it("should return no visitors when the filename is unavailable", () => {
+    // Arrange
+    const context = { ...makeLayerContext(""), filename: undefined };
+
+    // Act
+    const visitors = rule.create(context);
+
+    // Assert
+    expect(visitors.VariableDeclaration).toBeUndefined();
+  });
+});
+
 describe("layer-boundaries", () => {
   const rule = plugin.rules["layer-boundaries"];
 
@@ -907,8 +1066,8 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it.each(["@/lib/auth/auth", "@/lib/auth/actions"])(
-    "should allow the auth adapter %s when a route imports it",
+  it.each(["@/lib/auth/actions"])(
+    "should allow the client auth helper %s when a route imports it",
     (specifier) => {
       // Arrange
       const context = makeLayerContext("/repo/src/routes/login.tsx");
@@ -1097,15 +1256,192 @@ describe("layer-boundaries", () => {
     expect(visitors.ImportDeclaration).toBeUndefined();
   });
 
-  it("should return no visitors when the file is not in a chain layer", () => {
+  it("should keep the layer message when a layer ban and a protected target overlap", () => {
     // Arrange
-    const context = makeLayerContext("/repo/src/lib/utils.ts");
-
-    // Act
+    const context = makeLayerContext(
+      "/repo/src/components/features/thing/Thing.tsx"
+    );
     const visitors = rule.create(context);
 
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/gateways/user"));
+
     // Assert
-    expect(visitors.ImportDeclaration).toBeUndefined();
+    expect(reportedMessage(context)).toContain(
+      "Components must not import gateways"
+    );
+  });
+
+  it("should fall back to the protected-target message when no layer ban covers it", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/unregistered/thing.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/gateways/user"));
+
+    // Assert
+    expect(reportedMessage(context)).toContain(
+      "Only procedures and HTTP handlers may reach a gateway"
+    );
+  });
+
+  it("should still guard protected targets when the file is in no chain layer", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/unregistered/thing.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/gateways/user"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a route imports the raw auth instance", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/login.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/auth/auth"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should allow the import when the Hono app mounts the raw auth instance", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/server/app.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/auth/auth"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should guard a single-file target when the file is in no chain layer", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/unregistered/thing.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/auth/session"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should guard the raw auth instance when the file is in no chain layer", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/unregistered/thing.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/auth/auth"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should guard object storage when the file is in no chain layer", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/unregistered/thing.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/storage/r2"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when the session resolver reaches persistence itself", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/lib/auth/session.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/drizzle/db"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when the pure avatar validator reaches a binding", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/lib/storage/avatar-validation.ts"
+    );
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/server/cloudflare"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should allow the import when the auth adapter reaches persistence", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/lib/auth/auth.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/drizzle/db"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should refuse the Cloudflare module when the reader is not its single owner", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/unregistered/thing.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("cloudflare:workers"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should allow the import when a sibling file reaches its own gateway module", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/gateways/user/index.test.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/gateways/user"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should allow the import when a procedure reaches a gateway", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/server/router/profile.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/gateways/user"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should allow the import when src/server/cloudflare reads the Cloudflare module", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/server/cloudflare.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("cloudflare:workers"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
   });
 
   it("should report when a component imports a server procedure", () => {
