@@ -120,27 +120,13 @@ Write all agent-facing docs (`.claude/`, AGENTS.md, CLAUDE.md) in English.
 
 The parent session implements directly by default. Delegate by **context impact, not task size**:
 
-- **Parent edits directly**: normal implementation, fixes, integration, and post-review follow-ups — whenever the scope is understood. There is no per-edit lint hook; checks run across `lefthook.yml`, `.claude/hooks/stop-gate.sh` and `.github/workflows/ci.yaml`. Open the relevant file before stating where a specific check runs — a wrong claim here was once cited by a review to confirm a gap that did not exist.
+- **Parent edits directly**: normal implementation, fixes, integration, and post-review follow-ups — whenever the scope is understood.
 - **Explore / research subagent**: bulk file reads, log digging, cross-cutting investigation whose raw output the parent won't reference again — only the summary should enter the parent's context.
-- **Parallel implementation subagents**: multiple independent units with no shared files and no output dependency (multiple Agent calls in one message). Dependent units run sequentially — or stay in the parent. Never parallelize units that edit the same file.
-
-A sequential dispatch whose result the next step needs takes **`run_in_background: false`**. Subagents run in the background by default, so otherwise the parent's turn ends at the launch and the result arrives in a later turn rather than inside the one that asked for it — see `review-diff` step 0 for what has and has not been observed about whether the flag works here, the one place that observation is recorded. The parallel units above stay at the default. Fire-and-forget dispatch and SendMessage resumption are reserved for long-running independent research where mid-course correction is unnecessary.
+- **Parallel implementation subagents**: multiple independent units with no shared files and no output dependency. Dependent units run sequentially — or stay in the parent. Never parallelize units that edit the same file.
 
 Briefings must be self-contained — goal, file paths, acceptance criteria, and the relevant guidelines quoted in.
 
-**Agent Teams** (experimental; opt in per session by setting `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` yourself — deliberately not preset in `.claude/settings.json`) only when **peer dialogue itself is the value**: competing-hypothesis debugging, review perspectives that challenge each other, cross-layer API negotiation. 3–5 teammates, never editing the same file, one team at a time; no `/resume` support, so avoid them in interruptible sessions. **Nested subagents** (max depth 5) let a worker offload messy exploration to a child scout and keep its own context clean, models getting cheaper with depth (worker `sonnet` → scout `haiku`); the default ceiling is depth 2 and every extra level multiplies token cost, so justify deeper nesting explicitly. Never nest for sequential work — do it inline.
-
-### Model selection — always set `model` explicitly
-
-| Role | Model |
-|---|---|
-| Implementation / integration / planning (parent session) | session model — no dispatch needed |
-| Exploration / search (Explore, scout) | `haiku` (`sonnet` when precision matters) |
-| Parallel implementation units / research | `sonnet` |
-| Code review — `code-reviewer` | `sonnet` (re-run on `opus` only after a demonstrably weak result) |
-| Long-horizon autonomous workers, complex migrations, escalation after a weak result | `opus` |
-
-`.claude/agents/*.md` carries each pinned agent's `permissionMode` and tool grants. Do not change either from memory — the mode lives in agent frontmatter rather than project settings deliberately, and any model-tier change requires a scored eval run against `scripts/evals/` first.
+`.claude/agents/*.md` carries each pinned agent's model, `permissionMode` and tool grants. Do not change them from memory — the mode lives in agent frontmatter rather than project settings deliberately, and a model-tier change requires a scored eval run against `scripts/evals/` first.
 
 ### Model continuity (non-Fable parent)
 

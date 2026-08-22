@@ -15,7 +15,7 @@ Benchmarking (2026-07-04) collapsed the old parallel workflow (4 hunt lanes, ~80
 
 ## Routing — how this runs
 
-- **Human invoked `/verify-spec <path>` (you are the parent session):** dispatch the `spec-verifier` agent with the spec path and `run_in_background: false`, wait for it, and integrate the report it returns. Do NOT run the stages below in the parent context — the fresh agent context is the point.
+- **Human invoked `/verify-spec <path>` (you are the parent session):** dispatch the `spec-verifier` agent with the spec path, then integrate the report it returns. Do NOT run the stages below in the parent context — the fresh agent context is the point.
 - **You are the `spec-verifier` agent (this skill is preloaded):** execute all four stages below in order and return the report. Do not dispatch anything.
 
 **Single pass — do NOT auto re-run.** One dispatch runs the full procedure once. The parent MUST NOT re-run it on its own — not for CONFIRMED counterexamples, not on `incomplete`. Re-verification is always a fresh, explicit invocation the *user* decides on after reviewing the findings (see "After the verification").
