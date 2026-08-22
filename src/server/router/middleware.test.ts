@@ -72,6 +72,42 @@ describe("withUser", () => {
     });
   });
 
+  it("should bind each caller's own identity when two calls overlap", async () => {
+    const sessionFor = (id: string) => ({
+      ...authenticatedSession,
+      user: { ...authenticatedSession.user, id, email: `${id}@example.com` },
+    });
+    // Both resolutions are in flight before either resolves, so a resolver or
+    // factory that memoized across calls would hand the same identity to both.
+    const gate = Promise.withResolvers<void>();
+    vi.mocked(getSession)
+      .mockImplementationOnce(async () => {
+        await gate.promise;
+        return sessionFor("user-a");
+      })
+      .mockImplementationOnce(async () => {
+        await Promise.resolve();
+        return sessionFor("user-b");
+      });
+    vi.mocked(fetchCurrentUser).mockImplementation(async (id) => {
+      await Promise.resolve();
+      return {
+        id,
+        name: null,
+        avatarUrl: null,
+        createdAt: "2026-08-13T00:00:00.000Z",
+        updatedAt: "2026-08-13T00:00:00.000Z",
+        email: `${id}@example.com`,
+      };
+    });
+
+    const both = Promise.all([client.probe(), client.probe()]);
+    gate.resolve();
+    const [first, second] = await both;
+
+    expect([first?.id, second?.id]).toEqual(["user-a", "user-b"]);
+  });
+
   it("should propagate the error when session resolution fails", async () => {
     vi.mocked(getSession).mockRejectedValue(new Error("session failed"));
 
