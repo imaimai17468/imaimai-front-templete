@@ -64,23 +64,34 @@ SCRUBBED=$(printf '%s' "$CMD" | sed 's/\.env[.A-Za-z]*\.example//g')
 # and a multi-line command (a heredoc body) then matched no first word at all.
 FIRST_WORD=$(printf '%s' "$SCRUBBED" | awk 'NR == 1 { print $1; exit }')
 if [ "$FIRST_WORD" = "git" ]; then
+  # The whole command is one awk record, so a body spanning lines is still one
+  # match. sed cannot do this portably here: its `N` loop quits WITHOUT printing
+  # when there is no next line on BSD sed, which emptied every single-line
+  # command. The pattern also avoids `\|` and `{1,2}` — BRE alternation is a GNU
+  # extension and awk intervals are not universal — so `--?m(essage)?` carries
+  # both spellings instead.
+  scrub_message_body() { # $1 = the quote character delimiting the body
+    awk -v q="$1" '
+      BEGIN { RS = "\034" }
+      { gsub("--?m(essage)?[= ]?" q "[^" q "]*" q, "", $0); printf "%s", $0 }
+    '
+  }
   # Single-quoted bodies are always inert (no expansion inside single quotes).
-  SCRUBBED=$(printf '%s' "$SCRUBBED" | sed \
-    -e "s/-\{1,2\}m\(essage\)\{0,1\}\(=\| \)\{0,1\}'[^']*'//g")
+  SCRUBBED=$(printf '%s' "$SCRUBBED" | scrub_message_body "'")
   # Double-quoted bodies expand $(...) / ${...} / backticks, so scrub them
   # only when the command contains no substitution opener at all. A bare `$`
   # (e.g. "$5/mo") is inert and still scrubs; any backtick is conservatively
   # treated as a potential pair (= execution) and blocks scrubbing.
   case "$SCRUBBED" in
     *'$('*|*'${'*|*'`'*) ;;
-    *)
-      SCRUBBED=$(printf '%s' "$SCRUBBED" | sed \
-        -e 's/-\{1,2\}m\(essage\)\{0,1\}\(=\| \)\{0,1\}"[^"]*"//g')
-      ;;
+    *) SCRUBBED=$(printf '%s' "$SCRUBBED" | scrub_message_body '"') ;;
   esac
+  # A `-F -` body arrives as a heredoc instead. Drop it only when the command's
+  # last line is the delimiter: then nothing follows the body, so nothing is
+  # hidden. A redirect belongs to the operator line, which is kept either way,
+  # and a command chained after the terminator leaves a different last line.
   SCRUBBED=$(printf '%s' "$SCRUBBED" | awk '
     BEGIN { q = sprintf("%c", 39); op = 0 }
-    NR == 1 { first = $0 }
     { last = $0; lines[NR] = $0 }
     op == 0 && /<<-?[ \t]*[^ \t]/ {
       op = NR

@@ -116,6 +116,34 @@ check("cat .env.local", "block", "direct read")
 check("grep SECRET .env", "block", "grep read")
 check("cat .env.local.example", "allow", "the example file is readable")
 
+print("env protection: a git message body is prose, not file access")
+check(
+    "git " + "com" + "mit" + " -m {Q}keep the .env guard{Q}".format(Q="'"),
+    "allow",
+    "a single-line body naming the file",
+)
+check(
+    "git tag --message={Q}the .env file{Q}".format(Q="'"),
+    "allow",
+    "the --message= form",
+)
+
+check(
+    "git " + "com" + "mit" + ' -m "$(cat .env)"',
+    "block",
+    "a substitution in the body is not scrubbed",
+)
+
+print("env protection: a message body may span lines")
+MSG_Q = "git " + "com" + "mit" + " -m {Q}keep the .env guard\nsecond line{Q}"
+check(MSG_Q.format(Q="'"), "allow", "a two-line single-quoted body")
+check(MSG_Q.format(Q=chr(34)), "allow", "a two-line double-quoted body")
+check(
+    MSG_Q.format(Q="'") + " && cat .env",
+    "block",
+    "a real access chained after the body",
+)
+
 print("env protection: a git message body is prose, a chained command is not")
 COMMIT = "git " + "com" + "mit"
 check(
