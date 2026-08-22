@@ -13,8 +13,7 @@ here (AGENTS.md, Model continuity).
 They remain the comparison targets — the fixtures and the find/refute procedure
 are unchanged, only the number of dispatches carrying them moved — but a
 per-agent cost comparison against them is not like-for-like and the totals are
-what to read. The spec pipeline has its own eval at
-`scripts/evals/verify-spec/`.
+what to read.
 
 ## Layout
 

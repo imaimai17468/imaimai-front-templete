@@ -37,13 +37,7 @@ rm -rf src/components/features/profile-page
 rmdir src/components/features 2>/dev/null || true
 rm -rf src/components/shared/header/auth-navigation src/components/shared/header/user-menu
 rm -f src/test/cloudflare-workers-stub.ts
-rm -f specs/avatar-read.spec.md specs/avatar-upload.spec.md
-rmdir specs 2>/dev/null || true
 ```
-
-Both spec files describe the avatar flow across D1 and R2, so they lose their
-subject with the feature. Step 7's grep will not flag them: they spell the
-services as bare `D1` and `R2`, which none of its literals match.
 
 `src/routeTree.gen.ts` is gitignored and generated — refresh it with
 `bun run generate-routes` after deleting route files.
