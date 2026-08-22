@@ -38,22 +38,16 @@ else
   echo "[env-check] Gate dependencies present (jq, bun, similarity-ts, python3, node with module.registerHooks, lefthook hooks installed)."
 fi
 
-# Model continuity (AGENTS.md): surface the session model so a
-# non-strongest parent is visible from turn one. SessionStart is the only
-# hook event that receives `model`, and it is optional; mid-session model
-# switches fire no hook at all — this check catches session start only.
+# SessionStart is the only hook event that receives `model`, and it is optional;
+# mid-session switches fire no hook at all, so this reports the session start.
 MODEL=""
 if command -v jq >/dev/null 2>&1 && [ -n "$INPUT" ]; then
   MODEL="$(printf '%s' "$INPUT" | jq -r '.model // empty' 2>/dev/null)"
 fi
 if [ -n "$MODEL" ]; then
   echo "[env-check] Session model: $MODEL"
-  case "$(printf '%s' "$MODEL" | tr '[:upper:]' '[:lower:]')" in
-    *fable*) : ;;
-    *) echo "[env-check] Parent model is not the strongest tier — AGENTS.md 'Model continuity (non-Fable parent)' applies: escalate design judgment, verify more. Mid-session model switches are NOT detectable by hooks; re-check /model if in doubt." ;;
-  esac
 else
-  echo "[env-check] Session model not reported by the harness. If this session is not on the strongest available model, AGENTS.md 'Model continuity (non-Fable parent)' applies."
+  echo "[env-check] Session model not reported by the harness."
 fi
 
 exit 0

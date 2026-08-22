@@ -7,8 +7,7 @@ description: On-demand repo-wide audit with the best available model — hunts w
 
 Best-model judgment, cheap-model legwork, existing artifact rails.
 The value is the synthesis in the strongest available context — if the
-session model is weak, say so and recommend re-running on a stronger one
-(AGENTS.md, Model continuity).
+session model is weak, say so and recommend re-running on a stronger one.
 
 ## Lanes (only what gates cannot catch)
 

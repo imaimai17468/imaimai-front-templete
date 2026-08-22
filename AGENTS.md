@@ -80,7 +80,7 @@ Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/
 
 The next rule is not path-scoped — it applies whenever you write any instruction document, whatever the file type:
 
-**Instruction documents.** Point at other files, do not restate them — a copy is correct when written and wrong after the next edit to what it copied. An instruction to act is the exception: state the action. A pointer that makes the reader load a section, a step, or another document to recover one command drags in far more than the command. Never write a claim about another file, commit, tool, or count of any of them without opening or running it in the same turn; if that is not worth the cost, drop the assertive form instead. A grep only matches the literals you predicted, so never offer "expect zero hits" as proof. After changing a step, reconcile every other mention of what it names. The rule extends to the code in front of you, not only to other files: a comment may state what you have seen the code do, never what you meant it to do. "This ordering prevents X" and "a missing binary degrades to Y" are each one execution from proof, and both were written false here and caught by a reviewer before they shipped. Where a comment claims a check is load-bearing, delete the check and watch its test fail; that is the one form of this rule conviction cannot satisfy. Long enumerations rot; prefer a principle. All of this aims at procedures: An audit record describes decided state rather than action, so summarising one is not the restating this forbids.
+**Instruction documents.** Every document written for an agent (`.claude/`, AGENTS.md, CLAUDE.md) is in English. Point at other files, do not restate them — a copy is correct when written and wrong after the next edit to what it copied. An instruction to act is the exception: state the action. A pointer that makes the reader load a section, a step, or another document to recover one command drags in far more than the command. Never write a claim about another file, commit, tool, or count of any of them without opening or running it in the same turn; if that is not worth the cost, drop the assertive form instead. A grep only matches the literals you predicted, so never offer "expect zero hits" as proof. After changing a step, reconcile every other mention of what it names. The rule extends to the code in front of you, not only to other files: a comment may state what you have seen the code do, never what you meant it to do. "This ordering prevents X" and "a missing binary degrades to Y" are each one execution from proof, and both were written false here and caught by a reviewer before they shipped. Where a comment claims a check is load-bearing, delete the check and watch its test fail; that is the one form of this rule conviction cannot satisfy. Long enumerations rot; prefer a principle. All of this aims at procedures: An audit record describes decided state rather than action, so summarising one is not the restating this forbids.
 
 ## Testing
 
@@ -99,37 +99,3 @@ Reaching a component's branches from a test depends on how the component was sha
 - Do not commit without explicit user confirmation.
 - **Prose:** see Language. Commit-message specifics stay in the bullets above.
 - **History:** while a PR is Draft, keep its commits clean (rebase freely). Once review has started, never rewrite reviewed commits — add fixes on top and integrate preserving the commit/review order (typically a merge commit).
-
-## Agents
-
-Write all agent-facing docs (`.claude/`, AGENTS.md, CLAUDE.md) in English.
-
-### Delegation
-
-The parent session implements directly by default. Delegate by **context impact, not task size**:
-
-- **Parent edits directly**: normal implementation, fixes, integration, and post-review follow-ups — whenever the scope is understood.
-- **Explore / research subagent**: bulk file reads, log digging, cross-cutting investigation whose raw output the parent won't reference again — only the summary should enter the parent's context.
-- **Parallel implementation subagents**: multiple independent units with no shared files and no output dependency. Dependent units run sequentially — or stay in the parent. Never parallelize units that edit the same file.
-
-Briefings must be self-contained — goal, file paths, acceptance criteria, and the relevant guidelines quoted in.
-
-`.claude/agents/*.md` carries each pinned agent's model, `permissionMode` and tool grants. Do not change them from memory — the mode lives in agent frontmatter rather than project settings deliberately, and a model-tier change requires a scored eval run against `scripts/evals/` first.
-
-### Model continuity (non-Fable parent)
-
-Review/verify quality is pinned by preloaded skills and deterministic gates and does not depend on the parent model — never re-derive or second-guess a pinned procedure. When the parent session runs on a weaker model than the strongest available (e.g. Opus instead of Fable), escalate **design judgment** — architecture choices, ambiguous trade-offs — to a subagent on the strongest available model, or stop and ask the user; mechanical implementation stays in the parent. Knowledge Currency applies with extra force: a weaker parent verifies more, not less.
-
-### Review
-
-Before every commit, review the uncommitted diff (users trigger it as `/review-diff`; pass `high` for a deeper multi-lens pass). The review is **one** dispatched agent the parent waits on: `code-reviewer` runs four ordered stages in its own context — find across all lenses (bugs + AGENTS.md + path-scoped rules), dedup, refute each candidate against the real code, return the survivors. The `review-diff` skill pins that behavior; the parent's dispatch prompt is not pinned by it, and `review-diff` lists the slots it must fill.
-
-**The review is one pass: find → verify → fix → done.** Each surviving finding arrives **with its fix and an acceptance check**; the parent applies those, saying so if it departs from one, and asks the user where a finding needs a decision. Applying the fixes needs no second review — they touch the paths the reviewer already read. One review covers a multi-commit split. A path the review never saw needs a new one.
-
-**Do not edit while the dispatch is running.** The reviewer reads the tree once, so a file first touched mid-run is one it never saw.
-
-**When you judge a review unnecessary, hand that judgement to the user instead of acting on it.** Nothing mechanical stops an unreviewed commit; this is all that stands in its place.
-
-Handle findings: never dismiss as "pre-existing" when the file is in the diff; apply rules literally; when in doubt, fix. Findings must propose a concrete alternative, respect rule scope qualifiers, and not re-report dismissed findings.
-
-Design-time verification of interaction-complex features uses the same single pinned-agent pattern (`/verify-spec specs/<feature>.spec.md`): `spec-verifier` formalizes the spec into a state machine, hunts counterexamples across all lenses, replays each against the machine, and returns the CONFIRMED survivors. Design-time only.
