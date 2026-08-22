@@ -1,10 +1,10 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { ProfilePage } from "@/components/features/profile-page/ProfilePage";
-import { getCurrentUserFn } from "@/server/fn/user";
+import { fetchCurrentUser } from "@/client/user";
 
 export const Route = createFileRoute("/profile")({
-  beforeLoad: async () => {
-    const user = await getCurrentUserFn();
+  beforeLoad: async ({ context }) => {
+    const user = await fetchCurrentUser(context.queryClient);
     if (!user) {
       throw redirect({ to: "/login" });
     }

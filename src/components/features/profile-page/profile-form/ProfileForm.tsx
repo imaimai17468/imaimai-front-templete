@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { Camera, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -25,6 +25,7 @@ import {
   MAX_AVATAR_BYTES,
 } from "@/lib/storage/avatar-validation";
 import { submitProfileToServer } from "@/client/profile";
+import { currentUserQueryOptions } from "@/client/user";
 
 // similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
 type ProfileFormProps = {
@@ -35,6 +36,7 @@ type FormData = z.infer<typeof UpdateUserSchema>;
 
 export const ProfileForm = ({ user }: ProfileFormProps) => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -93,9 +95,13 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
         toast.error(outcome.message);
         return;
       }
-      // Refetch before dropping the preview: `user` arrives from the route
-      // loader, so without this the form keeps rendering the pre-save value and
-      // the object URL stands in for an avatar that is already stored.
+      // router.invalidate() is what re-runs the loaders that hand `user` down as
+      // a prop, and it is sufficient today: staleTime defaults to 0, so the next
+      // fetchQuery refetches regardless. invalidateQueries is kept so the cached
+      // entry is marked stale even if a non-zero default is set later, or a
+      // component starts observing this query. Dropping the preview only after
+      // both keeps the object URL in place until the stored avatar is in.
+      await queryClient.invalidateQueries(currentUserQueryOptions());
       await router.invalidate();
       setPendingFile(null);
       setPreviewUrl(null);
