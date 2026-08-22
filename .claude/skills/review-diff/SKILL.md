@@ -42,7 +42,6 @@ The procedure above is pinned; the dispatch prompt is not — it is written from
 - **Claims to check.** The two or three things you are least sure of, written as claims rather than areas: "confirm this cannot abort under `set -e`" gets checked, "review the hook" does not.
 - **What to challenge hardest.** Name the candidates whose truth would change the fix, and say plainly where the diff contradicts something you believe — that is the cue for Stage C to re-derive rather than wave through. Stage C can see Stage A's reasoning, so this slot is where you spend the independence the mechanism no longer supplies.
 - **External tool behaviour.** Handled by the parent routing bullet above ("The agent has no web tool…") — nothing to add here beyond following it.
-- **Ordering.** State that you will not edit any file while the dispatch is running — the reviewer reads the tree once, so a file first touched mid-run is one it never saw. Nothing enforces it.
 
 ## When to run
 
@@ -117,9 +116,7 @@ Drop REFUTED findings. Sort survivors by verdict (CONFIRMED first) then severity
 
 Report `stats.candidates` and `stats.refuted` honestly even when every candidate died — a pass that refuted everything is a normal outcome and the numbers are how anyone can tell Stage C ran at all.
 
-**Parent responsibility.** Nothing mechanical checks any of this:
-- **Do not edit files while the dispatch is running.** The reviewer reads the tree once, so a file first touched mid-run is one it never saw. Fix *after* it returns.
-- If the dispatch errors, times out, or returns a malformed/empty report, treat the review as NOT done — the findings are unverified. Do not commit; re-dispatch. A completed-but-degenerate response is not a clean pass.
+**Parent responsibility, checked by nothing.** If the dispatch errors, times out, or returns a malformed/empty report, treat the review as NOT done — the findings are unverified. Do not commit; re-dispatch. A completed-but-degenerate response is not a clean pass.
 
 ## After the review (parent session)
 
