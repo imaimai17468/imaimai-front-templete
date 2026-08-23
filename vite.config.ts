@@ -4,6 +4,7 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { devtools } from "@tanstack/devtools-vite";
+import { wranglerTypes } from "./tools/vite-plugins/wrangler-types-plugin";
 
 export default defineConfig({
   resolve: {
@@ -15,5 +16,6 @@ export default defineConfig({
     react(),
     tailwindcss(),
     cloudflare({ viteEnvironment: { name: "ssr" } }),
+    wranglerTypes(),
   ],
 });

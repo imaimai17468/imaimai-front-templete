@@ -26,6 +26,7 @@ export default defineConfig({
         "src/lib/utils.ts",
         "tools/oxlint-plugins/arch-rules.js",
         "tools/oxlint-plugins/style-rules.js",
+        "tools/vite-plugins/wrangler-types.ts",
       ],
       thresholds: {
         perFile: true,
