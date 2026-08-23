@@ -24,12 +24,11 @@ git clone <your-repo-url>
 cd <your-repo-name>
 mise install   # Node / Bun を mise.toml の版で用意
 bun install
-bun run cf-typegen
 cp .env.local.example .env.local
 bun run dev
 ```
 
-`src/routeTree.gen.ts` は `bun run dev` と `bun run build` が生成し、ルートファイルの追加や削除にも追従します。dev も build も通さずに `bun run typecheck` や `bun run test` を走らせるときだけ、先に `bun run generate-routes` を叩いてください。
+`src/routeTree.gen.ts` は `bun run dev` と `bun run build` が生成し、ルートファイルの追加や削除に追従します。`worker-configuration.d.ts` は `bun run dev` が生成し、`wrangler.toml` の編集にも追従します（build は生成しません）。dev を起動せずに `bun run typecheck` や `bun run test` を走らせるときだけ、先に `bun run generate-routes` と `bun run cf-typegen` を叩いてください。
 
 [mise](https://mise.jdx.dev/) を使わない場合は、`package.json` の `engines.node` を満たす Node と、`mise.toml` が指定する版の Bun を手動で用意してください。Cursor Cloud Agent 環境では `.cursor/environment.json` が同じセットアップ（`scripts/cloud-agent-install.sh`）を自動実行します。shims の PATH 追記は rc ファイルを読むシェルにしか効かないため、rc を読まない非対話シェルからは `mise exec -- <コマンド>` で実行してください。
 
@@ -39,30 +38,31 @@ http://localhost:5173 でアクセス。`@cloudflare/vite-plugin` により、`b
 
 ## Scripts
 
-| Command                   | Description                                     |
-| ------------------------- | ----------------------------------------------- |
-| `bun run dev`             | Start dev server (with CF bindings via workerd) |
-| `bun run build`           | Production build                                |
-| `bun run bundle:analyze`  | Build and report Worker upload composition      |
-| `bun run preview`         | Build & preview in local workerd                |
-| `bun run deploy`          | Build & deploy to Cloudflare Workers            |
-| `bun run typecheck`       | Type check with tsc (TypeScript 7 native)       |
-| `bun run lint`            | Run oxlint (type-aware)                         |
-| `bun run lint:fix`        | Run oxlint with auto-fix                        |
-| `bun run format`          | Check formatting with oxfmt                     |
-| `bun run format:fix`      | Format with oxfmt                               |
-| `bun run check`           | lint + format check (pre-push runs this and `typecheck`) |
-| `bun run check:fix`       | lint + format with auto-fix                     |
-| `bun run generate-routes` | Regenerate TanStack Router route tree           |
-| `bun run knip`            | Detect unused deps/exports/files                |
-| `bun run test`            | Run tests with Vitest                           |
-| `bun run cf-typegen`      | Generate `CloudflareEnv` from `wrangler.toml`   |
-| `bun run db:generate`     | Generate Drizzle migrations from the schema     |
-| `bun run db:push`         | Push the schema to the remote D1 database       |
-| `bun run db:push:local`   | Set up / migrate the local D1 database          |
-| `bun run db:seed:local`   | Seed the local D1 database with dev data        |
-| `bun run db:studio`       | Open Drizzle Studio                             |
-| `bun run db:pull`         | Introspect the remote D1 schema                 |
+| Command                    | Description                                                          |
+| -------------------------- | -------------------------------------------------------------------- |
+| `bun run dev`              | Start dev server (with CF bindings via workerd)                      |
+| `bun run build`            | Production build                                                     |
+| `bun run bundle:analyze`   | Build and report Worker upload composition                           |
+| `bun run preview`          | Build & preview in local workerd                                     |
+| `bun run deploy`           | Build & deploy to Cloudflare Workers                                 |
+| `bun run typecheck`        | Type check with tsc (TypeScript 7 native)                            |
+| `bun run lint`             | Run oxlint (type-aware)                                              |
+| `bun run lint:fix`         | Run oxlint with auto-fix                                             |
+| `bun run format`           | Check formatting with oxfmt                                          |
+| `bun run format:fix`       | Format with oxfmt                                                    |
+| `bun run check`            | lint + format check (pre-push runs this and `typecheck`)             |
+| `bun run check:fix`        | lint + format with auto-fix                                          |
+| `bun run generate-routes`  | Regenerate TanStack Router route tree                                |
+| `bun run knip`             | Detect unused deps/exports/files                                     |
+| `bun run test`             | Run tests with Vitest                                                |
+| `bun run cf-typegen`       | Generate `CloudflareEnv` from `wrangler.toml`                        |
+| `bun run cf-typegen:check` | Check `worker-configuration.d.ts` is up to date (pre-push runs this) |
+| `bun run db:generate`      | Generate Drizzle migrations from the schema                          |
+| `bun run db:push`          | Push the schema to the remote D1 database                            |
+| `bun run db:push:local`    | Set up / migrate the local D1 database                               |
+| `bun run db:seed:local`    | Seed the local D1 database with dev data                             |
+| `bun run db:studio`        | Open Drizzle Studio                                                  |
+| `bun run db:pull`          | Introspect the remote D1 schema                                      |
 
 ## Tools
 
@@ -71,6 +71,7 @@ http://localhost:5173 でアクセス。`@cloudflare/vite-plugin` により、`b
 - **[TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)** — Type checker (Go-native `tsc`)
 - **[oxlint](https://oxc.rs/docs/guide/usage/linter)** — Linter (`.oxlintrc.json`)
 - **自作 oxlint プラグイン** (`tools/oxlint-plugins/`) — `.oxlintrc.json` の `jsPlugins` から読み込まれる。層契約・コンポーネント命名・1ファイル1コンポーネント・テストの形（1テスト1 expect など）を機械的に強制するので、規約は文書だけでなくここにもある
+- **自作 vite プラグイン** (`tools/vite-plugins/`)：`vite.config.ts` から読み込まれる。`wrangler.toml` の変更を検知して `bun run cf-typegen` を走らせ、dev 起動時は `worker-configuration.d.ts` が `wrangler.toml` より古いときだけ生成する
 - **[react-doctor](https://github.com/millionco/react-doctor)** — React 向け追加ルール (`.oxlintrc.react-doctor.json`)
 - **[oxfmt](https://oxc.rs/docs/guide/usage/formatter)** — Formatter (`.oxfmtrc.json`)
 - **[lefthook](https://github.com/evilmartians/lefthook)** — Git hooks (`lefthook.yml`、`bun install` 時に `prepare` スクリプトで自動セットアップ)
