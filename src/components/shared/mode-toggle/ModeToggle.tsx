@@ -67,7 +67,7 @@ export function ModeToggle() {
       size="icon"
       onClick={toggleTheme}
       aria-disabled={!mounted}
-      className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
+      className="min-h-11 min-w-11 aria-disabled:pointer-events-none aria-disabled:opacity-50"
       aria-label={mounted ? ACTION_LABELS[current] : "テーマを切り替え"}
     >
       <Sun className="dark:-rotate-90 size-5 rotate-0 scale-100 opacity-100 transition dark:scale-75 dark:opacity-0" />

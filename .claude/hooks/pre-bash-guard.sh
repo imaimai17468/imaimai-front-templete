@@ -23,7 +23,7 @@ case "$TOOL" in
 esac
 
 # Emit a deny in both dialects at once: Claude Code reads the legacy
-# decision/reason pair (scripts/test-bash-guard.py keys on the literal
+# decision/reason pair (scripts/test-bash-guard.ts keys on the literal
 # "block"), Cursor reads hookSpecificOutput.permissionDecision. Cursor was
 # observed honoring exactly this combined output (a guard in this file blocked a
 # live command in a Cursor session, 2026-08-07). Claude Code has NOT been observed

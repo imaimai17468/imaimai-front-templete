@@ -19,7 +19,7 @@ description: agent 向けテキスト指示（skill / slash command / task プ�
 
 ## ワークフロー
 
-0. **Iteration 0 — description と body の整合チェック**（静的、dispatch 不要）
+0. **Iteration 0：description と body の整合チェック**（静的、dispatch 不要）
    - frontmatter `description` が謳う trigger / 用途を読む
    - body がカバーする範囲を読む
    - 乖離があれば iter 1 に進む前に description か body を合わせる
@@ -151,7 +151,7 @@ description: agent 向けテキスト指示（skill / slash command / task プ�
 | B | × | 60% | 9 | 41s | 2 |
 
 ### 不明瞭点（今回新出）
-- <シナリオ B>: [critical] 項目 N が × — <落ちた理由 1 行>   # 失敗時は必ず添える
+- <シナリオ B>: [critical] 項目 N が ×：<落ちた理由 1 行>   # 失敗時は必ず添える
 - <シナリオ B>: <その他の指摘 1 行>
 - <シナリオ A>: （新出なし）
 

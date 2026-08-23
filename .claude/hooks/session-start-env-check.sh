@@ -2,7 +2,7 @@
 # SessionStart hook: environment validation.
 #
 # The enforcement stack assumes tools that not every machine has (similarity-ts
-# binary, python3, node). Gates that silently skip a missing dependency create
+# binary, node). Gates that silently skip a missing dependency create
 # sessions whose guarantees differ by machine with no signal. This hook makes the
 # degrade visible at session start.
 #
@@ -15,9 +15,8 @@ ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 MISSING=()
 
 command -v jq >/dev/null 2>&1 || MISSING+=("jq (ALL guard hooks parse their input with jq — the gates are effectively OFF)")
-command -v bun >/dev/null 2>&1 || MISSING+=("bun (the Stop quality gate and lefthook's pre-commit/pre-push checks cannot run)")
+command -v bun >/dev/null 2>&1 || MISSING+=("bun (the Stop quality gate, its markdown dead-link check, and lefthook's pre-commit/pre-push checks cannot run)")
 [ -x "$HOME/.cargo/bin/similarity-ts" ] || command -v similarity-ts >/dev/null 2>&1 || MISSING+=("similarity-ts (Stop gate skips duplicate-type/function detection; install: cargo install similarity-ts)")
-command -v python3 >/dev/null 2>&1 || MISSING+=("python3 (Stop gate skips the markdown dead-link check; the gate-behaviour test scripts under scripts/ cannot run either)")
 # The installed hooks, not the binary: `bun run prepare` writes them, and a tree
 # whose .git/hooks are absent runs no pre-commit check while every binary above
 # is present.
@@ -35,7 +34,7 @@ if [ "${#MISSING[@]}" -gt 0 ]; then
   printf '  - %s\n' "${MISSING[@]}"
   echo "[env-check] Per AGENTS.md 'Degraded environments': state the degrade to the user once, and do not treat skipped checks as passed."
 else
-  echo "[env-check] Gate dependencies present (jq, bun, similarity-ts, python3, node with module.registerHooks, lefthook hooks installed)."
+  echo "[env-check] Gate dependencies present (jq, bun, similarity-ts, node with module.registerHooks, lefthook hooks installed)."
 fi
 
 # SessionStart is the only hook event that receives `model`, and it is optional;

@@ -11,19 +11,14 @@ type HeaderProps = {
 export const Header = ({ user }: HeaderProps) => {
   return (
     <header className="sticky top-0 z-50 bg-transparent backdrop-blur-md">
-      <div className="flex items-center justify-between p-6">
-        <div>
-          <h1 className="font-medium text-2xl">
-            <Link to="/">Title</Link>
-          </h1>
-        </div>
-        <div className="flex items-center gap-5">
-          <Link to="/" className="text-gray-400 text-sm">
-            Link1
-          </Link>
-          <Link to="/" className="text-gray-400 text-sm">
-            Link2
-          </Link>
+      <div className="flex items-center justify-between gap-3 p-6">
+        <Link
+          to="/"
+          className="-mx-2 inline-flex min-h-11 min-w-0 items-center truncate rounded-md px-2 font-medium text-base tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-lg"
+        >
+          imaimai-front-templete
+        </Link>
+        <div className="flex shrink-0 items-center gap-3">
           <ModeToggle />
           <AuthNavigation user={user} />
         </div>

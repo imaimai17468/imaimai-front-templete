@@ -124,7 +124,7 @@
       }
     },
     {
-      "files": ["src/routes/index.tsx"],
+      "files": ["src/components/shared/code-block/CodeBlock.tsx"],
       "rules": {
         "jsx-a11y/no-noninteractive-tabindex": [
           "error",

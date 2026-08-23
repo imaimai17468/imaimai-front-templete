@@ -10,6 +10,9 @@ compatibility_flags = ["nodejs_compat"]
 binding = "DB"
 database_name = "local-db"
 database_id = "00000000-0000-0000-0000-000000000000"
+# drizzle-kit の出力先。既定の ./migrations ではなくここを見せることで、
+# `wrangler d1 migrations apply` が drizzle が生成した SQL を適用する。
+migrations_dir = "src/lib/drizzle/migrations"
 
 [[r2_buckets]]
 binding = "AVATARS_BUCKET"
