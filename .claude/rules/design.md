@@ -77,10 +77,14 @@ branches on the mode.
 Pure white on dark backgrounds causes eye strain. Use the off-white
 `--foreground` defined in `src/styles.css`.
 
+Declare `color-scheme` in each mode alongside the tokens, so the browser paints
+the scrollbars, the native controls, and the caret in the same mode.
+
 ### Chart Colors
 
 Chart colors are defined in `src/styles.css` in a fixed order. Assign data
-series in that order.
+series in that order, and give each series a second cue beyond hue, such as a
+marker shape, a dash pattern, or a direct label.
 
 ## Typography
 
@@ -114,6 +118,12 @@ neutral, so it belongs under a display face rather than carrying one.
 - Give the small text roles different treatments. Where the eyebrow, the button
   label, the caption, and the footer line all wear the same tracked-out caps,
   the screen reads as a template instead of a voice.
+- Set `font-variant-numeric: tabular-nums` where numbers line up for
+  comparison, so the digits keep their columns.
+- Keep a mobile input at 16px or larger, because iOS Safari zooms the page for
+  anything smaller.
+- Type the real characters: `…`, curly quotes, and a non-breaking space inside
+  a measurement or a key combination.
 - Font metrics (ascent/descent) create phantom padding that differs between
   design tools and browsers.
 
@@ -136,6 +146,8 @@ inter-component, largest for page structure.
 - When line-height contributes to vertical rhythm, account for it in padding
   calculations, because the visual gap is line-height plus padding rather
   than padding alone.
+- Respect the safe areas with `env(safe-area-inset-*)` where a fixed or
+  full-bleed element reaches the viewport edge.
 - Don't add padding to a child when the parent already provides it. Read the
   parent's styles before adding spacing to children, since doubling padding
   is a common cause of uneven gaps. External examples and copy-paste snippets
@@ -161,6 +173,10 @@ Every radius tier derives from `--radius` in `src/styles.css`. Pick the tier
 that matches the element's size, and do not introduce values outside the
 defined set.
 
+Nest radii by subtracting the gap. An inner radius equals the outer radius minus
+the padding between them, and where both take the same value, the two curves
+stop running parallel at the corner.
+
 ## Elevation
 
 Hierarchy and separation come from background color difference, border,
@@ -177,7 +193,9 @@ a small blur, tinted to the surface or to the element's own color. A bloom
 spread evenly on all sides, or a second box placed behind the element to imitate
 one, reads as a sticker rather than a lit object.
 
-Everything else uses border or backdrop dim for separation.
+Everything else uses border or backdrop dim for separation. Where a container
+needs an edge, shift its surface a step from the background and stroke it with
+its own color at low opacity, which keeps border, shadow, and text on one hue.
 
 A translucent surface needs a backdrop worth showing through and a blur that
 blends at every edge. Where the blur bands, the shadow leaks past the shape, or
@@ -205,12 +223,16 @@ Every control on screen answers a click, confirmed by clicking it. Where
 something is a static prop, give it the form of a label or a figure so nobody
 aims at it.
 
+A control that starts a request keeps its label and adds a spinner, so its width
+holds and the reader can see which action is running.
+
 ### Content States
 
 Every data-displaying component must account for: loading, empty (zero
 results), error, and populated states. Loading must show a visible indicator
-rather than a blank screen. Error messages must identify what went wrong and
-what the user can do.
+rather than a blank screen. A skeleton mirrors the dimensions of the content it
+stands in for, so nothing shifts when the data lands. Error messages must
+identify what went wrong and what the user can do.
 
 Text and controls reach their visible state without JavaScript and without a
 scroll event. Animate what is already on screen, so a reveal that never fires
@@ -224,7 +246,9 @@ translations will overflow, truncate, or wrap. Test every text container with:
 - Maximum-length input (or a long unbroken string)
 - Multi-line overflow
 
-Containers that accept user-generated text need explicit word-break handling.
+Containers that accept user-generated text need explicit word-break handling. A
+flex child needs `min-w-0` before `truncate` or `line-clamp-*` takes effect,
+because its default `min-width: auto` refuses to shrink.
 
 ## CSS Architecture
 
@@ -299,6 +323,9 @@ unchanged. Decide that first, then build the sections from it.
 - Hold one palette, one type voice, and one geometry across the screen. Parts
   that are each correct and belong to nothing read as incoherent before any
   single part reads as wrong.
+- Choose the surface tone for this product. A neutral that reads as tasteful is
+  still the tone that arrives on its own, and which neutral reads that way turns
+  over every year or two.
 - Compose the screen as a whole. Presets compound, so a run of blocks that each
   pass on their own still reads as one template with the content swapped.
 - Build on the primitives in `src/components/ui/` and restyle what you take.
@@ -312,3 +339,10 @@ unchanged. Decide that first, then build the sections from it.
 2. When adding a new semantic color, add both light and dark values together.
 3. This file describes **why** and **when**. `src/styles.css` defines
    **what** (values).
+
+## Sources
+
+Distilled from [pols.dev/slop.md](https://pols.dev/slop.md) and
+[vercel-labs/web-interface-guidelines](https://github.com/vercel-labs/web-interface-guidelines).
+Their keyboard, forms, hydration, and performance rules sit outside this file's
+subject.
