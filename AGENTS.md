@@ -77,6 +77,8 @@ The next rule has no path scope, and applies whenever you write any instruction 
 
 **Guidance carries no padding.** A rule, a plan, or any instruction about how to act is written as well as it can be written, and then nothing is added: no restated rationale, no second example teaching what the first taught, no new section or file for something an existing one holds. Brevity is never the aim and is never bought with precision. Cut what repeats, and keep what decides.
 
+**Write a rule as the move to make.** Where the user asks for a rule that removes a behavior, state the action that replaces it, because a prohibition leaves every other route open and makes the reader invent the replacement. Where no action replaces the behavior, the prohibition is the whole rule and stands as one.
+
 ## Testing
 
 Tests are written against the implementation, and test-first is not required. What is required is that every branch you added is reached by a test that fails when that branch breaks. White-box: tests cover internal logic paths and branches as well as inputs and outputs. Pure functions require 100% branch coverage, which `vitest.config.mts` enforces per file over an explicit module list. A new pure module joins that list when its test lands, or nothing gates its coverage and no one notices.

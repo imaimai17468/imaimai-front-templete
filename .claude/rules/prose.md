@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Prose
 
-This governs every text a person reads: replies to the user, plans, reports, commit messages, PR descriptions, review comments, code comments, and instruction documents. Code Practices settles what such prose may take as its subject, and Knowledge Currency whether its claims are verified. This file settles how the sentence is built. Every rule here describes what a sentence does rather than which words it uses, so all of them hold in both languages, and two sections near the end add what applies to Japanese alone and what bounds the whole file.
+This governs every text a person reads: replies to the user, plans, reports, commit messages, PR descriptions, review comments, code comments, and instruction documents. Check a reply against these rules before sending it, including where the sentence names a category in one word or hands a decision back. Code Practices settles what such prose may take as its subject, and Knowledge Currency whether its claims are verified. This file settles how the sentence is built. Every rule here describes what a sentence does rather than which words it uses, so all of them hold in both languages, and two sections near the end add what applies to Japanese alone and what bounds the whole file.
 
 ## Plain words
 
@@ -85,6 +85,8 @@ Knowledge Currency decides whether a claim was checked. These decide whether the
 ## Format
 
 **Format follows the content.** A bullet list is for items that are genuinely parallel, and an argument that moves from one step to the next belongs in prose, so numbering paragraphs (`The first wall is`, `The second wall is`) to disguise a list as prose fails both ways. A heading needs more than two sentences under it. Emoji stay out of headings.
+
+**A label names an action, or points at a literal.** A heading, a table column, or a bullet lead holds no room for a mechanism, so a slot that asks for one noun takes the nearest image instead. `溶かした先` names nothing that happened where `入れた節` names the action, and a file path or a section title cannot become an image at all.
 
 **A bold lead names a rule.** In the normative documents here it opens the paragraph and carries the rule's name, which is why these paragraphs have one. Bold scattered mid-sentence marks nothing, because emphasis everywhere is emphasis nowhere.
 
