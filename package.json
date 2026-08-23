@@ -17,6 +17,7 @@
     "check:fix": "oxlint --type-aware --fix src tools && oxfmt --write src tools",
     "typecheck": "tsc --noEmit",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv",
+    "cf-typegen:check": "wrangler types --check --env-interface CloudflareEnv",
     "test": "vitest --run --coverage",
     "knip": "knip",
     "db:generate": "drizzle-kit generate",

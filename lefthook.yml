@@ -16,3 +16,5 @@ pre-push:
       run: bun run check
     typecheck:
       run: bun run typecheck
+    cf-typegen-check:
+      run: bun run cf-typegen:check

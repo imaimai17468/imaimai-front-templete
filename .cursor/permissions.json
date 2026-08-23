@@ -66,6 +66,7 @@
     "bun:run knip",
     "bun:run generate-routes",
     "bun:run cf-typegen",
+    "bun:run cf-typegen:check",
     // wrangler (read-only / codegen)
     "wrangler types",
     "wrangler d1 list",
