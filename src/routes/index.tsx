@@ -4,14 +4,6 @@ export const Route = createFileRoute("/")({
   component: HomeComponent,
 });
 
-const PALETTE = [
-  { name: "漆黒", cssVar: "var(--palette-shikkoku)" },
-  { name: "鈍色", cssVar: "var(--palette-nibiiro)" },
-  { name: "銀鼠", cssVar: "var(--palette-ginnezumi)" },
-  { name: "白鼠", cssVar: "var(--palette-shironezumi)" },
-  { name: "卯の花", cssVar: "var(--palette-unohana)" },
-] as const;
-
 const STACK = [
   { name: "TanStack Start" },
   { name: "Cloudflare Workers" },
@@ -29,9 +21,7 @@ function HomeComponent() {
           imaimai-front-template
         </h1>
         <p className="max-w-prose text-muted-foreground">
-          TanStack Start + Cloudflare Workers
-          のフルスタックテンプレート。和色パレットと squircle
-          コーナーを標準装備。
+          TanStack Start + Cloudflare Workers のフルスタックテンプレート。
         </p>
         <a
           href="https://github.com/imaimai17468/imaimai-front-templete"
@@ -75,30 +65,11 @@ bun run dev`}</code>
         </p>
       </section>
 
-      <section className="flex flex-col gap-6">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium text-muted-foreground">Stack</h2>
-          <p className="max-w-prose text-sm text-foreground">
-            {STACK.map((s) => s.name).join(" · ")}
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium text-muted-foreground">Palette</h2>
-          <div className="flex flex-wrap items-center gap-3 gap-y-2">
-            {PALETTE.map((color) => (
-              <div key={color.name} className="flex items-center gap-1.5">
-                <div
-                  className="size-5 rounded-md ring-1 ring-palette-ring"
-                  style={{ background: color.cssVar }}
-                />
-                <span className="text-xs text-muted-foreground">
-                  {color.name}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium text-muted-foreground">Stack</h2>
+        <p className="max-w-prose text-sm text-foreground">
+          {STACK.map((s) => s.name).join(" · ")}
+        </p>
       </section>
     </div>
   );
