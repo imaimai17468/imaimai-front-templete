@@ -24,11 +24,12 @@ git clone <your-repo-url>
 cd <your-repo-name>
 mise install   # Node / Bun を mise.toml の版で用意
 bun install
-bun run generate-routes
 bun run cf-typegen
 cp .env.local.example .env.local
 bun run dev
 ```
+
+`src/routeTree.gen.ts` は `bun run dev` と `bun run build` が生成し、ルートファイルの追加や削除にも追従します。dev も build も通さずに `bun run typecheck` や `bun run test` を走らせるときだけ、先に `bun run generate-routes` を叩いてください。
 
 [mise](https://mise.jdx.dev/) を使わない場合は、`package.json` の `engines.node` を満たす Node と、`mise.toml` が指定する版の Bun を手動で用意してください。Cursor Cloud Agent 環境では `.cursor/environment.json` が同じセットアップ（`scripts/cloud-agent-install.sh`）を自動実行します。shims の PATH 追記は rc ファイルを読むシェルにしか効かないため、rc を読まない非対話シェルからは `mise exec -- <コマンド>` で実行してください。
 
