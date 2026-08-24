@@ -141,6 +141,23 @@ export default defineConfig({
       },
     },
     {
+      // shadcn CLI output. These are the rules the CLI's own formatting trips,
+      // so leaving them on means rewriting every generated file by hand after
+      // each `shadcn add`.
+      files: ["src/components/ui/**"],
+      rules: {
+        "func-style": "off",
+        "react/function-component-definition": "off",
+        "sort-keys": "off",
+        "import/consistent-type-specifier-style": "off",
+        "@typescript-eslint/consistent-type-definitions": "off",
+        "no-negated-condition": "off",
+        "unicorn/no-negated-condition": "off",
+        "no-use-before-define": "off",
+        "no-eq-null": "off",
+      },
+    },
+    {
       // TanStack Start hands `.validator` whatever the client sent, so the
       // parameter is `unknown` by contract and the parse runs inside. Typing it
       // as FormData would make the `instanceof` guard read as redundant while

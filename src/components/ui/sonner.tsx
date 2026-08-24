@@ -1,8 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { Toaster as Sonner } from "sonner";
-import type { ToasterProps } from "sonner";
+import { Toaster as Sonner, type ToasterProps } from "sonner";
 
 const isValidTheme = (t: string): t is "light" | "dark" =>
   t === "dark" || t === "light";
@@ -12,8 +11,8 @@ const isValidTheme = (t: string): t is "light" | "dark" =>
 // assignable to `style` — no assertion needed, so the value stays type-checked.
 const toasterTokens: React.CSSProperties & Record<`--${string}`, string> = {
   "--normal-bg": "var(--popover)",
-  "--normal-border": "var(--border)",
   "--normal-text": "var(--popover-foreground)",
+  "--normal-border": "var(--border)",
 };
 
 const Toaster = ({ ...props }: ToasterProps) => {
