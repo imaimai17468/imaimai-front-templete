@@ -27,7 +27,7 @@ const noTailwindArbitrary = {
       }
       for (const match of matches) {
         context.report({
-          message: `Tailwind arbitrary value '${match}' is forbidden. Use existing utility classes or add a token to globals.css.`,
+          message: `Tailwind arbitrary value '${match}' is forbidden. Use existing utility classes or add a token to src/styles.css.`,
           node,
         });
       }
@@ -74,7 +74,7 @@ const noTailwindOpacity = {
       }
       for (const match of matches) {
         context.report({
-          message: `Tailwind opacity modifier '${match}' is forbidden. Use a different shade class instead, or add a dedicated color token to globals.css.`,
+          message: `Tailwind opacity modifier '${match}' is forbidden. Use a different shade class instead, or add a dedicated color token to src/styles.css.`,
           node,
         });
       }
