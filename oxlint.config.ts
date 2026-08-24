@@ -1,27 +1,41 @@
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "extends": [".oxlintrc.react-doctor.json"],
-  "plugins": [
+import { defineConfig } from "oxlint";
+import antiSlop from "ultracite/oxlint/anti-slop";
+import core from "ultracite/oxlint/core";
+import ultraciteReact from "ultracite/oxlint/react";
+import tanstack from "ultracite/oxlint/tanstack";
+import ultraciteVitest from "ultracite/oxlint/vitest";
+import reactDoctor from "./oxlint.react-doctor.ts";
+
+export default defineConfig({
+  extends: [
+    core,
+    ultraciteReact,
+    tanstack,
+    ultraciteVitest,
+    antiSlop,
+    reactDoctor,
+  ],
+  plugins: [
     "typescript",
     "unicorn",
     "oxc",
     "react",
     "vitest",
     "import",
-    "jsx-a11y"
+    "jsx-a11y",
   ],
-  "jsPlugins": [
+  jsPlugins: [
     "./tools/oxlint-plugins/style-rules.js",
     "./tools/oxlint-plugins/arch-rules.js",
-    { "name": "react-doctor", "specifier": "oxlint-plugin-react-doctor" }
+    { name: "react-doctor", specifier: "oxlint-plugin-react-doctor" },
   ],
-  "categories": {
-    "correctness": "error",
-    "suspicious": "error",
-    "perf": "error"
+  categories: {
+    correctness: "error",
+    suspicious: "error",
+    perf: "error",
   },
-  "rules": {
-    "complexity": "error",
+  rules: {
+    complexity: "error",
     "prefer-const": "error",
     "no-var": "error",
     "no-param-reassign": "error",
@@ -39,7 +53,7 @@
     "react/jsx-curly-brace-presence": "error",
     "react/jsx-no-useless-fragment": "error",
     "react/jsx-pascal-case": "error",
-    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    eqeqeq: ["error", "always", { null: "ignore" }],
     "no-console": "warn",
     "@typescript-eslint/ban-ts-comment": "error",
     "@typescript-eslint/no-non-null-assertion": "error",
@@ -59,21 +73,19 @@
     "@typescript-eslint/only-throw-error": [
       "error",
       {
-        "allow": [
+        allow: [
           {
-            "from": "package",
-            "package": "@tanstack/router-core",
-            "name": "Redirect"
-          }
-        ]
-      }
+            from: "package",
+            package: "@tanstack/router-core",
+            name: "Redirect",
+          },
+        ],
+      },
     ],
     "@typescript-eslint/prefer-promise-reject-errors": "error",
     "@typescript-eslint/prefer-nullish-coalescing": "error",
     "@typescript-eslint/promise-function-async": "error",
-    "@typescript-eslint/require-await": "error",
     "@typescript-eslint/restrict-plus-operands": "error",
-    "@typescript-eslint/return-await": "error",
     "@typescript-eslint/strict-boolean-expressions": "error",
     "@typescript-eslint/strict-void-return": "error",
     "unicorn/throw-new-error": "error",
@@ -89,48 +101,58 @@
     "arch-rules/one-component-per-file": "error",
     "arch-rules/component-file-naming": "error",
     "arch-rules/test-naming-format": "error",
-    "arch-rules/single-expect": "error"
+    "arch-rules/single-expect": "error",
   },
-  "env": {
-    "builtin": true,
-    "browser": true,
-    "node": true
+  env: {
+    builtin: true,
+    browser: true,
+    node: true,
   },
-  "ignorePatterns": [
+  ignorePatterns: [
     "node_modules",
     ".output",
     "dist",
     "build",
     "*.config.js",
-    "*.config.ts"
+    "*.config.ts",
+    "*.config.mjs",
   ],
-  "overrides": [
+  overrides: [
     {
-      "files": ["**/*.d.ts"],
-      "rules": {
-        "unicorn/require-module-specifiers": "off"
-      }
+      files: ["**/*.d.ts"],
+      rules: { "unicorn/require-module-specifiers": "off" },
     },
     {
-      "files": ["tools/oxlint-plugins/**"],
-      "rules": {
+      // Untyped ESLint-style plugin code walking an ESTree union. `typeof` is
+      // the discriminator available here, and `no-loops` is dropped so that
+      // `for...of` satisfies unicorn/no-array-for-each, whose only remedy the
+      // rule otherwise forbids.
+      files: ["tools/oxlint-plugins/**"],
+      rules: {
+        "anti-slop/no-runtime-typeof": "off",
+        "style-rules/no-loops": "off",
         "@typescript-eslint/no-unsafe-assignment": "off",
         "@typescript-eslint/no-unsafe-argument": "off",
         "@typescript-eslint/no-unsafe-call": "off",
         "@typescript-eslint/no-unsafe-member-access": "off",
         "@typescript-eslint/no-unsafe-return": "off",
         "@typescript-eslint/strict-boolean-expressions": "off",
-        "@typescript-eslint/unbound-method": "off"
-      }
+        "@typescript-eslint/unbound-method": "off",
+      },
     },
     {
-      "files": ["src/components/shared/code-block/CodeBlock.tsx"],
-      "rules": {
-        "jsx-a11y/no-noninteractive-tabindex": [
-          "error",
-          { "tags": ["section"] }
-        ]
-      }
-    }
-  ]
-}
+      // TanStack Start hands `.validator` whatever the client sent, so the
+      // parameter is `unknown` by contract and the parse runs inside. Typing it
+      // as FormData would make the `instanceof` guard read as redundant while
+      // still being the only thing rejecting a malformed payload.
+      files: ["src/server/fn/profile.ts"],
+      rules: { "anti-slop/no-unknown-parameters": "off" },
+    },
+    {
+      files: ["src/components/shared/code-block/code-block.tsx"],
+      rules: {
+        "jsx-a11y/no-noninteractive-tabindex": ["error", { tags: ["section"] }],
+      },
+    },
+  ],
+});

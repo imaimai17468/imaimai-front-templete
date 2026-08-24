@@ -3,11 +3,12 @@ import {
   Outlet,
   Scripts,
   createRootRoute,
+  useLoaderData,
 } from "@tanstack/react-router";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { Header } from "@/components/shared/header/Header";
-import { ThemeProvider } from "@/components/shared/theme-provider/ThemeProvider";
+import { Header } from "@/components/shared/header/header";
+import { ThemeProvider } from "@/components/shared/theme-provider/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { getCurrentUserFn } from "@/server/fn/user";
 import "@/styles.css";
@@ -16,24 +17,8 @@ if (import.meta.env.DEV && !import.meta.env.SSR) {
   void import("react-grab");
 }
 
-export const Route = createRootRoute({
-  loader: async () => {
-    const user = await getCurrentUserFn();
-    return { user };
-  },
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "imaimai-front-templete" },
-    ],
-  }),
-  component: RootComponent,
-  notFoundComponent: () => <p>ページが見つかりません</p>,
-});
-
-function RootComponent() {
-  const { user } = Route.useLoaderData();
+const RootComponent = () => {
+  const { user } = useLoaderData({ from: "__root__" });
   return (
     <html lang="ja" suppressHydrationWarning>
       <head>
@@ -68,4 +53,20 @@ function RootComponent() {
       </body>
     </html>
   );
-}
+};
+
+export const Route = createRootRoute({
+  loader: async () => {
+    const user = await getCurrentUserFn();
+    return { user };
+  },
+  head: () => ({
+    meta: [
+      { charSet: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { title: "imaimai-front-templete" },
+    ],
+  }),
+  component: RootComponent,
+  notFoundComponent: () => <p>ページが見つかりません</p>,
+});

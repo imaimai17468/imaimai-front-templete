@@ -13,14 +13,19 @@ import type { UserWithEmail } from "@/entities/user";
 import { signOut } from "@/lib/auth/actions";
 
 // similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
-type UserMenuProps = {
+interface UserMenuProps {
   user: UserWithEmail;
+}
+
+const handleSignOut = async (): Promise<void> => {
+  await signOut();
+  window.location.reload();
 };
 
 export const UserMenu = ({ user }: UserMenuProps) => {
-  const avatarUrl = user.avatarUrl;
+  const { avatarUrl } = user;
   const name = user.name === null || user.name === "" ? "User" : user.name;
-  const email = user.email;
+  const { email } = user;
 
   return (
     <DropdownMenu>
@@ -57,9 +62,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
         <DropdownMenuItem
           className="cursor-pointer text-destructive focus:text-destructive"
           onClick={() => {
-            void signOut().then(() => {
-              window.location.reload();
-            });
+            void handleSignOut();
           }}
         >
           <LogOut className="mr-2 size-4" />

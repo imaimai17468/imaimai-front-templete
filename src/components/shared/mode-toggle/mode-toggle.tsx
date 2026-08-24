@@ -8,33 +8,39 @@ import { Button } from "@/components/ui/button";
 const CYCLE = ["light", "dark"] as const;
 type Theme = (typeof CYCLE)[number];
 
-const ACTION_LABELS: Record<Theme, string> = {
-  light: "ダークモードに切り替え",
+const ACTION_LABELS = {
   dark: "ライトモードに切り替え",
-};
+  light: "ダークモードに切り替え",
+} satisfies Record<Theme, string>;
 
-export function resolveThemeCycle(
+export interface ThemeCycle {
+  current: Theme;
+  next: Theme;
+}
+
+export const resolveThemeCycle = (
   rawTheme: string | undefined,
   mounted: boolean
-): { current: Theme; next: Theme } {
+): ThemeCycle => {
   const matched = CYCLE.find((v) => v === rawTheme);
   const current = mounted ? (matched ?? "light") : "light";
   const index = CYCLE.indexOf(current);
   const next = CYCLE[(index + 1) % CYCLE.length] ?? CYCLE[0];
   return { current, next };
-}
+};
 
 // CYCLE 外の永続値（旧ドロップダウンの "system" 等）を検出する。
 // undefined（未解決 / 未保存）は対象外。
-export function needsThemeNormalization(theme: string | undefined): boolean {
-  return theme !== undefined && !CYCLE.some((v) => v === theme);
-}
+export const needsThemeNormalization = (theme: string | undefined): boolean =>
+  theme !== undefined && !CYCLE.some((v) => v === theme);
 
 // ハイドレーション検出用。購読対象の外部システムは存在しないため subscribe は
 // 何も通知しない。サーバスナップショット false がそのまま SSR ガードになる。
-const emptySubscribe = () => () => {};
+const emptySubscribe = () => () => {
+  /* empty */
+};
 
-export function ModeToggle() {
+export const ModeToggle = () => {
   const { theme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(
     emptySubscribe,
@@ -74,4 +80,4 @@ export function ModeToggle() {
       <Moon className="absolute size-5 rotate-90 scale-75 opacity-0 transition dark:rotate-0 dark:scale-100 dark:opacity-100" />
     </Button>
   );
-}
+};

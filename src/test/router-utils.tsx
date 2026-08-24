@@ -1,4 +1,5 @@
-import { render, type RenderOptions } from "@testing-library/react";
+import { render } from "@testing-library/react";
+import type { RenderOptions } from "@testing-library/react";
 import {
   createRouter,
   createMemoryHistory,
@@ -6,8 +7,8 @@ import {
   createRootRoute,
   createRoute,
   Outlet,
-  type AnyRoute,
 } from "@tanstack/react-router";
+import type { AnyRoute } from "@tanstack/react-router";
 import type { ReactElement } from "react";
 
 const rootRoute = createRootRoute({
@@ -16,8 +17,8 @@ const rootRoute = createRootRoute({
 
 const createTestRouter = (routes: AnyRoute[], initialLocation = "/") =>
   createRouter({
-    routeTree: rootRoute.addChildren(routes),
     history: createMemoryHistory({ initialEntries: [initialLocation] }),
+    routeTree: rootRoute.addChildren(routes),
   });
 
 type RenderWithRouterOptions = Omit<RenderOptions, "wrapper"> & {
@@ -29,15 +30,15 @@ export const renderWithRouter = async (
   { initialLocation = "/", ...renderOptions }: RenderWithRouterOptions = {}
 ) => {
   const indexRoute = createRoute({
+    component: () => ui,
     getParentRoute: () => rootRoute,
     path: "/",
-    component: () => ui,
   });
 
   const catchAllRoute = createRoute({
+    component: () => null,
     getParentRoute: () => rootRoute,
     path: "$",
-    component: () => null,
   });
 
   const router = createTestRouter([indexRoute, catchAllRoute], initialLocation);

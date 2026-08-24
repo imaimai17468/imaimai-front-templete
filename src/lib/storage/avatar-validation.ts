@@ -32,22 +32,27 @@ export const avatarContentMatchesMime = async (
 ): Promise<boolean> => {
   const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
   switch (file.type) {
-    case "image/png":
+    case "image/png": {
       return hasSignature(bytes, PNG_SIGNATURE);
-    case "image/jpeg":
+    }
+    case "image/jpeg": {
       return hasSignature(bytes, JPEG_SIGNATURE);
-    case "image/webp":
+    }
+    case "image/webp": {
       return (
         hasSignature(bytes, RIFF_SIGNATURE) &&
         hasSignature(bytes, WEBP_SIGNATURE, 8)
       );
-    case "image/gif":
+    }
+    case "image/gif": {
       return (
         hasSignature(bytes, GIF87A_SIGNATURE) ||
         hasSignature(bytes, GIF89A_SIGNATURE)
       );
-    default:
+    }
+    default: {
       return false;
+    }
   }
 };
 
@@ -65,14 +70,14 @@ const AVATAR_READ_EXTENSIONS = new Set([
 ]);
 
 const AVATAR_KEY_PATTERN =
-  /^([A-Za-z0-9_-]+)\/(?:avatar|avatars\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.([A-Za-z0-9]+)$/;
+  /^(?<ownerId>[A-Za-z0-9_-]+)\/(?:avatar|avatars\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.(?<extension>[A-Za-z0-9]+)$/u;
 
 const parseAvatarKey = (
   key: string
 ): { ownerId: string; extension: string } | null => {
   const match = AVATAR_KEY_PATTERN.exec(key);
-  const ownerId = match?.[1];
-  const extension = match?.[2];
+  const ownerId = match?.groups?.ownerId;
+  const extension = match?.groups?.extension;
   if (
     ownerId === undefined ||
     extension === undefined ||
@@ -80,7 +85,7 @@ const parseAvatarKey = (
   ) {
     return null;
   }
-  return { ownerId, extension };
+  return { extension, ownerId };
 };
 
 /**
@@ -131,9 +136,8 @@ export const avatarSizeRejection = (
  * image extension. The extension check is case-insensitive and also accepts
  * `jpeg` so legacy avatar objects remain readable (see AVATAR_READ_EXTENSIONS).
  */
-export const isValidAvatarKey = (key: string): boolean => {
-  return parseAvatarKey(key) !== null;
-};
+export const isValidAvatarKey = (key: string): boolean =>
+  parseAvatarKey(key) !== null;
 
 /**
  * Whether `key` is a well-formed avatar key owned by `userId` — the prefix

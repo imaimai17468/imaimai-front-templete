@@ -25,9 +25,9 @@ import {
 import { updateProfileFn, uploadAvatarFn } from "@/server/fn/profile";
 
 // similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
-type ProfileFormProps = {
+interface ProfileFormProps {
   user: UserWithEmail;
-};
+}
 
 type FormData = z.infer<typeof UpdateUserSchema>;
 
@@ -39,20 +39,20 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
 
   // Object URL(外部リソース)の解放を表示中の previewUrl に同期する。
   // 差し替え時は古い URL の cleanup が走り、アンマウント時も解放される。
-  useEffect(() => {
-    if (previewUrl === null) {
-      return undefined;
-    }
-    return () => {
-      URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
+  useEffect(
+    () => () => {
+      if (previewUrl !== null) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    },
+    [previewUrl]
+  );
 
   const form = useForm<FormData>({
-    resolver: zodResolver(UpdateUserSchema),
     defaultValues: {
       name: user.name ?? "",
     },
+    resolver: zodResolver(UpdateUserSchema),
   });
 
   const handleAvatarClick = () => {
@@ -61,21 +61,33 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     // Same two reasons the server distinguishes, so the message matches what
     // actually went wrong rather than blaming size for an empty file.
-    switch (avatarSizeRejection(file.size)) {
-      case "empty":
+    const rejection = avatarSizeRejection(file.size);
+    switch (rejection) {
+      case "empty": {
         toast.error("That file is empty. Please select another one.");
         return;
-      case "too-large":
+      }
+      case "too-large": {
         toast.error(
           `Please keep file size under ${MAX_AVATAR_BYTES / 1024 / 1024}MB`
         );
         return;
-      case null:
+      }
+      case null: {
         break;
+      }
+      // A new rejection reason fails to compile here rather than passing
+      // silently, because it has no `never` to widen into.
+      default: {
+        const unhandled: never = rejection;
+        throw new Error(`Unhandled avatar rejection: ${String(unhandled)}`);
+      }
     }
 
     const nextPreviewUrl = URL.createObjectURL(file);
@@ -115,7 +127,9 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
   return (
     <Form {...form}>
       <form
-        onSubmit={(e) => void form.handleSubmit(onSubmit)(e)}
+        onSubmit={(e) => {
+          void form.handleSubmit(onSubmit)(e);
+        }}
         className="space-y-6"
       >
         <div className="flex items-center gap-6">

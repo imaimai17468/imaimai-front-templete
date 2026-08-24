@@ -11,7 +11,11 @@ export const uploadToR2 = async (
   return `/api/avatars?key=${encodeURIComponent(key)}`;
 };
 
-/** @public R2 オブジェクト削除。テンプレ用途で公開、派生実装で使う想定。 */
+/**
+ * R2 オブジェクト削除。テンプレ用途で公開、派生実装で使う想定。
+ *
+ * @public
+ */
 export const deleteFromR2 = async (key: string): Promise<void> => {
   await getCloudflareEnv().AVATARS_BUCKET.delete(key);
 };

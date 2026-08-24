@@ -9,7 +9,7 @@ import {
   MAX_AVATAR_BYTES,
 } from "./avatar-validation";
 
-describe("avatarExtensionForMime", () => {
+describe(avatarExtensionForMime, () => {
   it.each([
     ["image/png", "png"],
     ["image/jpeg", "jpg"],
@@ -36,7 +36,7 @@ describe("avatarExtensionForMime", () => {
   });
 });
 
-describe("isValidAvatarKey", () => {
+describe(isValidAvatarKey, () => {
   it.each([
     "user-123/avatar.png",
     "aB0_-x/avatar.jpg",
@@ -50,7 +50,7 @@ describe("isValidAvatarKey", () => {
     // uppercase + jpeg together (both tolerances at once)
     "user-123/avatar.JPEG",
   ])("accepts well-formed key %s", (key) => {
-    expect(isValidAvatarKey(key)).toBe(true);
+    expect(isValidAvatarKey(key)).toBeTruthy();
   });
 
   it.each([
@@ -67,11 +67,11 @@ describe("isValidAvatarKey", () => {
     ["no extension", "user-123/avatar"],
     ["versioned key with malformed UUID", "user-123/avatars/not-a-uuid.png"],
   ])("rejects %s: %j", (_label, key) => {
-    expect(isValidAvatarKey(key)).toBe(false);
+    expect(isValidAvatarKey(key)).toBeFalsy();
   });
 });
 
-describe("avatarSizeRejection", () => {
+describe(avatarSizeRejection, () => {
   it.each([
     ["zero bytes", 0],
     ["negative size", -1],
@@ -94,9 +94,9 @@ describe("avatarSizeRejection", () => {
   });
 });
 
-describe("isOwnAvatarKey", () => {
+describe(isOwnAvatarKey, () => {
   it("should accept the key when it is well-formed and owned by the caller", () => {
-    expect(isOwnAvatarKey("user-123/avatar.png", "user-123")).toBe(true);
+    expect(isOwnAvatarKey("user-123/avatar.png", "user-123")).toBeTruthy();
   });
 
   it.each([
@@ -118,14 +118,14 @@ describe("isOwnAvatarKey", () => {
     ],
     ["caller id is empty", "/avatar.png", ""],
   ])("should reject the key when %s", (_label, key, userId) => {
-    expect(isOwnAvatarKey(key, userId)).toBe(false);
+    expect(isOwnAvatarKey(key, userId)).toBeFalsy();
   });
 });
 
 const imageFile = (mimeType: string, bytes: number[]) =>
   new File([new Uint8Array(bytes)], "avatar", { type: mimeType });
 
-describe("avatarContentMatchesMime", () => {
+describe(avatarContentMatchesMime, () => {
   it.each([
     ["PNG", "image/png", [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]],
     ["JPEG", "image/jpeg", [0xff, 0xd8, 0xff, 0xe0]],
@@ -139,9 +139,9 @@ describe("avatarContentMatchesMime", () => {
   ])(
     "should accept %s bytes when the MIME type matches",
     async (_label, mimeType, bytes) => {
-      expect(await avatarContentMatchesMime(imageFile(mimeType, bytes))).toBe(
-        true
-      );
+      await expect(
+        avatarContentMatchesMime(imageFile(mimeType, bytes))
+      ).resolves.toBeTruthy();
     }
   );
 
@@ -155,13 +155,13 @@ describe("avatarContentMatchesMime", () => {
     ["GIF MIME with a truncated header", "image/gif", [0x47, 0x49, 0x46]],
     ["unsupported MIME", "image/svg+xml", [0x3c, 0x73, 0x76, 0x67]],
   ])("should reject content when %s", async (_label, mimeType, bytes) => {
-    expect(await avatarContentMatchesMime(imageFile(mimeType, bytes))).toBe(
-      false
-    );
+    await expect(
+      avatarContentMatchesMime(imageFile(mimeType, bytes))
+    ).resolves.toBeFalsy();
   });
 });
 
-describe("avatarKeyFromUrl", () => {
+describe(avatarKeyFromUrl, () => {
   it.each([
     ["legacy key", "/api/avatars?key=user-1%2Favatar.png", "user-1/avatar.png"],
     [

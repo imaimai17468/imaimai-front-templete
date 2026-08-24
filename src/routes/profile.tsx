@@ -1,6 +1,15 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { ProfilePage } from "@/components/features/profile-page/ProfilePage";
+import {
+  createFileRoute,
+  redirect,
+  useLoaderData,
+} from "@tanstack/react-router";
+import { ProfilePage } from "@/components/features/profile-page/profile-page";
 import { getCurrentUserFn } from "@/server/fn/user";
+
+const ProfileComponent = () => {
+  const { user } = useLoaderData({ from: "/profile" });
+  return <ProfilePage user={user} />;
+};
 
 export const Route = createFileRoute("/profile")({
   beforeLoad: async () => {
@@ -13,8 +22,3 @@ export const Route = createFileRoute("/profile")({
   loader: ({ context }) => ({ user: context.user }),
   component: ProfileComponent,
 });
-
-function ProfileComponent() {
-  const { user } = Route.useLoaderData();
-  return <ProfilePage user={user} />;
-}

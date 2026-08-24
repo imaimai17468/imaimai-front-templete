@@ -35,25 +35,25 @@ const buildAuth = () => {
 
   return betterAuth({
     baseURL: env.BETTER_AUTH_URL,
-    secret: authSecret,
     database: drizzleAdapter(getDb(), {
       provider: "sqlite",
       schema: {
-        user: schema.users,
-        session: schema.sessions,
         account: schema.accounts,
+        session: schema.sessions,
+        user: schema.users,
         verification: schema.verifications,
       },
     }),
+    secret: authSecret,
+    session: {
+      expiresIn: 60 * 60 * 24 * 7,
+      updateAge: 60 * 60 * 24,
+    },
     socialProviders: {
       google: {
         clientId: googleClientId,
         clientSecret: googleClientSecret,
       },
-    },
-    session: {
-      expiresIn: 60 * 60 * 24 * 7,
-      updateAge: 60 * 60 * 24,
     },
   });
 };
@@ -61,11 +61,17 @@ const buildAuth = () => {
 let cachedAuth: ReturnType<typeof buildAuth> | null = null;
 
 export const getAuth = (): ReturnType<typeof buildAuth> => {
-  if (cachedAuth) return cachedAuth;
+  if (cachedAuth) {
+    return cachedAuth;
+  }
   const fresh = buildAuth();
   cachedAuth = fresh;
   return fresh;
 };
 
-/** @public Better Auth の Session 型。テンプレ用途で公開、派生実装で使う想定。 */
+/**
+ * Better Auth の Session 型。テンプレ用途で公開、派生実装で使う想定。
+ *
+ * @public
+ */
 export type Session = ReturnType<typeof buildAuth>["$Infer"]["Session"];

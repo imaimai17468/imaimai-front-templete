@@ -4,7 +4,7 @@ import { cn } from "./utils";
 // Exemplar test (AGENTS.md "Testing"): colocated `<module>.test.ts`, white-box —
 // each case pins one behavior of the implementation (clsx flattening on one
 // side, twMerge conflict resolution on the other), not just happy-path output.
-describe("cn", () => {
+describe(cn, () => {
   it("should join classes when inputs are independent", () => {
     expect(cn("px-2", "py-1")).toBe("px-2 py-1");
   });

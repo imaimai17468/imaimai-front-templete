@@ -24,33 +24,33 @@ const makeClassNameStringLiteralNode = (value: string) => ({
 const makeClassNameTemplateNode = (raw: string) => ({
   name: { name: "className" },
   value: {
-    type: "JSXExpressionContainer" as const,
     expression: {
-      type: "TemplateLiteral" as const,
       quasis: [{ value: { raw } }],
+      type: "TemplateLiteral" as const,
     },
+    type: "JSXExpressionContainer" as const,
   },
 });
 
 const makeClassNameExpressionLiteralNode = (value: string) => ({
   name: { name: "className" },
   value: {
-    type: "JSXExpressionContainer" as const,
     expression: {
       type: "Literal" as const,
       value,
     },
+    type: "JSXExpressionContainer" as const,
   },
 });
 
 const makeClassNameExpressionStringLiteralNode = (value: string) => ({
   name: { name: "className" },
   value: {
-    type: "JSXExpressionContainer" as const,
     expression: {
       type: "StringLiteral" as const,
       value,
     },
+    type: "JSXExpressionContainer" as const,
   },
 });
 
@@ -337,8 +337,8 @@ describe("no-tailwind-arbitrary (defensive branches)", () => {
     const node = {
       name: { name: "className" },
       value: {
-        type: "JSXExpressionContainer",
         expression: { type: "CallExpression" },
+        type: "JSXExpressionContainer",
       },
     };
 
@@ -353,8 +353,8 @@ describe("no-tailwind-arbitrary (defensive branches)", () => {
     const node = {
       name: { name: "className" },
       value: {
-        type: "JSXExpressionContainer",
         expression: { type: "Literal", value: 42 },
+        type: "JSXExpressionContainer",
       },
     };
 
@@ -395,8 +395,8 @@ describe("no-tailwind-opacity (defensive branches)", () => {
     const node = {
       name: { name: "className" },
       value: {
-        type: "JSXExpressionContainer",
         expression: { type: "CallExpression" },
+        type: "JSXExpressionContainer",
       },
     };
 
@@ -411,8 +411,8 @@ describe("no-tailwind-opacity (defensive branches)", () => {
     const node = {
       name: { name: "className" },
       value: {
-        type: "JSXExpressionContainer",
         expression: { type: "Literal", value: 42 },
+        type: "JSXExpressionContainer",
       },
     };
 

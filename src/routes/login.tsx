@@ -2,24 +2,24 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { signInWithGoogle } from "@/lib/auth/actions";
 
+const LoginComponent = () => (
+  <div className="absolute inset-0 flex flex-col items-center justify-center gap-8">
+    <p>message</p>
+    <div className="flex flex-col gap-4">
+      <Button
+        type="button"
+        variant="outline"
+        className="cursor-pointer"
+        onClick={() => {
+          void signInWithGoogle();
+        }}
+      >
+        Sign in With Google
+      </Button>
+    </div>
+  </div>
+);
+
 export const Route = createFileRoute("/login")({
   component: LoginComponent,
 });
-
-function LoginComponent() {
-  return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-8">
-      <p>message</p>
-      <div className="flex flex-col gap-4">
-        <Button
-          type="button"
-          variant="outline"
-          className="cursor-pointer"
-          onClick={() => void signInWithGoogle()}
-        >
-          Sign in With Google
-        </Button>
-      </div>
-    </div>
-  );
-}

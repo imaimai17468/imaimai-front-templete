@@ -5,16 +5,20 @@ const makeContext = () => ({
   report: vi.fn<(descriptor: { message: string; node: unknown }) => void>(),
 });
 
-const makeLayerContext = (filename: string | undefined) => ({
+const makeLayerContext = (filename?: string) => ({
   filename,
   report: vi.fn<(descriptor: { message: string; node: unknown }) => void>(),
 });
 
-const importNode = (specifier: unknown, importedNames: string[] = []) => ({
+// A non-string source is what the plugin's own guard rejects, so the fixture
+// has to be able to produce one.
+type ImportSource = string | number;
+
+const importNode = (specifier: ImportSource, importedNames: string[] = []) => ({
   source: { value: specifier },
   specifiers: importedNames.map((name) => ({
+    imported: { name, type: "Identifier" },
     type: "ImportSpecifier",
-    imported: { type: "Identifier", name },
   })),
 });
 
@@ -28,7 +32,7 @@ describe("no-size-props", () => {
     const node = {
       name: { name: "width" },
       parent: {
-        name: { type: "JSXIdentifier", name: "Card" },
+        name: { name: "Card", type: "JSXIdentifier" },
       },
     };
 
@@ -46,7 +50,7 @@ describe("no-size-props", () => {
     const node = {
       name: { name: "height" },
       parent: {
-        name: { type: "JSXIdentifier", name: "Avatar" },
+        name: { name: "Avatar", type: "JSXIdentifier" },
       },
     };
 
@@ -65,9 +69,9 @@ describe("no-size-props", () => {
       name: { name: "width" },
       parent: {
         name: {
-          type: "JSXMemberExpression",
           object: { name: "Icons" },
           property: { name: "Arrow" },
+          type: "JSXMemberExpression",
         },
       },
     };
@@ -87,9 +91,9 @@ describe("no-size-props", () => {
       name: { name: "height" },
       parent: {
         name: {
-          type: "JSXMemberExpression",
           object: { name: "UI" },
           property: { name: "Box" },
+          type: "JSXMemberExpression",
         },
       },
     };
@@ -108,7 +112,7 @@ describe("no-size-props", () => {
     const node = {
       name: { name: "width" },
       parent: {
-        name: { type: "JSXIdentifier", name: "img" },
+        name: { name: "img", type: "JSXIdentifier" },
       },
     };
 
@@ -126,7 +130,7 @@ describe("no-size-props", () => {
     const node = {
       name: { name: "height" },
       parent: {
-        name: { type: "JSXIdentifier", name: "div" },
+        name: { name: "div", type: "JSXIdentifier" },
       },
     };
 
@@ -144,7 +148,7 @@ describe("no-size-props", () => {
     const node = {
       name: { name: "className" },
       parent: {
-        name: { type: "JSXIdentifier", name: "Card" },
+        name: { name: "Card", type: "JSXIdentifier" },
       },
     };
 
@@ -164,7 +168,7 @@ describe("one-component-per-file", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
-      declaration: { type: "FunctionDeclaration", id: { name: "MyComponent" } },
+      declaration: { id: { name: "MyComponent" }, type: "FunctionDeclaration" },
     };
 
     // Act
@@ -179,10 +183,10 @@ describe("one-component-per-file", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const firstNode = {
-      declaration: { type: "FunctionDeclaration", id: { name: "ComponentA" } },
+      declaration: { id: { name: "ComponentA" }, type: "FunctionDeclaration" },
     };
     const secondNode = {
-      declaration: { type: "FunctionDeclaration", id: { name: "ComponentB" } },
+      declaration: { id: { name: "ComponentB" }, type: "FunctionDeclaration" },
     };
 
     // Act
@@ -199,13 +203,13 @@ describe("one-component-per-file", () => {
     const visitors = rule.create(context);
     const node = {
       declaration: {
-        type: "VariableDeclaration",
         declarations: [
           {
-            id: { type: "Identifier", name: "MyComponent" },
+            id: { name: "MyComponent", type: "Identifier" },
             init: { type: "ArrowFunctionExpression" },
           },
         ],
+        type: "VariableDeclaration",
       },
     };
 
@@ -222,24 +226,24 @@ describe("one-component-per-file", () => {
     const visitors = rule.create(context);
     const firstNode = {
       declaration: {
-        type: "VariableDeclaration",
         declarations: [
           {
-            id: { type: "Identifier", name: "ComponentA" },
+            id: { name: "ComponentA", type: "Identifier" },
             init: { type: "ArrowFunctionExpression" },
           },
         ],
+        type: "VariableDeclaration",
       },
     };
     const secondNode = {
       declaration: {
-        type: "VariableDeclaration",
         declarations: [
           {
-            id: { type: "Identifier", name: "ComponentB" },
+            id: { name: "ComponentB", type: "Identifier" },
             init: { type: "ArrowFunctionExpression" },
           },
         ],
+        type: "VariableDeclaration",
       },
     };
 
@@ -256,7 +260,7 @@ describe("one-component-per-file", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
-      declaration: { type: "FunctionDeclaration", id: { name: "helperFn" } },
+      declaration: { id: { name: "helperFn" }, type: "FunctionDeclaration" },
     };
 
     // Act
@@ -272,13 +276,13 @@ describe("one-component-per-file", () => {
     const visitors = rule.create(context);
     const node = {
       declaration: {
-        type: "VariableDeclaration",
         declarations: [
           {
-            id: { type: "Identifier", name: "useMyHook" },
+            id: { name: "useMyHook", type: "Identifier" },
             init: { type: "ArrowFunctionExpression" },
           },
         ],
+        type: "VariableDeclaration",
       },
     };
 
@@ -298,8 +302,8 @@ describe("test-naming-format", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
-      callee: { type: "Identifier", name: "it" },
       arguments: [{ type: "Literal", value: "renders the component" }],
+      callee: { name: "it", type: "Identifier" },
     };
 
     // Act
@@ -314,8 +318,8 @@ describe("test-naming-format", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
-      callee: { type: "Identifier", name: "test" },
       arguments: [{ type: "Literal", value: "returns the correct value" }],
+      callee: { name: "test", type: "Identifier" },
     };
 
     // Act
@@ -330,10 +334,10 @@ describe("test-naming-format", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
-      callee: { type: "Identifier", name: "it" },
       arguments: [
         { type: "Literal", value: "should return true when input is valid" },
       ],
+      callee: { name: "it", type: "Identifier" },
     };
 
     // Act
@@ -348,13 +352,13 @@ describe("test-naming-format", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
-      callee: { type: "Identifier", name: "test" },
       arguments: [
         {
           type: "Literal",
           value: "should render correctly when props are provided",
         },
       ],
+      callee: { name: "test", type: "Identifier" },
     };
 
     // Act
@@ -369,8 +373,8 @@ describe("test-naming-format", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
-      callee: { type: "Identifier", name: "describe" },
       arguments: [{ type: "Literal", value: "MyComponent" }],
+      callee: { name: "describe", type: "Identifier" },
     };
 
     // Act
@@ -385,12 +389,12 @@ describe("test-naming-format", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
+      arguments: [{ type: "Literal", value: "bad name" }],
       callee: {
-        type: "MemberExpression",
         object: { name: "it" },
         property: { name: "each" },
+        type: "MemberExpression",
       },
-      arguments: [{ type: "Literal", value: "bad name" }],
     };
 
     // Act
@@ -405,12 +409,12 @@ describe("test-naming-format", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
+      arguments: [{ type: "Literal", value: "bad name" }],
       callee: {
-        type: "MemberExpression",
         object: { name: "it" },
         property: { name: "skip" },
+        type: "MemberExpression",
       },
-      arguments: [{ type: "Literal", value: "bad name" }],
     };
 
     // Act
@@ -425,12 +429,12 @@ describe("test-naming-format", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
+      arguments: [{ type: "Literal", value: "bad name" }],
       callee: {
-        type: "MemberExpression",
         object: { name: "it" },
         property: { name: "todo" },
+        type: "MemberExpression",
       },
-      arguments: [{ type: "Literal", value: "bad name" }],
     };
 
     // Act
@@ -445,12 +449,12 @@ describe("test-naming-format", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
-      callee: {
-        type: "MemberExpression",
-        object: { type: "Identifier", name: "it" },
-        property: { name: "only" },
-      },
       arguments: [{ type: "Literal", value: "bad name" }],
+      callee: {
+        object: { name: "it", type: "Identifier" },
+        property: { name: "only" },
+        type: "MemberExpression",
+      },
     };
 
     // Act
@@ -465,12 +469,12 @@ describe("test-naming-format", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
-      callee: {
-        type: "MemberExpression",
-        object: { type: "Identifier", name: "test" },
-        property: { name: "only" },
-      },
       arguments: [{ type: "Literal", value: "bad name" }],
+      callee: {
+        object: { name: "test", type: "Identifier" },
+        property: { name: "only" },
+        type: "MemberExpression",
+      },
     };
 
     // Act
@@ -491,12 +495,42 @@ describe("component-file-naming", () => {
     };
     const visitors = rule.create(context);
     const node = {
-      declaration: { type: "FunctionDeclaration", id: { name: "StatsCard" } },
+      declaration: { id: { name: "StatsCard" }, type: "FunctionDeclaration" },
     };
 
     visitors.ExportNamedDeclaration?.(node);
 
     expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when component name matches kebab-case file name", () => {
+    const context = {
+      ...makeContext(),
+      filename: "/src/components/stats-card/stats-card.tsx",
+    };
+    const visitors = rule.create(context);
+    const node = {
+      declaration: { id: { name: "StatsCard" }, type: "FunctionDeclaration" },
+    };
+
+    visitors.ExportNamedDeclaration?.(node);
+
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when component name does not match kebab-case file name", () => {
+    const context = {
+      ...makeContext(),
+      filename: "/src/components/stats-card/stats-card.tsx",
+    };
+    const visitors = rule.create(context);
+    const node = {
+      declaration: { id: { name: "UserCard" }, type: "FunctionDeclaration" },
+    };
+
+    visitors.ExportNamedDeclaration?.(node);
+
+    expect(context.report).toHaveBeenCalledOnce();
   });
 
   it("should report when component name does not match file name", () => {
@@ -506,7 +540,7 @@ describe("component-file-naming", () => {
     };
     const visitors = rule.create(context);
     const node = {
-      declaration: { type: "FunctionDeclaration", id: { name: "UserCard" } },
+      declaration: { id: { name: "UserCard" }, type: "FunctionDeclaration" },
     };
 
     visitors.ExportNamedDeclaration?.(node);
@@ -522,8 +556,8 @@ describe("component-file-naming", () => {
     const visitors = rule.create(context);
     const node = {
       declaration: {
-        type: "FunctionDeclaration",
         id: { name: "StatsCardContainer" },
+        type: "FunctionDeclaration",
       },
     };
 
@@ -536,7 +570,7 @@ describe("component-file-naming", () => {
     const context = { ...makeContext(), filename: "/src/components/index.tsx" };
     const visitors = rule.create(context);
     const node = {
-      declaration: { type: "FunctionDeclaration", id: { name: "Anything" } },
+      declaration: { id: { name: "Anything" }, type: "FunctionDeclaration" },
     };
 
     visitors.ExportNamedDeclaration?.(node);
@@ -551,7 +585,7 @@ describe("component-file-naming", () => {
     };
     const visitors = rule.create(context);
     const node = {
-      declaration: { type: "FunctionDeclaration", id: { name: "Anything" } },
+      declaration: { id: { name: "Anything" }, type: "FunctionDeclaration" },
     };
 
     visitors.ExportNamedDeclaration?.(node);
@@ -566,7 +600,7 @@ describe("component-file-naming", () => {
     };
     const visitors = rule.create(context);
     const node = {
-      declaration: { type: "FunctionDeclaration", id: { name: "helperFn" } },
+      declaration: { id: { name: "helperFn" }, type: "FunctionDeclaration" },
     };
 
     visitors.ExportNamedDeclaration?.(node);
@@ -583,17 +617,17 @@ describe("single-expect", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const itNode = {
-      type: "CallExpression",
-      callee: { type: "Identifier", name: "it" },
       arguments: [
         { type: "Literal", value: "should do X when Y" },
         { type: "ArrowFunctionExpression" },
       ],
+      callee: { name: "it", type: "Identifier" },
+      type: "CallExpression",
     };
     const expectNode = {
-      type: "CallExpression",
-      callee: { type: "Identifier", name: "expect" },
       arguments: [],
+      callee: { name: "expect", type: "Identifier" },
+      type: "CallExpression",
     };
 
     // Act
@@ -610,17 +644,17 @@ describe("single-expect", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const itNode = {
-      type: "CallExpression",
-      callee: { type: "Identifier", name: "it" },
       arguments: [
         { type: "Literal", value: "should do X when Y" },
         { type: "ArrowFunctionExpression" },
       ],
+      callee: { name: "it", type: "Identifier" },
+      type: "CallExpression",
     };
     const expectNode = {
-      type: "CallExpression",
-      callee: { type: "Identifier", name: "expect" },
       arguments: [],
+      callee: { name: "expect", type: "Identifier" },
+      type: "CallExpression",
     };
 
     // Act
@@ -638,17 +672,17 @@ describe("single-expect", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const testNode = {
-      type: "CallExpression",
-      callee: { type: "Identifier", name: "test" },
       arguments: [
         { type: "Literal", value: "should do X when Y" },
         { type: "ArrowFunctionExpression" },
       ],
+      callee: { name: "test", type: "Identifier" },
+      type: "CallExpression",
     };
     const expectNode = {
-      type: "CallExpression",
-      callee: { type: "Identifier", name: "expect" },
       arguments: [],
+      callee: { name: "expect", type: "Identifier" },
+      type: "CallExpression",
     };
 
     // Act
@@ -666,16 +700,16 @@ describe("single-expect", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const eachNode = {
-      type: "CallExpression",
-      callee: {
-        type: "MemberExpression",
-        object: { name: "it" },
-        property: { name: "each" },
-      },
       arguments: [
         { type: "Literal", value: "should do X when Y" },
         { type: "ArrowFunctionExpression" },
       ],
+      callee: {
+        object: { name: "it" },
+        property: { name: "each" },
+        type: "MemberExpression",
+      },
+      type: "CallExpression",
     };
 
     // Act
@@ -691,21 +725,21 @@ describe("single-expect", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const onlyNode = {
-      type: "CallExpression",
-      callee: {
-        type: "MemberExpression",
-        object: { type: "Identifier", name: "it" },
-        property: { name: "only" },
-      },
       arguments: [
         { type: "Literal", value: "should do X when Y" },
         { type: "ArrowFunctionExpression" },
       ],
+      callee: {
+        object: { name: "it", type: "Identifier" },
+        property: { name: "only" },
+        type: "MemberExpression",
+      },
+      type: "CallExpression",
     };
     const expectNode = {
-      type: "CallExpression",
-      callee: { type: "Identifier", name: "expect" },
       arguments: [],
+      callee: { name: "expect", type: "Identifier" },
+      type: "CallExpression",
     };
 
     // Act
@@ -723,21 +757,21 @@ describe("single-expect", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const skipNode = {
-      type: "CallExpression",
-      callee: {
-        type: "MemberExpression",
-        object: { type: "Identifier", name: "it" },
-        property: { name: "skip" },
-      },
       arguments: [
         { type: "Literal", value: "should do X when Y" },
         { type: "ArrowFunctionExpression" },
       ],
+      callee: {
+        object: { name: "it", type: "Identifier" },
+        property: { name: "skip" },
+        type: "MemberExpression",
+      },
+      type: "CallExpression",
     };
     const expectNode = {
-      type: "CallExpression",
-      callee: { type: "Identifier", name: "expect" },
       arguments: [],
+      callee: { name: "expect", type: "Identifier" },
+      type: "CallExpression",
     };
 
     // Act
@@ -755,21 +789,21 @@ describe("single-expect", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const todoNode = {
-      type: "CallExpression",
-      callee: {
-        type: "MemberExpression",
-        object: { type: "Identifier", name: "test" },
-        property: { name: "todo" },
-      },
       arguments: [
         { type: "Literal", value: "should do X when Y" },
         { type: "ArrowFunctionExpression" },
       ],
+      callee: {
+        object: { name: "test", type: "Identifier" },
+        property: { name: "todo" },
+        type: "MemberExpression",
+      },
+      type: "CallExpression",
     };
     const expectNode = {
-      type: "CallExpression",
-      callee: { type: "Identifier", name: "expect" },
       arguments: [],
+      callee: { name: "expect", type: "Identifier" },
+      type: "CallExpression",
     };
 
     // Act
@@ -1074,7 +1108,7 @@ describe("layer-boundaries", () => {
 
   it("should return no visitors when filename is unavailable", () => {
     // Arrange
-    const context = makeLayerContext(undefined);
+    const context = makeLayerContext();
 
     // Act
     const visitors = rule.create(context);
@@ -1173,17 +1207,17 @@ describe("one-component-per-file (defensive branches)", () => {
     const visitors = rule.create(context);
     const named = {
       declaration: {
-        type: "VariableDeclaration",
         declarations: [
           {
-            id: { type: "Identifier", name: "Card" },
+            id: { name: "Card", type: "Identifier" },
             init: { type: "ArrowFunctionExpression" },
           },
         ],
+        type: "VariableDeclaration",
       },
     };
     const defaultExport = {
-      declaration: { type: "FunctionDeclaration", id: { name: "Page" } },
+      declaration: { id: { name: "Page" }, type: "FunctionDeclaration" },
     };
 
     // Act
@@ -1192,6 +1226,21 @@ describe("one-component-per-file (defensive branches)", () => {
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when an exported function declaration has no name", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const node = {
+      declaration: { id: {}, type: "FunctionDeclaration" },
+    };
+
+    // Act
+    visitors.ExportNamedDeclaration?.(node);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
   });
 
   it("should not report when a named export has no declaration", () => {
@@ -1213,7 +1262,7 @@ describe("one-component-per-file (defensive branches)", () => {
 
     // Act
     visitors.ExportNamedDeclaration?.({
-      declaration: { type: "ClassDeclaration", id: { name: "Card" } },
+      declaration: { id: { name: "Card" }, type: "ClassDeclaration" },
     });
 
     // Assert
@@ -1227,7 +1276,7 @@ describe("one-component-per-file (defensive branches)", () => {
 
     // Act
     visitors.ExportNamedDeclaration?.({
-      declaration: { type: "FunctionDeclaration", id: null },
+      declaration: { id: null, type: "FunctionDeclaration" },
     });
 
     // Assert
@@ -1240,8 +1289,8 @@ describe("one-component-per-file (defensive branches)", () => {
     const visitors = rule.create(context);
     const node = {
       declaration: {
-        type: "VariableDeclaration",
         declarations: [{ id: { type: "ObjectPattern" } }],
+        type: "VariableDeclaration",
       },
     };
 
@@ -1258,10 +1307,10 @@ describe("one-component-per-file (defensive branches)", () => {
     const visitors = rule.create(context);
     const node = {
       declaration: {
-        type: "VariableDeclaration",
         declarations: [
-          { id: { type: "Identifier", name: "Card" }, init: null },
+          { id: { name: "Card", type: "Identifier" }, init: null },
         ],
+        type: "VariableDeclaration",
       },
     };
 
@@ -1278,13 +1327,13 @@ describe("one-component-per-file (defensive branches)", () => {
     const visitors = rule.create(context);
     const node = {
       declaration: {
-        type: "VariableDeclaration",
         declarations: [
           {
-            id: { type: "Identifier", name: "Card" },
+            id: { name: "Card", type: "Identifier" },
             init: { type: "CallExpression" },
           },
         ],
+        type: "VariableDeclaration",
       },
     };
 
@@ -1328,7 +1377,7 @@ describe("one-component-per-file (defensive branches)", () => {
 
     // Act
     visitors.ExportDefaultDeclaration?.({
-      declaration: { type: "FunctionExpression", id: null },
+      declaration: { id: null, type: "FunctionExpression" },
     });
 
     // Assert
@@ -1342,7 +1391,7 @@ describe("one-component-per-file (defensive branches)", () => {
 
     // Act
     visitors.ExportDefaultDeclaration?.({
-      declaration: { type: "FunctionDeclaration", id: { name: "helper" } },
+      declaration: { id: { name: "helper" }, type: "FunctionDeclaration" },
     });
 
     // Assert
@@ -1358,12 +1407,12 @@ describe("test-naming-format (defensive branches)", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
-      callee: {
-        type: "MemberExpression",
-        object: { type: "Identifier", name: "it" },
-        property: { name: "only" },
-      },
       arguments: [{ type: "Literal", value: "bad name" }],
+      callee: {
+        object: { name: "it", type: "Identifier" },
+        property: { name: "only" },
+        type: "MemberExpression",
+      },
     };
 
     // Act
@@ -1378,12 +1427,12 @@ describe("test-naming-format (defensive branches)", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
-      callee: {
-        type: "MemberExpression",
-        object: { type: "Identifier", name: "it" },
-        property: null,
-      },
       arguments: [{ type: "Literal", value: "bad name" }],
+      callee: {
+        object: { name: "it", type: "Identifier" },
+        property: null,
+        type: "MemberExpression",
+      },
     };
 
     // Act
@@ -1398,8 +1447,8 @@ describe("test-naming-format (defensive branches)", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
-      callee: { type: "Identifier", name: "it" },
       arguments: [],
+      callee: { name: "it", type: "Identifier" },
     };
 
     // Act
@@ -1414,8 +1463,8 @@ describe("test-naming-format (defensive branches)", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
-      callee: { type: "Identifier", name: "it" },
       arguments: [{ type: "TemplateLiteral" }],
+      callee: { name: "it", type: "Identifier" },
     };
 
     // Act
@@ -1430,8 +1479,8 @@ describe("test-naming-format (defensive branches)", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
-      callee: { type: "Identifier", name: "it" },
       arguments: [{ type: "Literal", value: 42 }],
+      callee: { name: "it", type: "Identifier" },
     };
 
     // Act
@@ -1446,12 +1495,12 @@ describe("test-naming-format (defensive branches)", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
-      callee: {
-        type: "MemberExpression",
-        object: { type: "Identifier", name: "it" },
-        property: { name: "skip" },
-      },
       arguments: [{ type: "Literal", value: "bad name" }],
+      callee: {
+        object: { name: "it", type: "Identifier" },
+        property: { name: "skip" },
+        type: "MemberExpression",
+      },
     };
 
     // Act
@@ -1466,12 +1515,12 @@ describe("test-naming-format (defensive branches)", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const node = {
-      callee: {
-        type: "MemberExpression",
-        object: { type: "Identifier", name: "foo" },
-        property: { name: "only" },
-      },
       arguments: [{ type: "Literal", value: "bad name" }],
+      callee: {
+        object: { name: "foo", type: "Identifier" },
+        property: { name: "only" },
+        type: "MemberExpression",
+      },
     };
 
     // Act
@@ -1486,12 +1535,12 @@ describe("single-expect (defensive branches)", () => {
   const rule = plugin.rules["single-expect"];
 
   const testNode = {
-    type: "CallExpression",
-    callee: { type: "Identifier", name: "it" },
     arguments: [
       { type: "Literal", value: "should do X when Y" },
       { type: "ArrowFunctionExpression" },
     ],
+    callee: { name: "it", type: "Identifier" },
+    type: "CallExpression",
   };
 
   it("should not report when a call inside a test has no callee", () => {
@@ -1499,14 +1548,14 @@ describe("single-expect (defensive branches)", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const expectNode = {
-      type: "CallExpression",
-      callee: { type: "Identifier", name: "expect" },
       arguments: [],
+      callee: { name: "expect", type: "Identifier" },
+      type: "CallExpression",
     };
 
     // Act
     visitors.CallExpression(testNode);
-    visitors.CallExpression({ type: "CallExpression", callee: null });
+    visitors.CallExpression({ callee: null, type: "CallExpression" });
     visitors.CallExpression(expectNode);
     visitors["CallExpression:exit"](testNode);
 
@@ -1519,12 +1568,12 @@ describe("single-expect (defensive branches)", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const memberCall = {
-      type: "CallExpression",
       callee: {
-        type: "MemberExpression",
-        object: { type: "Identifier", name: "foo" },
+        object: { name: "foo", type: "Identifier" },
         property: { name: "bar" },
+        type: "MemberExpression",
       },
+      type: "CallExpression",
     };
 
     // Act
@@ -1542,12 +1591,12 @@ describe("single-expect (defensive branches)", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const memberCall = {
-      type: "CallExpression",
       callee: {
-        type: "MemberExpression",
         object: null,
         property: { name: "x" },
+        type: "MemberExpression",
       },
+      type: "CallExpression",
     };
 
     // Act
@@ -1565,9 +1614,9 @@ describe("single-expect (defensive branches)", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const bareTest = {
-      type: "CallExpression",
-      callee: { type: "Identifier", name: "it" },
       arguments: [{ type: "Literal", value: "should do X when Y" }],
+      callee: { name: "it", type: "Identifier" },
+      type: "CallExpression",
     };
 
     // Act
@@ -1583,12 +1632,12 @@ describe("single-expect (defensive branches)", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const stringTest = {
-      type: "CallExpression",
-      callee: { type: "Identifier", name: "it" },
       arguments: [
         { type: "Literal", value: "should do X when Y" },
         { type: "Literal", value: "not a function" },
       ],
+      callee: { name: "it", type: "Identifier" },
+      type: "CallExpression",
     };
 
     // Act
@@ -1604,8 +1653,8 @@ describe("single-expect (defensive branches)", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const plainCall = {
+      callee: { name: "helper", type: "Identifier" },
       type: "CallExpression",
-      callee: { type: "Identifier", name: "helper" },
     };
 
     // Act
@@ -1632,12 +1681,12 @@ describe("single-expect (defensive branches)", () => {
     const context = makeContext();
     const visitors = rule.create(context);
     const softExpect = {
-      type: "CallExpression",
       callee: {
-        type: "MemberExpression",
-        object: { type: "Identifier", name: "expect" },
+        object: { name: "expect", type: "Identifier" },
         property: { name: "soft" },
+        type: "MemberExpression",
       },
+      type: "CallExpression",
     };
 
     // Act
@@ -1673,7 +1722,7 @@ describe("component-file-naming (defensive branches)", () => {
     };
     const visitors = rule.create(context);
     const node = {
-      declaration: { type: "FunctionDeclaration", id: { name: "Other" } },
+      declaration: { id: { name: "Other" }, type: "FunctionDeclaration" },
     };
 
     // Act
@@ -1699,7 +1748,7 @@ describe("component-file-naming (defensive branches)", () => {
     const context = { ...makeContext(), filename: "/src/components/.card.tsx" };
     const visitors = rule.create(context);
     const node = {
-      declaration: { type: "FunctionDeclaration", id: { name: "Other" } },
+      declaration: { id: { name: "Other" }, type: "FunctionDeclaration" },
     };
 
     // Act
@@ -1752,8 +1801,8 @@ describe("component-file-naming (defensive branches)", () => {
     const visitors = rule.create(context);
     const node = {
       declaration: {
-        type: "VariableDeclaration",
         declarations: [{ id: { type: "ObjectPattern" } }],
+        type: "VariableDeclaration",
       },
     };
 
@@ -1770,13 +1819,13 @@ describe("component-file-naming (defensive branches)", () => {
     const visitors = rule.create(context);
     const node = {
       declaration: {
-        type: "VariableDeclaration",
         declarations: [
           {
-            id: { type: "Identifier", name: "helper" },
+            id: { name: "helper", type: "Identifier" },
             init: { type: "ArrowFunctionExpression" },
           },
         ],
+        type: "VariableDeclaration",
       },
     };
 
@@ -1793,10 +1842,10 @@ describe("component-file-naming (defensive branches)", () => {
     const visitors = rule.create(context);
     const node = {
       declaration: {
-        type: "VariableDeclaration",
         declarations: [
-          { id: { type: "Identifier", name: "Other" }, init: null },
+          { id: { name: "Other", type: "Identifier" }, init: null },
         ],
+        type: "VariableDeclaration",
       },
     };
 
@@ -1813,13 +1862,13 @@ describe("component-file-naming (defensive branches)", () => {
     const visitors = rule.create(context);
     const node = {
       declaration: {
-        type: "VariableDeclaration",
         declarations: [
           {
-            id: { type: "Identifier", name: "Other" },
+            id: { name: "Other", type: "Identifier" },
             init: { type: "CallExpression" },
           },
         ],
+        type: "VariableDeclaration",
       },
     };
 
@@ -1863,7 +1912,7 @@ describe("component-file-naming (defensive branches)", () => {
 
     // Act
     visitors.ExportDefaultDeclaration?.({
-      declaration: { type: "FunctionExpression", id: null },
+      declaration: { id: null, type: "FunctionExpression" },
     });
 
     // Assert
@@ -1876,13 +1925,13 @@ describe("component-file-naming (defensive branches)", () => {
     const visitors = rule.create(context);
     const node = {
       declaration: {
-        type: "VariableDeclaration",
         declarations: [
           {
-            id: { type: "Identifier", name: "Other" },
+            id: { name: "Other", type: "Identifier" },
             init: { type: "ArrowFunctionExpression" },
           },
         ],
+        type: "VariableDeclaration",
       },
     };
 
@@ -1900,7 +1949,7 @@ describe("component-file-naming (defensive branches)", () => {
 
     // Act
     visitors.ExportDefaultDeclaration?.({
-      declaration: { type: "FunctionDeclaration", id: { name: "Other" } },
+      declaration: { id: { name: "Other" }, type: "FunctionDeclaration" },
     });
 
     // Assert

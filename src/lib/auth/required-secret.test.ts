@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { requireAuthSecret, type AuthSecretName } from "./required-secret";
+import { requireAuthSecret } from "./required-secret";
+import type { AuthSecretName } from "./required-secret";
 
 const secretNames = [
   "BETTER_AUTH_SECRET",
@@ -7,7 +8,7 @@ const secretNames = [
   "GOOGLE_CLIENT_SECRET",
 ] satisfies AuthSecretName[];
 
-describe("requireAuthSecret", () => {
+describe(requireAuthSecret, () => {
   it.each(secretNames)(
     "should return the value when %s is configured",
     (name) => {

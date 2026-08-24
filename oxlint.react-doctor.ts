@@ -1,6 +1,7 @@
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "rules": {
+import { defineConfig } from "oxlint";
+
+export default defineConfig({
+  rules: {
     "react-doctor/activity-wraps-effect-heavy-subtree": "warn",
     "react-doctor/advanced-event-handler-refs": "warn",
     "react-doctor/anchor-target-exists": "warn",
@@ -638,6 +639,6 @@
     "react-doctor/zustand-no-fresh-selector-result": "error",
     "react-doctor/zustand-no-get-during-initialization": "error",
     "react-doctor/zustand-no-mutating-state": "error",
-    "react-doctor/zustand-no-whole-store-destructure": "warn"
-  }
-}
+    "react-doctor/zustand-no-whole-store-destructure": "warn",
+  },
+});
