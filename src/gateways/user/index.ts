@@ -21,6 +21,35 @@ export type UpdateUserAvatarResult =
       orphanedKey?: string;
     };
 
+/**
+ * The value `read` resolved to, or null when it rejected.
+ *
+ * Every failure on the avatar path collapses into one user-facing result, so a
+ * rejected read and an absent row reach the caller the same way. That includes
+ * a missing D1 or R2 binding, which surfaces as an upload failure rather than
+ * propagating.
+ */
+const orNull = async <T>(read: () => Promise<T>): Promise<T | null> => {
+  try {
+    return await read();
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Whether `act` resolved. A rejection is the caller's branch rather than an
+ * error, because the avatar path reports a failed delete as a distinct result.
+ */
+const succeeded = async (act: () => Promise<void>): Promise<boolean> => {
+  try {
+    await act();
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export const createUserGateway = ({
   newId,
   storage,
@@ -70,13 +99,7 @@ export const createUserGateway = ({
       return { error: "Unsupported image type", success: false };
     }
 
-    const current = await (async () => {
-      try {
-        return await store.findAvatarUrl(userId);
-      } catch {
-        return null;
-      }
-    })();
+    const current = await orNull(async () => await store.findAvatarUrl(userId));
     if (current === null) {
       return { error: "Failed to upload avatar", success: false };
     }
@@ -87,46 +110,40 @@ export const createUserGateway = ({
         : avatarKeyFromUrl(current.avatarUrl, userId);
     const key = `${userId}/avatars/${newId()}.${fileExt}`;
 
-    const publicUrl = await (async () => {
-      try {
-        return await storage.upload(key, file, file.type);
-      } catch {
-        return null;
-      }
-    })();
+    const publicUrl = await orNull(
+      async () => await storage.upload(key, file, file.type)
+    );
     if (publicUrl === null) {
       return { error: "Failed to upload avatar", success: false };
     }
 
-    const stored = await (async () => {
-      try {
-        return (await store.setAvatarUrl(userId, publicUrl)) === 1;
-      } catch {
-        return false;
-      }
-    })();
-    if (!stored) {
-      try {
+    const rowsTouched = await orNull(
+      async () => await store.setAvatarUrl(userId, publicUrl)
+    );
+    if (rowsTouched !== 1) {
+      const rolledBack = await succeeded(async () => {
         await storage.remove(key);
-        return { error: "Failed to upload avatar", success: false };
-      } catch {
-        return {
-          error: "Failed to upload avatar",
-          orphanedKey: key,
-          success: false,
-        };
-      }
+      });
+      return rolledBack
+        ? { error: "Failed to upload avatar", success: false }
+        : {
+            error: "Failed to upload avatar",
+            orphanedKey: key,
+            success: false,
+          };
     }
 
     if (previousKey === null) {
       return { avatarUrl: publicUrl, cleanup: "complete", success: true };
     }
-    try {
+    const removedPrevious = await succeeded(async () => {
       await storage.remove(previousKey);
-      return { avatarUrl: publicUrl, cleanup: "complete", success: true };
-    } catch {
-      return { avatarUrl: publicUrl, cleanup: "pending", success: true };
-    }
+    });
+    return {
+      avatarUrl: publicUrl,
+      cleanup: removedPrevious ? "complete" : "pending",
+      success: true,
+    };
   };
 
   return { fetchCurrentUser, updateUser, updateUserAvatar };

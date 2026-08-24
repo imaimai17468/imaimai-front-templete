@@ -43,7 +43,7 @@ export const createGetAvatarResponse =
       // a response nobody chose, because it has no `never` to widen into.
       default: {
         const unhandled: never = result;
-        return unhandled;
+        throw new Error(`Unhandled avatar read result: ${String(unhandled)}`);
       }
     }
   };

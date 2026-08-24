@@ -125,8 +125,8 @@ interface ParenToken {
 /**
  * Index of the token that drops `depth` to zero, or null when none does.
  *
- * Recurses over the parenthesis tokens rather than every character, so the
- * depth of the recursion is bounded by how many parens the line holds.
+ * Recurses over the tokens PAREN_SCAN matches rather than every character, so
+ * the recursion takes one frame per `(`, `)`, or backslash on the line.
  */
 const balancedClose = (
   tokens: ParenToken[],

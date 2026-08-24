@@ -50,7 +50,7 @@ export const uploadAvatarFn = createServerFn({ method: "POST" })
       // silently, because it has no `never` to widen into.
       default: {
         const unhandled: never = rejection;
-        return unhandled;
+        throw new Error(`Unhandled avatar rejection: ${String(unhandled)}`);
       }
     }
     return { file };

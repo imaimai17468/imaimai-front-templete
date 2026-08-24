@@ -1,5 +1,12 @@
 import path from "node:path";
 
+// An uppercase letter in any script, which is what "looks like a component"
+// meant when this compared a character with its own upper- and lower-cased form.
+const COMPONENT_NAME_RE = /^\p{Lu}/u;
+
+const isComponentName = (name) =>
+  typeof name === "string" && COMPONENT_NAME_RE.test(name);
+
 const noSizeProps = {
   create(context) {
     return {
@@ -20,28 +27,19 @@ const noSizeProps = {
           });
           return;
         }
-        if (elementName.type === "JSXIdentifier") {
-          const [firstChar] = elementName.name;
-          if (
-            firstChar === firstChar.toUpperCase() &&
-            firstChar !== firstChar.toLowerCase()
-          ) {
-            context.report({
-              message: `Do not pass '${propName}' prop to components. Control size externally via the parent's CSS layout.`,
-              node,
-            });
-          }
+        if (
+          elementName.type === "JSXIdentifier" &&
+          isComponentName(elementName.name)
+        ) {
+          context.report({
+            message: `Do not pass '${propName}' prop to components. Control size externally via the parent's CSS layout.`,
+            node,
+          });
         }
       },
     };
   },
 };
-
-// An uppercase letter in any script, which is what "looks like a component"
-// meant when this compared a character with its own upper- and lower-cased form.
-const COMPONENT_NAME_RE = /^\p{Lu}/u;
-
-const isComponentName = (name) => COMPONENT_NAME_RE.test(String(name ?? ""));
 
 const oneComponentPerFile = {
   create(context) {
