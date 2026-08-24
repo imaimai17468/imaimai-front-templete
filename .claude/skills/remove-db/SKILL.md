@@ -60,43 +60,41 @@ interface rather than omitting it, which was verified rather than assumed).
 
 ## 2. Fix auth-dependent UI
 
-### `src/components/shared/header/Header.tsx`
+### `src/components/shared/header/header.tsx`
 
 Remove the `user` prop, the `UserWithEmail` / `AuthNavigation` imports, and the
 `similarity-ignore` comment:
 
 ```tsx
 import { Link } from "@tanstack/react-router";
-import { ModeToggle } from "@/components/shared/mode-toggle/ModeToggle";
+import { ModeToggle } from "@/components/shared/mode-toggle/mode-toggle";
 
-export const Header = () => {
-  return (
-    <header className="sticky top-0 z-50 bg-transparent backdrop-blur-md">
-      <div className="flex items-center justify-between px-6 py-6">
-        <div>
-          <h1 className="font-medium text-2xl">
-            <Link to="/">Title</Link>
-          </h1>
-        </div>
-        <div className="flex items-center gap-5">
-          <Link to="/" className="text-gray-400 text-sm">
-            Link1
-          </Link>
-          <Link to="/" className="text-gray-400 text-sm">
-            Link2
-          </Link>
-          <ModeToggle />
-        </div>
+export const Header = () => (
+  <header className="sticky top-0 z-50 bg-transparent backdrop-blur-md">
+    <div className="flex items-center justify-between px-6 py-6">
+      <div>
+        <h1 className="font-medium text-2xl">
+          <Link to="/">Title</Link>
+        </h1>
       </div>
-    </header>
-  );
-};
+      <div className="flex items-center gap-5">
+        <Link to="/" className="text-gray-400 text-sm">
+          Link1
+        </Link>
+        <Link to="/" className="text-gray-400 text-sm">
+          Link2
+        </Link>
+        <ModeToggle />
+      </div>
+    </div>
+  </header>
+);
 ```
 
 ### `src/routes/__root.tsx`
 
 - Delete the `getCurrentUserFn` import and the `loader` option.
-- Delete `const { user } = Route.useLoaderData();` and render `<Header />` without props.
+- Delete `const { user } = useLoaderData({ from: "__root__" });` and render `<Header />` without props.
 
 ### `src/routes/index.tsx`
 
