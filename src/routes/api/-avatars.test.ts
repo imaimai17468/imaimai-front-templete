@@ -1,13 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  readAvatarForCurrentUser,
-  type AvatarReadResult,
-} from "@/server/fn/avatar";
-import { getAvatarResponse } from "./avatars";
+import { describe, expect, it, vi } from "vitest";
+import type { AvatarReadResult } from "@/server/fn/avatar";
+import { createGetAvatarResponse } from "./avatars";
+import type { AvatarReader } from "./avatars";
 
-vi.mock("@/server/fn/avatar", () => ({
-  readAvatarForCurrentUser: vi.fn<typeof readAvatarForCurrentUser>(),
-}));
+const makeFakes = () => {
+  const readAvatar = vi.fn<AvatarReader>();
+  return { getAvatarResponse: createGetAvatarResponse(readAvatar), readAvatar };
+};
 
 const request = () =>
   new Request("https://example.com/api/avatars?key=user-1%2Favatar.png");
@@ -24,24 +23,21 @@ const errorCases = [
   [{ kind: "unauthorized" }, 401, "Unauthorized"],
   [{ kind: "invalid-key" }, 400, "Invalid key"],
   [{ kind: "not-found" }, 404, "Not found"],
-] satisfies Array<[AvatarReadResult, number, string]>;
+] satisfies [AvatarReadResult, number, string][];
 
 describe("getAvatarResponse", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
   it.each(errorCases)(
     "should return the expected JSON error when authorization rejects the request",
     async (result, status, error) => {
-      vi.mocked(readAvatarForCurrentUser).mockResolvedValue(result);
+      const { getAvatarResponse, readAvatar } = makeFakes();
+      readAvatar.mockResolvedValue(result);
 
       const response = await getAvatarResponse(request());
 
       expect({
         status: response.status,
         body: await response.json(),
-      }).toEqual({
+      }).toStrictEqual({
         status,
         body: { error },
       });
@@ -54,7 +50,8 @@ describe("getAvatarResponse", () => {
   ])(
     "should return hardened headers with %s when the avatar exists",
     async (_label, contentType, expectedContentType) => {
-      vi.mocked(readAvatarForCurrentUser).mockResolvedValue({
+      const { getAvatarResponse, readAvatar } = makeFakes();
+      readAvatar.mockResolvedValue({
         kind: "found",
         avatar: {
           body: avatarBody(),
@@ -71,7 +68,7 @@ describe("getAvatarResponse", () => {
         noSniff: response.headers.get("X-Content-Type-Options"),
         contentSecurityPolicy: response.headers.get("Content-Security-Policy"),
         body: await response.text(),
-      }).toEqual({
+      }).toStrictEqual({
         status: 200,
         contentType: expectedContentType,
         cacheControl: "private, max-age=31536000, immutable",
@@ -83,9 +80,8 @@ describe("getAvatarResponse", () => {
   );
 
   it("should propagate the error when the authorization boundary fails", async () => {
-    vi.mocked(readAvatarForCurrentUser).mockRejectedValue(
-      new Error("avatar read failed")
-    );
+    const { getAvatarResponse, readAvatar } = makeFakes();
+    readAvatar.mockRejectedValue(new Error("avatar read failed"));
 
     const result = getAvatarResponse(request());
 

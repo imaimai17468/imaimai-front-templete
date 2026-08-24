@@ -1,64 +1,15 @@
-import { eq } from "drizzle-orm";
-import {
-  type UpdateUser,
-  type UserWithEmail,
-  UserWithEmailSchema,
-} from "@/entities/user";
-import { getDb } from "@/lib/drizzle/db";
-import { users } from "@/lib/drizzle/schema";
+import { UserWithEmailSchema } from "@/entities/user";
+import type { UpdateUser, UserWithEmail } from "@/entities/user";
 import {
   avatarContentMatchesMime,
   avatarExtensionForMime,
   avatarKeyFromUrl,
 } from "@/lib/storage/avatar-validation";
 import { deleteFromR2, uploadToR2 } from "@/lib/storage/r2";
+import { drizzleUserStore } from "./drizzle-store";
+import type { UserGatewayDeps } from "./ports";
 
-export const fetchCurrentUser = async (
-  userId: string,
-  email: string
-): Promise<UserWithEmail | null> => {
-  const db = getDb();
-
-  const profile = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-
-  const [profileRow] = profile;
-  if (profileRow === undefined) {
-    return null;
-  }
-
-  const rawUser = {
-    id: profileRow.id,
-    name: profileRow.name,
-    avatarUrl: profileRow.image,
-    createdAt: profileRow.createdAt.toISOString(),
-    updatedAt: profileRow.updatedAt.toISOString(),
-    email,
-  };
-
-  return UserWithEmailSchema.parse(rawUser);
-};
-
-export const updateUser = async (
-  userId: string,
-  data: UpdateUser
-): Promise<{ success: boolean; error?: string }> => {
-  try {
-    const db = getDb();
-    await db
-      .update(users)
-      .set({ name: data.name, updatedAt: new Date() })
-      .where(eq(users.id, userId));
-    return { success: true };
-  } catch {
-    return { success: false, error: "Failed to update profile" };
-  }
-};
-
-type UpdateUserAvatarResult =
+export type UpdateUserAvatarResult =
   | {
       success: true;
       avatarUrl: string;
@@ -70,73 +21,119 @@ type UpdateUserAvatarResult =
       orphanedKey?: string;
     };
 
-export const updateUserAvatar = async (
-  userId: string,
-  file: File
-): Promise<UpdateUserAvatarResult> => {
-  const fileExt = avatarExtensionForMime(file.type);
-  if (fileExt === null || !(await avatarContentMatchesMime(file))) {
-    return { success: false, error: "Unsupported image type" };
-  }
-
-  const db = getDb();
-  let currentAvatarUrl: string | null;
-  try {
-    const currentRows = await db
-      .select({ avatarUrl: users.image })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-    const [currentRow] = currentRows;
-    if (currentRow === undefined) {
-      return { success: false, error: "Failed to upload avatar" };
+export const createUserGateway = ({
+  newId,
+  storage,
+  store,
+}: UserGatewayDeps) => {
+  const fetchCurrentUser = async (
+    userId: string,
+    email: string
+  ): Promise<UserWithEmail | null> => {
+    const profile = await store.findProfile(userId);
+    if (profile === null) {
+      return null;
     }
-    currentAvatarUrl = currentRow.avatarUrl;
-  } catch {
-    return { success: false, error: "Failed to upload avatar" };
-  }
+    return UserWithEmailSchema.parse({
+      avatarUrl: profile.image,
+      createdAt: profile.createdAt.toISOString(),
+      email,
+      id: profile.id,
+      name: profile.name,
+      updatedAt: profile.updatedAt.toISOString(),
+    });
+  };
 
-  const previousKey =
-    currentAvatarUrl === null
-      ? null
-      : avatarKeyFromUrl(currentAvatarUrl, userId);
-  const key = `${userId}/avatars/${crypto.randomUUID()}.${fileExt}`;
-  let publicUrl: string;
-  try {
-    publicUrl = await uploadToR2(key, file, file.type);
-  } catch {
-    return { success: false, error: "Failed to upload avatar" };
-  }
-
-  try {
-    const updatedRows = await db
-      .update(users)
-      .set({ image: publicUrl, updatedAt: new Date() })
-      .where(eq(users.id, userId))
-      .returning({ id: users.id });
-    if (updatedRows.length !== 1) {
-      throw new Error("Avatar update affected an unexpected number of rows");
-    }
-  } catch {
+  const updateUser = async (
+    userId: string,
+    data: UpdateUser
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
-      await deleteFromR2(key);
-      return { success: false, error: "Failed to upload avatar" };
+      await store.updateName(userId, data.name);
+      return { success: true };
     } catch {
-      return {
-        success: false,
-        error: "Failed to upload avatar",
-        orphanedKey: key,
-      };
+      return { error: "Failed to update profile", success: false };
     }
-  }
+  };
 
-  if (previousKey === null) {
-    return { success: true, avatarUrl: publicUrl, cleanup: "complete" };
-  }
-  try {
-    await deleteFromR2(previousKey);
-    return { success: true, avatarUrl: publicUrl, cleanup: "complete" };
-  } catch {
-    return { success: true, avatarUrl: publicUrl, cleanup: "pending" };
-  }
+  // The previous avatar is deleted only after the row points at the new one, so
+  // a failure between the two leaves an unreferenced object rather than a row
+  // referencing a deleted one. `orphanedKey` names the object left behind when
+  // even the rollback delete fails, which is the only state a caller cannot
+  // reconstruct from the row.
+  const updateUserAvatar = async (
+    userId: string,
+    file: File
+  ): Promise<UpdateUserAvatarResult> => {
+    const fileExt = avatarExtensionForMime(file.type);
+    if (fileExt === null || !(await avatarContentMatchesMime(file))) {
+      return { error: "Unsupported image type", success: false };
+    }
+
+    const current = await (async () => {
+      try {
+        return await store.findAvatarUrl(userId);
+      } catch {
+        return null;
+      }
+    })();
+    if (current === null) {
+      return { error: "Failed to upload avatar", success: false };
+    }
+
+    const previousKey =
+      current.avatarUrl === null
+        ? null
+        : avatarKeyFromUrl(current.avatarUrl, userId);
+    const key = `${userId}/avatars/${newId()}.${fileExt}`;
+
+    const publicUrl = await (async () => {
+      try {
+        return await storage.upload(key, file, file.type);
+      } catch {
+        return null;
+      }
+    })();
+    if (publicUrl === null) {
+      return { error: "Failed to upload avatar", success: false };
+    }
+
+    const stored = await (async () => {
+      try {
+        return (await store.setAvatarUrl(userId, publicUrl)) === 1;
+      } catch {
+        return false;
+      }
+    })();
+    if (!stored) {
+      try {
+        await storage.remove(key);
+        return { error: "Failed to upload avatar", success: false };
+      } catch {
+        return {
+          error: "Failed to upload avatar",
+          orphanedKey: key,
+          success: false,
+        };
+      }
+    }
+
+    if (previousKey === null) {
+      return { avatarUrl: publicUrl, cleanup: "complete", success: true };
+    }
+    try {
+      await storage.remove(previousKey);
+      return { avatarUrl: publicUrl, cleanup: "complete", success: true };
+    } catch {
+      return { avatarUrl: publicUrl, cleanup: "pending", success: true };
+    }
+  };
+
+  return { fetchCurrentUser, updateUser, updateUserAvatar };
 };
+
+export const userGateway = createUserGateway({
+  newId: () => crypto.randomUUID(),
+  storage: { remove: deleteFromR2, upload: uploadToR2 },
+  store: drizzleUserStore,
+});

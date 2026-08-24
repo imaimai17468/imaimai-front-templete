@@ -1,68 +1,53 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchAvatar } from ".";
+import { describe, expect, it, vi } from "vitest";
+import { createAvatarGateway } from ".";
+import type { AvatarBucket } from ".";
 
-const { bucketGet } = vi.hoisted(() => ({
-  bucketGet: vi.fn<(key: string) => Promise<unknown>>(),
-}));
-
-vi.mock("@/server/cloudflare", () => ({
-  getCloudflareEnv: () => ({
-    AVATARS_BUCKET: {
-      get: bucketGet,
-    },
-  }),
-}));
+const makeFakes = () => {
+  const get = vi.fn<AvatarBucket["get"]>();
+  return { gateway: createAvatarGateway({ bucket: { get } }), get };
+};
 
 describe("fetchAvatar", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
   it("should return null when R2 has no object", async () => {
-    bucketGet.mockResolvedValue(null);
+    const { gateway, get } = makeFakes();
+    get.mockResolvedValue(null);
 
-    const result = await fetchAvatar("user-1/avatar.png");
+    const result = await gateway.fetchAvatar("user-1/avatar.png");
 
-    expect({
-      result,
-      calls: bucketGet.mock.calls,
-    }).toEqual({
-      result: null,
+    expect({ calls: get.mock.calls, result }).toStrictEqual({
       calls: [["user-1/avatar.png"]],
+      result: null,
     });
   });
 
   it("should return the body and stored content type when R2 has metadata", async () => {
+    const { gateway, get } = makeFakes();
     const body = new ReadableStream<Uint8Array>();
-    bucketGet.mockResolvedValue({
+    get.mockResolvedValue({
       body,
       httpMetadata: { contentType: "image/webp" },
     });
 
-    const result = await fetchAvatar("user-1/avatar.webp");
+    const result = await gateway.fetchAvatar("user-1/avatar.webp");
 
-    expect(result).toEqual({
-      body,
-      contentType: "image/webp",
-    });
+    expect(result).toStrictEqual({ body, contentType: "image/webp" });
   });
 
   it("should return a null content type when R2 has no metadata", async () => {
+    const { gateway, get } = makeFakes();
     const body = new ReadableStream<Uint8Array>();
-    bucketGet.mockResolvedValue({ body });
+    get.mockResolvedValue({ body });
 
-    const result = await fetchAvatar("user-1/avatar.png");
+    const result = await gateway.fetchAvatar("user-1/avatar.png");
 
-    expect(result).toEqual({
-      body,
-      contentType: null,
-    });
+    expect(result).toStrictEqual({ body, contentType: null });
   });
 
   it("should propagate the error when R2 fails", async () => {
-    bucketGet.mockRejectedValue(new Error("R2 failed"));
+    const { gateway, get } = makeFakes();
+    get.mockRejectedValue(new Error("R2 failed"));
 
-    const result = fetchAvatar("user-1/avatar.png");
+    const result = gateway.fetchAvatar("user-1/avatar.png");
 
     await expect(result).rejects.toThrow("R2 failed");
   });

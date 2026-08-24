@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { UpdateUserSchema } from "@/entities/user";
-import { updateUser, updateUserAvatar } from "@/gateways/user";
+import { userGateway } from "@/gateways/user";
 import {
   avatarSizeRejection,
   MAX_AVATAR_BYTES,
@@ -19,7 +19,7 @@ export const updateProfileFn = createServerFn({ method: "POST" })
     if (!user) {
       return { error: "Not authenticated" } as const;
     }
-    return updateUser(user.id, data);
+    return await userGateway.updateUser(user.id, data);
   });
 
 export const uploadAvatarFn = createServerFn({ method: "POST" })
@@ -33,16 +33,25 @@ export const uploadAvatarFn = createServerFn({ method: "POST" })
     }
     // Enforced here, not only in the browser: uploadAvatarFn is callable
     // directly, so a client-side ceiling alone bounds nothing.
-    switch (avatarSizeRejection(file.size)) {
-      case "empty":
+    const rejection = avatarSizeRejection(file.size);
+    switch (rejection) {
+      case "empty": {
         throw new Error("No file selected");
-      case "too-large":
+      }
+      case "too-large": {
         throw new Error(
           `Avatar must be ${MAX_AVATAR_BYTES / 1024 / 1024}MB or smaller`
         );
-      // Exhaustive on purpose: a new rejection reason must fail this switch.
-      case null:
+      }
+      case null: {
         break;
+      }
+      // A new rejection reason fails to compile here rather than passing
+      // silently, because it has no `never` to widen into.
+      default: {
+        const unhandled: never = rejection;
+        return unhandled;
+      }
     }
     return { file };
   })
@@ -51,5 +60,5 @@ export const uploadAvatarFn = createServerFn({ method: "POST" })
     if (!user) {
       return { error: "Not authenticated" } as const;
     }
-    return updateUserAvatar(user.id, data.file);
+    return await userGateway.updateUserAvatar(user.id, data.file);
   });

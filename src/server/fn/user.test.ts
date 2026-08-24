@@ -1,74 +1,69 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchCurrentUser } from "@/gateways/user";
-import { getSession } from "@/lib/auth/session";
-import { getCurrentUser } from "./user";
+import { describe, expect, it, vi } from "vitest";
+import type { getSession } from "@/lib/auth/session";
+import { createGetCurrentUser } from "./user";
+import type { CurrentUserDeps } from "./user";
 
-vi.mock("@/gateways/user", () => ({
-  fetchCurrentUser: vi.fn<typeof fetchCurrentUser>(),
-}));
-
-vi.mock("@/lib/auth/session", () => ({
-  getSession: vi.fn<typeof getSession>(),
-}));
+const makeFakes = () => {
+  const fetchCurrentUser = vi.fn<CurrentUserDeps["fetchCurrentUser"]>();
+  const readSession = vi.fn<CurrentUserDeps["readSession"]>();
+  return {
+    fetchCurrentUser,
+    getCurrentUser: createGetCurrentUser({ fetchCurrentUser, readSession }),
+    readSession,
+  };
+};
 
 const authenticatedSession = {
   session: {
-    id: "session-id",
     createdAt: new Date("2026-08-13T00:00:00Z"),
-    updatedAt: new Date("2026-08-13T00:00:00Z"),
-    userId: "user-1",
     expiresAt: new Date("2026-08-20T00:00:00Z"),
-    token: "session-token",
+    id: "session-id",
     ipAddress: null,
+    token: "session-token",
+    updatedAt: new Date("2026-08-13T00:00:00Z"),
     userAgent: null,
+    userId: "user-1",
   },
   user: {
-    id: "user-1",
-    name: "Test User",
+    createdAt: new Date("2026-08-13T00:00:00Z"),
     email: "user-1@example.com",
     emailVerified: true,
+    id: "user-1",
     image: null,
-    createdAt: new Date("2026-08-13T00:00:00Z"),
+    name: "Test User",
     updatedAt: new Date("2026-08-13T00:00:00Z"),
   },
 } satisfies NonNullable<Awaited<ReturnType<typeof getSession>>>;
 
 describe("getCurrentUser", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
   it("should return null without reading the gateway when the request is anonymous", async () => {
-    vi.mocked(getSession).mockResolvedValue(null);
+    const { fetchCurrentUser, getCurrentUser, readSession } = makeFakes();
+    readSession.mockResolvedValue(null);
 
     const result = await getCurrentUser();
 
-    expect({
-      result,
-      fetchCalls: vi.mocked(fetchCurrentUser).mock.calls,
-    }).toEqual({
-      result: null,
+    expect({ fetchCalls: fetchCurrentUser.mock.calls, result }).toStrictEqual({
       fetchCalls: [],
+      result: null,
     });
   });
 
   it("should pass the server-derived identity when the request is authenticated", async () => {
-    vi.mocked(getSession).mockResolvedValue(authenticatedSession);
-    vi.mocked(fetchCurrentUser).mockResolvedValue(null);
+    const { fetchCurrentUser, getCurrentUser, readSession } = makeFakes();
+    readSession.mockResolvedValue(authenticatedSession);
+    fetchCurrentUser.mockResolvedValue(null);
 
     const result = await getCurrentUser();
 
-    expect({
-      result,
-      fetchCalls: vi.mocked(fetchCurrentUser).mock.calls,
-    }).toEqual({
-      result: null,
+    expect({ fetchCalls: fetchCurrentUser.mock.calls, result }).toStrictEqual({
       fetchCalls: [["user-1", "user-1@example.com"]],
+      result: null,
     });
   });
 
   it("should propagate the error when session resolution fails", async () => {
-    vi.mocked(getSession).mockRejectedValue(new Error("session failed"));
+    const { getCurrentUser, readSession } = makeFakes();
+    readSession.mockRejectedValue(new Error("session failed"));
 
     const result = getCurrentUser();
 
@@ -76,8 +71,9 @@ describe("getCurrentUser", () => {
   });
 
   it("should propagate the error when the gateway fails", async () => {
-    vi.mocked(getSession).mockResolvedValue(authenticatedSession);
-    vi.mocked(fetchCurrentUser).mockRejectedValue(new Error("gateway failed"));
+    const { fetchCurrentUser, getCurrentUser, readSession } = makeFakes();
+    readSession.mockResolvedValue(authenticatedSession);
+    fetchCurrentUser.mockRejectedValue(new Error("gateway failed"));
 
     const result = getCurrentUser();
 

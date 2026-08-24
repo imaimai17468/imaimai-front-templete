@@ -1,55 +1,52 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchAvatar, type AvatarObject } from "@/gateways/avatar";
-import { getSession } from "@/lib/auth/session";
-import { readAvatarForCurrentUser } from "./avatar";
+import { describe, expect, it, vi } from "vitest";
+import type { AvatarObject } from "@/gateways/avatar";
+import type { getSession } from "@/lib/auth/session";
+import { createReadAvatarForCurrentUser } from "./avatar";
+import type { AvatarReadDeps } from "./avatar";
 
-vi.mock("@/gateways/avatar", () => ({
-  fetchAvatar: vi.fn<typeof fetchAvatar>(),
-}));
-
-vi.mock("@/lib/auth/session", () => ({
-  getSession: vi.fn<typeof getSession>(),
-}));
+const makeFakes = () => {
+  const fetchAvatar = vi.fn<AvatarReadDeps["fetchAvatar"]>();
+  const readSession = vi.fn<AvatarReadDeps["readSession"]>();
+  return {
+    fetchAvatar,
+    readAvatar: createReadAvatarForCurrentUser({ fetchAvatar, readSession }),
+    readSession,
+  };
+};
 
 const sessionFor = (userId: string) =>
   ({
     session: {
-      id: "session-id",
       createdAt: new Date("2026-08-13T00:00:00Z"),
-      updatedAt: new Date("2026-08-13T00:00:00Z"),
-      userId,
       expiresAt: new Date("2026-08-20T00:00:00Z"),
-      token: "session-token",
+      id: "session-id",
       ipAddress: null,
+      token: "session-token",
+      updatedAt: new Date("2026-08-13T00:00:00Z"),
       userAgent: null,
+      userId,
     },
     user: {
-      id: userId,
-      name: "Test User",
+      createdAt: new Date("2026-08-13T00:00:00Z"),
       email: `${userId}@example.com`,
       emailVerified: true,
+      id: userId,
       image: null,
-      createdAt: new Date("2026-08-13T00:00:00Z"),
+      name: "Test User",
       updatedAt: new Date("2026-08-13T00:00:00Z"),
     },
   }) satisfies NonNullable<Awaited<ReturnType<typeof getSession>>>;
 
 describe("readAvatarForCurrentUser", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
   it("should reject without reading persistence when the request is anonymous", async () => {
-    vi.mocked(getSession).mockResolvedValue(null);
+    const { fetchAvatar, readAvatar, readSession } = makeFakes();
+    readSession.mockResolvedValue(null);
 
-    const result = await readAvatarForCurrentUser("user-1/avatar.png");
+    const result = await readAvatar("user-1/avatar.png");
 
-    expect({
-      result,
-      fetchCalls: vi.mocked(fetchAvatar).mock.calls,
-    }).toEqual({
-      result: { kind: "unauthorized" },
+    expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
       fetchCalls: [],
+      result: { kind: "unauthorized" },
     });
   });
 
@@ -60,67 +57,63 @@ describe("readAvatarForCurrentUser", () => {
   ])(
     "should reject without reading persistence when %s",
     async (_label, key) => {
-      vi.mocked(getSession).mockResolvedValue(sessionFor("user-1"));
+      const { fetchAvatar, readAvatar, readSession } = makeFakes();
+      readSession.mockResolvedValue(sessionFor("user-1"));
 
-      const result = await readAvatarForCurrentUser(key);
+      const result = await readAvatar(key);
 
-      expect({
-        result,
-        fetchCalls: vi.mocked(fetchAvatar).mock.calls,
-      }).toEqual({
-        result: { kind: "invalid-key" },
+      expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
         fetchCalls: [],
+        result: { kind: "invalid-key" },
       });
     }
   );
 
   it("should return not-found when the owned object is absent", async () => {
-    vi.mocked(getSession).mockResolvedValue(sessionFor("user-1"));
-    vi.mocked(fetchAvatar).mockResolvedValue(null);
+    const { fetchAvatar, readAvatar, readSession } = makeFakes();
+    readSession.mockResolvedValue(sessionFor("user-1"));
+    fetchAvatar.mockResolvedValue(null);
 
-    const result = await readAvatarForCurrentUser("user-1/avatar.png");
+    const result = await readAvatar("user-1/avatar.png");
 
-    expect({
-      result,
-      fetchCalls: vi.mocked(fetchAvatar).mock.calls,
-    }).toEqual({
-      result: { kind: "not-found" },
+    expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
       fetchCalls: [["user-1/avatar.png"]],
+      result: { kind: "not-found" },
     });
   });
 
   it("should return the gateway object when the owned object exists", async () => {
+    const { fetchAvatar, readAvatar, readSession } = makeFakes();
     const avatar = {
       body: new ReadableStream<Uint8Array>(),
       contentType: "image/png",
     } satisfies AvatarObject;
-    vi.mocked(getSession).mockResolvedValue(sessionFor("user-1"));
-    vi.mocked(fetchAvatar).mockResolvedValue(avatar);
+    readSession.mockResolvedValue(sessionFor("user-1"));
+    fetchAvatar.mockResolvedValue(avatar);
 
-    const result = await readAvatarForCurrentUser("user-1/avatar.png");
+    const result = await readAvatar("user-1/avatar.png");
 
-    expect({
-      result,
-      fetchCalls: vi.mocked(fetchAvatar).mock.calls,
-    }).toEqual({
-      result: { kind: "found", avatar },
+    expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
       fetchCalls: [["user-1/avatar.png"]],
+      result: { avatar, kind: "found" },
     });
   });
 
   it("should propagate the error when session resolution fails", async () => {
-    vi.mocked(getSession).mockRejectedValue(new Error("session failed"));
+    const { readAvatar, readSession } = makeFakes();
+    readSession.mockRejectedValue(new Error("session failed"));
 
-    const result = readAvatarForCurrentUser("user-1/avatar.png");
+    const result = readAvatar("user-1/avatar.png");
 
     await expect(result).rejects.toThrow("session failed");
   });
 
   it("should propagate the error when persistence fails", async () => {
-    vi.mocked(getSession).mockResolvedValue(sessionFor("user-1"));
-    vi.mocked(fetchAvatar).mockRejectedValue(new Error("R2 failed"));
+    const { fetchAvatar, readAvatar, readSession } = makeFakes();
+    readSession.mockResolvedValue(sessionFor("user-1"));
+    fetchAvatar.mockRejectedValue(new Error("R2 failed"));
 
-    const result = readAvatarForCurrentUser("user-1/avatar.png");
+    const result = readAvatar("user-1/avatar.png");
 
     await expect(result).rejects.toThrow("R2 failed");
   });
