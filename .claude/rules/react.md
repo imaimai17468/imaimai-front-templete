@@ -5,8 +5,6 @@ alwaysApply: false
 paths: **/*.tsx
 ---
 
-The nine rules in `tools/oxlint-plugins/` catch none of what follows, so nothing below is enforced mechanically.
-
 # React Purity
 
 Render must be a pure computation. The three principles below are independent, and violating any one breaks purity.
@@ -29,14 +27,14 @@ The deciding question: is this code running because the user did something (even
 - **Partial state adjustment on prop change**: Derive the value from existing state/props instead of syncing with an effect. e.g. store `selectedId` instead of `selectedItem`, and derive the item via `items.find()`.
 - **Effect chains**: Multiple effects where each sets state that triggers the next is a sign that the logic belongs in a single event handler that batches all state updates at once.
 - **Notifying parent of state change**: Don't `useEffect(() => onChange(value), [value])`. Call `onChange` directly in the same event handler that calls `setValue`.
-- **useEffect is not componentDidMount**: Don't think of `useEffect(() => {}, [])` as "run once on mount." An effect synchronizes with external systems whenever its reactive dependencies change. Mount and update are a single unified lifecycle. When you want "skip on initial render," reframe: the real need is usually an early return based on state value (e.g. `if (!roomId) return;`), never a ref-based "first render" flag.
+- **useEffect is not componentDidMount**: Don't think of `useEffect(() => {}, [])` as "run once on mount." An effect synchronizes with external systems whenever its reactive dependencies change. Mount and update are a single unified lifecycle. When you want "skip on initial render," reframe: the real need is usually an early return based on state value (e.g. `if (roomId === null) return;`), never a ref-based "first render" flag.
 
 # Synchronizing with External Systems
 
 Corollaries of "You Might Not Need an Effect" for things that genuinely live outside React (fonts, observers, canvas, storage).
 
 - **useSyncExternalStore for external readiness**: When "is X ready?" comes from an external system (font loading, media queries, storage), don't mirror it with `useState` + effect. Keep a module-level store (subscribe / snapshot) and read it with `useSyncExternalStore`. Its server snapshot (`() => false`) doubles as the SSR/hydration guard, replacing the `mounted`-flag pattern.
-- **Module scope for app initialization**: Once-per-page-load work (injecting a stylesheet link, kicking off an initial resource load) runs at module level behind a `typeof document === "undefined"` guard, never in a `[]` effect. Once per app is not once per mount.
+- **Module scope for app initialization**: Once-per-page-load work (injecting a stylesheet link, kicking off an initial resource load) runs at module level behind a `!("document" in globalThis)` guard, never in a `[]` effect. Once per app is not once per mount.
 - **Event handlers trigger resource loads**: When a user choice requires loading an external resource, start the load in the change handler that made the choice. If the handler needs the post-patch state, predict it by calling the pure transition function (`transition(state, patch)`). Never add an effect that watches the state to react to it.
 - **Transition functions own state invariants**: When one field constrains another (the selected option must remain valid for the newly chosen group), enforce it inside the pure transition function (a reducer or a plain exported function) on every patch. No adjust-state-in-effect, no re-clamping at every read site.
 - **Expensive derivation is still derivation**: A computation that uses the DOM as a calculator (offscreen-canvas text measurement) belongs in `useMemo` during render when it is idempotent and memoized. The module-level cache (keyed by inputs) shares results across component instances and remounts, while `useMemo` avoids redundant cache lookups within a single instance's re-renders, so both layers are needed. An effect copying results into state replaces neither. Gate the computation on the external readiness snapshot so it never runs during SSR.
