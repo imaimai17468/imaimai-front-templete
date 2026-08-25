@@ -132,7 +132,7 @@ neutral, so it belongs under a display face rather than carrying one.
 
 ### Spacing Tiers
 
-Spacing follows defined tiers in `src/styles.css`. Use the right tier for
+Spacing follows Tailwind's default scale. Use the right tier for
 the right context: smallest for intra-component gaps, medium for
 inter-component, largest for page structure.
 
