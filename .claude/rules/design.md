@@ -209,8 +209,7 @@ the effect jumps on hover, give the element an opaque surface.
 ### Interactive States
 
 Every interactive element must define all five states: default, hover,
-focus-visible, active, and disabled. A hover state is not optional. Focus
-must be visible, so never remove the focus indicator.
+focus-visible, active, and disabled. Never remove the focus indicator.
 
 A hover state changes fill, color, or an icon's position while the element keeps
 its size and place. Reserve any lift for a card, and let a value shift carry it
