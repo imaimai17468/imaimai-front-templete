@@ -60,6 +60,8 @@ Each shape below is read as machine-written, and each also costs the reader some
 
 **Do not set up a reveal.** A colon followed by a dramatic completion (`The detail that makes it work: a separate agent grades it`), a question you answer yourself (`The result? Devastating`), and a run-up before the point (`Here's the thing`, `It turns out`, `What most people miss`, `結論からいうと`) all delay a sentence you could simply write. Use the colon for a list, a label, or a quotation.
 
+**Put the word that answers the previous sentence near the front of the next one.** Where it arrives at the end, the reader holds the whole sentence unplaced until it lands, and a run of them reads as a list of facts with the connections left out. The same gap opens when the subject changes between adjacent sentences with nothing announcing the change.
+
 **Prefer two parallel items to three.** Three reads as a template filling itself, where two reads as chosen. An enumeration of things that genuinely number three is exempt, and announcing the count (`論点は3つあります`) is not.
 
 **State an effect rather than its importance.** `a testament to`, `pivotal`, `significant`, `重要なのは〜である`. Where the effect is worth naming, name it. The same holds for a trailing participle that gestures at meaning (`highlighting its role in`, `〜を示している`), which either becomes a specific claim or goes.
