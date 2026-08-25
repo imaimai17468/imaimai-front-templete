@@ -16,8 +16,9 @@ That base is a starting point rather than an identity, so a project that wants a
 palette, a typeface, or a corner treatment of its own replaces the values there
 and leaves the rules below alone.
 
-This document governs how those tokens are used. Keyboard behavior, forms,
-hydration, and performance sit outside its subject.
+This document governs how those tokens are used. A token value changes in
+`src/styles.css` and never here. Keyboard behavior, forms, hydration, and
+performance sit outside its subject.
 
 ## Colors
 
@@ -332,11 +333,3 @@ unchanged. Decide that first, then build the sections from it.
 - Build on the primitives in `src/components/ui/` and restyle what you take.
   Taking a prebuilt block's behavior costs nothing, and taking its styling
   costs the identity.
-
-## Iteration Guide
-
-1. To change token values, edit `src/styles.css`. Never write token values
-   in this file.
-2. When adding a new semantic color, add both light and dark values together.
-3. This file describes **why** and **when**. `src/styles.css` defines
-   **what** (values).
