@@ -5,7 +5,13 @@
 pre-commit:
   commands:
     lint:
-      glob: "*.{js,ts,jsx,tsx}"
+      # oxlint exits 1 with "No files found to lint" when every path it gets
+      # sits outside `bun run lint`'s directories, so an unscoped glob lets a
+      # root-level config file block the commit.
+      glob:
+        - "src/*.{js,ts,jsx,tsx}"
+        - "tools/*.{js,ts,jsx,tsx}"
+        - ".claude/hooks/*.{js,ts,jsx,tsx}"
       run: bunx oxlint --type-aware {staged_files}
     format:
       glob: "*.{js,ts,jsx,tsx,json}"
