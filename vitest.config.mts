@@ -17,7 +17,7 @@ export default defineConfig({
     environment: "jsdom",
     isolate: false,
     setupFiles: ["./src/test-setup.ts"],
-    // include が対象の全リスト — 新しい純関数モジュールを
+    // include が対象の全リスト。新しい純関数モジュールを
     // テスト付きで追加したらここにも足す。
     coverage: {
       include: [
