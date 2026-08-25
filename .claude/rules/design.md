@@ -141,7 +141,8 @@ inter-component, largest for page structure.
 
 - Use parent `gap` (flex/grid), never per-element `margin`. Per-element
   margins collapse, double up, and require CSS changes when elements are
-  removed.
+  removed. Inline siblings also pick up a space from the source newlines
+  between them, which `flex` or `grid` on the parent removes.
 - Never mix spacing scales in the same layout.
 - `padding` is internal space, and `margin` is external space. Don't swap
   them.
@@ -215,6 +216,9 @@ A hover state changes fill, color, or an icon's position while the element keeps
 its size and place. Reserve any lift for a card, and let a value shift carry it
 rather than a shadow.
 
+Set `background` explicitly on every button, because the user-agent default
+differs across browsers.
+
 Touch targets must be at least 44px × 44px. If the visual element is smaller,
 expand the hit area with padding or a transparent pseudo-element.
 
@@ -258,6 +262,8 @@ because its default `min-width: auto` refuses to shrink.
 
 Prefer `max-width` and `min-width` over fixed `width`. Prefer `min-height`
 over fixed `height`. Components should flex with content rather than fight it.
+Take `auto-fit` in `repeat()` where the tracks should stretch to fill the row,
+and `auto-fill` where the empty tracks should hold their width.
 
 ### Overflow
 
@@ -274,15 +280,6 @@ visible.
 
 Avoid over-targeting selectors. `z-index` only works on positioned, flex,
 or grid children, never on elements in normal flow.
-
-### Cross-browser
-
-- Button default backgrounds differ across browsers. Always set `background`
-  explicitly on buttons.
-- `auto-fill` and `auto-fit` in CSS Grid behave differently with leftover
-  space.
-- Inline elements create phantom spacing between siblings. Use `flex` or
-  `grid` on the parent to eliminate it.
 
 ### Animations
 
