@@ -16,7 +16,10 @@ MISSING=()
 
 command -v jq >/dev/null 2>&1 || MISSING+=("jq (ALL guard hooks parse their input with jq — the gates are effectively OFF)")
 command -v bun >/dev/null 2>&1 || MISSING+=("bun (the Stop quality gate, its markdown dead-link check, and lefthook's pre-commit/pre-push checks cannot run)")
-[ -x "$HOME/.cargo/bin/similarity-ts" ] || command -v similarity-ts >/dev/null 2>&1 || MISSING+=("similarity-ts (Stop gate skips duplicate-type/function detection; install: cargo install similarity-ts)")
+# PATH only, matching the condition lefthook's similarity stage skips on: a
+# binary the hook cannot invoke is absent as far as the gate is concerned, so
+# accepting ~/.cargo/bin here would report a skipped check as present.
+command -v similarity-ts >/dev/null 2>&1 || MISSING+=("similarity-ts not on PATH (lefthook pre-push skips duplicate-type/function detection; install: cargo install similarity-ts, and put ~/.cargo/bin on PATH)")
 # The installed hooks, not the binary: `bun run prepare` writes them, and a tree
 # whose .git/hooks are absent runs no pre-commit check while every binary above
 # is present.
@@ -25,8 +28,8 @@ command -v bun >/dev/null 2>&1 || MISSING+=("bun (the Stop quality gate, its mar
 # `module.registerHooks`, which @cloudflare/vite-plugin imports at module top
 # level, so loading vite.config.ts fails wherever it is loaded. Observed on
 # node 22.14: `bun run build` exits 1, while knip prints "Error loading
-# vite.config.ts" and still exits 0 — the Stop gate's knip layer loses its
-# vite-config analysis with no failing exit code to show for it.
+# vite.config.ts" and still exits 0 — CI's knip step loses its vite-config
+# analysis with no failing exit code to show for it.
 node -e 'if (typeof require("node:module").registerHooks !== "function") process.exit(1)' >/dev/null 2>&1 || MISSING+=("node with module.registerHooks — see engines in package.json (vite build fails; knip still exits 0 but cannot analyze vite.config.ts)")
 
 if [ "${#MISSING[@]}" -gt 0 ]; then

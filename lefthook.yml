@@ -25,3 +25,11 @@ pre-push:
       run: bun run typecheck
     cf-typegen-check:
       run: bun run cf-typegen:check
+    # `similarity-ignore` comments are honoured by similarity-ts itself, and
+    # without --fail-on-duplicates it exits 0 whatever it finds. The skip keeps a
+    # machine that never installed this cargo binary from being unable to push
+    # (AGENTS.md, "Degraded Environments").
+    similarity:
+      run: similarity-ts ./src --fail-on-duplicates
+      skip:
+        - run: "! command -v similarity-ts"
