@@ -4,35 +4,13 @@ import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
-
-const CYCLE = ["light", "dark"] as const;
-type Theme = (typeof CYCLE)[number];
+import { needsThemeNormalization, resolveThemeCycle } from "./theme-cycle";
+import type { Theme } from "./theme-cycle";
 
 const ACTION_LABELS = {
   dark: "ライトモードに切り替え",
   light: "ダークモードに切り替え",
 } satisfies Record<Theme, string>;
-
-export interface ThemeCycle {
-  current: Theme;
-  next: Theme;
-}
-
-export const resolveThemeCycle = (
-  rawTheme: string | undefined,
-  mounted: boolean
-): ThemeCycle => {
-  const matched = CYCLE.find((v) => v === rawTheme);
-  const current = mounted ? (matched ?? "light") : "light";
-  const index = CYCLE.indexOf(current);
-  const next = CYCLE[(index + 1) % CYCLE.length] ?? CYCLE[0];
-  return { current, next };
-};
-
-// CYCLE 外の永続値（旧ドロップダウンの "system" 等）を検出する。
-// undefined（未解決 / 未保存）は対象外。
-export const needsThemeNormalization = (theme: string | undefined): boolean =>
-  theme !== undefined && !CYCLE.some((v) => v === theme);
 
 // ハイドレーション検出用。購読対象の外部システムは存在しないため subscribe は
 // 何も通知しない。サーバスナップショット false がそのまま SSR ガードになる。

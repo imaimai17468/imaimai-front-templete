@@ -21,6 +21,7 @@ export default defineConfig({
     // テスト付きで追加したらここにも足す。
     coverage: {
       include: [
+        "src/components/shared/mode-toggle/theme-cycle.ts",
         "src/entities/**",
         "src/lib/storage/avatar-validation.ts",
         "src/lib/utils.ts",

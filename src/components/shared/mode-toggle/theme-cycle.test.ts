@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { needsThemeNormalization, resolveThemeCycle } from "./mode-toggle";
+import { needsThemeNormalization, resolveThemeCycle } from "./theme-cycle";
 
 describe(resolveThemeCycle, () => {
   it.each([
