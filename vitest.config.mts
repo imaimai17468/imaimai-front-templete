@@ -7,8 +7,8 @@ export default defineConfig({
     tsconfigPaths: true,
     alias: {
       "cloudflare:workers": resolve(
-        __dirname,
-        "src/test/cloudflare-workers-stub.ts",
+        import.meta.dirname,
+        "src/test/cloudflare-workers-stub.ts"
       ),
     },
   },
