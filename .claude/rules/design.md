@@ -279,8 +279,6 @@ or grid children, never on elements in normal flow.
 
 - Button default backgrounds differ across browsers. Always set `background`
   explicitly on buttons.
-- `transparent` renders as `rgba(0,0,0,0)` in some browsers' gradients. Use
-  the actual color with alpha 0 instead.
 - `auto-fill` and `auto-fit` in CSS Grid behave differently with leftover
   space.
 - Inline elements create phantom spacing between siblings. Use `flex` or
