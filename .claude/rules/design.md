@@ -16,7 +16,8 @@ That base is a starting point rather than an identity, so a project that wants a
 palette, a typeface, or a corner treatment of its own replaces the values there
 and leaves the rules below alone.
 
-This document governs how those tokens are used.
+This document governs how those tokens are used. Keyboard behavior, forms,
+hydration, and performance sit outside its subject.
 
 ## Colors
 
@@ -339,10 +340,3 @@ unchanged. Decide that first, then build the sections from it.
 2. When adding a new semantic color, add both light and dark values together.
 3. This file describes **why** and **when**. `src/styles.css` defines
    **what** (values).
-
-## Sources
-
-Distilled from [pols.dev/slop.md](https://pols.dev/slop.md) and
-[vercel-labs/web-interface-guidelines](https://github.com/vercel-labs/web-interface-guidelines).
-Their keyboard, forms, hydration, and performance rules sit outside this file's
-subject.
