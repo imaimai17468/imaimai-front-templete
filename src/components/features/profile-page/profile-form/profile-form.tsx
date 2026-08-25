@@ -145,6 +145,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
               onClick={handleAvatarClick}
               className="absolute right-0 bottom-0 cursor-pointer rounded-full border bg-primary p-2 text-primary-foreground transition-transform hover:scale-110"
               disabled={isPending}
+              aria-label="Change profile image"
             >
               <Camera className="size-4" />
             </button>
