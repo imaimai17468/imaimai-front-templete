@@ -65,7 +65,7 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/rules/*.mdc` as a file-level symlink so Cursor sessions load the same text (never replace a symlink with a copy):
 
-- **`react.md`** (`**/*.tsx`): the official [Rules of React](https://ja.react.dev/reference/rules), covering purity, hooks at the top level, component splitting, and module organization. It carries project-independent principles only, and this repository's concrete placements are in the paragraph below.
+- **`react.md`** (`**/*.tsx`): purity and the calling rules from the official [Rules of React](https://react.dev/reference/rules), then effects, component splitting, testable shape, and module organization. It carries project-independent principles only, and this repository's concrete placements are in the paragraph below.
 - **`design.md`** (`src/**/*.css`, `src/**/*.tsx`): the design system, covering color roles, typography, spacing, shapes, composition, and component conventions.
 - **`prose.md`** (no path scope, so it loads every session): how a sentence is built in anything a person reads, English and Japanese.
 

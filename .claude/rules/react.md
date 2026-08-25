@@ -1,5 +1,5 @@
 ---
-description: Rules of React, covering purity, hooks at the top level, component splitting, and module organization
+description: Purity and the calling rules from the Rules of React, then effects, component splitting, testable shape, and module organization
 globs: **/*.tsx
 alwaysApply: false
 paths: **/*.tsx
