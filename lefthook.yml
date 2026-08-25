@@ -17,6 +17,12 @@ pre-commit:
     format:
       glob: "*.{js,ts,jsx,tsx,json}"
       run: bunx oxfmt --check {staged_files}
+    # `--staged` reads the git index itself, so it needs no {staged_files}; the
+    # glob only keeps a docs-only commit from paying for the scan. `--no-score`
+    # drops the score API call, leaving the exit code the hook acts on.
+    doctor:
+      glob: "*.{js,ts,jsx,tsx}"
+      run: bun run doctor --staged --no-score
 pre-push:
   commands:
     check:

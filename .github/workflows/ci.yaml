@@ -74,6 +74,11 @@ jobs:
     - name: Detect unused code (knip)
       run: bun run knip
 
+    # Whole-tree counterpart of lefthook's pre-commit `--staged` run. `--no-score`
+    # keeps the diagnostics off the vendor's score API; the exit code is what gates.
+    - name: Scan React diagnostics (react-doctor)
+      run: bun run doctor --no-score
+
     - name: Run Tests
       run: bun run test
 
