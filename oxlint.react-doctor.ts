@@ -10,7 +10,8 @@ export default defineConfig({
     "react-doctor/async-defer-await": "warn",
     "react-doctor/async-parallel": "warn",
     "react-doctor/auth-token-in-web-storage": "warn",
-    "react-doctor/class-component-missing-component-will-unmount-teardown": "warn",
+    "react-doctor/class-component-missing-component-will-unmount-teardown":
+      "warn",
     "react-doctor/client-localstorage-no-version": "warn",
     "react-doctor/client-passive-event-listeners": "warn",
     "react-doctor/context-provider-value-from-unmemoized-local-literal": "warn",
@@ -276,7 +277,8 @@ export default defineConfig({
     "react-doctor/no-nullish-coalescing-arithmetic-precedence": "warn",
     "react-doctor/no-numbered-section-markers": "warn",
     "react-doctor/no-object-keys-values-entries-on-maybe-undefined": "warn",
-    "react-doctor/no-object-or-array-coerced-to-string-in-template-literal": "warn",
+    "react-doctor/no-object-or-array-coerced-to-string-in-template-literal":
+      "warn",
     "react-doctor/no-outline-none": "warn",
     "react-doctor/no-overloaded-hover-state": "warn",
     "react-doctor/no-oversized-long-heading": "warn",
@@ -335,7 +337,8 @@ export default defineConfig({
     "react-doctor/no-small-form-control-text": "warn",
     "react-doctor/no-smooth-scroll-without-reduced-motion": "warn",
     "react-doctor/no-spread-accumulator-in-reduce": "warn",
-    "react-doctor/no-spread-props-over-defaults-clobbers-with-undefined": "warn",
+    "react-doctor/no-spread-props-over-defaults-clobbers-with-undefined":
+      "warn",
     "react-doctor/no-srcset-without-sizes": "warn",
     "react-doctor/no-stale-timer-ref": "warn",
     "react-doctor/no-static-motion-config-never": "warn",
@@ -469,7 +472,8 @@ export default defineConfig({
     "react-doctor/react-router-no-router-in-render": "error",
     "react-doctor/react-router-no-session-mutation-in-loader": "error",
     "react-doctor/react-router-no-static-cookie-expires": "error",
-    "react-doctor/react-router-no-unsynchronized-search-params-mutation": "error",
+    "react-doctor/react-router-no-unsynchronized-search-params-mutation":
+      "error",
     "react-doctor/react-router-no-use-loader-data-in-error-ui": "error",
     "react-doctor/react-router-prefer-route-lazy": "warn",
     "react-doctor/react-router-require-root-error-boundary": "error",
@@ -564,7 +568,8 @@ export default defineConfig({
     "react-doctor/server-sequential-independent-await": "warn",
     "react-doctor/shadcn-tabs-trigger-requires-list": "warn",
     "react-doctor/styled-components-duplicate-css-property-in-block": "warn",
-    "react-doctor/styled-components-non-transient-custom-prop-on-intrinsic-element": "warn",
+    "react-doctor/styled-components-non-transient-custom-prop-on-intrinsic-element":
+      "warn",
     "react-doctor/tanstack-start-get-mutation": "warn",
     "react-doctor/tanstack-start-loader-parallel-fetch": "warn",
     "react-doctor/tanstack-start-missing-head-content": "warn",

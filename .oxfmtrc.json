@@ -12,6 +12,7 @@
     ".output",
     "dist",
     "build",
-    "src/routeTree.gen.ts"
+    "src/routeTree.gen.ts",
+    "worker-configuration.d.ts"
   ]
 }

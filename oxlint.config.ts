@@ -116,6 +116,8 @@ export default defineConfig({
     "*.config.js",
     "*.config.ts",
     "*.config.mjs",
+    "*.config.mts",
+    "worker-configuration.d.ts",
   ],
   overrides: [
     {
