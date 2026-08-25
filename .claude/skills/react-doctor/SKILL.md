@@ -10,13 +10,13 @@ Scans React codebases for security, performance, correctness, and architecture i
 
 ## After making React code changes:
 
-Run `npx react-doctor@0.3.0 --verbose --diff` and check the score did not regress.
+Run `npx react-doctor@0.9.12 --verbose --scope changed` and check the score did not regress.
 
 If the score dropped, fix the regressions before committing.
 
 ## For general cleanup or code improvement:
 
-Run `npx react-doctor@0.3.0 --verbose` (without `--diff`) to scan the full codebase. Fix issues by severity, errors first and then warnings.
+Run `npx react-doctor@0.9.12 --verbose` (without `--scope changed`) to scan the full codebase. Fix issues by severity, errors first and then warnings.
 
 ## /doctor: full local triage workflow
 
@@ -34,17 +34,17 @@ Pair it with the matching per-rule prompts at `https://www.react.doctor/prompts/
 
 ## Configuring or explaining rules
 
-When the user wants to understand a rule, disagrees with one, or wants to disable / tune which rules run (not fix code): start with `npx react-doctor@0.3.0 rules explain <rule>`, then apply the narrowest control via `npx react-doctor@0.3.0 rules disable|set|category|ignore-tag …`, which edits your `doctor.config.*` (or `package.json#reactDoctor`).
+When the user wants to understand a rule, disagrees with one, or wants to disable / tune which rules run (not fix code): start with `npx react-doctor@0.9.12 rules explain <rule>`, then apply the narrowest control via `npx react-doctor@0.9.12 rules disable|set|category|ignore-tag …`, which edits your `doctor.config.*` (or `package.json#reactDoctor`).
 
 ## Command
 
 ```bash
-npx react-doctor@0.3.0 --verbose --diff
+npx react-doctor@0.9.12 --verbose --scope changed
 ```
 
-| Flag        | Purpose                                       |
-| ----------- | --------------------------------------------- |
-| `.`         | Scan current directory                        |
-| `--verbose` | Show affected files and line numbers per rule |
-| `--diff`    | Only scan changed files vs base branch        |
-| `--score`   | Output only the numeric score                 |
+| Option            | Purpose                                                        |
+| ----------------- | -------------------------------------------------------------- |
+| `--verbose`       | Show every rule and per-file details (default shows the top 3)  |
+| `--scope changed` | Report only new issues against the base ref                     |
+| `--base <ref>`    | Base git ref for `--scope changed`, auto-detected when omitted   |
+| `--score`         | Output only the score                                           |
