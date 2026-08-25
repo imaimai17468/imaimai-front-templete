@@ -102,8 +102,8 @@ neutral, so it belongs under a display face rather than carrying one.
 
 ### Typographic Rules
 
-- Body text needs wider line-height than Western text (Japanese characters
-  are taller and denser).
+- Japanese body text needs wider line-height than Western text, because the
+  characters are taller and denser.
 - Body letter-spacing is slightly open (not solid-set).
 - Heading letter-spacing is tighter (feels more composed at large sizes).
 - Label and caption letter-spacing is wider (for scannability).
