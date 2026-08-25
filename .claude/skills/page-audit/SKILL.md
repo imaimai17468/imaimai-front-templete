@@ -64,9 +64,9 @@ A page with nothing to report says so in one line. Ratings (web.dev): LCP good <
 
 ## 6. Compare with the previous report
 
-Against the newest earlier file in `docs/lighthouse/`, list regressions and improvements
-under `## Changes`. A regression is a Lighthouse score down 5 or more, LCP up 500ms or
-more, or CLS up 0.05 or more.
+Where `docs/lighthouse/` already holds an earlier file, compare against the newest one
+and list regressions and improvements under `## Changes`. A regression is a Lighthouse
+score down 5 or more, LCP up 500ms or more, or CLS up 0.05 or more.
 
 ## 7. Fix, then re-measure
 
