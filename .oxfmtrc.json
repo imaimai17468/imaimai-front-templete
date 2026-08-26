@@ -13,6 +13,7 @@
     "dist",
     "build",
     "src/routeTree.gen.ts",
-    "worker-configuration.d.ts"
+    "worker-configuration.d.ts",
+    "*.md"
   ]
 }

@@ -15,7 +15,7 @@ pre-commit:
         - ".claude/hooks/*.{js,ts,jsx,tsx}"
       run: bunx oxlint --type-aware {staged_files}
     format:
-      glob: "*.{js,ts,jsx,tsx,json}"
+      glob: "*.{js,ts,jsx,tsx,json,yml,yaml,toml}"
       run: bunx oxfmt --check {staged_files}
     # `--staged` reads the git index itself, so it needs no {staged_files}; the
     # glob only keeps a docs-only commit from paying for the scan. `--no-score`
