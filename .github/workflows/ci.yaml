@@ -23,8 +23,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Install bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      # Installs every tool in mise.toml and exports them on PATH for the
+      # steps below, so mise.toml is the one place the node, bun and actionlint
+      # versions are written.
+      - name: Install the toolchain from mise.toml
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -66,15 +69,10 @@ jobs:
           echo "✅ No direct-dependency vulnerabilities."
 
       # Type-checks workflow expressions and validates action inputs, which YAML
-      # syntax checking alone does not reach. `version` pins the actionlint binary
-      # the wrapper downloads, which otherwise tracks the latest release and
-      # changes what CI enforces without a change here. `pyflakes` is off because
-      # no step in this file declares `shell: python`.
+      # syntax checking alone does not reach. With no arguments it walks
+      # .github/workflows itself.
       - name: Lint GitHub Actions workflows (actionlint)
-        uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0
-        with:
-          version: 1.7.12
-          pyflakes: false
+        run: actionlint
 
       # oxfmt reads this path to resolve Tailwind v4 theme tokens. A missing
       # file turns class sorting off and still exits 0, so nothing else in CI
