@@ -54,8 +54,8 @@ export const ModeToggle = () => {
       className="min-h-11 min-w-11 aria-disabled:pointer-events-none aria-disabled:opacity-50"
       aria-label={mounted ? ACTION_LABELS[current] : "テーマを切り替え"}
     >
-      <Sun className="dark:-rotate-90 size-5 rotate-0 scale-100 opacity-100 transition dark:scale-75 dark:opacity-0" />
-      <Moon className="absolute size-5 rotate-90 scale-75 opacity-0 transition dark:rotate-0 dark:scale-100 dark:opacity-100" />
+      <Sun className="size-5 scale-100 rotate-0 opacity-100 transition dark:scale-75 dark:-rotate-90 dark:opacity-0" />
+      <Moon className="absolute size-5 scale-75 rotate-90 opacity-0 transition dark:scale-100 dark:rotate-0 dark:opacity-100" />
     </Button>
   );
 };

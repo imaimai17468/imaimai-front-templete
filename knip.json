@@ -8,5 +8,6 @@
     "src/lib/utils.ts"
   ],
   "project": ["src/**/*.{ts,tsx,css}"],
+  "ignoreBinaries": ["jq"],
   "ignore": ["src/server/cloudflare.ts", "src/test/**/*.{ts,tsx}"]
 }

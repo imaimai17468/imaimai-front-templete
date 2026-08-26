@@ -14,7 +14,7 @@ export const CodeBlock = ({ label, code }: CodeBlockProps) => (
     tabIndex={0}
     aria-label={label}
   >
-    <pre className="font-mono text-foreground text-sm leading-relaxed">
+    <pre className="font-mono text-sm leading-relaxed text-foreground">
       <code>{code}</code>
     </pre>
   </section>

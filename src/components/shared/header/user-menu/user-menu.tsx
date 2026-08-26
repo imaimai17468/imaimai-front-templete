@@ -32,7 +32,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="cursor-pointer rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          className="cursor-pointer rounded-full focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
         >
           <Avatar className="size-8">
             <AvatarImage src={avatarUrl ?? undefined} alt={name} />
@@ -43,9 +43,9 @@ export const UserMenu = ({ user }: UserMenuProps) => {
       <DropdownMenuContent align="end" className="w-56" sideOffset={16}>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col gap-1">
-            <p className="font-medium text-sm leading-none">{name}</p>
+            <p className="text-sm leading-none font-medium">{name}</p>
             {email && (
-              <p className="text-muted-foreground text-xs leading-none">
+              <p className="text-xs leading-none text-muted-foreground">
                 {email}
               </p>
             )}

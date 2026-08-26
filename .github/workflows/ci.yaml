@@ -65,6 +65,12 @@ jobs:
           echo ""
           echo "✅ No direct-dependency vulnerabilities."
 
+      # oxfmt reads this path to resolve Tailwind v4 theme tokens. A missing
+      # file turns class sorting off and still exits 0, so nothing else in CI
+      # would notice the convention had stopped being applied.
+      - name: Verify oxfmt's Tailwind stylesheet path resolves
+        run: test -f "$(jq -r .sortTailwindcss.stylesheet .oxfmtrc.json)"
+
       - name: Check markdown links
         run: bun .claude/hooks/check-md-links.ts
 

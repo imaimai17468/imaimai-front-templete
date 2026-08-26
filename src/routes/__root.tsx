@@ -1,3 +1,4 @@
+import { TanStackDevtools } from "@tanstack/react-devtools";
 import {
   HeadContent,
   Outlet,
@@ -5,7 +6,6 @@ import {
   createRootRoute,
   useLoaderData,
 } from "@tanstack/react-router";
-import { TanStackDevtools } from "@tanstack/react-devtools";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { Header } from "@/components/shared/header/header";
 import { ThemeProvider } from "@/components/shared/theme-provider/theme-provider";

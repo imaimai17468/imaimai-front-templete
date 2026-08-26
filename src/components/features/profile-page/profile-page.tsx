@@ -37,11 +37,11 @@ export const ProfilePage = ({ user }: ProfilePageProps) => (
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <p className="text-muted-foreground text-sm">Email Address</p>
+            <p className="text-sm text-muted-foreground">Email Address</p>
             <p className="font-medium">{user.email}</p>
           </div>
           <div>
-            <p className="text-muted-foreground text-sm">Registration Date</p>
+            <p className="text-sm text-muted-foreground">Registration Date</p>
             <p className="font-medium">
               {new Date(user.createdAt).toLocaleDateString("ja-JP")}
             </p>

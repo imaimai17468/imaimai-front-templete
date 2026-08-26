@@ -1,6 +1,6 @@
 import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
-import { userGateway } from "@/gateways/user";
 import type { UserWithEmail } from "@/entities/user";
+import { userGateway } from "@/gateways/user";
 import { getSession } from "@/lib/auth/session";
 
 /**
