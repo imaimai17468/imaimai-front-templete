@@ -65,6 +65,17 @@ jobs:
           echo ""
           echo "✅ No direct-dependency vulnerabilities."
 
+      # Type-checks workflow expressions and validates action inputs, which YAML
+      # syntax checking alone does not reach. `version` pins the actionlint binary
+      # the wrapper downloads, which otherwise tracks the latest release and
+      # changes what CI enforces without a change here. `pyflakes` is off because
+      # no step in this file declares `shell: python`.
+      - name: Lint GitHub Actions workflows (actionlint)
+        uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0
+        with:
+          version: 1.7.12
+          pyflakes: false
+
       # oxfmt reads this path to resolve Tailwind v4 theme tokens. A missing
       # file turns class sorting off and still exits 0, so nothing else in CI
       # would notice the convention had stopped being applied.
