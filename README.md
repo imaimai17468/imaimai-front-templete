@@ -41,7 +41,7 @@ http://localhost:5173 でアクセス。`@cloudflare/vite-plugin` により、`b
 
 ## Tools
 
-- **[mise](https://mise.jdx.dev/)**：Node / Bun のバージョン固定 (`mise.toml`)
+- **[mise](https://mise.jdx.dev/)**：Node / Bun / actionlint のバージョン固定 (`mise.toml`)
 - **[shadcn/ui](https://ui.shadcn.com/)**：UI components (`components.json`)
 - **[TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)**：Type checker (Go-native `tsc`)
 - **[oxlint](https://oxc.rs/docs/guide/usage/linter)**：Linter (`.oxlintrc.json`)
