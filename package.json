@@ -67,7 +67,7 @@
     "@vitest/coverage-v8": "4.1.10",
     "dotenv": "17.4.2",
     "drizzle-kit": "0.31.4",
-    "jsdom": "30.0.0",
+    "jsdom": "30.0.1",
     "knip": "6.29.0",
     "lefthook": "2.1.10",
     "oxfmt": "0.60.0",
