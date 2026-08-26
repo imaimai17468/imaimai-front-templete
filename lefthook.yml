@@ -15,7 +15,7 @@ pre-commit:
         - ".claude/hooks/*.{js,ts,jsx,tsx}"
       run: bunx oxlint --type-aware {staged_files}
     format:
-      glob: "*.{js,ts,jsx,tsx,json}"
+      glob: "*.{js,ts,jsx,tsx,json,yml,yaml,toml}"
       run: bunx oxfmt --check {staged_files}
     # `--staged` reads the git index itself, so it needs no {staged_files}; the
     # glob only keeps a docs-only commit from paying for the scan. `--no-score`
@@ -31,6 +31,15 @@ pre-push:
       run: bun run typecheck
     cf-typegen-check:
       run: bun run cf-typegen:check
+    # With no arguments actionlint walks .github/workflows itself. It goes
+    # through `mise exec` because mise reaches PATH through an rc file, which
+    # the shell lefthook spawns does not always read; a bare `actionlint` was
+    # not found there. The skip keeps a machine without mise from being unable
+    # to push (AGENTS.md, "Degraded Environments").
+    actionlint:
+      run: mise exec -- actionlint
+      skip:
+        - run: "! command -v mise"
     # `similarity-ignore` comments are honoured by similarity-ts itself, and
     # without --fail-on-duplicates it exits 0 whatever it finds. The skip keeps a
     # machine that never installed this cargo binary from being unable to push

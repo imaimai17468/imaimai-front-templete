@@ -20,70 +20,95 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-    - name: Install bun
-      uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      # Installs every tool in mise.toml and exports them on PATH for the
+      # steps below, so mise.toml is the one place the node, bun and actionlint
+      # versions are written.
+      - name: Install the toolchain from mise.toml
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
-    - name: Install dependencies
-      run: bun install --frozen-lockfile
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
-    - name: Generate route tree
-      run: bun run generate-routes
+      - name: Generate route tree
+        run: bun run generate-routes
 
-    - name: Generate Cloudflare env types
-      run: bun run cf-typegen
+      - name: Generate Cloudflare env types
+        run: bun run cf-typegen
 
-    # Fails only on vulnerabilities in direct dependencies. Transitive ones are
-    # printed without blocking: patching them needs `overrides`, which add
-    # template debt, so direct deps are the audit boundary and the rest waits for
-    # upstream. `bun audit` is allowed to fail so a network or registry error does
-    # not read as "no vulnerabilities".
-    - name: Audit direct dependencies for known vulnerabilities
-      shell: bash
-      run: |
-        set -euo pipefail
-        DIRECT=$(jq -r '((.dependencies // {}) + (.devDependencies // {})) | keys | .[]' package.json | sort -u)
-        VULN_JSON=$(bun audit --json 2>/dev/null || true)
-        VULN_PKGS=$(printf '%s' "$VULN_JSON" | jq -r 'keys | .[]' | sort -u)
-        if [ -z "$VULN_PKGS" ]; then
-          echo "✅ No vulnerabilities found."
-          exit 0
-        fi
-        DIRECT_VULNS=$(comm -12 <(printf '%s\n' "$DIRECT") <(printf '%s\n' "$VULN_PKGS") || true)
-        if [ -n "$DIRECT_VULNS" ]; then
-          echo "⛔ Vulnerabilities in direct dependencies:"
-          printf '%s\n' "$DIRECT_VULNS"
+      # Fails only on vulnerabilities in direct dependencies. Transitive ones are
+      # printed without blocking: patching them needs `overrides`, which add
+      # template debt, so direct deps are the audit boundary and the rest waits for
+      # upstream. `bun audit` is allowed to fail so a network or registry error does
+      # not read as "no vulnerabilities".
+      - name: Audit direct dependencies for known vulnerabilities
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIRECT=$(jq -r '((.dependencies // {}) + (.devDependencies // {})) | keys | .[]' package.json | sort -u)
+          VULN_JSON=$(bun audit --json 2>/dev/null || true)
+          VULN_PKGS=$(printf '%s' "$VULN_JSON" | jq -r 'keys | .[]' | sort -u)
+          if [ -z "$VULN_PKGS" ]; then
+            echo "✅ No vulnerabilities found."
+            exit 0
+          fi
+          DIRECT_VULNS=$(comm -12 <(printf '%s\n' "$DIRECT") <(printf '%s\n' "$VULN_PKGS") || true)
+          if [ -n "$DIRECT_VULNS" ]; then
+            echo "⛔ Vulnerabilities in direct dependencies:"
+            printf '%s\n' "$DIRECT_VULNS"
+            echo ""
+            echo "Full audit output:"
+            bun audit || true
+            exit 1
+          fi
+          echo "ℹ️  Transitive-only vulnerabilities (not blocking):"
+          printf '%s\n' "$VULN_PKGS" | sed 's/^/  - /'
           echo ""
-          echo "Full audit output:"
-          bun audit || true
-          exit 1
-        fi
-        echo "ℹ️  Transitive-only vulnerabilities (not blocking):"
-        printf '%s\n' "$VULN_PKGS" | sed 's/^/  - /'
-        echo ""
-        echo "✅ No direct-dependency vulnerabilities."
+          echo "✅ No direct-dependency vulnerabilities."
 
-    - name: Check markdown links
-      run: bun .claude/hooks/check-md-links.ts
+      # Type-checks workflow expressions and validates action inputs, which YAML
+      # syntax checking alone does not reach. With no arguments it walks
+      # .github/workflows itself.
+      - name: Lint GitHub Actions workflows (actionlint)
+        run: actionlint
 
-    - name: Run oxlint and oxfmt
-      run: bun run check
+      # oxfmt reads this path to resolve Tailwind v4 theme tokens. A missing
+      # file turns class sorting off and still exits 0, so nothing else in CI
+      # would notice the convention had stopped being applied.
+      - name: Verify oxfmt's Tailwind stylesheet path resolves
+        shell: bash
+        run: |
+          set -euo pipefail
+          stylesheet=$(jq -er .sortTailwindcss.stylesheet .oxfmtrc.json) || {
+            echo "::error file=.oxfmtrc.json::sortTailwindcss.stylesheet is unset"
+            exit 1
+          }
+          test -f "$stylesheet" || {
+            echo "::error file=.oxfmtrc.json::sortTailwindcss.stylesheet points at $stylesheet, which does not exist"
+            exit 1
+          }
 
-    - name: Detect unused code (knip)
-      run: bun run knip
+      - name: Check markdown links
+        run: bun .claude/hooks/check-md-links.ts
 
-    # Whole-tree counterpart of lefthook's pre-commit `--staged` run. `--no-score`
-    # keeps the diagnostics off the vendor's score API; the exit code is what gates.
-    - name: Scan React diagnostics (react-doctor)
-      run: bun run doctor --no-score
+      - name: Run oxlint and oxfmt
+        run: bun run check
 
-    - name: Run Tests
-      run: bun run test
+      - name: Detect unused code (knip)
+        run: bun run knip
 
-    - name: Run TypeScript Type Check (tsc)
-      run: bun run typecheck
+      # Whole-tree counterpart of lefthook's pre-commit `--staged` run. `--no-score`
+      # keeps the diagnostics off the vendor's score API; the exit code is what gates.
+      - name: Scan React diagnostics (react-doctor)
+        run: bun run doctor --no-score
 
-    - name: Build Project
-      run: bun run build
+      - name: Run Tests
+        run: bun run test
+
+      - name: Run TypeScript Type Check (tsc)
+        run: bun run typecheck
+
+      - name: Build Project
+        run: bun run build

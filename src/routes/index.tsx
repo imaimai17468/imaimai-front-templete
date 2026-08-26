@@ -3,7 +3,7 @@ import { CodeBlock } from "@/components/shared/code-block/code-block";
 
 const SETUP = `git clone https://github.com/imaimai17468/imaimai-front-templete.git
 cd imaimai-front-templete
-mise install                 # Node / Bun を mise.toml の版で用意
+mise install                 # Node / Bun / actionlint を mise.toml の版で用意
 cargo install similarity-ts  # Stop gate の重複検出（Rust 製）
 bun install
 bun run generate-routes
@@ -164,7 +164,7 @@ const LINKS = [
 const HomeComponent = () => (
   <div className="flex flex-col gap-12 pb-16">
     <section className="flex flex-col gap-3">
-      <h1 className="font-medium text-2xl tracking-tight">
+      <h1 className="text-2xl font-medium tracking-tight">
         imaimai-front-templete
       </h1>
       <p className="max-w-prose text-muted-foreground">
@@ -176,7 +176,7 @@ const HomeComponent = () => (
         href="https://github.com/imaimai17468/imaimai-front-templete"
         target="_blank"
         rel="noopener noreferrer"
-        className="-mx-2 inline-flex min-h-11 items-center rounded-md px-2 text-muted-foreground text-sm underline underline-offset-4 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:opacity-70"
+        className="-mx-2 inline-flex min-h-11 items-center rounded-md px-2 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:opacity-70"
       >
         GitHub
         <span className="sr-only"> (opens in a new tab)</span>
@@ -184,16 +184,16 @@ const HomeComponent = () => (
     </section>
 
     <section className="flex flex-col gap-3">
-      <h2 className="font-medium text-base">セットアップ</h2>
+      <h2 className="text-base font-medium">セットアップ</h2>
       <CodeBlock label="セットアップコマンド" code={SETUP} />
-      <p className="max-w-prose text-muted-foreground text-sm">
+      <p className="max-w-prose text-sm text-muted-foreground">
         http://localhost:5173 でアクセスできる。
         <code className="font-mono text-foreground">
           src/routes/index.tsx
         </code>{" "}
         を編集して開発を始められます。
       </p>
-      <p className="max-w-prose text-muted-foreground text-sm">
+      <p className="max-w-prose text-sm text-muted-foreground">
         mise を使わない場合は、
         <code className="font-mono text-foreground">package.json</code> の
         engines.node を満たす Node と{" "}
@@ -209,9 +209,9 @@ const HomeComponent = () => (
     </section>
 
     <section className="flex flex-col gap-3">
-      <h2 className="font-medium text-base">ファイル構成</h2>
+      <h2 className="text-base font-medium">ファイル構成</h2>
       <CodeBlock label="src ディレクトリの構成" code={TREE} />
-      <p className="max-w-prose text-muted-foreground text-sm">
+      <p className="max-w-prose text-sm text-muted-foreground">
         配置と import 方向の規約は{" "}
         <code className="font-mono text-foreground">AGENTS.md</code> の Rules
         にある。
@@ -220,17 +220,17 @@ const HomeComponent = () => (
 
     {SPECS.map((spec) => (
       <section key={spec.heading} className="flex flex-col gap-3">
-        <h2 className="font-medium text-base">{spec.heading}</h2>
+        <h2 className="text-base font-medium">{spec.heading}</h2>
         <dl className="flex flex-col gap-3">
           {spec.rows.map((row) => (
             <div
               key={row.term}
               className="flex flex-col gap-1 sm:flex-row sm:gap-6"
             >
-              <dt className="font-medium text-foreground text-sm sm:w-36 sm:shrink-0">
+              <dt className="text-sm font-medium text-foreground sm:w-36 sm:shrink-0">
                 {row.term}
               </dt>
-              <dd className="max-w-prose text-muted-foreground text-sm">
+              <dd className="max-w-prose text-sm text-muted-foreground">
                 {row.detail}
               </dd>
             </div>
@@ -240,7 +240,7 @@ const HomeComponent = () => (
     ))}
 
     <section className="flex flex-col gap-3">
-      <h2 className="font-medium text-base">参考リンク</h2>
+      <h2 className="text-base font-medium">参考リンク</h2>
       <ul className="grid gap-x-6 sm:grid-cols-2">
         {LINKS.map((link) => (
           <li key={link.href}>
@@ -248,7 +248,7 @@ const HomeComponent = () => (
               href={link.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="-mx-2 inline-flex min-h-11 items-center rounded-md px-2 text-muted-foreground text-sm underline underline-offset-4 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:opacity-70"
+              className="-mx-2 inline-flex min-h-11 items-center rounded-md px-2 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:opacity-70"
             >
               {link.name}
               <span className="sr-only"> (opens in a new tab)</span>
@@ -258,7 +258,7 @@ const HomeComponent = () => (
       </ul>
     </section>
 
-    <p className="max-w-prose text-muted-foreground text-sm">
+    <p className="max-w-prose text-sm text-muted-foreground">
       データベースと認証の設定は{" "}
       <code className="font-mono text-foreground">docs/DATABASE_SETUP.md</code>
       、デプロイとロールバックは{" "}

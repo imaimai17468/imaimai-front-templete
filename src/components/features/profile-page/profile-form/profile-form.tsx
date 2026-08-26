@@ -160,13 +160,13 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
           </div>
           <div className="flex-1 space-y-2">
             <div>
-              <p className="font-medium text-sm">Profile Image</p>
-              <p className="text-muted-foreground text-sm">
+              <p className="text-sm font-medium">Profile Image</p>
+              <p className="text-sm text-muted-foreground">
                 {`Click to change image (max ${MAX_AVATAR_BYTES / 1024 / 1024}MB)`}
               </p>
             </div>
             {pendingFile && (
-              <p className="text-muted-foreground text-xs">
+              <p className="text-xs text-muted-foreground">
                 New image selected. Click &quot;Update Profile&quot; to save.
               </p>
             )}

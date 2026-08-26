@@ -6,7 +6,7 @@ const AuthCodeErrorComponent = () => (
   <div className="flex min-h-dvh flex-col items-center justify-center gap-6">
     <div className="flex flex-col items-center gap-4">
       <AlertTriangle className="size-12 text-destructive" />
-      <h1 className="font-semibold text-2xl">Authentication Error</h1>
+      <h1 className="text-2xl font-semibold">Authentication Error</h1>
       <p className="max-w-md text-center text-muted-foreground">
         An error occurred during authentication.
         <br />

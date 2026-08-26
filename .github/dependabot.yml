@@ -1,17 +1,19 @@
 version: 2
 updates:
-  # `bun` (not `npm`) so Dependabot regenerates bun.lock alongside package.json —
-  # with `npm` every PR fails CI's `bun install --frozen-lockfile` (see PRs #30–#34).
-  # Note: the bun ecosystem supports version updates only, not security updates;
-  # direct-dep vulnerabilities are still gated by CI's dependency audit step,
-  # which fails only on direct dependencies — transitive findings are
-  # informational and tolerated until upstream releases catch up.
+  # `bun` rather than `npm`, so Dependabot regenerates bun.lock alongside
+  # package.json. Under `npm` it leaves bun.lock behind, and
+  # `bun install --frozen-lockfile` then fails on the mismatch.
+  # This ecosystem opens version-update PRs only, not security updates.
   - package-ecosystem: bun
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    # Dependabot skips a version released less than 7 days ago. GitHub applies
+    # 3 days when this key is absent.
+    cooldown:
+      default-days: 7
     groups:
       tanstack:
         patterns:
@@ -25,6 +27,8 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: chore
       include: scope

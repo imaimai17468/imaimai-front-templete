@@ -22,7 +22,7 @@ TanStack Start + TypeScript + Tailwind CSS + shadcn/ui を使用したモダン�
 ```bash
 git clone <your-repo-url>
 cd <your-repo-name>
-mise install                 # Node / Bun を mise.toml の版で用意
+mise install                 # Node / Bun / actionlint を mise.toml の版で用意
 cargo install similarity-ts  # Stop gate の重複検出（Rust 製）
 bun install
 cp .env.local.example .env.local
@@ -41,7 +41,7 @@ http://localhost:5173 でアクセス。`@cloudflare/vite-plugin` により、`b
 
 ## Tools
 
-- **[mise](https://mise.jdx.dev/)**：Node / Bun のバージョン固定 (`mise.toml`)
+- **[mise](https://mise.jdx.dev/)**：Node / Bun / actionlint のバージョン固定 (`mise.toml`)
 - **[shadcn/ui](https://ui.shadcn.com/)**：UI components (`components.json`)
 - **[TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)**：Type checker (Go-native `tsc`)
 - **[oxlint](https://oxc.rs/docs/guide/usage/linter)**：Linter (`.oxlintrc.json`)
@@ -52,6 +52,7 @@ http://localhost:5173 でアクセス。`@cloudflare/vite-plugin` により、`b
 - **[lefthook](https://github.com/evilmartians/lefthook)**：Git hooks (`lefthook.yml`、`bun install` 時に `prepare` スクリプトで自動セットアップ)
 - **[knip](https://knip.dev/)**：Unused deps/exports/files detection (`knip.json`)
 - **[similarity-ts](https://github.com/mizchi/similarity)**：Code similarity detector
+- **[actionlint](https://github.com/rhysd/actionlint)**：GitHub Actions workflow checker (`mise.toml` が版を固定)
 
 ## プロジェクト構成
 

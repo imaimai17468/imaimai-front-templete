@@ -13,7 +13,7 @@ export const Header = ({ user }: HeaderProps) => (
     <div className="flex items-center justify-between gap-3 p-6">
       <Link
         to="/"
-        className="-mx-2 inline-flex min-h-11 min-w-0 items-center truncate rounded-md px-2 font-medium text-base tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-lg"
+        className="-mx-2 inline-flex min-h-11 min-w-0 items-center truncate rounded-md px-2 text-base font-medium tracking-tight focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:text-lg"
       >
         imaimai-front-templete
       </Link>

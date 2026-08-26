@@ -6,6 +6,13 @@
   "singleQuote": false,
   "trailingComma": "es5",
   "printWidth": 80,
+  "sortImports": {
+    "newlinesBetween": false
+  },
+  "sortTailwindcss": {
+    "stylesheet": "./src/styles.css",
+    "functions": ["cn", "cva"]
+  },
   "ignorePatterns": [
     "node_modules",
     ".next",
@@ -13,6 +20,7 @@
     "dist",
     "build",
     "src/routeTree.gen.ts",
-    "worker-configuration.d.ts"
+    "worker-configuration.d.ts",
+    "*.md"
   ]
 }
