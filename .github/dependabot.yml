@@ -12,6 +12,10 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    # Dependabot skips a version released less than 7 days ago. GitHub applies
+    # 3 days when this key is absent.
+    cooldown:
+      default-days: 7
     groups:
       tanstack:
         patterns:
@@ -25,6 +29,8 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: chore
       include: scope
