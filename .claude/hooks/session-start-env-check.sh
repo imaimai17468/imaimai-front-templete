@@ -20,6 +20,10 @@ command -v bun >/dev/null 2>&1 || MISSING+=("bun (the Stop quality gate, its mar
 # binary the hook cannot invoke is absent as far as the gate is concerned, so
 # accepting ~/.cargo/bin here would report a skipped check as present.
 command -v similarity-ts >/dev/null 2>&1 || MISSING+=("similarity-ts not on PATH (lefthook pre-push skips duplicate-type/function detection; install: cargo install similarity-ts, and put ~/.cargo/bin on PATH)")
+# `mise`, not `actionlint`: lefthook runs the workflow check as `mise exec --
+# actionlint` and skips on a missing mise, so mise is the condition that decides
+# whether the check runs. mise.toml pins the version it resolves.
+command -v mise >/dev/null 2>&1 || MISSING+=("mise not on PATH (lefthook pre-push skips the GitHub Actions workflow check; install: https://mise.jdx.dev/, then mise install)")
 # The installed hooks, not the binary: `bun run prepare` writes them, and a tree
 # whose .git/hooks are absent runs no pre-commit check while every binary above
 # is present.
@@ -37,7 +41,7 @@ if [ "${#MISSING[@]}" -gt 0 ]; then
   printf '  - %s\n' "${MISSING[@]}"
   echo "[env-check] Per AGENTS.md 'Degraded environments': state the degrade to the user once, and do not treat skipped checks as passed."
 else
-  echo "[env-check] Gate dependencies present (jq, bun, similarity-ts, node with module.registerHooks, lefthook hooks installed)."
+  echo "[env-check] Gate dependencies present (jq, bun, similarity-ts, mise, node with module.registerHooks, lefthook hooks installed)."
 fi
 
 # SessionStart is the only hook event that receives `model`, and it is optional;

@@ -3,7 +3,7 @@ import { CodeBlock } from "@/components/shared/code-block/code-block";
 
 const SETUP = `git clone https://github.com/imaimai17468/imaimai-front-templete.git
 cd imaimai-front-templete
-mise install                 # Node / Bun を mise.toml の版で用意
+mise install                 # Node / Bun / actionlint を mise.toml の版で用意
 cargo install similarity-ts  # Stop gate の重複検出（Rust 製）
 bun install
 bun run generate-routes
