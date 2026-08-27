@@ -61,11 +61,12 @@ ALL_FILES=$(printf '%s\n%s' "$CHANGED" "$UNTRACKED" | sort -u)
 CODE_CHANGED=$(printf '%s\n' "$ALL_FILES" | grep -cE '\.(ts|tsx|js|jsx|mjs|cjs|json|css)$' || true)
 
 if [ "$CODE_CHANGED" -gt 0 ]; then
-  # Layer 1: typecheck / lint / format
-  OUT=$(bun run typecheck 2>&1 && bun run lint 2>&1 && bun run format 2>&1)
+  # Layer 1: format, lint and type check in one pass. `bun run check` is
+  # `vp check`, which runs all three over one file walk.
+  OUT=$(bun run check 2>&1)
   RC=$?
   if [ $RC -ne 0 ]; then
-    emit_block "typecheck / lint / format failed. Fix before ending the turn." "$OUT"
+    emit_block "bun run check failed. Fix before ending the turn." "$OUT"
   fi
 fi
 

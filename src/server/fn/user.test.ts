@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import type { getSession } from "@/lib/auth/session";
 import { createGetCurrentUser } from "./user";
 import type { CurrentUserDeps } from "./user";

@@ -57,7 +57,7 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 **Generated types stay generated:** after any `wrangler.toml` change, run `bun run cf-typegen`. That command writes `worker-configuration.d.ts`, so never hand-edit it.
 
-**Verification before completion:** Never report done without running `bun run typecheck`, `bun run check`, and `bun run test`, fixing every error.
+**Verification before completion:** Never report done without running `bun run check` and `bun run test`, fixing every error. `check` is `vp check`, which formats, lints and type-checks in one pass.
 
 **Never escape the type system to move on:** no `as` (except `as const`), `any`, `@ts-ignore`/`@ts-expect-error`/`@ts-nocheck`, non-null `!`, or lint-disable comments to silence an error. Fix the type (narrowing, guards, schema validation, `satisfies`). Where you genuinely cannot, dispatch a subagent with the right skill. Where that still fails, STOP and ask, and never silently cast or suppress.
 

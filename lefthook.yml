@@ -5,18 +5,18 @@
 pre-commit:
   commands:
     lint:
-      # oxlint exits 1 with "No files found to lint" when every path it gets
+      # `vp lint` exits 1 with "No files found to lint" when every path it gets
       # is one it skips, so this lists only directories where it lints every
-      # matching file. Root-level files carry ignore patterns and are covered
-      # by `bun run check` on pre-push instead.
+      # matching file. Root-level files are covered by `bun run check` on
+      # pre-push, which lints and type-checks them.
       glob:
         - "src/*.{js,ts,jsx,tsx}"
         - "tools/*.{js,ts,jsx,tsx}"
         - ".claude/hooks/*.{js,ts,jsx,tsx}"
-      run: bunx oxlint --type-aware {staged_files}
+      run: bunx vp lint {staged_files}
     format:
       glob: "*.{js,ts,jsx,tsx,json,yml,yaml,toml}"
-      run: bunx oxfmt --check {staged_files}
+      run: bunx vp fmt --check {staged_files}
     # `--staged` reads the git index itself, so it needs no {staged_files}; the
     # glob only keeps a docs-only commit from paying for the scan. `--no-score`
     # drops the score API call, leaving the exit code the hook acts on.
@@ -27,10 +27,12 @@ pre-push:
   commands:
     check:
       run: bun run check
-    typecheck:
-      run: bun run typecheck
     cf-typegen-check:
       run: bun run cf-typegen:check
+    # Vite+ bundles exact tool versions and package.json restates several of
+    # them; a bump that moves one side alone splits the dependency graph.
+    toolchain-pins:
+      run: bun run check:pins
     # With no arguments actionlint walks .github/workflows itself. It goes
     # through `mise exec` because mise reaches PATH through an rc file, which
     # the shell lefthook spawns does not always read; a bare `actionlint` was

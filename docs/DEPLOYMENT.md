@@ -16,7 +16,7 @@ bun run deploy
 
 デプロイ前に確認すること:
 
-- `bun run check` と `bun run typecheck` と `bun run test` が通っている
+- `bun run check` と `bun run test` が通っている
 - 本番の秘密情報が `wrangler secret` に登録済み（下記）
 - Google OAuth のリダイレクト URI が本番オリジンを含んでいる
 - `BETTER_AUTH_URL` が本番オリジンになっている（`wrangler.toml` の `[vars]`）

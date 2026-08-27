@@ -40,13 +40,14 @@ const asDecision = (value: unknown): Decision | undefined =>
 /** The hook's decision for a Bash command. */
 const decide = (command: string): Decision => {
   const { stdout } = spawnSync("bash", [HOOK], {
-    input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
     encoding: "utf-8",
     env: { ...process.env, CLAUDE_PROJECT_DIR: REPO },
+    input: JSON.stringify({ tool_input: { command }, tool_name: "Bash" }),
   });
   const out = stdout.trim();
-  if (out === "") {
-    return "allow"; // the hook stayed out of the way
+  const hookStayedSilent = out === "";
+  if (hookStayedSilent) {
+    return "allow";
   }
   const parsed: unknown = JSON.parse(out);
   if (!isRecord(parsed)) {
@@ -62,11 +63,11 @@ const decide = (command: string): Decision => {
   return asDecision(specific.permissionDecision) ?? "allow";
 };
 
-type Case = {
+interface Case {
   command: string;
   expected: Decision;
   why: string;
-};
+}
 
 const failures: string[] = [];
 

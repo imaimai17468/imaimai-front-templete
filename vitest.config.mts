@@ -1,12 +1,12 @@
-import { resolve } from "node:path";
+import path from "node:path";
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite-plus";
 
 export default defineConfig({
   resolve: {
     tsconfigPaths: true,
     alias: {
-      "cloudflare:workers": resolve(
+      "cloudflare:workers": path.resolve(
         import.meta.dirname,
         "src/test/cloudflare-workers-stub.ts"
       ),
