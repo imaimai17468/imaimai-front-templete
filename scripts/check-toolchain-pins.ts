@@ -16,10 +16,19 @@ interface Pin {
   readonly label: string;
 }
 
-const withoutRange = (spec: string | undefined): string | undefined =>
-  spec?.replace(/^[=^~]/u, "");
+/** vite-plus writes its own pins as `=1.2.3`. */
+const bundledVersionOf = (spec: string | undefined): string | undefined =>
+  spec?.replace(/^=/u, "");
 
-const withoutAlias = (spec: string | undefined): string | undefined =>
+/**
+ * A declaration keeps its range marker, so `^1.79.0` never equals the bundled
+ * `1.79.0` and the comparison rejects it. A range lets a second copy of the
+ * tool into the graph, which is the thing this check exists to prevent.
+ */
+const declaredVersionOf = (spec: string | undefined): string | undefined =>
+  spec;
+
+const declaredAliasOf = (spec: string | undefined): string | undefined =>
   spec?.replace(`npm:${CORE}@`, "");
 
 const { dependencies: bundled, version: bundledVersion } = vitePlus;
@@ -27,43 +36,43 @@ const { devDependencies: declared, overrides } = manifest;
 
 const PINS: readonly Pin[] = [
   {
-    bundled: withoutRange(bundled[CORE]),
-    declared: withoutAlias(declared.vite),
+    bundled: bundledVersionOf(bundled[CORE]),
+    declared: declaredAliasOf(declared.vite),
     label: "devDependencies.vite (alias to vite-plus core)",
   },
   {
-    bundled: withoutRange(bundled[CORE]),
-    declared: withoutAlias(overrides.vite),
+    bundled: bundledVersionOf(bundled[CORE]),
+    declared: declaredAliasOf(overrides.vite),
     label: "overrides.vite (alias to vite-plus core)",
   },
   {
-    bundled: withoutRange(bundled.vitest),
-    declared: withoutRange(overrides.vitest),
+    bundled: bundledVersionOf(bundled.vitest),
+    declared: declaredVersionOf(overrides.vitest),
     label: "overrides.vitest",
   },
   {
-    bundled: withoutRange(bundled.vitest),
-    declared: withoutRange(declared.vitest),
+    bundled: bundledVersionOf(bundled.vitest),
+    declared: declaredVersionOf(declared.vitest),
     label: "devDependencies.vitest",
   },
   {
-    bundled: withoutRange(bundled.vitest),
-    declared: withoutRange(declared["@vitest/coverage-v8"]),
+    bundled: bundledVersionOf(bundled.vitest),
+    declared: declaredVersionOf(declared["@vitest/coverage-v8"]),
     label: "devDependencies.@vitest/coverage-v8",
   },
   {
-    bundled: withoutRange(bundled.oxlint),
-    declared: withoutRange(declared.oxlint),
+    bundled: bundledVersionOf(bundled.oxlint),
+    declared: declaredVersionOf(declared.oxlint),
     label: "devDependencies.oxlint",
   },
   {
-    bundled: withoutRange(bundled.oxfmt),
-    declared: withoutRange(declared.oxfmt),
+    bundled: bundledVersionOf(bundled.oxfmt),
+    declared: declaredVersionOf(declared.oxfmt),
     label: "devDependencies.oxfmt",
   },
   {
-    bundled: withoutRange(bundled["oxlint-tsgolint"]),
-    declared: withoutRange(declared["oxlint-tsgolint"]),
+    bundled: bundledVersionOf(bundled["oxlint-tsgolint"]),
+    declared: declaredVersionOf(declared["oxlint-tsgolint"]),
     label: "devDependencies.oxlint-tsgolint",
   },
 ];
