@@ -11,7 +11,7 @@ const noSizeProps = {
   create(context) {
     return {
       JSXAttribute(node) {
-        const propName = node.name && node.name.name;
+        const propName = node.name?.name;
         if (propName !== "width" && propName !== "height") {
           return;
         }
@@ -85,9 +85,7 @@ const oneComponentPerFile = {
         if (decl.type === "VariableDeclaration") {
           for (const declarator of decl.declarations) {
             const name =
-              declarator.id && declarator.id.type === "Identifier"
-                ? declarator.id.name
-                : null;
+              declarator.id?.type === "Identifier" ? declarator.id.name : null;
             if (!name || !isComponentName(name)) {
               continue;
             }
@@ -120,8 +118,7 @@ const testNamingFormat = {
           calleeName = callee.name;
         } else if (
           callee.type === "MemberExpression" &&
-          callee.object &&
-          callee.object.type === "Identifier" &&
+          callee.object?.type === "Identifier" &&
           (callee.object.name === "it" || callee.object.name === "test")
         ) {
           if (callee.property && SKIP_METHODS.has(callee.property.name)) {
@@ -162,11 +159,7 @@ const isExpectCall = (node) => {
   if (callee.type === "Identifier" && callee.name === "expect") {
     return true;
   }
-  if (
-    callee.type === "MemberExpression" &&
-    callee.object &&
-    callee.object.name === "expect"
-  ) {
+  if (callee.type === "MemberExpression" && callee.object?.name === "expect") {
     return true;
   }
   return false;
@@ -181,8 +174,7 @@ const isEachCall = (node) => {
     callee.type === "MemberExpression" &&
     callee.object &&
     (callee.object.name === "it" || callee.object.name === "test") &&
-    callee.property &&
-    callee.property.name === "each"
+    callee.property?.name === "each"
   ) {
     return true;
   }
@@ -199,14 +191,11 @@ const singleExpect = {
           return;
         }
         const { callee } = node;
-        let calleeName =
-          callee && callee.type === "Identifier" ? callee.name : null;
+        let calleeName = callee?.type === "Identifier" ? callee.name : null;
         if (
           calleeName === null &&
-          callee &&
-          callee.type === "MemberExpression" &&
-          callee.object &&
-          callee.object.type === "Identifier" &&
+          callee?.type === "MemberExpression" &&
+          callee.object?.type === "Identifier" &&
           (callee.object.name === "it" || callee.object.name === "test")
         ) {
           if (callee.property && SKIP_METHODS.has(callee.property.name)) {
@@ -235,14 +224,11 @@ const singleExpect = {
           return;
         }
         const { callee } = node;
-        let calleeName =
-          callee && callee.type === "Identifier" ? callee.name : null;
+        let calleeName = callee?.type === "Identifier" ? callee.name : null;
         if (
           calleeName === null &&
-          callee &&
-          callee.type === "MemberExpression" &&
-          callee.object &&
-          callee.object.type === "Identifier" &&
+          callee?.type === "MemberExpression" &&
+          callee.object?.type === "Identifier" &&
           (callee.object.name === "it" || callee.object.name === "test")
         ) {
           if (callee.property && SKIP_METHODS.has(callee.property.name)) {
@@ -341,9 +327,7 @@ const componentFileNaming = {
         if (decl.type === "VariableDeclaration") {
           for (const declarator of decl.declarations) {
             const name =
-              declarator.id && declarator.id.type === "Identifier"
-                ? declarator.id.name
-                : null;
+              declarator.id?.type === "Identifier" ? declarator.id.name : null;
             if (!name || !isComponentName(name)) {
               continue;
             }

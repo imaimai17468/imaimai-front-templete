@@ -101,7 +101,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
         const avatarData = new globalThis.FormData();
         avatarData.append("avatar", pendingFile);
         const avatarResult = await uploadAvatarFn({ data: avatarData });
-        if ("error" in avatarResult && avatarResult.error !== undefined) {
+        if ("error" in avatarResult) {
           toast.error(avatarResult.error);
           return;
         }
@@ -112,7 +112,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
       formData.append("name", data.name);
 
       const result = await updateProfileFn({ data: formData });
-      if ("error" in result && result.error !== undefined) {
+      if ("error" in result) {
         toast.error(result.error);
       } else {
         toast.success("Profile updated successfully");
