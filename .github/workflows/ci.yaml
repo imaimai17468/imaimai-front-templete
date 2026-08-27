@@ -74,26 +74,32 @@ jobs:
       - name: Lint GitHub Actions workflows (actionlint)
         run: actionlint
 
-      # oxfmt reads this path to resolve Tailwind v4 theme tokens. A missing
-      # file turns class sorting off and still exits 0, so nothing else in CI
-      # would notice the convention had stopped being applied.
-      - name: Verify oxfmt's Tailwind stylesheet path resolves
+      # `bg-sidebar` and `text-chart-3` are tokens only src/styles.css defines,
+      # so sorting them proves the formatter resolved that stylesheet. When it
+      # cannot, oxfmt leaves the classes untouched and still exits 0, which no
+      # other step in this file would notice.
+      - name: Verify the formatter sorts Tailwind classes with the project theme
         shell: bash
         run: |
           set -euo pipefail
-          stylesheet=$(jq -er .sortTailwindcss.stylesheet .oxfmtrc.json) || {
-            echo "::error file=.oxfmtrc.json::sortTailwindcss.stylesheet is unset"
+          probe=src/tailwind-sort-probe.tsx
+          trap 'rm -f "$probe"' EXIT
+          printf 'export const P = () => <div className="p-4 bg-sidebar flex text-chart-3" />;\n' > "$probe"
+          bunx vp fmt "$probe" > /dev/null
+          expected='export const P = () => <div className="flex bg-sidebar p-4 text-chart-3" />;'
+          if [ "$(cat "$probe")" != "$expected" ]; then
+            echo "::error::the formatter did not sort Tailwind classes; check fmt.sortTailwindcss in vite.config.ts"
+            echo "got:      $(cat "$probe")"
+            echo "expected: $expected"
             exit 1
-          }
-          test -f "$stylesheet" || {
-            echo "::error file=.oxfmtrc.json::sortTailwindcss.stylesheet points at $stylesheet, which does not exist"
-            exit 1
-          }
+          fi
 
       - name: Check markdown links
         run: bun .claude/hooks/check-md-links.ts
 
-      - name: Run oxlint and oxfmt
+      # `vp check` runs format, lint and type checks in one pass, which is why
+      # this workflow has no separate tsc step.
+      - name: Run format, lint and type checks
         run: bun run check
 
       - name: Detect unused code (knip)
@@ -106,9 +112,6 @@ jobs:
 
       - name: Run Tests
         run: bun run test
-
-      - name: Run TypeScript Type Check (tsc)
-        run: bun run typecheck
 
       - name: Build Project
         run: bun run build
