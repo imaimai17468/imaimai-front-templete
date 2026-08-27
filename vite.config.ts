@@ -12,6 +12,9 @@ import { defineConfig } from "vite-plus";
 import reactDoctor from "./oxlint.react-doctor.ts";
 import { wranglerTypes } from "./tools/vite-plugins/wrangler-types-plugin";
 
+const CONFIG_FILES = "*.config.{js,ts,mjs,mts}";
+const FILES_VITEST_NEVER_LOADS = [CONFIG_FILES, "scripts/**"];
+
 export default defineConfig({
   lint: {
     options: { typeAware: true, typeCheck: true },
@@ -135,15 +138,15 @@ export default defineConfig({
     ],
     overrides: [
       {
-        // `sort-keys` is dropped because a config object's key order carries
-        // meaning that alphabetical order destroys: `plugins` runs in array
-        // order, and the blocks here read as lint, then fmt, then what Vite
-        // itself needs. `vitest/require-hook` is dropped because it reports
-        // these files' top-level statements even though a config holds no
-        // tests. Every other rule still applies, and these files are linted
-        // and type-checked like any other.
-        files: ["*.config.{js,ts,mjs,mts}"],
-        rules: { "sort-keys": "off", "vitest/require-hook": "off" },
+        // A config object's key order carries meaning that alphabetical order
+        // destroys: `plugins` runs in array order, and the blocks here read as
+        // lint, then fmt, then what Vite itself needs.
+        files: [CONFIG_FILES],
+        rules: { "sort-keys": "off" },
+      },
+      {
+        files: FILES_VITEST_NEVER_LOADS,
+        rules: { "vitest/require-hook": "off" },
       },
       {
         // The script drives a hook and parses its JSON stdout, so `unknown` is
@@ -159,19 +162,13 @@ export default defineConfig({
           "anti-slop/no-unsafe-dictionary-type": "off",
           "no-console": "off",
           "unicorn/no-array-for-each": "off",
-          // vitest/require-hook reports these scripts' top-level statements.
-          // They run their own assertions under bun and vitest never loads
-          // them, so there is no hook for the work to move into.
-          "vitest/require-hook": "off",
         },
       },
       {
-        // Vitest loads this through setupFiles, where the afterEach registers
-        // once for every test file. Wrapping it in a describe would scope the
-        // cleanup to that block, and dropping the import would leave afterEach
-        // undefined, because vitest.config.mts does not enable globals.
         files: ["src/test-setup.ts"],
         rules: {
+          // vitest.config.mts sets no `globals`, so this import is what
+          // defines afterEach here.
           "vitest/no-importing-vitest-globals": "off",
           "vitest/require-top-level-describe": "off",
         },
