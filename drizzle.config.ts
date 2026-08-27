@@ -26,9 +26,19 @@ export default {
   out: "./src/lib/drizzle/migrations",
   dialect: "sqlite",
   driver: "d1-http",
+  // Getters, so `db:generate` still runs with no Cloudflare credentials: it
+  // reads the schema and writes SQL without touching the remote database. Only
+  // a command that reads a credential pays for its absence, and it learns which
+  // variable is missing instead of sending `undefined`.
   dbCredentials: {
-    accountId: requireCloudflareVar("CLOUDFLARE_ACCOUNT_ID"),
-    databaseId: requireCloudflareVar("CLOUDFLARE_D1_DATABASE_ID"),
-    token: requireCloudflareVar("CLOUDFLARE_API_TOKEN"),
+    get accountId() {
+      return requireCloudflareVar("CLOUDFLARE_ACCOUNT_ID");
+    },
+    get databaseId() {
+      return requireCloudflareVar("CLOUDFLARE_D1_DATABASE_ID");
+    },
+    get token() {
+      return requireCloudflareVar("CLOUDFLARE_API_TOKEN");
+    },
   },
 } satisfies Config;
