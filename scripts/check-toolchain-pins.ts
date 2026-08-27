@@ -16,17 +16,14 @@ interface Pin {
   readonly label: string;
 }
 
-/** vite-plus writes its own pins as `=1.2.3`. */
-const bundledVersionOf = (spec: string | undefined): string | undefined =>
-  spec?.replace(/^=/u, "");
-
 /**
- * A declaration keeps its range marker, so `^1.79.0` never equals the bundled
- * `1.79.0` and the comparison rejects it. A range lets a second copy of the
- * tool into the graph, which is the thing this check exists to prevent.
+ * `=1.2.3` and `1.2.3` are the same exact pin, and vite-plus writes the first
+ * form. `^` and `~` survive, so a range never equals the bundled version and
+ * the comparison rejects it: a range lets a second copy of the tool into the
+ * graph, which is the thing this check exists to prevent.
  */
-const declaredVersionOf = (spec: string | undefined): string | undefined =>
-  spec;
+const exactVersionOf = (spec: string | undefined): string | undefined =>
+  spec?.replace(/^=/u, "");
 
 const declaredAliasOf = (spec: string | undefined): string | undefined =>
   spec?.replace(`npm:${CORE}@`, "");
@@ -36,43 +33,43 @@ const { devDependencies: declared, overrides } = manifest;
 
 const PINS: readonly Pin[] = [
   {
-    bundled: bundledVersionOf(bundled[CORE]),
+    bundled: exactVersionOf(bundled[CORE]),
     declared: declaredAliasOf(declared.vite),
     label: "devDependencies.vite (alias to vite-plus core)",
   },
   {
-    bundled: bundledVersionOf(bundled[CORE]),
+    bundled: exactVersionOf(bundled[CORE]),
     declared: declaredAliasOf(overrides.vite),
     label: "overrides.vite (alias to vite-plus core)",
   },
   {
-    bundled: bundledVersionOf(bundled.vitest),
-    declared: declaredVersionOf(overrides.vitest),
+    bundled: exactVersionOf(bundled.vitest),
+    declared: exactVersionOf(overrides.vitest),
     label: "overrides.vitest",
   },
   {
-    bundled: bundledVersionOf(bundled.vitest),
-    declared: declaredVersionOf(declared.vitest),
+    bundled: exactVersionOf(bundled.vitest),
+    declared: exactVersionOf(declared.vitest),
     label: "devDependencies.vitest",
   },
   {
-    bundled: bundledVersionOf(bundled.vitest),
-    declared: declaredVersionOf(declared["@vitest/coverage-v8"]),
+    bundled: exactVersionOf(bundled.vitest),
+    declared: exactVersionOf(declared["@vitest/coverage-v8"]),
     label: "devDependencies.@vitest/coverage-v8",
   },
   {
-    bundled: bundledVersionOf(bundled.oxlint),
-    declared: declaredVersionOf(declared.oxlint),
+    bundled: exactVersionOf(bundled.oxlint),
+    declared: exactVersionOf(declared.oxlint),
     label: "devDependencies.oxlint",
   },
   {
-    bundled: bundledVersionOf(bundled.oxfmt),
-    declared: declaredVersionOf(declared.oxfmt),
+    bundled: exactVersionOf(bundled.oxfmt),
+    declared: exactVersionOf(declared.oxfmt),
     label: "devDependencies.oxfmt",
   },
   {
-    bundled: bundledVersionOf(bundled["oxlint-tsgolint"]),
-    declared: declaredVersionOf(declared["oxlint-tsgolint"]),
+    bundled: exactVersionOf(bundled["oxlint-tsgolint"]),
+    declared: exactVersionOf(declared["oxlint-tsgolint"]),
     label: "devDependencies.oxlint-tsgolint",
   },
 ];
