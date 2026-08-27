@@ -130,7 +130,7 @@ silently. What changes inside it is the `include` list: prune the entries whose
 paths step 1 deleted, and leave the rest.
 
 ```ts
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite-plus";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
@@ -167,13 +167,13 @@ them: `vitest.config.mts` holds this file at 100% branch coverage, so a pruned
 ban with a surviving test, or the reverse, fails `bun run test`. If every ban
 goes, the `layer-boundaries` rule and its entry in the `plugin` export go too.
 When that happens, also remove `"arch-rules/layer-boundaries": "error"` from
-`.oxlintrc.json`'s `rules` map, because the plugin export and that entry name the same
+`vite.config.ts`'s `lint.rules` map, because the plugin export and that entry name the same
 rule ID, so dropping only one half leaves the config pointing at a rule nothing
 supplies.
 
 **Neither file under `tools/oxlint-plugins/` is deleted.** `arch-rules.js` also
 carries the component and test-shape rules, `style-rules.js` is untouched by this
-procedure, and `.oxlintrc.json` loads both by path under `jsPlugins`, so removing
+procedure, and `vite.config.ts` loads both by path under `lint.jsPlugins`, so removing
 either file breaks the lint config for the whole fork.
 
 ### `knip.json`
@@ -343,8 +343,7 @@ cites the file describes what was true when it was written and must not be
 bun install
 bun run generate-routes
 bun run cf-typegen
-bun run typecheck
-bun run lint
+bun run check
 bun run test
 bun run knip
 bun run build

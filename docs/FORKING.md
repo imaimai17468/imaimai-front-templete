@@ -33,7 +33,7 @@ clone した直後に置き換えるべき値と、残す/捨てるファイル�
 
 **再利用する（そのまま持っていく）**: 規約とゲートを成立させているもの全部。
 規約そのもの（`AGENTS.md`, `CLAUDE.md`, `.claude/`）、それを機械的に強制する側
-（`lefthook.yml`, `.oxlintrc.json`, `.oxfmtrc.json`, `knip.json`,
+（`lefthook.yml`, `vite.config.ts`, `knip.json`,
 `vitest.config.mts`, `tools/oxlint-plugins/`, `scripts/` のゲートスクリプト）。
 規約は文書だけに書かれているわけではないので、強制側を置いていくと規約が黙って
 効かなくなる。

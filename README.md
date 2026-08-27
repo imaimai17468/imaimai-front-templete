@@ -12,7 +12,7 @@ TanStack Start + TypeScript + Tailwind CSS + shadcn/ui を使用したモダン�
 - **Database**: Cloudflare D1 (SQLite) + Drizzle ORM
 - **Storage**: Cloudflare R2
 - **Hosting**: Cloudflare Workers (@cloudflare/vite-plugin)
-- **Code Quality**: oxlint (linting) + oxfmt (formatting)
+- **Code Quality**: Vite+ (`vp check` で format / lint / 型検査)
 - **Testing**: Vitest + Testing Library
 - **Package Manager**: Bun
 - **Git Hooks**: Lefthook
@@ -29,7 +29,7 @@ cp .env.local.example .env.local
 bun run dev
 ```
 
-`src/routeTree.gen.ts` は `bun run dev` と `bun run build` が生成し、ルートファイルの追加や削除に追従します。`worker-configuration.d.ts` は `bun run dev` が生成し、`wrangler.toml` の編集にも追従します（build は生成しません）。dev を起動せずに `bun run typecheck` や `bun run test` を走らせるときだけ、先に `bun run generate-routes` と `bun run cf-typegen` を叩いてください。
+`src/routeTree.gen.ts` は `bun run dev` と `bun run build` が生成し、ルートファイルの追加や削除に追従します。`worker-configuration.d.ts` は `bun run dev` が生成し、`wrangler.toml` の編集にも追従します（build は生成しません）。dev を起動せずに `bun run check` や `bun run test` を走らせるときだけ、先に `bun run generate-routes` と `bun run cf-typegen` を叩いてください。
 
 `similarity-ts` が無い環境では SessionStart の env-check が欠落を報告し、Stop gate は重複検出を「スキップした」と明示します（黙って合格扱いにはなりません）。
 
@@ -44,11 +44,12 @@ http://localhost:5173 でアクセス。`@cloudflare/vite-plugin` により、`b
 - **[mise](https://mise.jdx.dev/)**：Node / Bun / actionlint のバージョン固定 (`mise.toml`)
 - **[shadcn/ui](https://ui.shadcn.com/)**：UI components (`components.json`)
 - **[TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)**：Type checker (Go-native `tsc`)
-- **[oxlint](https://oxc.rs/docs/guide/usage/linter)**：Linter (`.oxlintrc.json`)
-- **自作 oxlint プラグイン** (`tools/oxlint-plugins/`)：`.oxlintrc.json` の `jsPlugins` から読み込まれる。層契約・コンポーネント命名・1ファイル1コンポーネント・テストの形（1テスト1 expect など）を機械的に強制するので、規約は文書だけでなくここにもある
+- **[Vite+](https://viteplus.dev/)**：Vite / Vitest / oxlint / oxfmt を束ねる CLI。設定は `vite.config.ts` の `lint` / `fmt` ブロックに集約される
+- **[oxlint](https://oxc.rs/docs/guide/usage/linter)**：Linter (`vite.config.ts` の `lint` ブロック)
+- **自作 oxlint プラグイン** (`tools/oxlint-plugins/`)：`vite.config.ts` の `lint.jsPlugins` から読み込まれる。層契約・コンポーネント命名・1ファイル1コンポーネント・テストの形（1テスト1 expect など）を機械的に強制するので、規約は文書だけでなくここにもある
 - **自作 vite プラグイン** (`tools/vite-plugins/`)：`vite.config.ts` から読み込まれる。`wrangler.toml` の変更を検知して `bun run cf-typegen` を走らせ、dev 起動時は `worker-configuration.d.ts` が `wrangler.toml` より古いときだけ生成する
-- **[react-doctor](https://github.com/millionco/react-doctor)**：React 向け追加ルール (`.oxlintrc.react-doctor.json`)
-- **[oxfmt](https://oxc.rs/docs/guide/usage/formatter)**：Formatter (`.oxfmtrc.json`)
+- **[react-doctor](https://github.com/millionco/react-doctor)**：React 向け追加ルール (`oxlint.react-doctor.ts`)
+- **[oxfmt](https://oxc.rs/docs/guide/usage/formatter)**：Formatter (`vite.config.ts` の `fmt` ブロック)
 - **[lefthook](https://github.com/evilmartians/lefthook)**：Git hooks (`lefthook.yml`、`bun install` 時に `prepare` スクリプトで自動セットアップ)
 - **[knip](https://knip.dev/)**：Unused deps/exports/files detection (`knip.json`)
 - **[similarity-ts](https://github.com/mizchi/similarity)**：Code similarity detector
