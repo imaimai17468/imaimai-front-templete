@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { cn } from "./utils";
 
 // Exemplar test (AGENTS.md "Testing"): colocated `<module>.test.ts`, white-box —

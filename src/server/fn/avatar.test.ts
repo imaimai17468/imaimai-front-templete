@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import type { AvatarObject } from "@/gateways/avatar";
 import type { getSession } from "@/lib/auth/session";
 import { createReadAvatarForCurrentUser } from "./avatar";
