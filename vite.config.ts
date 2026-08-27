@@ -42,7 +42,11 @@ export default defineConfig({
     categories: {
       correctness: "error",
       suspicious: "error",
+      pedantic: "error",
       perf: "error",
+      style: "error",
+      restriction: "error",
+      nursery: "error",
     },
     rules: {
       complexity: "error",
@@ -65,6 +69,10 @@ export default defineConfig({
       "react/jsx-pascal-case": "error",
       eqeqeq: ["error", "always", { null: "ignore" }],
       "no-console": "warn",
+      // `style` enables this alongside vitest/require-hook, which asks for the
+      // opposite: setup at the top level trips require-hook, setup inside a
+      // hook trips this. Dropping this one leaves require-hook coherent.
+      "vitest/no-hooks": "off",
       "@typescript-eslint/ban-ts-comment": "error",
       "@typescript-eslint/no-non-null-assertion": "error",
       "@typescript-eslint/switch-exhaustiveness-check": "error",
@@ -132,7 +140,9 @@ export default defineConfig({
         // lint, then fmt, then what Vite itself needs. These files are linted
         // and type-checked, so only the ordering rule is dropped.
         files: ["*.config.{js,ts,mjs,mts}"],
-        rules: { "sort-keys": "off" },
+        // vitest/require-hook reports this file's top-level statements even
+        // though a config holds no tests.
+        rules: { "sort-keys": "off", "vitest/require-hook": "off" },
       },
       {
         // The script drives a hook and parses its JSON stdout, so `unknown` is
@@ -148,6 +158,21 @@ export default defineConfig({
           "anti-slop/no-unsafe-dictionary-type": "off",
           "no-console": "off",
           "unicorn/no-array-for-each": "off",
+          // vitest/require-hook reports these scripts' top-level statements.
+          // They run their own assertions under bun and vitest never loads
+          // them, so there is no hook for the work to move into.
+          "vitest/require-hook": "off",
+        },
+      },
+      {
+        // Vitest loads this through setupFiles, where the afterEach registers
+        // once for every test file. Wrapping it in a describe would scope the
+        // cleanup to that block, and dropping the import would leave afterEach
+        // undefined, because vitest.config.mts does not enable globals.
+        files: ["src/test-setup.ts"],
+        rules: {
+          "vitest/no-importing-vitest-globals": "off",
+          "vitest/require-top-level-describe": "off",
         },
       },
       {
