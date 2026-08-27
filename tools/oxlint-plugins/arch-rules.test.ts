@@ -172,7 +172,7 @@ describe("one-component-per-file", () => {
     };
 
     // Act
-    visitors.ExportNamedDeclaration?.(node);
+    visitors.ExportNamedDeclaration(node);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -190,8 +190,8 @@ describe("one-component-per-file", () => {
     };
 
     // Act
-    visitors.ExportNamedDeclaration?.(firstNode);
-    visitors.ExportNamedDeclaration?.(secondNode);
+    visitors.ExportNamedDeclaration(firstNode);
+    visitors.ExportNamedDeclaration(secondNode);
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -214,7 +214,7 @@ describe("one-component-per-file", () => {
     };
 
     // Act
-    visitors.ExportNamedDeclaration?.(node);
+    visitors.ExportNamedDeclaration(node);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -248,8 +248,8 @@ describe("one-component-per-file", () => {
     };
 
     // Act
-    visitors.ExportNamedDeclaration?.(firstNode);
-    visitors.ExportNamedDeclaration?.(secondNode);
+    visitors.ExportNamedDeclaration(firstNode);
+    visitors.ExportNamedDeclaration(secondNode);
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -264,7 +264,7 @@ describe("one-component-per-file", () => {
     };
 
     // Act
-    visitors.ExportNamedDeclaration?.(node);
+    visitors.ExportNamedDeclaration(node);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -287,7 +287,7 @@ describe("one-component-per-file", () => {
     };
 
     // Act
-    visitors.ExportNamedDeclaration?.(node);
+    visitors.ExportNamedDeclaration(node);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -1221,8 +1221,8 @@ describe("one-component-per-file (defensive branches)", () => {
     };
 
     // Act
-    visitors.ExportNamedDeclaration?.(named);
-    visitors.ExportDefaultDeclaration?.(defaultExport);
+    visitors.ExportNamedDeclaration(named);
+    visitors.ExportDefaultDeclaration(defaultExport);
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -1237,7 +1237,7 @@ describe("one-component-per-file (defensive branches)", () => {
     };
 
     // Act
-    visitors.ExportNamedDeclaration?.(node);
+    visitors.ExportNamedDeclaration(node);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -1249,7 +1249,7 @@ describe("one-component-per-file (defensive branches)", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ExportNamedDeclaration?.({ declaration: null });
+    visitors.ExportNamedDeclaration({ declaration: null });
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -1261,7 +1261,7 @@ describe("one-component-per-file (defensive branches)", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ExportNamedDeclaration?.({
+    visitors.ExportNamedDeclaration({
       declaration: { id: { name: "Card" }, type: "ClassDeclaration" },
     });
 
@@ -1275,7 +1275,7 @@ describe("one-component-per-file (defensive branches)", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ExportNamedDeclaration?.({
+    visitors.ExportNamedDeclaration({
       declaration: { id: null, type: "FunctionDeclaration" },
     });
 
@@ -1295,7 +1295,7 @@ describe("one-component-per-file (defensive branches)", () => {
     };
 
     // Act
-    visitors.ExportNamedDeclaration?.(node);
+    visitors.ExportNamedDeclaration(node);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -1315,7 +1315,7 @@ describe("one-component-per-file (defensive branches)", () => {
     };
 
     // Act
-    visitors.ExportNamedDeclaration?.(node);
+    visitors.ExportNamedDeclaration(node);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -1338,7 +1338,7 @@ describe("one-component-per-file (defensive branches)", () => {
     };
 
     // Act
-    visitors.ExportNamedDeclaration?.(node);
+    visitors.ExportNamedDeclaration(node);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -1350,7 +1350,7 @@ describe("one-component-per-file (defensive branches)", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ExportDefaultDeclaration?.({ declaration: null });
+    visitors.ExportDefaultDeclaration({ declaration: null });
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -1362,7 +1362,7 @@ describe("one-component-per-file (defensive branches)", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ExportDefaultDeclaration?.({
+    visitors.ExportDefaultDeclaration({
       declaration: { type: "ArrowFunctionExpression" },
     });
 
@@ -1376,7 +1376,7 @@ describe("one-component-per-file (defensive branches)", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ExportDefaultDeclaration?.({
+    visitors.ExportDefaultDeclaration({
       declaration: { id: null, type: "FunctionExpression" },
     });
 
@@ -1390,7 +1390,7 @@ describe("one-component-per-file (defensive branches)", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ExportDefaultDeclaration?.({
+    visitors.ExportDefaultDeclaration({
       declaration: { id: { name: "helper" }, type: "FunctionDeclaration" },
     });
 

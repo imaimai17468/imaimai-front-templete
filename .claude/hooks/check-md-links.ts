@@ -101,8 +101,7 @@ export const stripCode = (text: string): string => {
         return blankCodeSpans(line, 0);
       }
       if (
-        marker !== undefined &&
-        marker.startsWith(fence.char) &&
+        marker?.startsWith(fence.char) === true &&
         marker.length >= fence.length
       ) {
         fence = null;
@@ -317,7 +316,7 @@ export const targetExists = (target: string): boolean => {
     .filter((part) => part !== "");
   return parts.every((part, depth) => {
     const entries = listdir(path.join(root, ...parts.slice(0, depth)));
-    return entries !== null && entries.has(part);
+    return entries?.has(part) === true;
   });
 };
 

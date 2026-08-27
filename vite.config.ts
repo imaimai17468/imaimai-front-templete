@@ -12,6 +12,9 @@ import { defineConfig } from "vite-plus";
 import reactDoctor from "./oxlint.react-doctor.ts";
 import { wranglerTypes } from "./tools/vite-plugins/wrangler-types-plugin";
 
+const CONFIG_FILES = "*.config.{js,ts,mjs,mts}";
+const FILES_VITEST_NEVER_LOADS = [CONFIG_FILES, "scripts/**"];
+
 export default defineConfig({
   lint: {
     options: { typeAware: true, typeCheck: true },
@@ -42,7 +45,11 @@ export default defineConfig({
     categories: {
       correctness: "error",
       suspicious: "error",
+      pedantic: "error",
       perf: "error",
+      style: "error",
+      restriction: "error",
+      nursery: "error",
     },
     rules: {
       complexity: "error",
@@ -65,6 +72,10 @@ export default defineConfig({
       "react/jsx-pascal-case": "error",
       eqeqeq: ["error", "always", { null: "ignore" }],
       "no-console": "warn",
+      // `style` enables this alongside vitest/require-hook, which asks for the
+      // opposite: setup at the top level trips require-hook, setup inside a
+      // hook trips this. Dropping this one leaves require-hook coherent.
+      "vitest/no-hooks": "off",
       "@typescript-eslint/ban-ts-comment": "error",
       "@typescript-eslint/no-non-null-assertion": "error",
       "@typescript-eslint/switch-exhaustiveness-check": "error",
@@ -129,10 +140,13 @@ export default defineConfig({
       {
         // A config object's key order carries meaning that alphabetical order
         // destroys: `plugins` runs in array order, and the blocks here read as
-        // lint, then fmt, then what Vite itself needs. These files are linted
-        // and type-checked, so only the ordering rule is dropped.
-        files: ["*.config.{js,ts,mjs,mts}"],
+        // lint, then fmt, then what Vite itself needs.
+        files: [CONFIG_FILES],
         rules: { "sort-keys": "off" },
+      },
+      {
+        files: FILES_VITEST_NEVER_LOADS,
+        rules: { "vitest/require-hook": "off" },
       },
       {
         // The script drives a hook and parses its JSON stdout, so `unknown` is
@@ -148,6 +162,15 @@ export default defineConfig({
           "anti-slop/no-unsafe-dictionary-type": "off",
           "no-console": "off",
           "unicorn/no-array-for-each": "off",
+        },
+      },
+      {
+        files: ["src/test-setup.ts"],
+        rules: {
+          // vitest.config.mts sets no `globals`, so this import is what
+          // defines afterEach here.
+          "vitest/no-importing-vitest-globals": "off",
+          "vitest/require-top-level-describe": "off",
         },
       },
       {
