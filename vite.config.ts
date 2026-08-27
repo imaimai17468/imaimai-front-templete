@@ -135,13 +135,14 @@ export default defineConfig({
     ],
     overrides: [
       {
-        // A config object's key order carries meaning that alphabetical order
-        // destroys: `plugins` runs in array order, and the blocks here read as
-        // lint, then fmt, then what Vite itself needs. These files are linted
-        // and type-checked, so only the ordering rule is dropped.
+        // `sort-keys` is dropped because a config object's key order carries
+        // meaning that alphabetical order destroys: `plugins` runs in array
+        // order, and the blocks here read as lint, then fmt, then what Vite
+        // itself needs. `vitest/require-hook` is dropped because it reports
+        // these files' top-level statements even though a config holds no
+        // tests. Every other rule still applies, and these files are linted
+        // and type-checked like any other.
         files: ["*.config.{js,ts,mjs,mts}"],
-        // vitest/require-hook reports this file's top-level statements even
-        // though a config holds no tests.
         rules: { "sort-keys": "off", "vitest/require-hook": "off" },
       },
       {
