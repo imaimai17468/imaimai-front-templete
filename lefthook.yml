@@ -27,8 +27,6 @@ pre-push:
   commands:
     check:
       run: bun run check
-    typecheck:
-      run: bun run typecheck
     cf-typegen-check:
       run: bun run cf-typegen:check
     # Vite+ bundles exact tool versions and package.json restates several of

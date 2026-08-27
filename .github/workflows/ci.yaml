@@ -82,7 +82,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # The probe has to sit inside the repository, because the formatter
+          # discovers `fmt` from the config at the root. This step owns that
+          # path: it refuses to run rather than overwrite a tracked file and
+          # delete it out from under the steps below.
           probe=src/tailwind-sort-probe.tsx
+          if [ -e "$probe" ]; then
+            echo "::error file=$probe::this path is reserved for the formatter probe"
+            exit 1
+          fi
           trap 'rm -f "$probe"' EXIT
           printf 'export const P = () => <div className="p-4 bg-sidebar flex text-chart-3" />;\n' > "$probe"
           bunx vp fmt "$probe" > /dev/null
