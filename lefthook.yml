@@ -31,6 +31,10 @@ pre-push:
       run: bun run typecheck
     cf-typegen-check:
       run: bun run cf-typegen:check
+    # Vite+ bundles exact tool versions and package.json restates several of
+    # them; a bump that moves one side alone splits the dependency graph.
+    toolchain-pins:
+      run: bun run check:pins
     # With no arguments actionlint walks .github/workflows itself. It goes
     # through `mise exec` because mise reaches PATH through an rc file, which
     # the shell lefthook spawns does not always read; a bare `actionlint` was

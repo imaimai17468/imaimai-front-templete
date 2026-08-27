@@ -94,6 +94,9 @@ jobs:
             exit 1
           fi
 
+      - name: Verify the toolchain pins agree with vite-plus
+        run: bun run check:pins
+
       - name: Check markdown links
         run: bun .claude/hooks/check-md-links.ts
 
