@@ -29,9 +29,9 @@ would have survived.
 - **cleanup**: duplication, dead code, needless complexity, obvious performance problems,
   drift from surrounding conventions
 - **rules**: read `AGENTS.md`, `.claude/rules/prose.md`, and every path-scoped file under
-  `.claude/rules/` whose scope matches the diff. None of them are auto-loaded here. Set
-  `rule` to the one violated. Invent no rule beyond those files, and never dismiss a
-  finding as pre-existing when the file is in the diff.
+  `.claude/rules/` whose scope matches the diff, whichever of them is not already in your
+  context. Set `rule` to the one violated. Invent no rule beyond those files, and never
+  dismiss a finding as pre-existing when the file is in the diff.
 
 Each candidate needs a location (`file:line`), a one-line title, the failure scenario, a
 first idea for the fix, a severity of critical / major / minor, and the rule it violates
