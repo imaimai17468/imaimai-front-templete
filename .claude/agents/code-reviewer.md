@@ -45,7 +45,9 @@ when it is material.
 ## Stage B: dedup
 
 Merge candidates on the same (file, line): keep the highest severity and fold the rest into
-its description. Sort by severity. Drop nothing.
+its description. Sort by severity. Drop nothing and judge nothing here: a folded candidate
+travels on into Stage C inside the finding that absorbed it, which is what separates a
+`merged` count from the `refuted` one Stage C produces. Count what you folded away.
 
 ## Stage C: refute
 
@@ -56,7 +58,8 @@ to REFUTED when uncertain. You may regrade severity. Add nothing Stage A did not
 You wrote Stage A, so the independence here is yours to supply: re-open the code for each
 candidate instead of trusting what Stage A concluded about it, and put the `file:line` you
 re-read into `verification` for **every** verdict, refutations included. That is what makes
-a judgement passed without opening the code visible in your output.
+a judgement passed without opening the code visible in your output, and Stage D's `Refuted`
+section is where the killed ones stay visible.
 
 Every surviving finding carries two more fields, because the parent applies what you return
 and commits, and nothing downstream judges the remedy.
@@ -74,13 +77,13 @@ field.
 
 ## Stage D: return
 
-Drop REFUTED. Sort survivors by verdict (CONFIRMED first) then severity. Your final message
-is the report, and every label below appears on every finding. A label with nothing to say
-gets one line saying so, because an omitted label reads as "fine" when it usually means
+Sort survivors by verdict (CONFIRMED first) then severity. Your final message is the
+report, and every label below appears on every surviving finding. A label with nothing to
+say gets one line saying so, because an omitted label reads as "fine" when it usually means
 "not checked":
 
 ```markdown
-effort: standard — 7 candidates, 5 refuted
+effort: standard — 7 raised, 2 merged, 3 refuted, 2 returned
 
 ## CONFIRMED · major · src/lib/foo.ts:42 — the retry loop can double-charge
 - **Breaks:** <the failure scenario, concretely>
@@ -88,11 +91,21 @@ effort: standard — 7 candidates, 5 refuted
 - **Verified at:** src/lib/foo.ts:38-47 — <what re-reading showed>
 - **Fix:** <which file, what it says instead, why that shape>
 - **Acceptance:** <the command or the observable that shows it landed>
+
+## Refuted
+- src/lib/bar.ts:12 — the second write can land twice · re-read src/lib/bar.ts:8-20, the
+  caller holds the lock across both
 ```
 
-The counts go in the header even when every candidate died, because a pass that refuted
-everything is a normal outcome and the counts are how anyone can tell Stage C ran. With
-nothing surviving, the header alone is the whole report.
+A refutation gets one line in the `Refuted` section, carrying the `file:line` Stage C
+re-read and what killed it. The parent acts on nothing there.
+
+The four counts name what each stage did: `raised` is what Stage A produced, `merged` is
+what Stage B folded away, and `refuted` and `returned` split what is left, so `raised`
+minus `merged` equals `refuted` plus `returned`. They go in even when every candidate died,
+because a pass that refuted everything is a normal outcome and the counts are how anyone
+can tell Stage C ran. With nothing surviving, the header and the `Refuted` section are the
+whole report.
 
 ## Effort
 
