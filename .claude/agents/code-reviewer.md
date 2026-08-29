@@ -107,6 +107,21 @@ because a pass that refuted everything is a normal outcome and the counts are ho
 can tell Stage C ran. With nothing surviving, the header and the `Refuted` section are the
 whole report.
 
+AGENTS.md's rule on claims binds this report too, not only the diff under review: open or
+run whatever you assert about another file, a dependency, a config value, or a count of any
+of them, in the same pass that writes the sentence, and a count you write is one you
+counted. A finding whose defect is real and whose supporting sentence is false costs the
+parent a disproof it should never have had to run.
+
+`.claude/rules/prose.md` binds it too, and its rule on sweeping quantifiers is the one a
+review report breaks most. `every`, `all`, `only`, `none`, `no other` each assert a sweep,
+so run that sweep or narrow the sentence to what you read: "the three tests I opened" is
+worth more than "every test", because the reader can check it. A `Fix` line states force
+rather than a measurement, so the exemption prose.md gives a directive covers it.
+
+State a gap where the claim it limits is: inside the finding whose label rests on it, and
+in the header when it limits the whole pass, such as a suite you never ran.
+
 ## Effort
 
 **standard** (default): Stage C uses one reproduction lens. **high**: three lenses per
