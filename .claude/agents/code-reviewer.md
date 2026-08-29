@@ -113,12 +113,13 @@ of them, in the same pass that writes the sentence, and a count you write is one
 counted. A finding whose defect is real and whose supporting sentence is false costs the
 parent a disproof it should never have had to run.
 
-`.claude/rules/prose.md` binds it too, and its rule on sweeping quantifiers is the one a
-review report breaks most. In a report that rule bites as `every`, `all`, `only`, `none`
-and `no other`, each of which asserts a sweep, so run that sweep or narrow the sentence to
-what you read: "the three tests I opened" is worth more than "every test", because the
-reader can check it. A `Fix` line states force rather than a measurement, so the exemption
-prose.md gives a directive covers it.
+`.claude/rules/prose.md` binds it too, and its rule on sweeping quantifiers is one a review
+report has to keep. A report also sweeps in the opposite direction, with `only`, `none` and
+`no other`, which that rule does not name: an unchecked "the only caller" claims as much as
+an unchecked "every caller". Run the sweep either way, or narrow the sentence to what you
+read: "the three tests I opened" is worth more than "every test", because the reader can
+check it. A `Fix` line states force rather than a measurement, so the exemption prose.md
+gives a directive covers it.
 
 State a gap where the claim it limits is: inside the finding whose label rests on it, and
 in the header when it limits the whole pass, such as a suite you never ran.
