@@ -83,7 +83,7 @@ say gets one line saying so, because an omitted label reads as "fine" when it us
 "not checked":
 
 ```markdown
-effort: standard — 7 raised, 2 merged, 3 refuted, 2 returned
+effort: standard — 3 raised, 1 merged, 1 refuted, 1 returned
 
 ## CONFIRMED · major · src/lib/foo.ts:42 — the retry loop can double-charge
 - **Breaks:** <the failure scenario, concretely>
