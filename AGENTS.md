@@ -6,13 +6,11 @@ This file carries the directives. Step-by-step procedure for a named task lives 
 
 ## Workflow
 
-Ticket-granularity work follows the `ticket-work` skill: implementing a component, fixing a non-trivial bug, refactoring a module, adding a feature. Invoke it at the start, and detect the case yourself, because the user does not announce it. A one-line fix, a single config value, or a docs-only change skips it. Where an edit could be either, invoke it.
+Ticket-granularity work follows the `ticket-work` skill: implementing a component, fixing a non-trivial bug, refactoring a module, adding a feature. Invoke it at the start, and detect the case yourself, because the user does not announce it. A one-line fix, a single config value, or a docs-only change skips it, and a change stays docs-only across the document, the `.cursor/rules/` symlink mirroring it, and the Rules list below. Where an edit could be either, invoke it.
 
 ## Degraded Environments
 
-Not every session has the full toolchain, and a remote container may lack MCP servers or local binaries. A missing tool downgrades a step. It never waives that step, and it never blocks unrelated work. MUST-rules are satisfied by the corresponding degraded path below:
-
-- **Gate binaries absent** (e.g. `similarity-ts`): the SessionStart env-check reports this. Treat a skipped check as "not run", never as "passed", and say so when reporting completion.
+Not every session has the full toolchain, and a remote container may lack MCP servers or local binaries. A missing tool downgrades a step. It never waives that step, and it never blocks unrelated work. Report a step the session could not run as "not run", never as "passed", and name it when reporting completion. The SessionStart env-check reports an absent gate binary such as `similarity-ts`.
 
 ## Design Philosophy
 
@@ -39,7 +37,7 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 - Suggesting a dependency or approach the user hasn't already chosen
 - **Before writing any import path or library/framework/SDK access pattern from memory**, such as how to read a binding, load config, register a handler, or instantiate a client. These reshape between versions. Catching yourself thinking "I know how this works" or "you can only do it this way" is the cue to check rather than to skip checking, because that confident half-memory is how silently-stale code gets written
 
-**Not needed when:** the tool is already in the project's dependency files (read the project instead), it is a well-known CLI in standard usage (`git commit`, `cargo test`), the pattern is internal (read the codebase), or the concept has no versioned API.
+**Not needed when:** the project already pins the version and shows the usage you need (read the project instead), it is a well-known CLI in standard usage (`git commit`, `cargo test`), the pattern is internal (read the codebase), or the concept has no versioned API.
 
 **Don't present uncertain knowledge as fact.** Verify a term, a translation, a convention, or a recommendation before writing it down. Plausible-sounding but invented information reads as authoritative and propagates through docs and code. Where you cannot verify, say so plainly. This applies to formal skill execution, casual conversation, follow-up questions, and subagent prompts alike, with no exception for "I'm pretty sure."
 
@@ -57,7 +55,7 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 **Generated types stay generated:** after any `wrangler.toml` change, run `bun run cf-typegen`. That command writes `worker-configuration.d.ts`, so never hand-edit it.
 
-**Verification before completion:** Never report done without running `bun run check` and `bun run test`, fixing every error. `check` is `vp check`, which formats, lints and type-checks in one pass.
+**Verification before completion:** Never report done without running `bun run check` and `bun run test`, fixing every error. `check` is `vp check`, which formats, lints and type-checks in one pass. A change touching no code skips both. `knip` and `similarity-ts` judge the whole tree rather than your diff, and CI and the pre-push hook run them.
 
 **Never escape the type system to move on:** no `as` (except `as const`), `any`, `@ts-ignore`/`@ts-expect-error`/`@ts-nocheck`, non-null `!`, or lint-disable comments to silence an error. Fix the type (narrowing, guards, schema validation, `satisfies`). Where you genuinely cannot, dispatch a subagent with the right skill. Where that still fails, STOP and ask, and never silently cast or suppress.
 
@@ -69,7 +67,7 @@ Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/
 - **`design.md`** (`src/**/*.css`, `src/**/*.tsx`): the design system, covering color roles, typography, spacing, shapes, composition, and component conventions.
 - **`prose.md`** (no path scope, so it loads every session): how a sentence is built in anything a person reads, English and Japanese.
 
-`src/` is layered as `routes/` → `server/fn/` → `gateways/` → `entities/`, imports flow downward only, and `server/fn/` is the authorization boundary. The same contract fixes the placement homes: `src/components/` (`features/` for domain UI, `shared/<name>/` for cross-feature UI, `ui/` for shadcn CLI output, which keeps its name because `components.json` aliases resolve to it) and `src/lib/` for framework/infrastructure adapters and generic non-component values.
+`src/` is layered as `routes/` → `server/fn/` → `gateways/` → `entities/`, imports flow downward only, and `server/fn/` is the authorization boundary. The same contract fixes the placement homes: `src/components/` (`features/` for domain UI, `shared/<name>/` for cross-feature UI, `ui/` for shadcn CLI output, which keeps its name because `components.json` aliases resolve to it) and `src/lib/` for framework/infrastructure adapters and for non-component values a second consumer reads. A value read by one component lives beside that component.
 
 The next rule has no path scope, and applies whenever you write any instruction document, whatever the file type:
 
@@ -81,7 +79,7 @@ The next rule has no path scope, and applies whenever you write any instruction 
 
 ## Testing
 
-Tests are written against the implementation, and test-first is not required. What is required is that every branch you added is reached by a test that fails when that branch breaks. White-box: tests cover internal logic paths and branches as well as inputs and outputs. Pure functions require 100% branch coverage, which `vitest.config.mts` enforces per file over an explicit module list. A new pure module joins that list when its test lands, or nothing gates its coverage and no one notices.
+Tests are written against the implementation, and test-first is not required. What is required is that every branch you added is reached by a test that fails when that branch breaks. White-box: tests cover internal logic paths and branches as well as inputs and outputs. Pure functions require 100% branch coverage, which `vitest.config.mts` enforces per file over an explicit module list. A new module whose exports are all pure joins that list when its test lands, or nothing gates its coverage and no one notices. A module that reaches I/O stays out of it, and so does a component.
 
 - **A test name states a condition and its result.** The name alone says what broke, without opening the body. Follow the phrasing of the tests around it.
 - **One test, one `expect`, arranged as Arrange / Act / Assert.** A table-driven case is one test per row and obeys the same rule.
