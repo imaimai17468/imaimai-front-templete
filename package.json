@@ -47,7 +47,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "7.83.0",
-    "sonner": "2.0.7",
+    "sonner": "2.0.8",
     "tailwind-merge": "3.6.0",
     "zod": "4.4.3"
   },
