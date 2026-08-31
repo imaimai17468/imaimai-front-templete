@@ -14,6 +14,7 @@ import { wranglerTypes } from "./tools/vite-plugins/wrangler-types-plugin";
 
 const CONFIG_FILES = "*.config.{js,ts,mjs,mts}";
 const FILES_VITEST_NEVER_LOADS = [CONFIG_FILES, "scripts/**"];
+const CLI_ENTRYPOINTS = ["scripts/**", ".claude/hooks/**"];
 
 export default defineConfig({
   lint: {
@@ -149,18 +150,22 @@ export default defineConfig({
         rules: { "vitest/require-hook": "off" },
       },
       {
+        // These files are run as commands, so what they write to stdout is the
+        // report their caller reads rather than leftover debugging.
+        files: CLI_ENTRYPOINTS,
+        rules: { "no-console": "off" },
+      },
+      {
         // The script drives a hook and parses its JSON stdout, so `unknown` is
         // what the input actually is, and `Record<string, unknown>` is the
         // parsed shape a type guard narrows from: that covers
         // no-unknown-parameters and no-unsafe-dictionary-type.
         // `no-array-for-each` is dropped because the remedy it asks for is
-        // `for...of`, which `style-rules/no-loops` forbids. `no-console` is
-        // dropped because a CLI harness's output is its interface.
+        // `for...of`, which `style-rules/no-loops` forbids.
         files: ["scripts/**"],
         rules: {
           "anti-slop/no-unknown-parameters": "off",
           "anti-slop/no-unsafe-dictionary-type": "off",
-          "no-console": "off",
           "unicorn/no-array-for-each": "off",
         },
       },
