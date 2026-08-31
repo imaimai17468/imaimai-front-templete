@@ -52,7 +52,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.44.0",
+    "@cloudflare/vite-plugin": "1.53.1",
     "@tailwindcss/vite": "4.3.2",
     "@tanstack/devtools-vite": "0.8.5",
     "@tanstack/react-devtools": "0.10.12",
