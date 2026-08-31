@@ -15,6 +15,8 @@ This governs every text a person reads: replies to the user, plans, reports, com
 
 **Let the verb be the plain one.** `serves as`, `stands as`, `represents`, `boasts` are all `is` or `has`. `made a decision` is `decided`, and `has the ability to` is `can`.
 
+**Report your own action with its object.** `畳んだ`, `引いた`, `寄せた` name a gesture and leave out what moved. Write which thing you changed and what it now is: which function you deleted, which default went from what to what.
+
 **Name the actor.** `the check ensures X`, `the decision emerges`, `mistakes were made`, and `〜が担保される` all leave out who or what acts, which is how an unverified claim gets in without anyone owning it. Put the actor in the subject: which function, which gate, which person. Where the actor is the reader, write the imperative.
 
 **Cut the word that adds heat rather than light.** `really`, `simply`, `actually`, `truly`, `fundamentally`, `非常に`, `まさに` raise the temperature of a claim without changing it. A hedge that carries real uncertainty is a different thing, and Precision below protects it.
