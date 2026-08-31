@@ -89,7 +89,7 @@ Reaching a component's branches from a test depends on how the component was sha
 
 ## Commits & Pull Requests
 
-- **One commit = one purpose.** Where two changes could be reverted independently, split them, and a drive-by fix is always its own commit. Never `git add -A` or `git add .`. Stage explicit paths, and use `git add -p` to split hunks within a file.
+- **One commit = one purpose.** Where two changes could be reverted independently, split them, and a drive-by fix is always its own commit. One review finding is one commit, so a round that raised four findings lands four commits. Never `git add -A` or `git add .`. Stage explicit paths, and use `git add -p` to split hunks within a file.
 - First line states **what improves**, not what you did. Prefixes: `feat` / `fix` / `refactor` / `test` / `docs` / `chore` (intent-based). Body in Japanese, and `fix`/`refactor` include a *why* line. End with a `Co-Authored-By:` trailer crediting the current model.
 - Do not commit without explicit user confirmation.
 - **Prose:** see `.claude/rules/prose.md`. Commit-message specifics stay in the bullets above.
