@@ -94,3 +94,4 @@ Reaching a component's branches from a test depends on how the component was sha
 - Do not commit without explicit user confirmation.
 - **Prose:** see `.claude/rules/prose.md`. Commit-message specifics stay in the bullets above.
 - **History:** while a PR is Draft, keep its commits clean (rebase freely). Once review has started, never rewrite reviewed commits. Add fixes on top, and integrate preserving the commit/review order, typically with a merge commit.
+- **Answer every review comment in its thread.** Name the change you made, or the reason none was needed. Where you judge the finding wrong, the user decides: give them the problem the reviewer found, the change the reviewer asked for, and your reason for refusing, so they can decide without reading the thread.
