@@ -64,9 +64,7 @@ not) reads as inconsistency rather than design.
   text the reader has to fight for.
 - Use semantic token names in components, never a raw color value.
 - Give a large surface one tone, and put headline emphasis in weight, scale, or
-  a value step. A gradient blended across a background or poured into type
-  reads as unchosen whichever pair of hues it takes, and blue into purple is
-  the pair that arrives by default.
+  a value step.
 
 ### Dark Mode
 
@@ -172,9 +170,8 @@ inter-component, largest for page structure.
 
 ## Shapes
 
-Every radius tier derives from `--radius` in `src/styles.css`. Pick the tier
-that matches the element's size, and do not introduce values outside the
-defined set.
+Pick the radius tier that matches the element's size, and do not introduce
+values outside the set derived from `--radius`.
 
 Nest radii by subtracting the gap. An inner radius equals the outer radius minus
 the padding between them, and where both take the same value, the two curves
@@ -212,8 +209,7 @@ Every interactive element must define all five states: default, hover,
 focus-visible, active, and disabled. Never remove the focus indicator.
 
 A hover state changes fill, color, or an icon's position while the element keeps
-its size and place. Reserve any lift for a card, and let a value shift carry it
-rather than a shadow.
+its size and place. Reserve any lift for a card, and carry it with a value shift.
 
 Set `background` explicitly on every button, because the user-agent default
 differs across browsers.
@@ -307,8 +303,10 @@ reflex when nothing was decided, so the bullet names the move that replaces it.
   sequence, the feature row, and the avatar each have one default form that
   carries no decision, and a sun-and-moon toggle is the clearest of them.
 - **Let a background be one considered surface.** A sheet of faint grid lines
-  reads as graph paper at any opacity, and a blurred blob of accent color
-  bleeding from a corner is the same reflex in color.
+  reads as graph paper at any opacity, a blurred blob of accent color bleeding
+  from a corner is the same reflex in color, and a gradient blended across the
+  background or poured into type reads as unchosen whichever pair of hues it
+  takes, with blue into purple arriving by default.
 
 ## Composition
 
