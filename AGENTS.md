@@ -61,11 +61,10 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 ## Rules
 
-Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/rules/*.mdc` as a file-level symlink so Cursor sessions load the same text (never replace a symlink with a copy):
+Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/rules/*.mdc` as a file-level symlink so Cursor sessions load the same text (never replace a symlink with a copy). Each rule's own frontmatter states its subject and its scope, and it states the scope twice because Claude Code reads `paths` and Cursor reads `globs`, so both keys change together.
 
-- **`react.md`** (`**/*.tsx`): purity and the calling rules from the official [Rules of React](https://react.dev/reference/rules), then effects, component splitting, testable shape, and module organization. It names the concrete `src/components/` homes in its Module Organization section, so `.tsx` placement is settled there rather than here.
-- **`design.md`** (`src/**/*.css`, `src/**/*.tsx`): the design system, covering color roles, typography, spacing, shapes, composition, and component conventions.
-- **`prose.md`** (no path scope, so it loads every session): how a sentence is built in anything a person reads, English and Japanese.
+- **`react.md`** names the concrete `src/components/` homes in its Module Organization section, so `.tsx` placement is settled there rather than here.
+- **`prose.md`** has no path scope, so it binds this reply as much as anything committed.
 
 `src/` is layered as `routes/` → `server/fn/` → `gateways/` → `entities/`, imports flow downward only, and `server/fn/` is the authorization boundary. `src/lib/` holds framework/infrastructure adapters and non-component values a second consumer reads, and `src/components/` holds UI. A value read by one component lives beside that component.
 
