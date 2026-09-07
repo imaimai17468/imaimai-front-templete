@@ -240,7 +240,7 @@ Keep everything else, explicitly including `deploy`, `preview`, and
 After the knip run in step 8, remove any dependencies it now flags as unused.
 Expected: `zod` and `@hookform/resolvers` (their last consumers were
 `src/entities/user` and the profile form). `react-hook-form`, `sonner`, and
-`@radix-ui/react-avatar` stay, because `src/components/ui/` still uses them.
+`radix-ui` stay, because `src/components/ui/` still uses them.
 
 ## 6. Update docs / settings
 
