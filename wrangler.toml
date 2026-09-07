@@ -18,9 +18,6 @@ migrations_dir = "src/lib/drizzle/migrations"
 binding = "AVATARS_BUCKET"
 bucket_name = "local-avatars"
 
-[vars]
-BETTER_AUTH_URL = "http://localhost:5173"
-
 # Declared so `wrangler types` emits these on CloudflareEnv deterministically.
 # Values are never here — they are registered with `wrangler secret put`.
 # Without this block the generator falls back to whatever local env

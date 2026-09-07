@@ -24,7 +24,7 @@ clone した直後に置き換えるべき値と、残す/捨てるファイル�
 [DATABASE_SETUP.md](./DATABASE_SETUP.md)、デプロイ後の運用は
 [DEPLOYMENT.md](./DEPLOYMENT.md) を参照。
 
-`BETTER_AUTH_URL` はローカルが `http://localhost:5173`、本番は本番オリジン。
+Better Auth はリクエストの origin を base URL にするので、環境ごとの設定は無い。
 
 ## 3. 残すもの / 捨てるもの
 

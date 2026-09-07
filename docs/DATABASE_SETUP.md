@@ -45,7 +45,7 @@ cp .env.local.example .env.local
 
 ```env
 # Better Auth
-# (BETTER_AUTH_URL は wrangler.toml の [vars] で設定済み — 開発時は :5173)
+# (Better Auth がリクエストの origin を base URL にするので BETTER_AUTH_URL は無い)
 BETTER_AUTH_SECRET=<openssl rand -base64 32 で生成>
 
 # OAuth Providers
@@ -202,7 +202,7 @@ bun run deploy
 
 このプロジェクトのデプロイ先は Cloudflare **Workers** です（Pages ではありません）。本番環境の値は種類で置き場所が変わります。
 
-- **秘密でない値**（`BETTER_AUTH_URL` など）: `wrangler.toml` の `[vars]` に置き、コミットする。
+- **秘密でない値**: `wrangler.toml` の `[vars]` に置き、コミットする。
 - **秘密の値**（`BETTER_AUTH_SECRET` / `GOOGLE_CLIENT_SECRET` など）: `wrangler secret put <NAME>` で登録する。ファイルには絶対に書かない — `.env*` は `.gitignore` 済みかつエージェントからの読み取りも拒否設定です。
 
 ```bash
