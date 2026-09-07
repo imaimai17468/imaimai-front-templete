@@ -56,3 +56,5 @@ storybook-static
 # claude code runtime artifacts
 .claude/scheduled_tasks.lock
 .claude/.session-id
+# `claude --worktree` and `isolation: worktree` subagents check out here
+.claude/worktrees/

@@ -98,7 +98,7 @@ src/
 - **`.claude/skills/`**：名前のついた作業の手順。チケット粒度の作業は `ticket-work` が持ち、AGENTS.md はそれを指します
 - **`.claude/hooks/`**：規約を機械的に強制する側。SessionStart で依存の欠落を報告し、Bash 実行前にガードを掛け、Stop で品質ゲート（typecheck / lint / format / knip / similarity / markdown リンク）を回します
 
-コミット前のレビューは `code-reviewer` エージェントが担い、コミットと PR はエージェントが AGENTS.md の規律に従って提案してユーザー確認後に実行します。
+コミット前のレビューは `code-reviewer` エージェントが担い、PR ブランチへのコミットと push はエージェントが AGENTS.md の規律に従って自分で行います。`main` へは PR 経由でだけ入ります。
 
 ## shadcn/ui
 

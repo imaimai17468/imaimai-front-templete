@@ -1,0 +1,4 @@
+# Gitignored files Claude Code copies into every worktree it creates.
+# Same syntax as .gitignore; tracked files are never copied.
+.env.local
+.dev.vars*

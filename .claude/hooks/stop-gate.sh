@@ -13,10 +13,17 @@
 
 set -uo pipefail
 
-ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
-cd "$ROOT"
-
 INPUT=$(cat)
+
+# CLAUDE_PROJECT_DIR is where the session started, and the input's `cwd` is the
+# checkout the session works in; in a worktree session those differ, and the
+# gate has to judge the tree the turn edited.
+ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+CWD=$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)
+if [ -n "$CWD" ] && [ -d "$CWD/.claude/hooks" ]; then
+  ROOT="$CWD"
+fi
+cd "$ROOT"
 # `stop_hook_active` is Claude Code's "this Stop was already blocked once"
 # flag. Cursor's stop payload carries `loop_count` (auto-followups already
 # triggered) instead — and it runs Claude-registered stop hooks with NO loop
