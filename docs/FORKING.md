@@ -62,3 +62,22 @@ clone した直後に置き換えるべき値と、残す/捨てるファイル�
 
 新しい機能を追加するときのディレクトリ判断は AGENTS.md の `Rules` 節
 と `.claude/rules/react.md` に従う。
+
+## 5. GitHub 側の設定を作る
+
+ルールセットや auto-merge の許可はリポジトリの設定なので、テンプレートからの複製にも fork にも引き継がれません。AGENTS.md の Commits & Pull Requests は「`main` ルールセットが要求する check が通れば GitHub がマージする」を前提にしているので、新しいリポジトリでは最初に次を作ります。
+
+```bash
+gh api -X PATCH repos/{owner}/{repo} -F allow_auto_merge=true -F delete_branch_on_merge=true
+```
+
+ルールセットは所有者で分かれます。どちらも CI の `build` を required check にし、bypass を置きません。
+
+- **組織所有**：`.github/rulesets/main-organization.json`。merge queue がキューに入った PR を `main` と合成した状態で `build` を回してから squash で入れます。CI の `merge_group` トリガーがこの check を報告します。
+- **個人所有**：`.github/rulesets/main-personal.json`。merge queue は組織所有のリポジトリでしか使えないので、代わりに「branch が `main` に追従していること」を required check の条件にします。追従が要る PR（`mergeStateStatus` が `BEHIND`）は監視ループが `gh pr update-branch` で取り込みます。
+
+```bash
+gh api -X POST repos/{owner}/{repo}/rulesets --input .github/rulesets/main-organization.json  # または main-personal.json
+```
+
+ルールセットを当てると `main` への直 push も required check を待つので、`main` への変更は PR 経由になります。
