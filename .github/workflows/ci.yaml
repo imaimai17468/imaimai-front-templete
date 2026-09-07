@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - main
+  # The merge queue runs checks on the merged result, and only this event
+  # reports them there.
+  merge_group:
   push:
     branches:
       - main
