@@ -72,6 +72,8 @@ Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/
 - **`react.md`** names the concrete `src/components/` homes in its Module Organization section, so `.tsx` placement is settled there rather than here.
 - **`prose.md`** has no path scope, so it binds this reply as much as anything committed.
 
+A principle lives in this file. A concrete of this repository, such as a path, a file name, or a command, lives in the rule whose scope covers the files it names, and the part of it a scope would hide from a session that needs it stays here.
+
 `src/` is layered as `routes/` → `server/fn/` → `gateways/` → `entities/`, imports flow downward only, and `server/fn/` is the authorization boundary. `src/lib/` holds framework/infrastructure adapters and non-component values a second consumer reads, and `src/components/` holds UI. A value read by one component lives beside that component.
 
 The next rule has no path scope, and applies whenever you write any instruction document, whatever the file type:
@@ -81,6 +83,8 @@ The next rule has no path scope, and applies whenever you write any instruction 
 **Guidance carries no padding.** A rule, a plan, or any instruction about how to act is written as well as it can be written, and then nothing is added: no restated rationale, no second example teaching what the first taught, no new section or file for something an existing one holds. Brevity is never the aim and is never bought with precision. Cut what repeats, and keep what decides.
 
 **Write a rule as the move to make.** Where the user asks for a rule that removes a behavior, state the action that replaces it, because a prohibition leaves every other route open and makes the reader invent the replacement. Where no action replaces the behavior, the prohibition is the whole rule and stands as one.
+
+**Nothing an agent learns goes into its auto-memory.** A memory binds only the agent that happens to recall it and is read by no reviewer, so what would be saved there is put where the next agent meets it: this file or a rule for a judgment, the skill for a procedure, the structure or the types for a constraint.
 
 ## Testing
 
