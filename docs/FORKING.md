@@ -8,7 +8,7 @@ clone した直後に置き換えるべき値と、残す/捨てるファイル�
 
 | 場所 | 初期値 | 置き換える値 |
 |---|---|---|
-| `package.json` の `name` | `my-app` | プロジェクト名 |
+| `package.json` の `name` | `my-app` | プロジェクト名。portless はこの値を dev URL のホスト名にするので、README と docs/DATABASE_SETUP.md の `my-app.localhost` も揃える |
 | `wrangler.toml` の `name` | `my-project` | Worker 名（デプロイ先の識別子） |
 | `LICENSE` の著作権表記 | テンプレート作者名 | 自分または自組織 |
 | `README.md` の見出しと説明 | テンプレートの説明 | プロジェクトの説明 |
