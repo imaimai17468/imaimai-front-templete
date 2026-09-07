@@ -82,6 +82,8 @@ The next rule has no path scope, and applies whenever you write any instruction 
 
 **Write a rule as the move to make.** Where the user asks for a rule that removes a behavior, state the action that replaces it, because a prohibition leaves every other route open and makes the reader invent the replacement. Where no action replaces the behavior, the prohibition is the whole rule and stands as one.
 
+**Nothing an agent learns goes into its auto-memory.** A memory binds only the agent that happens to recall it and is read by no reviewer, so what would be saved there is put where the next agent meets it: this file or a rule for a judgment, the skill for a procedure, the structure or the types for a constraint.
+
 ## Testing
 
 Tests are written against the implementation, and test-first is not required. What is required is that every branch you added is reached by a test that fails when that branch breaks. White-box: tests cover internal logic paths and branches as well as inputs and outputs. Pure functions require 100% branch coverage, which `vitest.config.mts` enforces per file over an explicit module list. A new module whose exports are all pure joins that list when its test lands, or nothing gates its coverage and no one notices. A module that reaches I/O stays out of it, and so does a component.
