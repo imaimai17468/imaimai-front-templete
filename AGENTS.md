@@ -72,6 +72,8 @@ Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/
 - **`react.md`** names the concrete `src/components/` homes in its Module Organization section, so `.tsx` placement is settled there rather than here.
 - **`prose.md`** has no path scope, so it binds this reply as much as anything committed.
 
+A principle lives in this file. A concrete of this repository, such as a path, a file name, or a command, lives in the rule whose scope covers the files it names, and the part of it a scope would hide from a session that needs it stays here.
+
 `src/` is layered as `routes/` → `server/fn/` → `gateways/` → `entities/`, imports flow downward only, and `server/fn/` is the authorization boundary. `src/lib/` holds framework/infrastructure adapters and non-component values a second consumer reads, and `src/components/` holds UI. A value read by one component lives beside that component.
 
 The next rule has no path scope, and applies whenever you write any instruction document, whatever the file type:
