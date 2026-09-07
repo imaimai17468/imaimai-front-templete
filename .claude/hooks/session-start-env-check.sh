@@ -11,6 +11,14 @@ set -uo pipefail
 INPUT="$(cat 2>/dev/null || true)"
 
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+# CLAUDE_PROJECT_DIR is where the session started, and the input's `cwd` is the
+# checkout the session works in; in a worktree session those differ, so the
+# checks on the checkout itself read `cwd` first.
+TREE="$ROOT"
+if command -v jq >/dev/null 2>&1 && [ -n "$INPUT" ]; then
+  CWD="$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null)"
+  [ -n "$CWD" ] && [ -d "$CWD" ] && TREE="$CWD"
+fi
 
 MISSING=()
 
@@ -25,9 +33,14 @@ command -v similarity-ts >/dev/null 2>&1 || MISSING+=("similarity-ts not on PATH
 # whether the check runs. mise.toml pins the version it resolves.
 command -v mise >/dev/null 2>&1 || MISSING+=("mise not on PATH (lefthook pre-push skips the GitHub Actions workflow check; install: https://mise.jdx.dev/, then mise install)")
 # The installed hooks, not the binary: `bun run prepare` writes them, and a tree
-# whose .git/hooks are absent runs no pre-commit check while every binary above
-# is present.
-[ -f "$ROOT/.git/hooks/pre-commit" ] || MISSING+=("lefthook hooks not installed — pre-commit/pre-push run nothing (fix: bun run prepare)")
+# whose hooks are absent runs no pre-commit check while every binary above is
+# present. Resolved through git because in a linked worktree `.git` is a file
+# and the hooks live in the main checkout's .git/hooks. `--git-path` answers
+# relative to the checkout when the hooks are inside it, so the test runs there.
+( cd "$TREE" 2>/dev/null && [ -f "$(git rev-parse --git-path hooks/pre-commit 2>/dev/null)" ] ) || MISSING+=("lefthook hooks not installed — pre-commit/pre-push run nothing (fix: bun run prepare)")
+# A fresh worktree has no node_modules until someone installs; the Stop gate,
+# the link check and lefthook all fail without it.
+[ -d "$TREE/node_modules" ] || MISSING+=("node_modules absent — fresh checkout or worktree (fix: bun install, then bun run generate-routes && bun run cf-typegen)")
 # A capability probe, not a version compare: what old node lacks is
 # `module.registerHooks`, which @cloudflare/vite-plugin imports at module top
 # level, so loading vite.config.ts fails wherever it is loaded. Observed on
@@ -41,7 +54,7 @@ if [ "${#MISSING[@]}" -gt 0 ]; then
   printf '  - %s\n' "${MISSING[@]}"
   echo "[env-check] Per AGENTS.md 'Degraded environments': state the degrade to the user once, and do not treat skipped checks as passed."
 else
-  echo "[env-check] Gate dependencies present (jq, bun, similarity-ts, mise, node with module.registerHooks, lefthook hooks installed)."
+  echo "[env-check] Gate dependencies present (jq, bun, similarity-ts, mise, node with module.registerHooks, lefthook hooks installed, node_modules)."
 fi
 
 # SessionStart is the only hook event that receives `model`, and it is optional;
