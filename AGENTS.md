@@ -45,7 +45,7 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 ## Code Practices
 
-**Dead code first / phased execution:** Before structural refactors on files >300 LOC, remove dead code first (separate commit). Break multi-file refactors into phases of ≤5 files. Complete and verify each phase, then get approval before starting the next.
+**Dead code first / phased execution:** Before structural refactors on files >300 LOC, remove dead code first (separate commit). Break multi-file refactors into phases of ≤5 files. Each phase is its own PR, and the next phase starts after that PR merges.
 
 **Senior dev standard:** Don't settle for "simplest approach" when architecture is flawed, state is duplicated, or patterns are inconsistent. Ask: "What would a perfectionist senior dev reject in code review?" Fix it. Following the majority convention is an acceptable default, but when a better approach is known, take it.
 
@@ -59,7 +59,7 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 **Verification before completion:** Never report done without running `bun run check` and `bun run test`, fixing every error. `check` is `vp check`, which formats, lints and type-checks in one pass. A change touching no code skips both. `knip` and `similarity-ts` judge the whole tree rather than your diff, and CI and the pre-push hook run them.
 
-**Never escape the type system to move on:** no `as` (except `as const`), `any`, `@ts-ignore`/`@ts-expect-error`/`@ts-nocheck`, non-null `!`, or lint-disable comments to silence an error. Fix the type (narrowing, guards, schema validation, `satisfies`). Where you genuinely cannot, dispatch a subagent with the right skill. Where that still fails, STOP and ask, and never silently cast or suppress.
+**Never escape the type system to move on:** no `as` (except `as const`), `any`, `@ts-ignore`/`@ts-expect-error`/`@ts-nocheck`, non-null `!`, or lint-disable comments to silence an error. Fix the type (narrowing, guards, schema validation, `satisfies`). Where you genuinely cannot, dispatch a subagent with the right skill. Where that still fails, leave the PR in Draft with a comment naming the type that will not resolve and report it, and never silently cast or suppress.
 
 ## Rules
 
