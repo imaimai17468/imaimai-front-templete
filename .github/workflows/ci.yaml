@@ -4,6 +4,10 @@ on:
   pull_request:
     branches:
       - main
+  # Fires only in a repository whose main ruleset has a merge queue
+  # (docs/FORKING.md), where it is the one event that reports the check on the
+  # queued result.
+  merge_group:
   push:
     branches:
       - main
