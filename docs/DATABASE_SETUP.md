@@ -206,7 +206,7 @@ bun run deploy
 このプロジェクトのデプロイ先は Cloudflare **Workers** です（Pages ではありません）。本番環境の値は種類で置き場所が変わります。
 
 - **秘密でない値**: `wrangler.toml` の `[vars]` に置き、コミットする。
-- **秘密の値**（`BETTER_AUTH_SECRET` / `GOOGLE_CLIENT_SECRET` など）: `wrangler secret put <NAME>` で登録する。ファイルには絶対に書かない — `.env*` は `.gitignore` 済みかつエージェントからの読み取りも拒否設定です。
+- **秘密の値**（`BETTER_AUTH_SECRET` / `GOOGLE_CLIENT_SECRET` など）: `wrangler secret put <NAME>` で登録する。ファイルには絶対に書かない。`.env*` は `.gitignore` 済みかつエージェントからの読み取りも拒否設定です。
 
 ```bash
 wrangler secret put BETTER_AUTH_SECRET
