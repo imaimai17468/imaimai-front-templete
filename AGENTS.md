@@ -45,7 +45,7 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 ## Code Practices
 
-**Dead code first / phased execution:** Before structural refactors on files >300 LOC, remove dead code first (separate commit). Break multi-file refactors into phases of ≤5 files. Complete and verify each phase, then get approval before starting the next.
+**Dead code first / phased execution:** Before structural refactors on files >300 LOC, remove dead code first (separate commit). Break multi-file refactors into phases of ≤5 files. Each phase is its own PR, and the next phase starts after that PR merges.
 
 **Senior dev standard:** Don't settle for "simplest approach" when architecture is flawed, state is duplicated, or patterns are inconsistent. Ask: "What would a perfectionist senior dev reject in code review?" Fix it. Following the majority convention is an acceptable default, but when a better approach is known, take it.
 
@@ -59,7 +59,7 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 **Verification before completion:** Never report done without running `bun run check` and `bun run test`, fixing every error. `check` is `vp check`, which formats, lints and type-checks in one pass. A change touching no code skips both. `knip` and `similarity-ts` judge the whole tree rather than your diff, and CI and the pre-push hook run them.
 
-**Never escape the type system to move on:** no `as` (except `as const`), `any`, `@ts-ignore`/`@ts-expect-error`/`@ts-nocheck`, non-null `!`, or lint-disable comments to silence an error. Fix the type (narrowing, guards, schema validation, `satisfies`). Where you genuinely cannot, dispatch a subagent with the right skill. Where that still fails, STOP and ask, and never silently cast or suppress.
+**Never escape the type system to move on:** no `as` (except `as const`), `any`, `@ts-ignore`/`@ts-expect-error`/`@ts-nocheck`, non-null `!`, or lint-disable comments to silence an error. Fix the type (narrowing, guards, schema validation, `satisfies`). Where you genuinely cannot, dispatch a subagent with the right skill. Where that still fails, leave the PR in Draft with a comment naming the type that will not resolve and report it, and never silently cast or suppress.
 
 ## Rules
 
@@ -94,7 +94,7 @@ Reaching a component's branches from a test depends on how the component was sha
 - First line states **what improves**, not what you did. Prefixes: `feat` / `fix` / `refactor` / `test` / `docs` / `chore` (intent-based). Body in Japanese, and `fix`/`refactor` include a *why* line. End with a `Co-Authored-By:` trailer crediting the current model.
 - **A commit message names the defect it fixes.** `レビュー指摘の修正` and `#123 対応` send the reader to the review thread to learn what changed. Write the wrong behavior and the behavior that replaced it.
 - **Commit and push freely on a PR branch.** `main` takes changes only through a PR, so on `main` create a branch before the first commit.
-- **A PR's author holds it until it merges.** Open it with `gh pr create --draft`; once `bun run check` and `bun run test` pass on the branch, mark it ready and run `gh pr merge --auto --squash --delete-branch`, and GitHub merges it once the CI `build` check passes, which the `main` ruleset requires. A PR that touches `wrangler.toml`, `src/lib/drizzle/migrations/`, or `src/lib/auth/` skips `--auto` and waits for the user.
+- **A PR's author holds it until it merges.** Open it with `gh pr create --draft`; once `bun run check` and `bun run test` pass on the branch, mark it ready and run `gh pr merge --auto`, and the merge queue squashes it into `main` once the CI `build` check passes on the queued result, which the `main` ruleset requires. A PR that touches `wrangler.toml`, `src/lib/drizzle/migrations/`, or `src/lib/auth/` skips `--auto` and waits for the user.
 - **One loop watches every open PR.** The session that dispatched the workers polls `gh pr list --json number,headRefName,mergeable,statusCheckRollup` while any PR is open. For a PR whose `mergeable` is `CONFLICTING`, it dispatches a worker with `isolation: worktree` that checks out the PR's branch there and resolves it as below.
 - **Resolve a conflict by rebasing onto main.** `git fetch origin && git rebase origin/main`, resolve, run `bun run check` and `bun run test`, then `git push --force-with-lease` to the PR's own branch and no other. A PR no person has reviewed counts as Draft for the History rule below, so the rebase is allowed.
 - **Prose:** see `.claude/rules/prose.md`. Commit-message specifics stay in the bullets above.
