@@ -185,9 +185,7 @@ either file breaks the lint config for the whole fork.
 
 ### `wrangler.toml`: edit, do not delete
 
-Delete the `[[d1_databases]]` and `[[r2_buckets]]` blocks and the
-`BETTER_AUTH_URL` entry under `[vars]` (drop `[vars]` entirely if it becomes
-empty). Keep `name`, `main`, `compatibility_date`, and `compatibility_flags`.
+Delete the `[[d1_databases]]` and `[[r2_buckets]]` blocks. Keep `name`, `main`, `compatibility_date`, and `compatibility_flags`.
 
 Delete the `[secrets]` block and the comment above it. Every name in its
 `required` list is an auth secret this procedure removes, and naming a secret
@@ -347,7 +345,7 @@ bun run check
 bun run test
 bun run knip
 bun run build
-bun run dev      # http://localhost:5173
+bun run dev      # https://my-app.localhost (portless)
 bun run preview  # runs the built Worker on http://localhost:4173
 ```
 

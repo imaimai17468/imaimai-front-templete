@@ -45,7 +45,7 @@ cp .env.local.example .env.local
 
 ```env
 # Better Auth
-# (BETTER_AUTH_URL は wrangler.toml の [vars] で設定済み — 開発時は :5173)
+# (Better Auth がリクエストの origin を base URL にするので BETTER_AUTH_URL は無い)
 BETTER_AUTH_SECRET=<openssl rand -base64 32 で生成>
 
 # OAuth Providers
@@ -114,6 +114,8 @@ R2 バケットは非公開のまま使用します。アバターは認証と�
    - `http://localhost:5173`（開発時）
 5. **承認済みのリダイレクト URI** に以下を追加:
    - `http://localhost:5173/api/auth/callback/google`（開発時）
+
+   Google はリダイレクト URI のホストに [Public Suffix List](https://publicsuffix.org/) 上の TLD か `localhost` そのものを要求するので、portless の `https://my-app.localhost` は登録できません。Google ログインを確認するときは `PORTLESS=0 bun run dev` で portless を通さず起動し、`http://localhost:5173` で行います。
 6. 作成後、Client ID / Client Secret を `.env.local` に設定
 
 > **本番環境**: 生成元とリダイレクト URI にデプロイ先の Workers オリジンも追加してください。カスタムドメインを使わない場合、既定のオリジンは `<Worker名>.<アカウントサブドメイン>.workers.dev` です。
@@ -164,7 +166,8 @@ Cloudflare Workers ランタイムをエミュレートして実行します。�
 
 | コマンド | ポート | DB/ストレージ | HMR | 用途 |
 |---------|--------|-------------|-----|------|
-| `bun run dev` | 5173 | ローカルD1/R2 | ○ | 日常的な開発 |
+| `bun run dev` | portless が割り当て（`https://my-app.localhost`） | ローカルD1/R2 | ○ | 日常的な開発 |
+| `PORTLESS=0 bun run dev` | 5173 | ローカルD1/R2 | ○ | Google ログインの確認 |
 | `bun run preview` | 4173 | ローカルD1/R2 | × | デプロイ前確認 |
 
 ### ローカルデータのリセット
@@ -202,8 +205,8 @@ bun run deploy
 
 このプロジェクトのデプロイ先は Cloudflare **Workers** です（Pages ではありません）。本番環境の値は種類で置き場所が変わります。
 
-- **秘密でない値**（`BETTER_AUTH_URL` など）: `wrangler.toml` の `[vars]` に置き、コミットする。
-- **秘密の値**（`BETTER_AUTH_SECRET` / `GOOGLE_CLIENT_SECRET` など）: `wrangler secret put <NAME>` で登録する。ファイルには絶対に書かない — `.env*` は `.gitignore` 済みかつエージェントからの読み取りも拒否設定です。
+- **秘密でない値**: `wrangler.toml` の `[vars]` に置き、コミットする。
+- **秘密の値**（`BETTER_AUTH_SECRET` / `GOOGLE_CLIENT_SECRET` など）: `wrangler secret put <NAME>` で登録する。ファイルには絶対に書かない。`.env*` は `.gitignore` 済みかつエージェントからの読み取りも拒否設定です。
 
 ```bash
 wrangler secret put BETTER_AUTH_SECRET

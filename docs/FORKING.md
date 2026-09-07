@@ -8,7 +8,7 @@ clone した直後に置き換えるべき値と、残す/捨てるファイル�
 
 | 場所 | 初期値 | 置き換える値 |
 |---|---|---|
-| `package.json` の `name` | `my-app` | プロジェクト名 |
+| `package.json` の `name` | `my-app` | プロジェクト名。portless はこの値を dev URL のホスト名にするので、README と docs/DATABASE_SETUP.md の `my-app.localhost` も揃える |
 | `wrangler.toml` の `name` | `my-project` | Worker 名（デプロイ先の識別子） |
 | `LICENSE` の著作権表記 | テンプレート作者名 | 自分または自組織 |
 | `README.md` の見出しと説明 | テンプレートの説明 | プロジェクトの説明 |
@@ -24,7 +24,7 @@ clone した直後に置き換えるべき値と、残す/捨てるファイル�
 [DATABASE_SETUP.md](./DATABASE_SETUP.md)、デプロイ後の運用は
 [DEPLOYMENT.md](./DEPLOYMENT.md) を参照。
 
-`BETTER_AUTH_URL` はローカルが `http://localhost:5173`、本番は本番オリジン。
+Better Auth はリクエストの origin を base URL にするので、環境ごとの設定は無い。
 
 ## 3. 残すもの / 捨てるもの
 

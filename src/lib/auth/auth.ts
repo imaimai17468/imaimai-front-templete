@@ -34,7 +34,6 @@ const buildAuth = () => {
   );
 
   return betterAuth({
-    baseURL: env.BETTER_AUTH_URL,
     database: drizzleAdapter(getDb(), {
       provider: "sqlite",
       schema: {
