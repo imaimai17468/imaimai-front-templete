@@ -375,8 +375,7 @@ Feel natural because they simulate physics; no fixed duration.
 ```
 
 Keep bounce subtle (0.1-0.3); reserve for drag-to-dismiss and playful
-interactions. Springs maintain velocity when interrupted (keyframes restart
-from zero).
+interactions. Springs maintain velocity when interrupted.
 
 ## Interruptibility
 
