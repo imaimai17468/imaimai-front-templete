@@ -48,6 +48,7 @@ import type {
   Ancestry,
   PullRequest,
   Worktree,
+  WorktreeFacts,
   WorktreeVerdict,
 } from "./orchestrate-decisions";
 
@@ -58,6 +59,30 @@ const run = (file: string, args: readonly string[]): string =>
 
 const firstLine = (value: unknown): string =>
   (value instanceof Error ? value.message : String(value)).split("\n")[0] ?? "";
+
+interface CommandFailure {
+  readonly status: number | null;
+  readonly stderr: string;
+}
+
+const isCommandFailure = (value: unknown): value is CommandFailure =>
+  typeof value === "object" &&
+  value !== null &&
+  "status" in value &&
+  (typeof value.status === "number" || value.status === null) &&
+  "stderr" in value &&
+  typeof value.stderr === "string";
+
+/**
+ * What the failing command printed. `execFileSync`'s own message opens with
+ * `Command failed:` and the command line, and puts the command's stderr on the
+ * lines after it, so `firstLine` of that message hands back the command line
+ * alone.
+ */
+const commandMessage = (error: unknown): string =>
+  isCommandFailure(error) && error.stderr.trim() !== ""
+    ? firstLine(error.stderr.trim())
+    : firstLine(error);
 
 /**
  * Undefined covers both ways the platform can withhold the number: a command
@@ -129,7 +154,7 @@ const pollResult = (branches: readonly string[]): PollResult | undefined => {
       ? undefined
       : { exitCode: 0, line: formatEvent(event) };
   } catch (error) {
-    return { exitCode: 1, line: `gh-failed ${firstLine(error)}` };
+    return { exitCode: 1, line: `gh-failed ${commandMessage(error)}` };
   }
 };
 
@@ -144,11 +169,18 @@ const watchPrs = async (branches: readonly string[]): Promise<void> => {
   await watchPrs(branches);
 };
 
-const headSha = (path: string): string =>
-  run("git", ["-C", path, "rev-parse", "HEAD"]).trim();
-
 const isDirty = (path: string): boolean =>
   run("git", ["-C", path, "status", "--porcelain"]).trim() !== "";
+
+/** What git printed when it refused to delete the branch, or undefined. */
+const deleteBranch = (branch: string): string | undefined => {
+  try {
+    run("git", ["branch", "-D", branch]);
+    return undefined;
+  } catch (error) {
+    return commandMessage(error);
+  }
+};
 
 const RELOCK_REASON = "clean-worktrees could not remove it";
 
@@ -178,48 +210,58 @@ const removeWorktree = (
     }
     throw error;
   }
-  try {
-    run("git", ["branch", "-D", branch]);
-  } catch (error) {
-    return { kind: "branch-kept", reason: firstLine(error) };
-  }
-  return { kind: "remove" };
+  const reason = deleteBranch(branch);
+  return reason === undefined
+    ? { kind: "remove" }
+    : { kind: "branch-kept", reason };
 };
 
-interface CommandFailure {
-  readonly status: number | null;
-  readonly stderr: string;
-}
-
-const isCommandFailure = (value: unknown): value is CommandFailure =>
-  typeof value === "object" &&
-  value !== null &&
-  "status" in value &&
-  (typeof value.status === "number" || value.status === null) &&
-  "stderr" in value &&
-  typeof value.stderr === "string";
-
-/** What the failing command printed, rather than the wrapper's own message. */
-const commandMessage = (error: unknown): string =>
-  isCommandFailure(error) && error.stderr.trim() !== ""
-    ? firstLine(error.stderr.trim())
-    : firstLine(error);
-
-const NOT_ANCESTOR_STATUS = 1;
+/**
+ * Both commands below exit 1 to answer no: `rev-parse --verify --quiet` for a
+ * commit it cannot resolve, and silently, where a broken repository gives it
+ * 128 and a message; `merge-base --is-ancestor` for a commit outside the
+ * history it was given.
+ */
+const ANSWERED_NO_STATUS = 1;
 
 /**
- * Ancestry asked of main by name, where `git branch -d` would ask it of
- * whichever branch this session happens to have checked out.
+ * Whether `commit` is in the history of `descendant`, or `descendant` is a
+ * commit this repository does not have. Resolving it comes first, because
+ * `merge-base` exits 128 both for a commit it cannot find and for a command
+ * that broke, and the commit GitHub reports for a merged pull request is one
+ * nothing local ever fetched whenever the remote branch is gone.
  */
-const ancestryOfMain = (branch: string): Ancestry => {
+const ancestry = (commit: string, descendant: string): Ancestry => {
   try {
-    run("git", ["merge-base", "--is-ancestor", branch, "main"]);
+    run("git", ["rev-parse", "--verify", "--quiet", `${descendant}^{commit}`]);
+  } catch (error) {
+    return isCommandFailure(error) && error.status === ANSWERED_NO_STATUS
+      ? { commit: descendant, kind: "absent" }
+      : { kind: "failed", reason: commandMessage(error) };
+  }
+  try {
+    run("git", ["merge-base", "--is-ancestor", commit, descendant]);
     return { kind: "ancestor" };
   } catch (error) {
-    return isCommandFailure(error) && error.status === NOT_ANCESTOR_STATUS
+    return isCommandFailure(error) && error.status === ANSWERED_NO_STATUS
       ? { kind: "not-ancestor" }
       : { kind: "failed", reason: commandMessage(error) };
   }
+};
+
+/**
+ * What `worktreeVerdict` judges. The ancestry runs on the branch, which is the
+ * commit the worktree has checked out and the ref `removeWorktree` deletes.
+ */
+const worktreeFacts = (branch: string): WorktreeFacts => {
+  const pullRequest = prOf(branch);
+  return pullRequest === undefined
+    ? { kind: "no-pull-request", mainAncestry: ancestry(branch, "main") }
+    : {
+        kind: "pull-request",
+        pullRequest,
+        pullRequestAncestry: ancestry(branch, pullRequest.headRefOid),
+      };
 };
 
 /**
@@ -240,32 +282,22 @@ const verdictFor = (
     if (local !== undefined) {
       return local;
     }
-    const verdict = worktreeVerdict({
-      ancestry: ancestryOfMain(probe.branch),
-      headSha: headSha(worktree.path),
-      pullRequest: prOf(probe.branch),
-    });
+    const verdict = worktreeVerdict(worktreeFacts(probe.branch));
     return verdict.kind === "remove"
       ? removeWorktree(worktree, probe.branch)
       : verdict;
   } catch (error) {
-    return { kind: "keep", reason: `failed: ${firstLine(error)}` };
+    return { kind: "keep", reason: `failed: ${commandMessage(error)}` };
   }
 };
 
-/** Deletes the branch once main holds its commits, and returns why it did not. */
-const deleteMergedBranch = (branch: string): string | undefined => {
-  const reason = ancestryKeepReason(ancestryOfMain(branch));
-  if (reason !== undefined) {
-    return reason;
-  }
-  try {
-    run("git", ["branch", "-D", branch]);
-    return undefined;
-  } catch (error) {
-    return commandMessage(error);
-  }
-};
+/**
+ * Deletes the branch once main holds its commits, and returns why it did not.
+ * Main is named, where `git branch -d` would check the branch against its
+ * upstream, or against HEAD when it has none.
+ */
+const deleteMergedBranch = (branch: string): string | undefined =>
+  ancestryKeepReason(ancestry(branch, "main"), "main") ?? deleteBranch(branch);
 
 const cleanWorktrees = (branches: readonly string[]): void => {
   const worktrees = agentWorktrees(

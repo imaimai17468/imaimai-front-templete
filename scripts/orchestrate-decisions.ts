@@ -255,60 +255,78 @@ export const worktreeProbe = (
 export const localVerdict = (isDirty: boolean): WorktreeVerdict | undefined =>
   isDirty ? { kind: "keep", reason: "uncommitted changes" } : undefined;
 
-/** What `git merge-base --is-ancestor` answered about a branch and main. */
+/**
+ * Where git put one commit relative to another's history. `absent` is the
+ * second commit missing from the repository, which is what the commit GitHub
+ * reports for a pull request is once the remote branch is deleted and nothing
+ * fetched it, and `failed` is a check that did not answer either way.
+ */
 export type Ancestry =
+  | { readonly commit: string; readonly kind: "absent" }
   | { readonly kind: "ancestor" }
   | { readonly kind: "failed"; readonly reason: string }
   | { readonly kind: "not-ancestor" };
 
 /**
- * Why the commits of a branch keep what holds them, or undefined when removing
- * it loses none. A check that could not run is its own answer, because reading
- * it as "not an ancestor" would keep the branch with a reason naming the wrong
- * cause. A squash merge leaves the branch's commits outside main's ancestry, so
- * the reason states what git answered rather than calling the branch unmerged.
+ * Why the commits of a branch keep what holds them, or undefined when `holder`
+ * already holds every one of them. A commit this repository does not have and a
+ * check that did not run are each their own answer, because reading either as
+ * "not an ancestor" would keep the branch with a reason naming the wrong cause.
+ * A squash merge leaves the branch's commits outside main's ancestry, so the
+ * reason states what git answered rather than calling the branch unmerged.
  */
-export const ancestryKeepReason = (ancestry: Ancestry): string | undefined => {
+export const ancestryKeepReason = (
+  ancestry: Ancestry,
+  holder: string
+): string | undefined => {
   if (ancestry.kind === "ancestor") {
     return undefined;
   }
   if (ancestry.kind === "not-ancestor") {
-    return "commits main does not hold";
+    return `commits ${holder} does not hold`;
   }
-  return `failed: ${ancestry.reason}`;
+  if (ancestry.kind === "absent") {
+    return `${holder} is at commit ${ancestry.commit}, which this repository does not have`;
+  }
+  return `git could not compare with ${holder}: ${ancestry.reason}`;
 };
 
-/** What GitHub and git report about the worktree of a branch the run named. */
-export interface WorktreeFacts {
-  readonly ancestry: Ancestry;
-  readonly headSha: string;
-  readonly pullRequest: PullRequest | undefined;
-}
+/**
+ * What GitHub and git report about the worktree of a branch the run named. Each
+ * shape names the commit whose history the branch was looked for in: main when
+ * GitHub reports no pull request for the branch, and the commit GitHub holds
+ * for it when there is one.
+ */
+export type WorktreeFacts =
+  | { readonly kind: "no-pull-request"; readonly mainAncestry: Ancestry }
+  | {
+      readonly kind: "pull-request";
+      readonly pullRequest: PullRequest;
+      readonly pullRequestAncestry: Ancestry;
+    };
 
 /**
- * Whether the worktree of a branch this run named can go. `headSha` is the
- * worktree's own HEAD, compared with the commit GitHub holds because a squash
- * merge leaves the branch's commits outside main's ancestry, where an ancestry
- * test would answer nothing. `pullRequest` is undefined when GitHub has none
- * for the branch, which is what a worker that died before opening one leaves,
- * and `ancestry` decides that case alone: a HEAD main already holds is a
- * worktree whose removal loses no commit.
+ * Whether the worktree of a branch this run named can go. Removing it deletes
+ * the branch, so what decides is whether anything else holds the branch's
+ * commits: main for a branch whose worker died before opening a pull request,
+ * and otherwise the commit GitHub holds, because a squash merge leaves the
+ * branch's commits outside main's ancestry. Ancestry rather than equality,
+ * because the branch also differs from GitHub's commit when it sits behind one
+ * a worker never pulled, and nothing of the branch's own is lost then.
  */
 export const worktreeVerdict = (facts: WorktreeFacts): WorktreeVerdict => {
-  const { ancestry, headSha, pullRequest } = facts;
-  if (pullRequest === undefined) {
-    const reason = ancestryKeepReason(ancestry);
-    return reason === undefined
+  if (facts.kind === "no-pull-request") {
+    const mainReason = ancestryKeepReason(facts.mainAncestry, "main");
+    return mainReason === undefined
       ? { kind: "remove" }
-      : { kind: "keep", reason: `no pull request, ${reason}` };
+      : { kind: "keep", reason: `no pull request, ${mainReason}` };
   }
+  const { pullRequest, pullRequestAncestry } = facts;
   if (pullRequest.state !== "MERGED" && pullRequest.state !== "CLOSED") {
     return { kind: "keep", reason: `pull request ${pullRequest.state}` };
   }
-  if (pullRequest.headRefOid !== headSha) {
-    return { kind: "keep", reason: "commits GitHub has not seen" };
-  }
-  return { kind: "remove" };
+  const reason = ancestryKeepReason(pullRequestAncestry, "the pull request");
+  return reason === undefined ? { kind: "remove" } : { kind: "keep", reason };
 };
 
 /** The one line `clean-worktrees` prints for a worktree. */
