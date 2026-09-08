@@ -33,7 +33,7 @@ bun run dev
 
 `similarity-ts` が無い環境では、lefthook の pre-push が重複検出（`similarity-ts ./src --fail-on-duplicates`）を飛ばして push を通します。その欠落は SessionStart の env-check がセッション開始時に報告します。
 
-[mise](https://mise.jdx.dev/) を使わない場合は、`package.json` の `engines.node` を満たす Node と、`mise.toml` が指定する版の Bun を手動で用意してください。Cursor Cloud Agent 環境では `.cursor/environment.json` が同じセットアップ（`scripts/cloud-agent-install.sh`）を自動実行します。shims の PATH 追記は rc ファイルを読むシェルにしか効かないため、rc を読まない非対話シェルからは `mise exec -- <コマンド>` で実行してください。
+[mise](https://mise.jdx.dev/) を使わない場合は、`package.json` の `engines.node` を満たす Node と、`mise.toml` が指定する版の Bun を手動で用意してください。Cursor Cloud Agent 環境では `.cursor/environment.json` が `scripts/cloud-agent-install.sh` を自動実行し、mise と依存の導入から `generate-routes` / `cf-typegen` までを済ませます（`bun install` は `--ignore-scripts` なので lefthook の hook は入りません）。shims の PATH 追記は rc ファイルを読むシェルにしか効かないため、rc を読まない非対話シェルからは `mise exec -- <コマンド>` で実行してください。
 
 `bun run dev` は [portless](https://github.com/vercel-labs/portless) 経由で起動し、`https://my-app.localhost` で開きます。linked worktree ではブランチ名の末尾がサブドメインとして前に付きます（ブランチ `fix-ui` なら `https://fix-ui.my-app.localhost`）。付くのは末尾だけなので、`feat/x` と `fix/x` は同じ URL になり、`main` と `master` のブランチには何も付きません。dev サーバのポートは portless が空きから割り当てるので、worktree を並べて起動してもポートの取り合いは起きません。初回は proxy が 443 を使うために `sudo` を求めます。`sudo` を使わない場合は先に `bunx portless proxy start --port 1355` を実行すると、URL に `:1355` が付きます。`@cloudflare/vite-plugin` により、`bun run dev` でも Cloudflare D1 / R2 バインディングが有効です。
 
