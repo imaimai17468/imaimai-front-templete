@@ -339,6 +339,21 @@ md links: FAILED`,
     );
   });
 
+  // In a worktree session CLAUDE_PROJECT_DIR is the checkout the session
+  // started in and the payload's cwd is the one the turn edited, so the gate
+  // prefers cwd. The session tree here is clean, which is what the gate would
+  // report if it read CLAUDE_PROJECT_DIR instead.
+  it("should judge the tree the payload names when the session started in another one", () => {
+    const session = scratchRepo(PASSING, []);
+    const work = scratchRepo(PASSING, ["a.ts"]);
+
+    const run = runGate(work, { cwd: work, projectDir: session });
+
+    expect(run.systemMessage).toBe(
+      "✅ Stop gate: typecheck / lint / format and the test suite pass (md links: clean)"
+    );
+  });
+
   // The scratch repository's `check` fails, so a gate that carried on in the
   // wrong tree would block naming `bun run check` rather than the root.
   it("should block naming the unreachable root when it cannot enter the tree to judge", () => {
