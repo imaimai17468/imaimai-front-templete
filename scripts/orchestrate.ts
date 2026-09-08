@@ -60,6 +60,30 @@ const run = (file: string, args: readonly string[]): string =>
 const firstLine = (value: unknown): string =>
   (value instanceof Error ? value.message : String(value)).split("\n")[0] ?? "";
 
+interface CommandFailure {
+  readonly status: number | null;
+  readonly stderr: string;
+}
+
+const isCommandFailure = (value: unknown): value is CommandFailure =>
+  typeof value === "object" &&
+  value !== null &&
+  "status" in value &&
+  (typeof value.status === "number" || value.status === null) &&
+  "stderr" in value &&
+  typeof value.stderr === "string";
+
+/**
+ * What the failing command printed. `execFileSync`'s own message opens with
+ * `Command failed:` and the command line, and puts the command's stderr on the
+ * lines after it, so `firstLine` of that message hands back the command line
+ * alone.
+ */
+const commandMessage = (error: unknown): string =>
+  isCommandFailure(error) && error.stderr.trim() !== ""
+    ? firstLine(error.stderr.trim())
+    : firstLine(error);
+
 /**
  * Undefined covers both ways the platform can withhold the number: a command
  * that is absent (a Linux image without procps) throws, and one that runs but
@@ -130,7 +154,7 @@ const pollResult = (branches: readonly string[]): PollResult | undefined => {
       ? undefined
       : { exitCode: 0, line: formatEvent(event) };
   } catch (error) {
-    return { exitCode: 1, line: `gh-failed ${firstLine(error)}` };
+    return { exitCode: 1, line: `gh-failed ${commandMessage(error)}` };
   }
 };
 
@@ -179,29 +203,10 @@ const removeWorktree = (
   try {
     run("git", ["branch", "-D", branch]);
   } catch (error) {
-    return { kind: "branch-kept", reason: firstLine(error) };
+    return { kind: "branch-kept", reason: commandMessage(error) };
   }
   return { kind: "remove" };
 };
-
-interface CommandFailure {
-  readonly status: number | null;
-  readonly stderr: string;
-}
-
-const isCommandFailure = (value: unknown): value is CommandFailure =>
-  typeof value === "object" &&
-  value !== null &&
-  "status" in value &&
-  (typeof value.status === "number" || value.status === null) &&
-  "stderr" in value &&
-  typeof value.stderr === "string";
-
-/** What the failing command printed, rather than the wrapper's own message. */
-const commandMessage = (error: unknown): string =>
-  isCommandFailure(error) && error.stderr.trim() !== ""
-    ? firstLine(error.stderr.trim())
-    : firstLine(error);
 
 const NOT_ANCESTOR_STATUS = 1;
 
@@ -259,7 +264,7 @@ const verdictFor = (
       ? removeWorktree(worktree, probe.branch)
       : verdict;
   } catch (error) {
-    return { kind: "keep", reason: `failed: ${firstLine(error)}` };
+    return { kind: "keep", reason: `failed: ${commandMessage(error)}` };
   }
 };
 
