@@ -10,10 +10,10 @@
  * ```
  *
  * `watch-prs` reads each PR with `gh pr view` once a minute and exits with a
- * single line:
- * `conflict <n> ...` when an open PR of the run turns CONFLICTING, or
- * `all-closed` once none of them is open. Run it in the background and start it
- * again after acting on the line.
+ * single line: `conflict <n> ...` when an open PR of the run turns CONFLICTING,
+ * `all-closed` once none of them is open, or `gh-failed <message>` when `gh`
+ * itself failed. Run it in the background and start it again after acting on
+ * the line.
  */
 
 import { execFileSync } from "node:child_process";
@@ -69,8 +69,18 @@ const prRow = (number: number): PrRow => {
   return parsed;
 };
 
+const ghFailure = (error: unknown): string =>
+  (error instanceof Error ? error.message : String(error)).split("\n")[0] ?? "";
+
 const watchPrs = async (numbers: readonly number[]): Promise<void> => {
-  const event = watchEvent(numbers, numbers.map(prRow));
+  let rows: readonly PrRow[];
+  try {
+    rows = numbers.map(prRow);
+  } catch (error) {
+    console.log(`gh-failed ${ghFailure(error)}`);
+    process.exit(1);
+  }
+  const event = watchEvent(numbers, rows);
   if (event !== undefined) {
     console.log(formatEvent(event));
     return;
