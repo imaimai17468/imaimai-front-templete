@@ -277,9 +277,9 @@ const cleanWorktrees = (branches: readonly string[]): void => {
   worktrees.forEach((worktree) => {
     console.log(formatVerdict(worktree, verdictFor(worktree, branches)));
   });
-  const held = agentWorktrees(
+  const remaining = agentWorktrees(
     run("git", ["worktree", "list", "--porcelain"])
-  ).map((worktree) => worktree.branch);
+  );
   const names = run("git", [
     "for-each-ref",
     "--format=%(refname:short)",
@@ -287,7 +287,7 @@ const cleanWorktrees = (branches: readonly string[]): void => {
   ])
     .split("\n")
     .filter((line) => line !== "");
-  strandedAgentBranches(names, held).forEach((branch) => {
+  strandedAgentBranches(names, remaining).forEach((branch) => {
     console.log(formatBranch(branch, deleteMergedBranch(branch)));
   });
 };

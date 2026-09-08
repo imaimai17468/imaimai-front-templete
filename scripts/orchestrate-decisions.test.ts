@@ -459,26 +459,38 @@ describe(formatVerdict, () => {
 });
 
 describe(strandedAgentBranches, () => {
-  it("should return the agent branch when no worktree holds it", () => {
+  it("should return the agent branch when no worktree is listed for it", () => {
     const stranded = strandedAgentBranches(
-      ["main", "worktree-agent-1", "feat/one"],
-      ["feat/one"]
+      ["main", "worktree-agent-2", "feat/one"],
+      [worktree()]
     );
 
-    expect(stranded).toStrictEqual(["worktree-agent-1"]);
+    expect(stranded).toStrictEqual(["worktree-agent-2"]);
   });
 
-  it("should return no branch when a worktree still holds the agent branch", () => {
+  it("should return no branch when a worktree has it checked out", () => {
+    const stranded = strandedAgentBranches(
+      ["main", "worktree-agent-2"],
+      [{ ...worktree(), branch: "worktree-agent-2" }]
+    );
+
+    expect(stranded).toStrictEqual([]);
+  });
+
+  it("should return no branch when a listed worktree was created on it", () => {
     const stranded = strandedAgentBranches(
       ["main", "worktree-agent-1"],
-      ["worktree-agent-1"]
+      [worktree()]
     );
 
     expect(stranded).toStrictEqual([]);
   });
 
   it("should return no branch when a detached worktree reports no branch", () => {
-    const stranded = strandedAgentBranches(["main"], [undefined]);
+    const stranded = strandedAgentBranches(
+      ["main"],
+      [{ ...worktree(), branch: undefined }]
+    );
 
     expect(stranded).toStrictEqual([]);
   });

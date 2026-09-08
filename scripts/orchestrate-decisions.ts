@@ -152,7 +152,9 @@ export const agentWorktrees = (porcelain: string): readonly Worktree[] =>
     })
     .filter((worktree) => worktree.path.includes(HOME_SEGMENT));
 
-const AGENT_BRANCH_PREFIX = "worktree-agent-";
+const WORKTREE_BRANCH_PREFIX = "worktree-";
+
+const AGENT_BRANCH_PREFIX = `${WORKTREE_BRANCH_PREFIX}agent-`;
 
 export type WorktreeVerdict =
   | { readonly kind: "branch-kept"; readonly reason: string }
@@ -276,17 +278,35 @@ export const formatVerdict = (
 };
 
 /**
- * The branches Claude Code makes for its worktrees, minus the ones a worktree
- * still holds. `git worktree remove` leaves this branch behind, so one ref
- * accumulates per dispatch.
+ * The branch Claude Code created for a worktree. Every worktree it made in this
+ * repository sits at `.claude/worktrees/agent-<id>` on branch
+ * `worktree-agent-<id>`, and a worker leaves that branch behind when it
+ * switches to the branch it was given.
+ */
+const createdBranchOf = (path: string): string =>
+  `${WORKTREE_BRANCH_PREFIX}${path.slice(path.lastIndexOf("/") + 1)}`;
+
+/**
+ * The branches Claude Code makes for its worktrees, minus the ones a listed
+ * worktree still answers for. `git worktree remove` leaves this branch behind,
+ * so one ref accumulates per dispatch, and a worktree whose worker switched off
+ * that branch is still standing on it, so a listed path holds its created
+ * branch as well as its checked-out one.
  */
 export const strandedAgentBranches = (
   branches: readonly string[],
-  held: readonly (string | undefined)[]
-): readonly string[] =>
-  branches.filter(
-    (branch) => branch.startsWith(AGENT_BRANCH_PREFIX) && !held.includes(branch)
+  worktrees: readonly Worktree[]
+): readonly string[] => {
+  const held = new Set(
+    worktrees.flatMap((worktree) => [
+      worktree.branch,
+      createdBranchOf(worktree.path),
+    ])
   );
+  return branches.filter(
+    (branch) => branch.startsWith(AGENT_BRANCH_PREFIX) && !held.has(branch)
+  );
+};
 
 /** The one line `clean-worktrees` prints for a branch it tried to delete. */
 export const formatBranch = (branch: string, reason?: string): string =>
