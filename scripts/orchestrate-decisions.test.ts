@@ -5,6 +5,7 @@ import {
   formatVerdict,
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
+  branchKeepReason,
   formatBranch,
   localVerdict,
   prNumbers,
@@ -418,5 +419,28 @@ describe(formatBranch, () => {
     const line = formatBranch("worktree-agent-1", "not fully merged");
 
     expect(line).toBe("kept branch worktree-agent-1 (not fully merged)");
+  });
+});
+
+describe(branchKeepReason, () => {
+  it("should return undefined when main holds the branch commits", () => {
+    const reason = branchKeepReason({ kind: "ancestor" });
+
+    expect(reason).toBeUndefined();
+  });
+
+  it("should name main when the branch holds a commit main does not", () => {
+    const reason = branchKeepReason({ kind: "not-ancestor" });
+
+    expect(reason).toBe("not merged into main");
+  });
+
+  it("should name the failure when the ancestry check could not run", () => {
+    const reason = branchKeepReason({
+      kind: "failed",
+      reason: "fatal: not a git repository",
+    });
+
+    expect(reason).toBe("failed: fatal: not a git repository");
   });
 });

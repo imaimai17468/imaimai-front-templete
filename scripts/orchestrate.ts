@@ -27,6 +27,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import {
   agentWorktrees,
   formatEvent,
+  branchKeepReason,
   formatBranch,
   formatVerdict,
   freeGibFromFreeB,
@@ -39,6 +40,7 @@ import {
   worktreeVerdict,
 } from "./orchestrate-decisions";
 import type {
+  Ancestry,
   PrRow,
   PullRequest,
   Worktree,
@@ -97,8 +99,8 @@ const prRow = (number: number): PrRow => {
   return parsed;
 };
 
-const firstLine = (error: unknown): string =>
-  (error instanceof Error ? error.message : String(error)).split("\n")[0] ?? "";
+const firstLine = (value: unknown): string =>
+  (value instanceof Error ? value.message : String(value)).split("\n")[0] ?? "";
 
 /**
  * One poll's line and exit code, or undefined while the run needs no attention.
@@ -242,29 +244,53 @@ const verdictFor = (
   }
 };
 
-const isAncestorOfMain = (branch: string): boolean => {
+interface CommandFailure {
+  readonly status: number | null;
+  readonly stderr: string;
+}
+
+const isCommandFailure = (value: unknown): value is CommandFailure =>
+  typeof value === "object" &&
+  value !== null &&
+  "status" in value &&
+  (typeof value.status === "number" || value.status === null) &&
+  "stderr" in value &&
+  typeof value.stderr === "string";
+
+/** What the failing command printed, rather than the wrapper's own message. */
+const commandMessage = (error: unknown): string =>
+  isCommandFailure(error) && error.stderr.trim() !== ""
+    ? firstLine(error.stderr.trim())
+    : firstLine(error);
+
+const NOT_ANCESTOR_STATUS = 1;
+
+/**
+ * Ancestry asked of main by name, where `git branch -d` would ask it of
+ * whichever branch this session happens to have checked out.
+ */
+const ancestryOfMain = (branch: string): Ancestry => {
   try {
     run("git", ["merge-base", "--is-ancestor", branch, "main"]);
-    return true;
-  } catch {
-    return false;
+    return { kind: "ancestor" };
+  } catch (error) {
+    return isCommandFailure(error) && error.status === NOT_ANCESTOR_STATUS
+      ? { kind: "not-ancestor" }
+      : { kind: "failed", reason: commandMessage(error) };
   }
 };
 
-/**
- * Deletes the branch once main holds its commits, and returns why it did not.
- * The ancestry is asked of main by name, where `git branch -d` would ask it of
- * whichever branch this session happens to have checked out.
- */
+/** Deletes the branch once main holds its commits, and returns why it did not. */
 const deleteMergedBranch = (branch: string): string | undefined => {
-  if (!isAncestorOfMain(branch)) {
-    return "not merged into main";
+  const reason = branchKeepReason(ancestryOfMain(branch));
+  if (reason !== undefined) {
+    return reason;
   }
   try {
     run("git", ["branch", "-D", branch]);
     return undefined;
   } catch (error) {
-    return firstLine(error);
+    return commandMessage(error);
   }
 };
 

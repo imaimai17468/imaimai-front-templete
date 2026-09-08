@@ -234,3 +234,24 @@ export const formatBranch = (branch: string, reason?: string): string =>
   reason === undefined
     ? `removed branch ${branch}`
     : `kept branch ${branch} (${reason})`;
+
+/** What `git merge-base --is-ancestor` answered about a branch and main. */
+export type Ancestry =
+  | { readonly kind: "ancestor" }
+  | { readonly kind: "failed"; readonly reason: string }
+  | { readonly kind: "not-ancestor" };
+
+/**
+ * Why a stranded agent branch stays, or undefined when it can go. A check that
+ * could not run is its own answer, because reading it as "not an ancestor"
+ * would keep the branch with a reason naming the wrong cause.
+ */
+export const branchKeepReason = (ancestry: Ancestry): string | undefined => {
+  if (ancestry.kind === "ancestor") {
+    return undefined;
+  }
+  if (ancestry.kind === "not-ancestor") {
+    return "not merged into main";
+  }
+  return `failed: ${ancestry.reason}`;
+};
