@@ -417,7 +417,7 @@ describe("test-naming-format", () => {
     const node = {
       arguments: [{ type: "Literal", value: "bad name" }],
       callee: {
-        object: { name: "it" },
+        object: { name: "it", type: "Identifier" },
         property: { name: "skip" },
         type: "MemberExpression",
       },
@@ -437,7 +437,7 @@ describe("test-naming-format", () => {
     const node = {
       arguments: [{ type: "Literal", value: "bad name" }],
       callee: {
-        object: { name: "it" },
+        object: { name: "it", type: "Identifier" },
         property: { name: "todo" },
         type: "MemberExpression",
       },
