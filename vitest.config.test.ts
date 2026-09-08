@@ -32,8 +32,6 @@ const treeWithOneModule = (): string => {
 };
 
 describe("coverage.exclude", () => {
-  // One entry, `src/routeTree.gen.ts`, is generated and gitignored, so this
-  // reports it in a checkout where `bun run generate-routes` has not run.
   it("should report no stale entry when every entry selects a file in the working tree", () => {
     expect(stalePatterns(coverageExclude, ROOT)).toStrictEqual([]);
   });
