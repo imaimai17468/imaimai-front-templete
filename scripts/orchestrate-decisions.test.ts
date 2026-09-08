@@ -10,11 +10,11 @@ import {
   worktreeProbe,
   worktreeVerdict,
 } from "./orchestrate-decisions";
-import type { Worktree, PrRow } from "./orchestrate-decisions";
+import type { PrRow, PullRequest, Worktree } from "./orchestrate-decisions";
 
 const GIB = 1024 ** 3;
 
-const NO_PULL_REQUEST: string | undefined = undefined;
+const NO_PULL_REQUEST: PullRequest | undefined = undefined;
 
 describe(freeGibFromMemoryPressure, () => {
   it("should multiply the free percentage by the machine's memory when the percentage line is present", () => {
@@ -279,9 +279,16 @@ describe(worktreeProbe, () => {
   });
 });
 
+const RUN = [12] as const;
+
+const pullRequest = (state: string, number = 12): PullRequest => ({
+  number,
+  state,
+});
+
 describe(worktreeVerdict, () => {
   it("should keep the worktree when it holds uncommitted changes", () => {
-    const verdict = worktreeVerdict(true, "MERGED");
+    const verdict = worktreeVerdict(true, pullRequest("MERGED"), RUN);
 
     expect(verdict).toStrictEqual({
       kind: "keep",
@@ -290,25 +297,31 @@ describe(worktreeVerdict, () => {
   });
 
   it("should keep the worktree when its branch has no pull request", () => {
-    const verdict = worktreeVerdict(false, NO_PULL_REQUEST);
+    const verdict = worktreeVerdict(false, NO_PULL_REQUEST, RUN);
 
     expect(verdict).toStrictEqual({ kind: "keep", reason: "no pull request" });
   });
 
+  it("should keep the worktree when its pull request is not one the caller named", () => {
+    const verdict = worktreeVerdict(false, pullRequest("MERGED", 99), RUN);
+
+    expect(verdict).toStrictEqual({ kind: "keep", reason: "not in this run" });
+  });
+
   it("should remove the worktree when its pull request is merged", () => {
-    const verdict = worktreeVerdict(false, "MERGED");
+    const verdict = worktreeVerdict(false, pullRequest("MERGED"), RUN);
 
     expect(verdict).toStrictEqual({ kind: "remove" });
   });
 
   it("should remove the worktree when its pull request is closed", () => {
-    const verdict = worktreeVerdict(false, "CLOSED");
+    const verdict = worktreeVerdict(false, pullRequest("CLOSED"), RUN);
 
     expect(verdict).toStrictEqual({ kind: "remove" });
   });
 
   it("should keep the worktree when its pull request is still open", () => {
-    const verdict = worktreeVerdict(false, "OPEN");
+    const verdict = worktreeVerdict(false, pullRequest("OPEN"), RUN);
 
     expect(verdict).toStrictEqual({
       kind: "keep",

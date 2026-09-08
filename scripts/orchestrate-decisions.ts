@@ -107,8 +107,9 @@ const HOME_SEGMENT = "/.claude/worktrees/";
 
 /**
  * The agent worktrees of `git worktree list --porcelain`. The main checkout and
- * any worktree a person made elsewhere are left out, so nothing this command
- * does can reach them.
+ * any worktree outside `.claude/worktrees/` are left out. A person's own
+ * `claude --worktree` session lives in that directory too, so the path is not
+ * what tells a worker's leftovers from theirs.
  */
 export const agentWorktrees = (porcelain: string): readonly Worktree[] =>
   porcelain
@@ -153,26 +154,37 @@ export const worktreeProbe = (worktree: Worktree): WorktreeProbe => {
   return { branch: worktree.branch, kind: "probe" };
 };
 
+/** The fields of `gh pr list --json number,state` the cleanup reads. */
+export interface PullRequest {
+  readonly number: number;
+  readonly state: string;
+}
+
 /**
- * Whether a finished worker's worktree can go. `prState` is the state GitHub
- * reports for the branch's pull request, or undefined when the branch has none.
- * Only a branch whose pull request is finished is removable, so a worker that
- * has not opened one yet keeps its worktree.
+ * Whether a finished worker's worktree can go. `pr` is the pull request GitHub
+ * reports for the branch, or undefined when the branch has none, and `run`
+ * holds the pull request numbers the caller named. A worktree outside that set
+ * belongs to another run or to a person's own session, both of which live in
+ * the same directory, so naming the run is what separates them.
  */
 export const worktreeVerdict = (
   isDirty: boolean,
-  prState: string | undefined
+  pr: PullRequest | undefined,
+  run: readonly number[]
 ): WorktreeVerdict => {
   if (isDirty) {
     return { kind: "keep", reason: "uncommitted changes" };
   }
-  if (prState === undefined) {
+  if (pr === undefined) {
     return { kind: "keep", reason: "no pull request" };
   }
-  if (prState === "MERGED" || prState === "CLOSED") {
+  if (!run.includes(pr.number)) {
+    return { kind: "keep", reason: "not in this run" };
+  }
+  if (pr.state === "MERGED" || pr.state === "CLOSED") {
     return { kind: "remove" };
   }
-  return { kind: "keep", reason: `pull request ${prState}` };
+  return { kind: "keep", reason: `pull request ${pr.state}` };
 };
 
 /** The one line `clean-worktrees` prints for a worktree. */

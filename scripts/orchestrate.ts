@@ -7,7 +7,7 @@
  * ```
  * bun scripts/orchestrate.ts free-gib          # free memory in GiB, one number
  * bun scripts/orchestrate.ts watch-prs 12 15   # exits when one of these needs the orchestrator
- * bun scripts/orchestrate.ts clean-worktrees   # removes the worktrees of finished workers
+ * bun scripts/orchestrate.ts clean-worktrees 12 15  # removes the worktrees of these finished PRs
  * ```
  *
  * `watch-prs` reads each PR with `gh pr view` once a minute and exits with a
@@ -17,7 +17,8 @@
  * the line.
  *
  * `clean-worktrees` prints one line per agent worktree saying whether it was
- * removed or why it was kept.
+ * removed or why it was kept. It touches only the worktrees whose pull request
+ * is one of the numbers given.
  */
 
 import { execFileSync } from "node:child_process";
@@ -33,7 +34,12 @@ import {
   worktreeProbe,
   worktreeVerdict,
 } from "./orchestrate-decisions";
-import type { PrRow, Worktree, WorktreeVerdict } from "./orchestrate-decisions";
+import type {
+  PrRow,
+  PullRequest,
+  Worktree,
+  WorktreeVerdict,
+} from "./orchestrate-decisions";
 
 const POLL_MS = 60_000;
 
@@ -122,17 +128,15 @@ const watchPrs = async (numbers: readonly number[]): Promise<void> => {
   await watchPrs(numbers);
 };
 
-interface PrStateRow {
-  readonly state: string;
-}
-
-const isPrStateRow = (value: unknown): value is PrStateRow =>
+const isPullRequest = (value: unknown): value is PullRequest =>
   typeof value === "object" &&
   value !== null &&
   "state" in value &&
-  typeof value.state === "string";
+  typeof value.state === "string" &&
+  "number" in value &&
+  typeof value.number === "number";
 
-const prStateOf = (branch: string): string | undefined => {
+const prOf = (branch: string): PullRequest | undefined => {
   const parsed: unknown = JSON.parse(
     run("gh", [
       "pr",
@@ -144,11 +148,11 @@ const prStateOf = (branch: string): string | undefined => {
       "--limit",
       "1",
       "--json",
-      "state",
+      "number,state",
     ])
   );
   const first: unknown = Array.isArray(parsed) ? parsed[0] : undefined;
-  return isPrStateRow(first) ? first.state : undefined;
+  return isPullRequest(first) ? first : undefined;
 };
 
 const isDirty = (path: string): boolean =>
@@ -162,14 +166,18 @@ const removeWorktree = (worktree: Worktree, branch: string): void => {
   run("git", ["branch", "-D", branch]);
 };
 
-const verdictFor = (worktree: Worktree): WorktreeVerdict => {
+const verdictFor = (
+  worktree: Worktree,
+  numbers: readonly number[]
+): WorktreeVerdict => {
   const probe = worktreeProbe(worktree);
   if (probe.kind === "verdict") {
     return probe.verdict;
   }
   const verdict = worktreeVerdict(
     isDirty(worktree.path),
-    prStateOf(probe.branch)
+    prOf(probe.branch),
+    numbers
   );
   if (verdict.kind === "remove") {
     removeWorktree(worktree, probe.branch);
@@ -177,10 +185,10 @@ const verdictFor = (worktree: Worktree): WorktreeVerdict => {
   return verdict;
 };
 
-const cleanWorktrees = (): void => {
+const cleanWorktrees = (numbers: readonly number[]): void => {
   agentWorktrees(run("git", ["worktree", "list", "--porcelain"])).forEach(
     (worktree) => {
-      console.log(formatVerdict(worktree, verdictFor(worktree)));
+      console.log(formatVerdict(worktree, verdictFor(worktree, numbers)));
     }
   );
 };
@@ -205,9 +213,13 @@ if (command === "free-gib") {
   }
   await watchPrs(numbers);
 } else if (command === "clean-worktrees") {
-  cleanWorktrees();
+  const numbers = prNumbers(rest);
+  if (numbers === undefined) {
+    usage("usage: bun scripts/orchestrate.ts clean-worktrees <pr-number>...");
+  }
+  cleanWorktrees(numbers);
 } else {
   usage(
-    "usage: bun scripts/orchestrate.ts <free-gib | watch-prs <pr-number>... | clean-worktrees>"
+    "usage: bun scripts/orchestrate.ts <free-gib | watch-prs <pr-number>... | clean-worktrees <pr-number>...>"
   );
 }
