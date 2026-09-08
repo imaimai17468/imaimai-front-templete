@@ -242,14 +242,26 @@ const verdictFor = (
   }
 };
 
+const isAncestorOfMain = (branch: string): boolean => {
+  try {
+    run("git", ["merge-base", "--is-ancestor", branch, "main"]);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 /**
- * Deletes the branch with `-d`, which refuses one holding a commit main does
- * not, and returns why it refused. These branches carry no work of their own,
- * so a refusal means something unexpected is on this one.
+ * Deletes the branch once main holds its commits, and returns why it did not.
+ * The ancestry is asked of main by name, where `git branch -d` would ask it of
+ * whichever branch this session happens to have checked out.
  */
 const deleteMergedBranch = (branch: string): string | undefined => {
+  if (!isAncestorOfMain(branch)) {
+    return "not merged into main";
+  }
   try {
-    run("git", ["branch", "-d", branch]);
+    run("git", ["branch", "-D", branch]);
     return undefined;
   } catch (error) {
     return firstLine(error);
