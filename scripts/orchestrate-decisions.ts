@@ -45,6 +45,41 @@ export interface PullRequest {
   readonly state: string;
 }
 
+const isPullRequest = (value: unknown): value is PullRequest =>
+  typeof value === "object" &&
+  value !== null &&
+  "headRefOid" in value &&
+  typeof value.headRefOid === "string" &&
+  "mergeable" in value &&
+  typeof value.mergeable === "string" &&
+  "state" in value &&
+  typeof value.state === "string";
+
+export type PrListing =
+  | { readonly kind: "none" }
+  | { readonly kind: "pull-request"; readonly pullRequest: PullRequest }
+  | { readonly kind: "unreadable" };
+
+/**
+ * What one `gh pr list --head` reply says. An empty listing is the only answer
+ * that means the branch has no pull request, and the watch waits on such a
+ * branch as one whose worker has not opened one yet, so a reply this cannot
+ * read is kept apart: that is `gh` answering something the caller has to see
+ * rather than a branch to wait on.
+ */
+export const prListing = (parsed: unknown): PrListing => {
+  if (!Array.isArray(parsed)) {
+    return { kind: "unreadable" };
+  }
+  const first: unknown = parsed[0];
+  if (first === undefined) {
+    return { kind: "none" };
+  }
+  return isPullRequest(first)
+    ? { kind: "pull-request", pullRequest: first }
+    : { kind: "unreadable" };
+};
+
 /** A branch of the run and the pull request GitHub reports for it. */
 export interface BranchPullRequest {
   readonly branch: string;

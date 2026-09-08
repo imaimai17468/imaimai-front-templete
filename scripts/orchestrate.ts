@@ -37,6 +37,7 @@ import {
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
   localVerdict,
+  prListing,
   strandedAgentBranches,
   watchEvent,
   worktreeProbe,
@@ -76,16 +77,6 @@ const freeGib = (): number | undefined => {
   }
 };
 
-const isPullRequest = (value: unknown): value is PullRequest =>
-  typeof value === "object" &&
-  value !== null &&
-  "headRefOid" in value &&
-  typeof value.headRefOid === "string" &&
-  "mergeable" in value &&
-  typeof value.mergeable === "string" &&
-  "state" in value &&
-  typeof value.state === "string";
-
 const branchPr = (branch: string, state: string): PullRequest | undefined => {
   const parsed: unknown = JSON.parse(
     run("gh", [
@@ -101,8 +92,13 @@ const branchPr = (branch: string, state: string): PullRequest | undefined => {
       "headRefOid,mergeable,state",
     ])
   );
-  const first: unknown = Array.isArray(parsed) ? parsed[0] : undefined;
-  return isPullRequest(first) ? first : undefined;
+  const listing = prListing(parsed);
+  if (listing.kind === "unreadable") {
+    throw new Error(
+      `gh pr list --head ${branch} returned a shape without headRefOid/mergeable/state`
+    );
+  }
+  return listing.kind === "none" ? undefined : listing.pullRequest;
 };
 
 /**

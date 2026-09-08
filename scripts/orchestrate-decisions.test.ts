@@ -9,6 +9,7 @@ import {
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
   localVerdict,
+  prListing,
   strandedAgentBranches,
   watchEvent,
   worktreeProbe,
@@ -66,6 +67,91 @@ const pullRequest = (state: string, mergeable = "MERGEABLE"): PullRequest => ({
 });
 
 const NO_PULL_REQUEST: PullRequest | undefined = undefined;
+
+describe(prListing, () => {
+  it("should report the pull request when the listing holds a complete row", () => {
+    const listing = prListing([
+      { headRefOid: HEAD_SHA, mergeable: "MERGEABLE", state: "OPEN" },
+    ]);
+
+    expect(listing).toStrictEqual({
+      kind: "pull-request",
+      pullRequest: {
+        headRefOid: HEAD_SHA,
+        mergeable: "MERGEABLE",
+        state: "OPEN",
+      },
+    });
+  });
+
+  it("should report none when the listing is empty", () => {
+    const listing = prListing([]);
+
+    expect(listing).toStrictEqual({ kind: "none" });
+  });
+
+  it("should report unreadable when the reply is not a listing", () => {
+    const listing = prListing({ message: "Not Found" });
+
+    expect(listing).toStrictEqual({ kind: "unreadable" });
+  });
+
+  it("should report unreadable when the row is not an object", () => {
+    const listing = prListing(["feat/a"]);
+
+    expect(listing).toStrictEqual({ kind: "unreadable" });
+  });
+
+  it("should report unreadable when the row is null", () => {
+    const listing = prListing([null]);
+
+    expect(listing).toStrictEqual({ kind: "unreadable" });
+  });
+
+  it("should report unreadable when the row has no headRefOid", () => {
+    const listing = prListing([{ mergeable: "MERGEABLE", state: "OPEN" }]);
+
+    expect(listing).toStrictEqual({ kind: "unreadable" });
+  });
+
+  it("should report unreadable when the row's headRefOid is not a string", () => {
+    const listing = prListing([
+      { headRefOid: 1, mergeable: "MERGEABLE", state: "OPEN" },
+    ]);
+
+    expect(listing).toStrictEqual({ kind: "unreadable" });
+  });
+
+  it("should report unreadable when the row has no mergeable", () => {
+    const listing = prListing([{ headRefOid: HEAD_SHA, state: "OPEN" }]);
+
+    expect(listing).toStrictEqual({ kind: "unreadable" });
+  });
+
+  it("should report unreadable when the row's mergeable is not a string", () => {
+    const listing = prListing([
+      { headRefOid: HEAD_SHA, mergeable: 1, state: "OPEN" },
+    ]);
+
+    expect(listing).toStrictEqual({ kind: "unreadable" });
+  });
+
+  it("should report unreadable when the row has no state", () => {
+    const listing = prListing([
+      { headRefOid: HEAD_SHA, mergeable: "MERGEABLE" },
+    ]);
+
+    expect(listing).toStrictEqual({ kind: "unreadable" });
+  });
+
+  it("should report unreadable when the row's state is not a string", () => {
+    const listing = prListing([
+      { headRefOid: HEAD_SHA, mergeable: "MERGEABLE", state: 1 },
+    ]);
+
+    expect(listing).toStrictEqual({ kind: "unreadable" });
+  });
+});
 
 describe(watchEvent, () => {
   it("should name every branch when its open pull request is CONFLICTING", () => {
