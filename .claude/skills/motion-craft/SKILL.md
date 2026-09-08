@@ -363,7 +363,8 @@ Find curves at [easing.dev](https://easing.dev/) or
 | Modals, drawers | 200-500ms |
 | Marketing / explanatory | Can be longer |
 
-**Rule: UI animations stay under 300ms.**
+**Rule: stay inside the element's row above. A longer duration needs a stated
+reason.**
 
 ## Physicality
 
@@ -531,8 +532,8 @@ Every animation in the diff is measured against these. A violation is a finding.
 3. **Responsive easing.** Entering/exiting elements use `ease-out` or a strong
    custom curve. `ease-in` on UI is a block. Built-in CSS easings are too weak.
 
-4. **Sub-300ms UI.** UI animations stay under 300ms; anything slower needs
-   justification.
+4. **Duration within range.** A duration past its element's row in Part 2's
+   duration table needs justification.
 
 5. **Origin & physical correctness.** Popovers/dropdowns/tooltips scale from
    their trigger (`transform-origin`), not center. Never `scale(0)` — start
@@ -564,7 +565,8 @@ Flag these on sight:
 - `scale(0)` or pure-fade entrances with no initial transform
 - `ease-in` on any UI interaction; weak built-in easing on deliberate animation
 - Animation on a keyboard shortcut or 100+/day action
-- UI duration > 300ms with no stated reason
+- A duration past its element's row in Part 2's duration table, with no stated
+  reason
 - `transform-origin: center` on a trigger-anchored popover/dropdown/tooltip
 - Keyframes on toasts, toggles, or anything added/triggered rapidly
 - Animating layout properties (`width`/`height`/`margin`/`padding`/`top`/`left`)
