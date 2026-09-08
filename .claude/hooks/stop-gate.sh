@@ -5,11 +5,11 @@
 #      than this turn's diff, so CI runs knip and lefthook's pre-push runs
 #      similarity-ts
 #    — runs only when code-relevant files changed (docs-only turns skip it)
+#    — every step runs even after an earlier one failed, and one block names
+#      all of them, so no failure waits for a later Stop to be reported
 #    — respects stop_hook_active: if this Stop was already blocked once, a
 #      failing gate downgrades to a warning instead of blocking again, so a
-#      pre-existing failure the agent cannot fix does not loop forever. The
-#      steps below fail fast, so the second Stop can carry a failure the first
-#      one never reported
+#      pre-existing failure the agent cannot fix does not loop forever
 # 2. Markdown link check — blocking; dead relative links are decidable by opening
 #    the path, so they belong here rather than in a reviewer's judgment
 
@@ -52,12 +52,21 @@ emit_block() { # $1 = summary, $2 = reason body (stdin-free)
   exit 0
 }
 
+FAILED_STEPS=""
+FAILURE_OUTPUT=""
+
+# A failing step is collected instead of emitted, so the caller can run the
+# remaining steps and report every failure in one block.
 # `local out` is separate from the assignment because `local out=$(...)` would
 # report local's own exit status and lose the one `bun run` returned.
-run_or_block() { # $1 = the `bun run` script to run
+run_step() { # $1 = the `bun run` script to run
   local out
-  out=$(bun run "$1" 2>&1) ||
-    emit_block "bun run $1 failed. Fix before ending the turn." "$out"
+  out=$(bun run "$1" 2>&1) && return 0
+  FAILED_STEPS="${FAILED_STEPS:+$FAILED_STEPS, }bun run $1"
+  FAILURE_OUTPUT="${FAILURE_OUTPUT}===== bun run $1 =====
+$out
+
+"
 }
 
 # Skip when there are no changes
@@ -80,8 +89,11 @@ CODE_CHANGED=$(printf '%s\n' "$ALL_FILES" | grep -cE '\.(ts|mts|cts|tsx|js|jsx|m
 if [ "$CODE_CHANGED" -gt 0 ]; then
   # `bun run check` is `vp check`, which formats, lints and type-checks over one
   # file walk. `bun run test` is `vp test --run --coverage`.
-  run_or_block check
-  run_or_block test
+  run_step check
+  run_step test
+  if [ -n "$FAILED_STEPS" ]; then
+    emit_block "$FAILED_STEPS failed. Fix before ending the turn." "$FAILURE_OUTPUT"
+  fi
 fi
 
 # ==== 2. Markdown link check ====
