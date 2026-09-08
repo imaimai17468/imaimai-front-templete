@@ -5,7 +5,15 @@
       "mcp__plugin_chrome-devtools-mcp_chrome-devtools__*",
       "WebSearch",
       "WebFetch",
-      "Bash(bun scripts/orchestrate.ts *)"
+      "Bash(bun scripts/orchestrate.ts *)",
+      "Bash(bun run check)",
+      "Bash(bun run typecheck)",
+      "Bash(bun run test)",
+      "Bash(bun run lint)",
+      "Bash(bun run knip)",
+      "Bash(bun .claude/hooks/check-md-links.ts *)",
+      "Bash(similarity-ts *)",
+      "Bash(memory_pressure)"
     ],
     "deny": [
       "Bash(rm -rf /)",
