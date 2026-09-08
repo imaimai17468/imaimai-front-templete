@@ -106,27 +106,66 @@ const oneComponentPerFile = {
 
 const TEST_NAME_RE = /^should\s+.+\s+when\s+/iu;
 
-const SKIP_METHODS = new Set(["each", "skip", "todo"]);
+// A row name opening with a `%s` or `$field` placeholder gets its opening words
+// from the table row, so no row value can make it match TEST_NAME_RE and this
+// rule cannot read what the composed name says.
+const ROW_PLACEHOLDER_LEAD_RE = /^[$%]/u;
+
+const SKIP_METHODS = new Set(["skip", "todo"]);
+
+const TABLE_METHODS = new Set(["each", "for"]);
+
+// `it.each(table)(name, fn)` and `` it.each`table`(name, fn) `` hang the row's
+// name and callback off an outer call, so the chain naming the case is inside
+// that outer call's own callee.
+const tableCallee = (callee) => {
+  if (callee.type === "CallExpression") {
+    return callee.callee;
+  }
+  if (callee.type === "TaggedTemplateExpression") {
+    return callee.tag;
+  }
+  return null;
+};
+
+const tableChain = (callee) => {
+  const inner = tableCallee(callee);
+  if (
+    inner !== null &&
+    inner.type === "MemberExpression" &&
+    TABLE_METHODS.has(inner.property.name)
+  ) {
+    return inner;
+  }
+  return null;
+};
+
+const isTestIdentifier = (name) => name === "it" || name === "test";
+
+// Whether this call declares a test case: the chain's root is `it` or `test`
+// and no member along it suppresses the case. Walking the chain rather than
+// matching a fixed depth is what lets `it.concurrent.only` through to the root.
+const isCaseDeclaration = (callee) => {
+  if (!callee) {
+    return false;
+  }
+  let node = tableChain(callee) ?? callee;
+  while (node !== null && node.type === "MemberExpression") {
+    if (node.property && SKIP_METHODS.has(node.property.name)) {
+      return false;
+    }
+    node = node.object;
+  }
+  return (
+    node !== null && node.type === "Identifier" && isTestIdentifier(node.name)
+  );
+};
 
 const testNamingFormat = {
   create(context) {
     return {
       CallExpression(node) {
-        const { callee } = node;
-        let calleeName = null;
-        if (callee.type === "Identifier") {
-          calleeName = callee.name;
-        } else if (
-          callee.type === "MemberExpression" &&
-          callee.object?.type === "Identifier" &&
-          (callee.object.name === "it" || callee.object.name === "test")
-        ) {
-          if (callee.property && SKIP_METHODS.has(callee.property.name)) {
-            return;
-          }
-          calleeName = callee.object.name;
-        }
-        if (calleeName !== "it" && calleeName !== "test") {
+        if (!isCaseDeclaration(node.callee)) {
           return;
         }
         const [firstArg] = node.arguments;
@@ -140,12 +179,19 @@ const testNamingFormat = {
         if (typeof testName !== "string") {
           return;
         }
-        if (!TEST_NAME_RE.test(testName)) {
-          context.report({
-            message: `Test name must follow the format: 'should [expected behavior] when [condition]'. Got: '${testName}'`,
-            node,
-          });
+        if (TEST_NAME_RE.test(testName)) {
+          return;
         }
+        if (
+          ROW_PLACEHOLDER_LEAD_RE.test(testName) &&
+          tableChain(node.callee) !== null
+        ) {
+          return;
+        }
+        context.report({
+          message: `Test name must follow the format: 'should [expected behavior] when [condition]'. Got: '${testName}'`,
+          node,
+        });
       },
     };
   },
@@ -165,20 +211,16 @@ const isExpectCall = (node) => {
   return false;
 };
 
-const isEachCall = (node) => {
-  const { callee } = node;
-  if (!callee) {
+const declaresCase = (node) => {
+  if (!isCaseDeclaration(node.callee)) {
     return false;
   }
-  if (
-    callee.type === "MemberExpression" &&
-    callee.object &&
-    (callee.object.name === "it" || callee.object.name === "test") &&
-    callee.property?.name === "each"
-  ) {
-    return true;
-  }
-  return false;
+  const [, secondArg] = node.arguments;
+  return (
+    secondArg !== undefined &&
+    (secondArg.type === "ArrowFunctionExpression" ||
+      secondArg.type === "FunctionExpression")
+  );
 };
 
 const singleExpect = {
@@ -187,31 +229,8 @@ const singleExpect = {
 
     return {
       CallExpression(node) {
-        if (isEachCall(node)) {
-          return;
-        }
-        const { callee } = node;
-        let calleeName = callee?.type === "Identifier" ? callee.name : null;
-        if (
-          calleeName === null &&
-          callee?.type === "MemberExpression" &&
-          callee.object?.type === "Identifier" &&
-          (callee.object.name === "it" || callee.object.name === "test")
-        ) {
-          if (callee.property && SKIP_METHODS.has(callee.property.name)) {
-            return;
-          }
-          calleeName = callee.object.name;
-        }
-        if (calleeName === "it" || calleeName === "test") {
-          const [, secondArg] = node.arguments;
-          if (
-            secondArg &&
-            (secondArg.type === "ArrowFunctionExpression" ||
-              secondArg.type === "FunctionExpression")
-          ) {
-            scopeStack.push({ count: 0, testNode: node });
-          }
+        if (declaresCase(node)) {
+          scopeStack.push({ count: 0, testNode: node });
           return;
         }
         if (scopeStack.length > 0 && isExpectCall(node)) {
@@ -220,37 +239,11 @@ const singleExpect = {
         }
       },
       "CallExpression:exit"(node) {
-        if (isEachCall(node)) {
+        const scope = scopeStack.at(-1);
+        if (scope?.testNode !== node) {
           return;
         }
-        const { callee } = node;
-        let calleeName = callee?.type === "Identifier" ? callee.name : null;
-        if (
-          calleeName === null &&
-          callee?.type === "MemberExpression" &&
-          callee.object?.type === "Identifier" &&
-          (callee.object.name === "it" || callee.object.name === "test")
-        ) {
-          if (callee.property && SKIP_METHODS.has(callee.property.name)) {
-            return;
-          }
-          calleeName = callee.object.name;
-        }
-        if (calleeName !== "it" && calleeName !== "test") {
-          return;
-        }
-        const [, secondArg] = node.arguments;
-        if (
-          !secondArg ||
-          (secondArg.type !== "ArrowFunctionExpression" &&
-            secondArg.type !== "FunctionExpression")
-        ) {
-          return;
-        }
-        if (scopeStack.length === 0) {
-          return;
-        }
-        const scope = scopeStack.pop();
+        scopeStack.pop();
         if (scope.count > 1) {
           context.report({
             message: `Each test case should have exactly one expect(). Found ${scope.count} expect() calls.`,

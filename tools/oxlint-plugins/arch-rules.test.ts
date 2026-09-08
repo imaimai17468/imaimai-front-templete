@@ -22,6 +22,62 @@ const importNode = (specifier: ImportSource, importedNames: string[] = []) => ({
   })),
 });
 
+// The callee fixtures reach only as deep as the rules under test read, so an
+// `it.skip.each` chain is a MemberExpression whose object is another one.
+interface CalleeNode {
+  type: string;
+  name?: string;
+  object?: CalleeNode;
+  property?: { name: string };
+  callee?: CalleeNode;
+  tag?: CalleeNode;
+}
+
+const memberCallee = (
+  object: CalleeNode,
+  propertyName: string
+): CalleeNode => ({
+  object,
+  property: { name: propertyName },
+  type: "MemberExpression",
+});
+
+const identifier = (name: string): CalleeNode => ({
+  name,
+  type: "Identifier",
+});
+
+const arrowBody = { type: "ArrowFunctionExpression" };
+
+const expectCall = {
+  arguments: [],
+  callee: identifier("expect"),
+  type: "CallExpression",
+};
+
+const caseCall = (name: string, callee: CalleeNode) => ({
+  arguments: [{ type: "Literal", value: name }, arrowBody],
+  callee,
+  type: "CallExpression",
+});
+
+// `it.each(table)(name, fn)` and `` it.each`table`(name, fn) `` hang the row's
+// name and callback off an outer call, so the chain sits inside that call.
+const callWrapper = (chain: CalleeNode): CalleeNode => ({
+  callee: chain,
+  type: "CallExpression",
+});
+
+const taggedWrapper = (chain: CalleeNode): CalleeNode => ({
+  tag: chain,
+  type: "TaggedTemplateExpression",
+});
+
+const eachChain = (base: string) => memberCallee(identifier(base), "each");
+
+const eachRowCall = (name: string) =>
+  caseCall(name, callWrapper(eachChain("it")));
+
 describe("no-size-props", () => {
   const rule = plugin.rules["no-size-props"];
 
@@ -384,18 +440,24 @@ describe("test-naming-format", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it("should not report when callee is it.each", () => {
+  it("should report when an it.each row name does not follow should...when... format", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
-    const node = {
-      arguments: [{ type: "Literal", value: "bad name" }],
-      callee: {
-        object: { name: "it" },
-        property: { name: "each" },
-        type: "MemberExpression",
-      },
-    };
+    const node = eachRowCall("bad name");
+
+    // Act
+    visitors.CallExpression(node);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when an it.each row name follows the should...when... format", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const node = eachRowCall("should reject the key when %s");
 
     // Act
     visitors.CallExpression(node);
@@ -404,18 +466,104 @@ describe("test-naming-format", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
+  it("should not report when an it.each row name opens with a placeholder", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const node = eachRowCall("$label");
+
+    // Act
+    visitors.CallExpression(node);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when a plain it() name opens with a placeholder", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const node = caseCall("$label", identifier("it"));
+
+    // Act
+    visitors.CallExpression(node);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ["test.each(table)(...)", callWrapper(eachChain("test"))],
+    ["it.for(table)(...)", callWrapper(memberCallee(identifier("it"), "for"))],
+    ["it.each`table`(...)", taggedWrapper(eachChain("it"))],
+    [
+      "it.only.each(table)(...)",
+      callWrapper(memberCallee(memberCallee(identifier("it"), "only"), "each")),
+    ],
+  ])(
+    "should report when a bad row name is declared under %s",
+    (_label, callee) => {
+      // Arrange
+      const context = makeContext();
+      const visitors = rule.create(context);
+      const node = caseCall("bad name", callee);
+
+      // Act
+      visitors.CallExpression(node);
+
+      // Assert
+      expect(context.report).toHaveBeenCalledOnce();
+    }
+  );
+
+  it.each([
+    [
+      "it.skip.each(table)(...)",
+      callWrapper(memberCallee(memberCallee(identifier("it"), "skip"), "each")),
+    ],
+    ["describe.each(table)(...)", callWrapper(eachChain("describe"))],
+    ["a factory call result", callWrapper(identifier("makeIt"))],
+    [
+      "a non-table it.only(table) result",
+      callWrapper(memberCallee(identifier("it"), "only")),
+    ],
+  ])(
+    "should not report when a bad row name is declared under %s",
+    (_label, callee) => {
+      // Arrange
+      const context = makeContext();
+      const visitors = rule.create(context);
+      const node = caseCall("bad name", callee);
+
+      // Act
+      visitors.CallExpression(node);
+
+      // Assert
+      expect(context.report).not.toHaveBeenCalled();
+    }
+  );
+
+  it("should report when a chained it.concurrent.only name does not follow should...when... format", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const node = caseCall(
+      "bad name",
+      memberCallee(memberCallee(identifier("it"), "concurrent"), "only")
+    );
+
+    // Act
+    visitors.CallExpression(node);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
   it("should not report when callee is it.skip", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
-    const node = {
-      arguments: [{ type: "Literal", value: "bad name" }],
-      callee: {
-        object: { name: "it" },
-        property: { name: "skip" },
-        type: "MemberExpression",
-      },
-    };
+    const node = caseCall("bad name", memberCallee(identifier("it"), "skip"));
 
     // Act
     visitors.CallExpression(node);
@@ -428,14 +576,7 @@ describe("test-naming-format", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
-    const node = {
-      arguments: [{ type: "Literal", value: "bad name" }],
-      callee: {
-        object: { name: "it" },
-        property: { name: "todo" },
-        type: "MemberExpression",
-      },
-    };
+    const node = caseCall("bad name", memberCallee(identifier("it"), "todo"));
 
     // Act
     visitors.CallExpression(node);
@@ -624,15 +765,10 @@ describe("single-expect", () => {
       callee: { name: "it", type: "Identifier" },
       type: "CallExpression",
     };
-    const expectNode = {
-      arguments: [],
-      callee: { name: "expect", type: "Identifier" },
-      type: "CallExpression",
-    };
 
     // Act
     visitors.CallExpression(itNode);
-    visitors.CallExpression(expectNode);
+    visitors.CallExpression(expectCall);
     visitors["CallExpression:exit"](itNode);
 
     // Assert
@@ -651,16 +787,11 @@ describe("single-expect", () => {
       callee: { name: "it", type: "Identifier" },
       type: "CallExpression",
     };
-    const expectNode = {
-      arguments: [],
-      callee: { name: "expect", type: "Identifier" },
-      type: "CallExpression",
-    };
 
     // Act
     visitors.CallExpression(itNode);
-    visitors.CallExpression(expectNode);
-    visitors.CallExpression(expectNode);
+    visitors.CallExpression(expectCall);
+    visitors.CallExpression(expectCall);
     visitors["CallExpression:exit"](itNode);
 
     // Assert
@@ -679,42 +810,87 @@ describe("single-expect", () => {
       callee: { name: "test", type: "Identifier" },
       type: "CallExpression",
     };
-    const expectNode = {
-      arguments: [],
-      callee: { name: "expect", type: "Identifier" },
-      type: "CallExpression",
-    };
 
     // Act
     visitors.CallExpression(testNode);
-    visitors.CallExpression(expectNode);
-    visitors.CallExpression(expectNode);
+    visitors.CallExpression(expectCall);
+    visitors.CallExpression(expectCall);
     visitors["CallExpression:exit"](testNode);
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it("should not report when it.each() is used", () => {
+  it("should report when an it.each row has more than one expect", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
-    const eachNode = {
-      arguments: [
-        { type: "Literal", value: "should do X when Y" },
-        { type: "ArrowFunctionExpression" },
-      ],
-      callee: {
-        object: { name: "it" },
-        property: { name: "each" },
-        type: "MemberExpression",
-      },
+    const rowNode = eachRowCall("should do X when Y");
+    const tableNode = {
+      arguments: [{ type: "ArrayExpression" }],
+      callee: rowNode.callee.callee,
       type: "CallExpression",
     };
 
     // Act
-    visitors.CallExpression(eachNode);
-    visitors["CallExpression:exit"](eachNode);
+    visitors.CallExpression(rowNode);
+    visitors.CallExpression(tableNode);
+    visitors["CallExpression:exit"](tableNode);
+    visitors.CallExpression(expectCall);
+    visitors.CallExpression(expectCall);
+    visitors["CallExpression:exit"](rowNode);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when an it.each row has exactly one expect", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const rowNode = eachRowCall("should do X when Y");
+
+    // Act
+    visitors.CallExpression(rowNode);
+    visitors.CallExpression(expectCall);
+    visitors["CallExpression:exit"](rowNode);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should still report when the expect calls exit before the test does", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const rowNode = eachRowCall("should do X when Y");
+
+    // Act
+    visitors.CallExpression(rowNode);
+    visitors.CallExpression(expectCall);
+    visitors["CallExpression:exit"](expectCall);
+    visitors.CallExpression(expectCall);
+    visitors["CallExpression:exit"](expectCall);
+    visitors["CallExpression:exit"](rowNode);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when it.skip.each is used", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const rowNode = caseCall(
+      "should do X when Y",
+      callWrapper(memberCallee(memberCallee(identifier("it"), "skip"), "each"))
+    );
+
+    // Act
+    visitors.CallExpression(rowNode);
+    visitors.CallExpression(expectCall);
+    visitors.CallExpression(expectCall);
+    visitors["CallExpression:exit"](rowNode);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -736,16 +912,11 @@ describe("single-expect", () => {
       },
       type: "CallExpression",
     };
-    const expectNode = {
-      arguments: [],
-      callee: { name: "expect", type: "Identifier" },
-      type: "CallExpression",
-    };
 
     // Act
     visitors.CallExpression(onlyNode);
-    visitors.CallExpression(expectNode);
-    visitors.CallExpression(expectNode);
+    visitors.CallExpression(expectCall);
+    visitors.CallExpression(expectCall);
     visitors["CallExpression:exit"](onlyNode);
 
     // Assert
@@ -768,16 +939,11 @@ describe("single-expect", () => {
       },
       type: "CallExpression",
     };
-    const expectNode = {
-      arguments: [],
-      callee: { name: "expect", type: "Identifier" },
-      type: "CallExpression",
-    };
 
     // Act
     visitors.CallExpression(skipNode);
-    visitors.CallExpression(expectNode);
-    visitors.CallExpression(expectNode);
+    visitors.CallExpression(expectCall);
+    visitors.CallExpression(expectCall);
     visitors["CallExpression:exit"](skipNode);
 
     // Assert
@@ -800,15 +966,10 @@ describe("single-expect", () => {
       },
       type: "CallExpression",
     };
-    const expectNode = {
-      arguments: [],
-      callee: { name: "expect", type: "Identifier" },
-      type: "CallExpression",
-    };
 
     // Act
     visitors.CallExpression(todoNode);
-    visitors.CallExpression(expectNode);
+    visitors.CallExpression(expectCall);
     visitors["CallExpression:exit"](todoNode);
 
     // Assert
@@ -1547,16 +1708,11 @@ describe("single-expect (defensive branches)", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
-    const expectNode = {
-      arguments: [],
-      callee: { name: "expect", type: "Identifier" },
-      type: "CallExpression",
-    };
 
     // Act
     visitors.CallExpression(testNode);
     visitors.CallExpression({ callee: null, type: "CallExpression" });
-    visitors.CallExpression(expectNode);
+    visitors.CallExpression(expectCall);
     visitors["CallExpression:exit"](testNode);
 
     // Assert
