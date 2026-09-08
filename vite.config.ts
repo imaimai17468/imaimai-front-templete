@@ -158,22 +158,25 @@ export default defineConfig({
       },
       {
         // These files are run as commands, so what they write to stdout is the
-        // report their caller reads rather than leftover debugging.
+        // report their caller reads rather than leftover debugging. They also
+        // iterate for effect rather than for a value, writing a scratch file
+        // per name or a line per finding, and the remedy `no-array-for-each`
+        // asks for is `for...of`, which `style-rules/no-loops` forbids.
         files: CLI_ENTRYPOINTS,
-        rules: { "no-console": "off" },
+        rules: {
+          "no-console": "off",
+          "unicorn/no-array-for-each": "off",
+        },
       },
       {
-        // The script drives a hook and parses its JSON stdout, so `unknown` is
-        // what the input actually is, and `Record<string, unknown>` is the
+        // A script drives a command and parses its JSON stdout, so `unknown`
+        // is what the input actually is, and `Record<string, unknown>` is the
         // parsed shape a type guard narrows from: that covers
         // no-unknown-parameters and no-unsafe-dictionary-type.
-        // `no-array-for-each` is dropped because the remedy it asks for is
-        // `for...of`, which `style-rules/no-loops` forbids.
         files: ["scripts/**"],
         rules: {
           "anti-slop/no-unknown-parameters": "off",
           "anti-slop/no-unsafe-dictionary-type": "off",
-          "unicorn/no-array-for-each": "off",
         },
       },
       {
