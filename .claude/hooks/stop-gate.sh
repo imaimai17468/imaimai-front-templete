@@ -38,13 +38,17 @@ STOP_ACTIVE=$(printf '%s' "$INPUT" | jq -r \
 
 # Emit a block — downgraded to a warning when this Stop was already blocked
 # once (stop_hook_active), to prevent an unfixable failure from looping.
-emit_block() { # $1 = summary, $2 = reason body (stdin-free)
+# The body reaches jq through a pipe rather than argv: `--arg body "$2"` made
+# execve fail with E2BIG once a step's diagnostics crossed ARG_MAX (1048576 on
+# macOS), and the exit below then ended the turn having printed nothing.
+# `printf` is a shell builtin, so the body never passes through an argv again.
+emit_block() { # $1 = summary, $2 = reason body
   if [ "$STOP_ACTIVE" = "true" ]; then
-    jq -n --arg sum "$1" --arg body "$2" '{
+    printf '%s' "$2" | jq -n --arg sum "$1" --rawfile body /dev/stdin '{
       systemMessage: ("⚠️ Stop gate STILL failing (not re-blocking — stop_hook_active): " + $sum + " — if this failure is pre-existing or unfixable, report it to the user explicitly; do not treat it as passed.\n" + $body)
     }'
   else
-    jq -n --arg sum "$1" --arg body "$2" '{
+    printf '%s' "$2" | jq -n --arg sum "$1" --rawfile body /dev/stdin '{
       systemMessage: ("⛔ Stop block: " + $sum),
       decision: "block",
       reason: ($sum + "\n\n" + $body)
