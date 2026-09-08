@@ -14,7 +14,9 @@
  * concurrently to spend that on several cores instead of one.
  */
 
+import type { ChildProcess } from "node:child_process";
 import { spawn } from "node:child_process";
+import { once } from "node:events";
 import path from "node:path";
 import { text } from "node:stream/consumers";
 import { describe, expect, it } from "vite-plus/test";
@@ -57,29 +59,44 @@ const readDecision = (stdout: string): Decision => {
   return asDecision(parsed.hookSpecificOutput?.permissionDecision);
 };
 
+/** node emits `close` with the exit code and the signal that ended the child. */
+const CloseArgs = z.tuple([z.number().nullable(), z.string().nullable()]);
+
+const exitStatusOf = async (hook: ChildProcess): Promise<number | null> => {
+  const closed: unknown = await once(hook, "close");
+  const [status] = CloseArgs.parse(closed);
+  return status;
+};
+
 /**
- * The hook's decision for a Bash command.
+ * What one run of the hook produced for a Bash command.
  *
- * A silent hook means "allow", so a hook that died before printing would read
- * as allow and every case expecting that would pass on a broken guard. The
- * hook writes nothing to stderr while it is working, so anything there ends
- * the case instead of being read as a decision.
+ * The decision alone is not enough to judge a case. A silent hook means
+ * "allow", so a hook that died before printing produces the same empty stdout
+ * as an allow, and every `exit` in pre-bash-guard.sh is `exit 0`, both deny
+ * sites included. So a case asserts the status and the empty stderr with the
+ * decision, and a guard that dies under GNU awk on the CI runner fails the
+ * cases expecting allow rather than passing them.
  */
-const decide = async (command: string): Promise<Decision> => {
+interface HookRun {
+  decision: Decision;
+  status: number | null;
+  stderr: string;
+}
+
+const runHook = async (command: string): Promise<HookRun> => {
   const hook = spawn("bash", [HOOK], {
     env: { ...process.env, CLAUDE_PROJECT_DIR: REPO },
   });
   hook.stdin.end(
     JSON.stringify({ tool_input: { command }, tool_name: "Bash" })
   );
-  const [stdout, stderr] = await Promise.all([
+  const [stdout, stderr, status] = await Promise.all([
     text(hook.stdout),
     text(hook.stderr),
+    exitStatusOf(hook),
   ]);
-  if (stderr !== "") {
-    throw new Error(`the hook wrote to stderr instead of deciding: ${stderr}`);
-  }
-  return readDecision(stdout);
+  return { decision: readDecision(stdout), status, stderr };
 };
 
 interface Case {
@@ -101,7 +118,11 @@ const group = (title: string, cases: readonly Case[]): void => {
         label: `${one.expected} (${one.why}) \`${oneLine(one.command)}\``,
       }))
     )("$label", async ({ command, expected }) => {
-      await expect(decide(command)).resolves.toBe(expected);
+      await expect(runHook(command)).resolves.toStrictEqual({
+        decision: expected,
+        status: 0,
+        stderr: "",
+      });
     });
   });
 };
