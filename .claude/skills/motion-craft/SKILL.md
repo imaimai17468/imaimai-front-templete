@@ -299,8 +299,6 @@ and abrupt brightness jumps.
 
 | Need | Technique | Concrete value |
 | --- | --- | --- |
-| Default UI spring | Critically damped, no overshoot | `damping 1.0`, `response 0.3-0.4` |
-| Momentum / flick spring | Under-damped, slight bounce | `damping ~0.8`, `response 0.3-0.4` |
 | Gesture -> spring velocity | Hand off release velocity | `gestureVelocity / (target - current)` if normalized |
 | Flick landing point | Project momentum | `current + (v/1000)*d/(1-d)`, `d ~ 0.998` |
 | Interrupt cleanly | Start from presentation (live) value | read the on-screen transform |
@@ -392,11 +390,6 @@ Feel natural because they simulate physics; no fixed duration.
 Keep bounce subtle (0.1-0.3); reserve for drag-to-dismiss and playful
 interactions. Springs maintain velocity when interrupted (keyframes restart
 from zero).
-
-| Need | Config |
-| --- | --- |
-| Default UI spring | `damping 1.0`, `response 0.3-0.4` |
-| Momentum / flick spring | `damping ~0.8`, `response 0.3-0.4` |
 
 ## Interruptibility
 
