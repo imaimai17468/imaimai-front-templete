@@ -255,19 +255,25 @@ export const worktreeProbe = (
 export const localVerdict = (isDirty: boolean): WorktreeVerdict | undefined =>
   isDirty ? { kind: "keep", reason: "uncommitted changes" } : undefined;
 
-/** What `git merge-base --is-ancestor` answered about two commits. */
+/**
+ * Where git put one commit relative to another's history. `absent` is the
+ * second commit missing from the repository, which is what the commit GitHub
+ * reports for a pull request is once the remote branch is deleted and nothing
+ * fetched it, and `failed` is a check that did not answer either way.
+ */
 export type Ancestry =
+  | { readonly commit: string; readonly kind: "absent" }
   | { readonly kind: "ancestor" }
   | { readonly kind: "failed"; readonly reason: string }
   | { readonly kind: "not-ancestor" };
 
 /**
  * Why the commits of a branch keep what holds them, or undefined when `holder`
- * already holds every one of them. A check that could not run is its own
- * answer, because reading it as "not an ancestor" would keep the branch with a
- * reason naming the wrong cause. A squash merge leaves the branch's commits
- * outside main's ancestry, so the reason states what git answered rather than
- * calling the branch unmerged.
+ * already holds every one of them. A commit this repository does not have and a
+ * check that did not run are each their own answer, because reading either as
+ * "not an ancestor" would keep the branch with a reason naming the wrong cause.
+ * A squash merge leaves the branch's commits outside main's ancestry, so the
+ * reason states what git answered rather than calling the branch unmerged.
  */
 export const ancestryKeepReason = (
   ancestry: Ancestry,
@@ -278,6 +284,9 @@ export const ancestryKeepReason = (
   }
   if (ancestry.kind === "not-ancestor") {
     return `commits ${holder} does not hold`;
+  }
+  if (ancestry.kind === "absent") {
+    return `${holder} is at commit ${ancestry.commit}, which this repository does not have`;
   }
   return `git could not compare with ${holder}: ${ancestry.reason}`;
 };

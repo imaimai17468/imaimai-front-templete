@@ -440,6 +440,17 @@ describe(ancestryKeepReason, () => {
     expect(reason).toBe("commits main does not hold");
   });
 
+  it("should name the commit when the repository does not have the holder's", () => {
+    const reason = ancestryKeepReason(
+      { commit: "4b486bc", kind: "absent" },
+      "the pull request"
+    );
+
+    expect(reason).toBe(
+      "the pull request is at commit 4b486bc, which this repository does not have"
+    );
+  });
+
   it("should name the failure when the ancestry check could not run", () => {
     const reason = ancestryKeepReason(
       { kind: "failed", reason: "fatal: not a git repository" },
@@ -510,6 +521,20 @@ describe(worktreeVerdict, () => {
     expect(verdict).toStrictEqual({
       kind: "keep",
       reason: "commits the pull request does not hold",
+    });
+  });
+
+  it("should keep the worktree when the pull request's commit is not in this repository", () => {
+    const verdict = worktreeVerdict({
+      kind: "pull-request",
+      pullRequest: pullRequest("MERGED", "UNKNOWN"),
+      pullRequestAncestry: { commit: "4b486bc", kind: "absent" },
+    });
+
+    expect(verdict).toStrictEqual({
+      kind: "keep",
+      reason:
+        "the pull request is at commit 4b486bc, which this repository does not have",
     });
   });
 

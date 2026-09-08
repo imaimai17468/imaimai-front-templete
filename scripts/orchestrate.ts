@@ -208,19 +208,34 @@ const removeWorktree = (
   return { kind: "remove" };
 };
 
-const NOT_ANCESTOR_STATUS = 1;
+/**
+ * Both commands below exit 1 to answer no: `rev-parse --verify --quiet` for a
+ * commit it cannot resolve, and silently, where a broken repository gives it
+ * 128 and a message; `merge-base --is-ancestor` for a commit outside the
+ * history it was given.
+ */
+const ANSWERED_NO_STATUS = 1;
 
 /**
- * Whether `commit` is in the history of `descendant`. Exit status 1 is git's
- * answer that it is not, where any other failure is the command not answering,
- * which is what a commit missing from this repository gives.
+ * Whether `commit` is in the history of `descendant`, or `descendant` is a
+ * commit this repository does not have. Resolving it comes first, because
+ * `merge-base` exits 128 both for a commit it cannot find and for a command
+ * that broke, and the commit GitHub reports for a merged pull request is one
+ * nothing local ever fetched whenever the remote branch is gone.
  */
 const ancestry = (commit: string, descendant: string): Ancestry => {
+  try {
+    run("git", ["rev-parse", "--verify", "--quiet", `${descendant}^{commit}`]);
+  } catch (error) {
+    return isCommandFailure(error) && error.status === ANSWERED_NO_STATUS
+      ? { commit: descendant, kind: "absent" }
+      : { kind: "failed", reason: commandMessage(error) };
+  }
   try {
     run("git", ["merge-base", "--is-ancestor", commit, descendant]);
     return { kind: "ancestor" };
   } catch (error) {
-    return isCommandFailure(error) && error.status === NOT_ANCESTOR_STATUS
+    return isCommandFailure(error) && error.status === ANSWERED_NO_STATUS
       ? { kind: "not-ancestor" }
       : { kind: "failed", reason: commandMessage(error) };
   }
