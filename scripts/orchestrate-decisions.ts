@@ -132,6 +132,7 @@ export const agentWorktrees = (porcelain: string): readonly Worktree[] =>
     .filter((worktree) => worktree.path.includes(HOME_SEGMENT));
 
 export type WorktreeVerdict =
+  | { readonly kind: "branch-kept"; readonly reason: string }
   | { readonly kind: "keep"; readonly reason: string }
   | { readonly kind: "remove" };
 
@@ -213,7 +214,12 @@ export const worktreeVerdict = (
 export const formatVerdict = (
   worktree: Worktree,
   verdict: WorktreeVerdict
-): string =>
-  verdict.kind === "remove"
-    ? `removed ${worktree.path}`
-    : `kept ${worktree.path} (${verdict.reason})`;
+): string => {
+  if (verdict.kind === "remove") {
+    return `removed ${worktree.path}`;
+  }
+  if (verdict.kind === "branch-kept") {
+    return `removed ${worktree.path} (branch kept: ${verdict.reason})`;
+  }
+  return `kept ${worktree.path} (${verdict.reason})`;
+};

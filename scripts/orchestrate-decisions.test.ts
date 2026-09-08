@@ -385,6 +385,17 @@ describe(formatVerdict, () => {
     expect(line).toBe("removed /repo/.claude/worktrees/agent-1");
   });
 
+  it("should print removed with the branch reason when the branch could not be deleted", () => {
+    const line = formatVerdict(worktree(), {
+      kind: "branch-kept",
+      reason: "checked out somewhere",
+    });
+
+    expect(line).toBe(
+      "removed /repo/.claude/worktrees/agent-1 (branch kept: checked out somewhere)"
+    );
+  });
+
   it("should print kept with the reason when the verdict is keep", () => {
     const line = formatVerdict(worktree(), {
       kind: "keep",

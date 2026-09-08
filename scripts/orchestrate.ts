@@ -168,7 +168,15 @@ const isDirty = (path: string): boolean =>
 
 const RELOCK_REASON = "clean-worktrees could not remove it";
 
-const removeWorktree = (worktree: Worktree, branch: string): void => {
+/**
+ * Removes the worktree, then its branch. The branch is a second step because a
+ * removed directory cannot be reported as kept, so its own failure gets its own
+ * verdict.
+ */
+const removeWorktree = (
+  worktree: Worktree,
+  branch: string
+): WorktreeVerdict => {
   if (worktree.locked) {
     run("git", ["worktree", "unlock", worktree.path]);
   }
@@ -186,7 +194,12 @@ const removeWorktree = (worktree: Worktree, branch: string): void => {
     }
     throw error;
   }
-  run("git", ["branch", "-D", branch]);
+  try {
+    run("git", ["branch", "-D", branch]);
+  } catch (error) {
+    return { kind: "branch-kept", reason: firstLine(error) };
+  }
+  return { kind: "remove" };
 };
 
 /**
@@ -212,10 +225,9 @@ const verdictFor = (
       prOf(probe.branch),
       numbers
     );
-    if (verdict.kind === "remove") {
-      removeWorktree(worktree, probe.branch);
-    }
-    return verdict;
+    return verdict.kind === "remove"
+      ? removeWorktree(worktree, probe.branch)
+      : verdict;
   } catch (error) {
     return { kind: "keep", reason: `failed: ${firstLine(error)}` };
   }
