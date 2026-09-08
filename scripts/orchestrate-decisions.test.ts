@@ -5,6 +5,7 @@ import {
   formatVerdict,
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
+  livePullRequest,
   prNumbers,
   watchEvent,
   worktreeProbe,
@@ -287,6 +288,32 @@ const pullRequest = (state: string, number = 12): PullRequest => ({
   headRefOid: HEAD_SHA,
   number,
   state,
+});
+
+describe(livePullRequest, () => {
+  it("should return the open pull request when a newer finished one is listed first", () => {
+    const pr = livePullRequest([
+      pullRequest("CLOSED", 20),
+      pullRequest("OPEN", 12),
+    ]);
+
+    expect(pr).toStrictEqual(pullRequest("OPEN", 12));
+  });
+
+  it("should return the newest pull request when none is open", () => {
+    const pr = livePullRequest([
+      pullRequest("CLOSED", 20),
+      pullRequest("MERGED", 12),
+    ]);
+
+    expect(pr).toStrictEqual(pullRequest("CLOSED", 20));
+  });
+
+  it("should return undefined when the branch has no pull request", () => {
+    const pr = livePullRequest([]);
+
+    expect(pr).toBeUndefined();
+  });
 });
 
 describe(worktreeVerdict, () => {

@@ -29,6 +29,7 @@ import {
   formatVerdict,
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
+  livePullRequest,
   prNumbers,
   watchEvent,
   worktreeProbe,
@@ -148,13 +149,13 @@ const prOf = (branch: string): PullRequest | undefined => {
       "--head",
       branch,
       "--limit",
-      "1",
+      "20",
       "--json",
       "headRefOid,number,state",
     ])
   );
-  const first: unknown = Array.isArray(parsed) ? parsed[0] : undefined;
-  return isPullRequest(first) ? first : undefined;
+  const rows: readonly unknown[] = Array.isArray(parsed) ? parsed : [];
+  return livePullRequest(rows.filter(isPullRequest));
 };
 
 const headSha = (path: string): string =>
