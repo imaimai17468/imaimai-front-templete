@@ -5,14 +5,9 @@ description: Unified animation and motion skill — Apple-style fluid interface 
 
 # Motion Craft
 
-Everything you need to design, build, and review web animation — in one place.
-Three concerns, one skill: **design philosophy** (how motion should feel),
-**implementation reference** (exact values and techniques), and **review
-standards** (how to audit animation code). Plus a vocabulary glossary for
-naming effects precisely.
-
-Read this before writing any animation code. Re-check the review standards
-before calling the work done.
+Read Part 1 when deciding how a motion should feel, Part 2 when writing the
+value, Part 3 before calling animation work done, and Part 4 when the user
+describes an effect without naming it.
 
 ---
 
