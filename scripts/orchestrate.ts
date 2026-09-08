@@ -1,8 +1,9 @@
 #!/usr/bin/env bun
 
 /**
- * The two reads an orchestrating session makes while its workers run, so the
- * session itself never issues a command that could stop on a permission prompt.
+ * The commands an orchestrating session runs while and after its workers work.
+ * `.claude/settings.json` allowlists this file, so the session issues no command
+ * that could stop it on a permission prompt.
  *
  * ```
  * bun scripts/orchestrate.ts free-gib          # free memory in GiB, one number
