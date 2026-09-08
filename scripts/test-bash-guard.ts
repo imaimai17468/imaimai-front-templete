@@ -296,6 +296,16 @@ group("env protection: a git message body is prose, a chained command is not", [
     why: "a redirect on the operator line",
   },
   {
+    command: `${COMMIT} -F - <<'MSG'\nkeep the .env guard\nMSG\ngit push`,
+    expected: "allow",
+    why: "a heredoc body stays prose when a command follows the terminator",
+  },
+  {
+    command: "cat <<'EOF'\n.env\nEOF\necho done",
+    expected: "block",
+    why: "a heredoc body outside a git command blocks with a command after it too",
+  },
+  {
     command: "cat <<'EOF'\n.env\nEOF",
     expected: "block",
     why: "a heredoc body outside a git command still blocks",

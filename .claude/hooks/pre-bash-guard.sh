@@ -43,6 +43,43 @@ deny() { # $1 = reason
   }'
 }
 
+# Drop a heredoc body, keeping the operator line, the terminator's own line and
+# everything after it: text a command receives on stdin is data rather than a
+# filename or a nested command, while a command chained after the terminator is
+# a command. Dropping only when the body ran to the end of the input instead
+# read the body as commands whenever anything followed, so
+# `git commit -F - <<'MSG'` / `git add -A was refused` / `MSG` / `git push`
+# was refused for a command nobody wrote. With no terminator the body cannot be
+# told from the rest, so every line is kept. A redirect belongs to the operator
+# line, which is kept either way. Guards 1, 2 and 3 all read the result.
+drop_heredoc_body() {
+  awk '
+    BEGIN { q = sprintf("%c", 39); op = 0; term = 0 }
+    { lines[NR] = $0 }
+    op == 0 && /<<-?[ \t]*[^ \t]/ {
+      op = NR
+      d = $0
+      sub(/^.*<<-?[ \t]*/, "", d)
+      gsub(/["]/, "", d)
+      gsub(q, "", d)
+      sub(/[ \t].*$/, "", d)
+      next
+    }
+    op > 0 && term == 0 && d != "" {
+      trimmed = $0
+      sub(/^[ \t]+/, "", trimmed)
+      sub(/[ \t]+$/, "", trimmed)
+      if (trimmed == d) { term = NR }
+    }
+    END {
+      for (i = 1; i <= NR; i++) {
+        if (term > 0 && i > op && i <= term) { continue }
+        print lines[i]
+      }
+    }
+  '
+}
+
 CMD=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""')
 
 # --- Guard 1: .env protection (applies to parent and sidechains alike) ---
@@ -92,29 +129,8 @@ if [ -n "$TEXT_FLAG_PATTERN" ]; then
     *) SCRUBBED=$(printf '%s' "$SCRUBBED" | scrub_message_body '"') ;;
   esac
   # A `-F -` / `--body-file -` body arrives as a heredoc instead, by a route the
-  # flag scrub above does not cover. Drop it only when the command's last line
-  # is the delimiter: then nothing follows the body, so nothing is hidden. A
-  # redirect belongs to the operator line, which is kept either way, and a
-  # command chained after the terminator leaves a different last line.
-  SCRUBBED=$(printf '%s' "$SCRUBBED" | awk '
-    BEGIN { q = sprintf("%c", 39); op = 0 }
-    { last = $0; lines[NR] = $0 }
-    op == 0 && /<<-?[ \t]*[^ \t]/ {
-      op = NR
-      d = $0
-      sub(/^.*<<-?[ \t]*/, "", d)
-      gsub(/["]/, "", d)
-      gsub(q, "", d)
-      sub(/[ \t].*$/, "", d)
-    }
-    END {
-      trimmed = last
-      sub(/^[ \t]+/, "", trimmed)
-      sub(/[ \t]+$/, "", trimmed)
-      keep = (op > 0 && d != "" && trimmed == d) ? op : NR
-      for (i = 1; i <= keep; i++) print lines[i]
-    }
-  ')
+  # flag scrub above does not cover.
+  SCRUBBED=$(printf '%s' "$SCRUBBED" | drop_heredoc_body)
 fi
 # `.env` is one of several spellings the shell turns into the same filename: it
 # drops a backslash and a quote pair from a word, so `.e\nv`, `.en"v"` and
