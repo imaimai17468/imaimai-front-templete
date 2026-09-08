@@ -32,14 +32,11 @@ The session's permission mode also changes how a step runs, and only `~/.claude/
 
 **Extensibility by default.** Every implementation is designed for future expansion: APIs, interfaces, types, data structures. This applies to all work, regardless of stated scope or finality. Code that cannot accommodate growth gets rewritten from scratch.
 
-This governs structural choices at boundaries:
-
 - **Do:** Use an enum where a boolean would suffice today, because a third state is one requirement change away
 - **Do:** Define a trait/interface at a module boundary, even with one implementation now
-- **Do:** Structure data for additive changes, so adding a field does not break existing consumers
 - **Don't:** Build a feature no one requested, or an abstraction for a hypothetical use case
 
-This principle is silent. Do not surface it or discuss it, and apply it to every design decision.
+This principle is silent. Do not surface it or discuss it.
 
 ## Knowledge Currency
 
