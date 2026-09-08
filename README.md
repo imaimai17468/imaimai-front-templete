@@ -24,8 +24,8 @@ git clone <your-repo-url>
 cd <your-repo-name>
 mise install                 # Node / Bun / actionlint を mise.toml の版で用意
 cargo install similarity-ts  # lefthook の pre-push が回す重複検出（Rust 製）
-bun install
 cp .env.local.example .env.local
+bun run setup                # 依存・git hooks・生成ファイルをまとめて用意
 bun run dev
 ```
 
@@ -51,7 +51,7 @@ bun run dev
 - **[react-doctor](https://github.com/millionco/react-doctor)**：React 向け追加ルール (`oxlint.react-doctor.ts`)
 - **[oxfmt](https://oxc.rs/docs/guide/usage/formatter)**：Formatter (`vite.config.ts` の `fmt` ブロック)
 - **[portless](https://github.com/vercel-labs/portless)**：dev サーバに名前付き HTTPS URL を割り当てる proxy。`bun run dev` が経由する
-- **[lefthook](https://github.com/evilmartians/lefthook)**：Git hooks (`lefthook.yml`、`bun install` 時に `prepare` スクリプトで自動セットアップ)
+- **[lefthook](https://github.com/evilmartians/lefthook)**：Git hooks (`lefthook.yml`、`bun run setup` が `prepare` スクリプト経由でインストールする)
 - **[knip](https://knip.dev/)**：Unused deps/exports/files detection (`knip.json`)
 - **[similarity-ts](https://github.com/mizchi/similarity)**：Code similarity detector
 - **[actionlint](https://github.com/rhysd/actionlint)**：GitHub Actions workflow checker (`mise.toml` が版を固定)
