@@ -179,6 +179,7 @@ const PORCELAIN = [
   "worktree /repo/.claude/worktrees/agent-2\nHEAD 012\nbranch refs/heads/feat/two\nlocked claude agent",
   "worktree /repo/.claude/worktrees/agent-3\nHEAD 345\ndetached",
   "worktree /elsewhere/hand-made\nHEAD 678\nbranch refs/heads/feat/three",
+  "",
 ].join("\n\n");
 
 describe(agentWorktrees, () => {
@@ -210,6 +211,12 @@ describe(agentWorktrees, () => {
       locked: false,
       path: "/repo/.claude/worktrees/agent-3",
     });
+  });
+
+  it("should return no extra worktree when the list ends with the blank block git prints", () => {
+    const worktrees = agentWorktrees(PORCELAIN);
+
+    expect(worktrees).toHaveLength(3);
   });
 
   it("should return no worktree when the list holds none under .claude/worktrees", () => {
