@@ -32,15 +32,16 @@ command -v similarity-ts >/dev/null 2>&1 || MISSING+=("similarity-ts not on PATH
 # actionlint` and skips on a missing mise, so mise is the condition that decides
 # whether the check runs. mise.toml pins the version it resolves.
 command -v mise >/dev/null 2>&1 || MISSING+=("mise not on PATH (lefthook pre-push skips the GitHub Actions workflow check; install: https://mise.jdx.dev/, then mise install)")
-# The installed hooks, not the binary: `bun run prepare` writes them, and a tree
-# whose hooks are absent runs no pre-commit check while every binary above is
-# present. Resolved through git because in a linked worktree `.git` is a file
-# and the hooks live in the main checkout's .git/hooks. `--git-path` answers
-# relative to the checkout when the hooks are inside it, so the test runs there.
-( cd "$TREE" 2>/dev/null && [ -f "$(git rev-parse --git-path hooks/pre-commit 2>/dev/null)" ] ) || MISSING+=("lefthook hooks not installed — pre-commit/pre-push run nothing (fix: bun run prepare)")
+# The installed hooks, not the binary: `bun run setup` writes them through
+# `lefthook install`, and a tree whose hooks are absent runs no pre-commit check
+# while every binary above is present. Resolved through git because in a linked
+# worktree `.git` is a file and the hooks live in the main checkout's
+# .git/hooks. `--git-path` answers relative to the checkout when the hooks are
+# inside it, so the test runs there.
+( cd "$TREE" 2>/dev/null && [ -f "$(git rev-parse --git-path hooks/pre-commit 2>/dev/null)" ] ) || MISSING+=("lefthook hooks not installed — pre-commit/pre-push run nothing (fix: bun run setup)")
 # A fresh worktree has no node_modules until someone installs; the Stop gate,
 # the link check and lefthook all fail without it.
-[ -d "$TREE/node_modules" ] || MISSING+=("node_modules absent — fresh checkout or worktree (fix: bun install, then bun run generate-routes && bun run cf-typegen)")
+[ -d "$TREE/node_modules" ] || MISSING+=("node_modules absent — fresh checkout or worktree (fix: bun run setup)")
 # A capability probe, not a version compare: what old node lacks is
 # `module.registerHooks`, which @cloudflare/vite-plugin imports at module top
 # level, so loading vite.config.ts fails wherever it is loaded. Observed on
