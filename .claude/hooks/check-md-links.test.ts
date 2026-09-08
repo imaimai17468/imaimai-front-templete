@@ -435,14 +435,6 @@ describe("check-md-links", () => {
     });
   });
 
-  // Uses a real sibling of the repository rather than creating one, because a test
-  // has no business writing outside the repository it checks.
-  const sibling = fs
-    .readdirSync(path.dirname(REPO))
-    .toSorted()
-    .find((entry) => entry !== path.basename(REPO) && !entry.startsWith("."));
-  const escapeOntoSibling = `/../${sibling ?? ""}`;
-
   describe("a root-relative target may not climb above the repository root", () => {
     // Without the clamp the escaped path was returned, and a same-named file in the
     // parent directory (a nested checkout, a sibling package) reported the link
@@ -452,15 +444,23 @@ describe("check-md-links", () => {
       expect(resolveTarget(DOC, "/../anything.md")).toBeNull();
     });
 
-    // The case that actually bites: the escaped path EXISTS.
-    it.runIf(sibling !== undefined)(
-      "should report dead when the escape lands on a real sibling of the repository",
-      () => {
-        expect(deadTargets(`[x](${escapeOntoSibling})\n`)).toStrictEqual([
-          escapeOntoSibling,
-        ]);
-      }
-    );
+    // The escaped path EXISTS here, which is what a false negative needs. `/..`
+    // addresses the directory the checkout sits in. The entry beside the repository
+    // this case used to look for was absent on a checkout whose parent held nothing
+    // else, and the case skipped in silence. `escapedTargetExists` asserts that the
+    // escaped path is on disk, because resolveTarget clamps by string comparison
+    // before anything stats it, so the `dead` half alone cannot tell an escape onto
+    // a real path from an escape onto nothing.
+    it("should report dead when the escape lands on a path that exists", () => {
+      const verdict = {
+        dead: deadTargets("[x](/..)\n"),
+        escapedTargetExists: targetExists(path.resolve(REPO, "..")),
+      };
+      expect(verdict).toStrictEqual({
+        dead: ["/.."],
+        escapedTargetExists: true,
+      });
+    });
   });
 
   // On a case-insensitive filesystem (APFS by default) a bare existence test answers
