@@ -5,11 +5,11 @@
  *
  *     bun run scripts/test-bash-guard.ts
  *
- * The guard carries two decisions that are easy to break and impossible to
- * notice: the protected-env-file block and the `find` gate. Each case below
- * feeds the real hook a synthetic PreToolUse payload and asserts the decision it
- * returns. Nothing in the repository is modified and no command from a case is
- * ever executed.
+ * The guard carries three decisions that are easy to break and impossible to
+ * notice: the protected-env-file block, the `find` gate and the git add gate.
+ * Each case below feeds the real hook a synthetic PreToolUse payload and asserts
+ * the decision it returns. Nothing in the repository is modified and no command
+ * from a case is ever executed.
  *
  * Not named `*.test.ts` on purpose: vitest would then run it on every
  * `bun run test` and in CI, where a hook that only runs during local agent
@@ -231,6 +231,16 @@ group("find: text inside a heredoc is data, not a command", [
     expected: "allow",
     why: "heredoc body naming a dangerous find",
   },
+  {
+    command: "cat <<'EOF'\nbody\nEOF\nfind / -type f",
+    expected: "block",
+    why: "a real find chained after the terminator",
+  },
+  {
+    command: "cat <<'EOF'\nfind . -delete\nEOF\necho done",
+    expected: "allow",
+    why: "the body stays data when a command follows the terminator",
+  },
 ]);
 
 group("env protection still blocks", [
@@ -294,6 +304,16 @@ group("env protection: a git message body is prose, a chained command is not", [
     command: `${COMMIT} -F - <<'MSG' > .env\nbody\nMSG`,
     expected: "block",
     why: "a redirect on the operator line",
+  },
+  {
+    command: `${COMMIT} -F - <<'MSG'\nkeep the .env guard\nMSG\ngit push`,
+    expected: "allow",
+    why: "a heredoc body stays prose when a command follows the terminator",
+  },
+  {
+    command: "cat <<'EOF'\n.env\nEOF\necho done",
+    expected: "block",
+    why: "a heredoc body outside a git command blocks with a command after it too",
   },
   {
     command: "cat <<'EOF'\n.env\nEOF",
@@ -475,6 +495,271 @@ group("env protection: escapes and quotes do not hide the name", [
     command: `${COMMIT} -m 'match \\.env in the guard'`,
     expected: "allow",
     why: "the escaped spelling written in a message body stays prose",
+  },
+]);
+
+group("git add: named paths and hunk selection stay unattended", [
+  {
+    command: "git add src/foo.ts",
+    expected: "allow",
+    why: "one named path",
+  },
+  {
+    command: "git add src/foo.ts src/bar.ts",
+    expected: "allow",
+    why: "two named paths",
+  },
+  {
+    command: "git add ./src/foo.ts",
+    expected: "allow",
+    why: "a ./ prefix on a named path",
+  },
+  {
+    command: "git add ../sibling/foo.ts",
+    expected: "allow",
+    why: "a path outside the working directory is still named",
+  },
+  {
+    command: "git add src/components/ui/*.tsx",
+    expected: "allow",
+    why: "a glob under a named directory",
+  },
+  { command: "git add -p", expected: "allow", why: "hunk selection" },
+  {
+    command: "git add -p src/foo.ts",
+    expected: "allow",
+    why: "hunk selection within a named path",
+  },
+  {
+    command: "git add --patch",
+    expected: "allow",
+    why: "the long spelling of hunk selection",
+  },
+  {
+    command: "git add -i",
+    expected: "allow",
+    why: "interactive selection",
+  },
+  {
+    command: "git add -e",
+    expected: "allow",
+    why: "editing the diff is a selection too",
+  },
+  {
+    command: "git add --chmod=+x src/setup.sh",
+    expected: "allow",
+    why: "a long flag that is not a blanket stage, beside a named path",
+  },
+  {
+    command: "git add -n src/foo.ts",
+    expected: "allow",
+    why: "a dry run of a named path",
+  },
+  {
+    command: "git stage src/foo.ts",
+    expected: "allow",
+    why: "the git stage synonym with a named path",
+  },
+  {
+    command: "git commit -F msg.txt",
+    expected: "allow",
+    why: "another git subcommand is not this guard's business",
+  },
+]);
+
+group("git add: a blanket stage is refused", [
+  { command: "git add -A", expected: "block", why: "-A" },
+  { command: "git add --all", expected: "block", why: "--all" },
+  {
+    command: "git add --no-ignore-removal",
+    expected: "block",
+    why: "the third spelling of -A",
+  },
+  { command: "git add -u", expected: "block", why: "-u" },
+  { command: "git add --update", expected: "block", why: "--update" },
+  {
+    command: "git add -Av",
+    expected: "block",
+    why: "-A inside a short option cluster",
+  },
+  {
+    command: "git add -A src/foo.ts",
+    expected: "block",
+    why: "-A adds nothing once the path is named",
+  },
+  { command: "git add .", expected: "block", why: "the working directory" },
+  { command: "git add ./", expected: "block", why: "bare ./" },
+  { command: "git add ..", expected: "block", why: "the parent directory" },
+  { command: "git add /", expected: "block", why: "the filesystem root" },
+  { command: 'git add "*"', expected: "block", why: "a bare glob" },
+  {
+    command: "git add '?'",
+    expected: "block",
+    why: "a bare single-character glob",
+  },
+  { command: "git add '~'", expected: "block", why: "the home directory" },
+  {
+    command: "git add -- .",
+    expected: "block",
+    why: "a -- separator does not make it a path",
+  },
+  {
+    command: "git add ':/'",
+    expected: "block",
+    why: ":/ reaches the repository root",
+  },
+  {
+    command: "git add ':(top)'",
+    expected: "block",
+    why: ":(top) reaches the repository root",
+  },
+  {
+    command: "git stage -A",
+    expected: "block",
+    why: "the git stage synonym runs the same builtin",
+  },
+  {
+    command: "git add '*.ts'",
+    expected: "block",
+    why: "a glob in the first path component matches from the top of the tree",
+  },
+  {
+    command: "git add '**/*.ts'",
+    expected: "block",
+    why: "a leading ** matches from the top too",
+  },
+]);
+
+// The shell drops a quote pair and a backslash from a word, so each command
+// below hands git the same undecorated operand as its plain spelling.
+group("git add: escapes and quotes do not hide the shape", [
+  {
+    command: "git add \\-A",
+    expected: "block",
+    why: "an escaped dash still reaches -A",
+  },
+  {
+    command: "git add \\.",
+    expected: "block",
+    why: "an escaped dot still names the working directory",
+  },
+  {
+    command: "git add \\*",
+    expected: "block",
+    why: "an escaped glob is the spelling that asks git to expand it",
+  },
+  {
+    command: 'g""it add -A',
+    expected: "block",
+    why: "an empty quote pair inside the command name still runs git",
+  },
+]);
+
+// An allowed invocation names a path or selects hunks, so these three reach no
+// other refusal in the guard: their operands come from somewhere the command
+// text does not show.
+group("git add: an operand the command text does not show is refused", [
+  { command: "git add", expected: "block", why: "no operand at all" },
+  {
+    command: "git add -n",
+    expected: "block",
+    why: "a dry run still names no path",
+  },
+  {
+    command: "git add --pathspec-from-file=paths.txt",
+    expected: "block",
+    why: "the paths sit in a file the guard cannot read",
+  },
+  {
+    command: "git diff --name-only | xargs git add",
+    expected: "block",
+    why: "a pipe supplies the operands",
+  },
+]);
+
+// Guard 2's own comments record the shapes a reviewer used to defeat it: a
+// quoted operand, irregular spacing, a chained command and a body that only
+// describes the command. Each reaches this guard too, so each stays here.
+group("git add: the shapes that defeated earlier guards here", [
+  {
+    command: 'git add "."',
+    expected: "block",
+    why: "a quoted operand",
+  },
+  {
+    command: "git  add   -A",
+    expected: "block",
+    why: "irregular spacing",
+  },
+  {
+    command: "git status && git add -A",
+    expected: "block",
+    why: "chained behind another command",
+  },
+  {
+    command: "git status\ngit add -A",
+    expected: "block",
+    why: "on the second line of a multi-line command",
+  },
+  {
+    command: "GIT_DIR=x git add .",
+    expected: "block",
+    why: "a prefix assignment before git",
+  },
+  {
+    command: "sh -c 'git add -A'",
+    expected: "block",
+    why: "wrapped in a shell invocation",
+  },
+  {
+    command: "git -C sub add .",
+    expected: "block",
+    why: "behind a git global option",
+  },
+  {
+    command: "git --no-pager add .",
+    expected: "block",
+    why: "behind a git global option that takes no value",
+  },
+  {
+    command: ">/dev/null git add -A",
+    expected: "block",
+    why: "behind a leading redirect",
+  },
+  {
+    command: "timeout 5 git add -A",
+    expected: "block",
+    why: "behind a command that runs another command",
+  },
+  {
+    command: `${COMMIT} -m 'refuse git add -A in the hook'`,
+    expected: "allow",
+    why: "a message body describing the shape is prose",
+  },
+  {
+    command: `${COMMIT} -F - <<'MSG'\nrefuse git add . in the hook\nMSG`,
+    expected: "allow",
+    why: "a heredoc commit body describing the shape is prose",
+  },
+  {
+    command: "cat <<'EOF'\ngit add -A\nEOF",
+    expected: "allow",
+    why: "a heredoc body outside a git command is prose too",
+  },
+  {
+    command: `${COMMIT} -F - <<'MSG'\nbody\nMSG\ngit add -A`,
+    expected: "block",
+    why: "a real stage chained after the terminator",
+  },
+  {
+    command: `${COMMIT} -F - <<'MSG'\nrefuse git add -A in the hook\nMSG\ngit push`,
+    expected: "allow",
+    why: "a body describing the shape stays prose when a command follows the terminator",
+  },
+  {
+    command: "rg 'git add .' src",
+    expected: "allow",
+    why: "git does not open the segment, so searching for the text is not staging",
   },
 ]);
 
