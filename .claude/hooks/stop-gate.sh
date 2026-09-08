@@ -119,16 +119,17 @@ else
   LINKS_AVAILABLE=false
 fi
 
+# Set below the `command -v bun` branch that assigns LINKS_AVAILABLE, and read
+# by the block body and by both summary branches, so a Stop that blocks on
+# another step still says whether this step ran.
+LINK_NOTE="md links: clean"
+[ "$LINKS_AVAILABLE" = "false" ] && LINK_NOTE="md links: SKIPPED (bun not installed)"
+
 # ==== Report every failure the steps above collected ====
 
 if [ -n "$FAILED_STEPS" ]; then
-  emit_block "$FAILED_STEPS failed. Fix before ending the turn." "$FAILURE_OUTPUT"
+  emit_block "$FAILED_STEPS failed. Fix before ending the turn." "$FAILURE_OUTPUT$LINK_NOTE"
 fi
-
-# Computed once here and read by both summary branches below. Nothing between
-# this point and the summary can exit, so the position is for reuse, not order.
-LINK_NOTE="md links: clean"
-[ "$LINKS_AVAILABLE" = "false" ] && LINK_NOTE="md links: SKIPPED (bun not installed)"
 
 if [ "$CODE_CHANGED" -gt 0 ]; then
   jq -n --arg links "$LINK_NOTE" '{"systemMessage":("✅ Stop gate: typecheck / lint / format and the test suite pass (" + $links + ")")}'
