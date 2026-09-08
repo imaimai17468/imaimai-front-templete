@@ -3,11 +3,10 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterAll, describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, onTestFinished } from "vite-plus/test";
 import { coverageExclude } from "./vitest.config.mts";
 
 const ROOT = import.meta.dirname;
-const WORK = fs.mkdtempSync(path.join(os.tmpdir(), "coverage-exclude-"));
 
 // `globSync` takes a literal path and a wildcard pattern alike, and it reads
 // the working tree, so a module written but not yet committed counts as
@@ -23,17 +22,16 @@ const stalePatterns = (patterns: readonly string[], root: string): string[] =>
  * empty.
  */
 const treeWithOneModule = (): string => {
-  const root = fs.mkdtempSync(path.join(WORK, "case-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "coverage-exclude-"));
+  onTestFinished(() => {
+    fs.rmSync(root, { force: true, recursive: true });
+  });
   fs.mkdirSync(path.join(root, "src/lib"), { recursive: true });
   fs.writeFileSync(path.join(root, "src/lib/live.ts"), "export const x = 1;\n");
   return root;
 };
 
 describe("coverage.exclude", () => {
-  afterAll(() => {
-    fs.rmSync(WORK, { force: true, recursive: true });
-  });
-
   // One entry, `src/routeTree.gen.ts`, is generated and gitignored, so this
   // reports it in a checkout where `bun run generate-routes` has not run.
   it("should report no stale entry when every entry selects a file in the working tree", () => {
