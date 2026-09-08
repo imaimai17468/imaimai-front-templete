@@ -464,16 +464,10 @@ Stagger is decorative — never block interaction while it plays.
 ## Accessibility (implementation)
 
 ```css
-@media (prefers-reduced-motion: reduce) {
-  .element { animation: fade 0.2s ease; }
-}
 @media (hover: hover) and (pointer: fine) {
   .element:hover { transform: scale(1.05); }
 }
 ```
-
-Reduced motion means fewer and gentler animations, not zero — keep transitions
-that aid comprehension, remove movement/position changes.
 
 ## Debugging
 
