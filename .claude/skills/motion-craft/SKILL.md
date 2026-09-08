@@ -539,22 +539,12 @@ Every animation in the diff is measured against these. A violation is a finding.
 
 ## Aggressive Escalation Triggers
 
-Flag these on sight:
+Each of these is a finding on sight, and no standard above decides it:
 
 - `transition: all`
-- `scale(0)` or pure-fade entrances with no initial transform
-- `ease-in` on any UI interaction; weak built-in easing on deliberate animation
-- Animation on a keyboard shortcut or 100+/day action
-- A duration past its element's row in Part 2's duration table, with no stated
-  reason
-- `transform-origin: center` on a trigger-anchored popover/dropdown/tooltip
-- Keyframes on toasts, toggles, or anything added/triggered rapidly
-- Animating layout properties (`width`/`height`/`margin`/`padding`/`top`/`left`)
+- A pure-fade entrance with no initial transform
 - Motion `x`/`y`/`scale` props on motion that runs while the page is busy
 - Updating a CSS variable on a parent to drive a child transform
-- Missing `prefers-reduced-motion` handling on movement
-- Ungated `:hover` motion
-- Symmetric enter/exit timing on a press-and-release
 - Everything-at-once entrance where a 30-80ms stagger belongs
 
 ## Remedial Preference Hierarchy
