@@ -5,13 +5,14 @@
 #      than this turn's diff, so CI runs knip and lefthook's pre-push runs
 #      similarity-ts
 #    — runs only when code-relevant files changed (docs-only turns skip it)
-#    — every step runs even after an earlier one failed, and one block names
-#      all of them, so no failure waits for a later Stop to be reported
-#    — respects stop_hook_active: if this Stop was already blocked once, a
-#      failing gate downgrades to a warning instead of blocking again, so a
-#      pre-existing failure the agent cannot fix does not loop forever
 # 2. Markdown link check — blocking; dead relative links are decidable by opening
 #    the path, so they belong here rather than in a reviewer's judgment
+#
+# Every step above runs even after an earlier one failed, and one block names
+# all of them, so no failure waits for a later Stop to be reported. That block
+# respects stop_hook_active: if this Stop was already blocked once, it
+# downgrades to a warning instead of blocking again, so a pre-existing failure
+# the agent cannot fix does not loop forever.
 
 set -uo pipefail
 
@@ -55,18 +56,22 @@ emit_block() { # $1 = summary, $2 = reason body (stdin-free)
 FAILED_STEPS=""
 FAILURE_OUTPUT=""
 
-# A failing step is collected instead of emitted, so the caller can run the
-# remaining steps and report every failure in one block.
+# A failure is collected instead of emitted, so the steps after it still run and
+# one block names all of them.
+record_failure() { # $1 = step name, $2 = the step's output
+  FAILED_STEPS="${FAILED_STEPS:+$FAILED_STEPS, }$1"
+  FAILURE_OUTPUT="${FAILURE_OUTPUT}===== $1 =====
+$2
+
+"
+}
+
 # `local out` is separate from the assignment because `local out=$(...)` would
 # report local's own exit status and lose the one `bun run` returned.
 run_step() { # $1 = the `bun run` script to run
   local out
   out=$(bun run "$1" 2>&1) && return 0
-  FAILED_STEPS="${FAILED_STEPS:+$FAILED_STEPS, }bun run $1"
-  FAILURE_OUTPUT="${FAILURE_OUTPUT}===== bun run $1 =====
-$out
-
-"
+  record_failure "bun run $1" "$out"
 }
 
 # Skip when there are no changes
@@ -91,9 +96,6 @@ if [ "$CODE_CHANGED" -gt 0 ]; then
   # file walk. `bun run test` is `vp test --run --coverage`.
   run_step check
   run_step test
-  if [ -n "$FAILED_STEPS" ]; then
-    emit_block "$FAILED_STEPS failed. Fix before ending the turn." "$FAILURE_OUTPUT"
-  fi
 fi
 
 # ==== 2. Markdown link check ====
@@ -105,15 +107,18 @@ fi
 # 2026-07-29, dead links left in files the same commit did not edit).
 LINKS_AVAILABLE=true
 if command -v bun >/dev/null 2>&1; then
-  LINKS=$(bun "$ROOT/.claude/hooks/check-md-links.ts" 2>&1)
-  LINKS_RC=$?
-  if [ $LINKS_RC -ne 0 ]; then
-    emit_block "dead markdown links. Fix the paths before ending the turn." "$LINKS"
-  fi
+  LINKS=$(bun "$ROOT/.claude/hooks/check-md-links.ts" 2>&1) ||
+    record_failure "markdown link check" "$LINKS"
 else
   # A missing runtime downgrades the step; it never silently passes
   # (AGENTS.md, "Degraded Environments"). Reported in the summary below.
   LINKS_AVAILABLE=false
+fi
+
+# ==== Report every failure the steps above collected ====
+
+if [ -n "$FAILED_STEPS" ]; then
+  emit_block "$FAILED_STEPS failed. Fix before ending the turn." "$FAILURE_OUTPUT"
 fi
 
 # Computed once here and read by both summary branches below. Nothing between
