@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { globSync } from "tinyglobby";
 import { describe, expect, it, onTestFinished } from "vite-plus/test";
-import { coverageExclude } from "./vitest.config.mts";
+import { coverageExclude, coverageInclude } from "./vitest.config.mts";
 
 const ROOT = import.meta.dirname;
 
@@ -24,7 +24,7 @@ const stalePatterns = (patterns: readonly string[], root: string): string[] =>
  * empty.
  */
 const treeWithOneModule = (): string => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "coverage-exclude-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "coverage-patterns-"));
   onTestFinished(() => {
     fs.rmSync(root, { force: true, recursive: true });
   });
@@ -33,9 +33,12 @@ const treeWithOneModule = (): string => {
   return root;
 };
 
-describe("coverage.exclude", () => {
-  it("should report no stale entry when every entry selects a file in the working tree", () => {
-    expect(stalePatterns(coverageExclude, ROOT)).toStrictEqual([]);
+describe("coverage.include and coverage.exclude", () => {
+  it("should report no stale pattern when every pattern selects a file in the working tree", () => {
+    expect({
+      exclude: stalePatterns(coverageExclude, ROOT),
+      include: stalePatterns(coverageInclude, ROOT),
+    }).toStrictEqual({ exclude: [], include: [] });
   });
 
   it.each(["src/lib/moved.ts", "src/moved/**"])(

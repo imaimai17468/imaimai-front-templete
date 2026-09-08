@@ -2,6 +2,12 @@ import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { defaultExclude, defineConfig } from "vite-plus";
 
+export const coverageInclude = [
+  "src/**/*.ts",
+  "tools/**/*.{ts,js}",
+  "scripts/**/*.ts",
+];
+
 // coverage の gate から外す例外は、生成物、テストハーネス、コンポーネント、
 // そして依存を引数で受け取らず実バインディングの上でしか動かないアダプタと
 // 実行スクリプト。
@@ -46,7 +52,7 @@ export default defineConfig({
     exclude: [...defaultExclude, ".claude/worktrees/**"],
     setupFiles: ["./src/test-setup.ts"],
     coverage: {
-      include: ["src/**/*.ts", "tools/**/*.{ts,js}", "scripts/**/*.ts"],
+      include: coverageInclude,
       exclude: coverageExclude,
       thresholds: {
         perFile: true,
