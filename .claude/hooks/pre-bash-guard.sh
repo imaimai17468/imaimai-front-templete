@@ -420,6 +420,15 @@ while IFS= read -r SEG; do
         ;;
       operands)
         case "$TOK" in
+          # `git add`'s long options that take the following token as their
+          # value. Without this, `git add --pathspec-from-file paths.txt`
+          # counted `paths.txt` as a named path and staged both files that file
+          # listed, where `--pathspec-from-file=paths.txt` was refused;
+          # `git add --chmod +x a.txt` took `+x` as the value and staged
+          # `a.txt` (git 2.50.1, 2026-09-09).
+          --pathspec-from-file | --chmod)
+            SKIP_VALUE=1
+            ;;
           --all | --no-ignore-removal)
             REFUSED="\`${TOK}\` stages every change in the worktree instead of the paths you name"
             break

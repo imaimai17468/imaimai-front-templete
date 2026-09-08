@@ -683,6 +683,21 @@ group("git add: an operand the command text does not show is refused", [
     why: "the paths sit in a file the guard cannot read",
   },
   {
+    command: "git add --pathspec-from-file paths.txt",
+    expected: "block",
+    why: "the separate-token spelling reads the same file",
+  },
+  {
+    command: "git add --chmod +x",
+    expected: "block",
+    why: "--chmod's value is not a path either",
+  },
+  {
+    command: "git add --chmod +x src/setup.sh",
+    expected: "allow",
+    why: "--chmod with a separate value beside a named path",
+  },
+  {
     command: "git diff --name-only | xargs git add",
     expected: "block",
     why: "a pipe supplies the operands",
