@@ -17,6 +17,8 @@ Hold the pull request as AGENTS.md's *A PR's author holds it until it merges* bu
 - On #122 the only other check was `cubic · AI code reviewer`, which reported at 5m44s against `build`'s 37s, so the loop tests `build` alone.
 - `gh pr update-branch` merges the base branch into the remote branch, which leaves the local branch behind it, so run `git pull` before committing there again.
 
+While a subagent runs, waiting means ending the turn, because the `Agent` tool notifies you when one completes. A shell that sleeps to pass the time buys nothing, and when the dispatching session killed one worker's sleep shells in the 2026-09-08 run, the kill also stopped the background task carrying that worker's mutation runs, which it then re-ran. A wait on a condition nothing will make true never returns. Ending the turn waits only while something that will wake you is running, so where nothing is in flight and you still need a result, dispatch it again rather than end, as `ticket-work` step 7 says for a `code-reviewer` that returned no report. The poll above stays in the foreground, because `gh pr checks` is not a subagent and nothing wakes you when `build` turns green.
+
 Name every scratch file after the ticket, `<branch>-pr-body.md` rather than `pr-body.md`. The workers of one run share one scratchpad directory, so a second worker writing the plain name overwrites the first worker's file.
 
 ## Watching the run
