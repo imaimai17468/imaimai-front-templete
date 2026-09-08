@@ -142,10 +142,10 @@ const tableChain = (callee) => {
 
 const isTestIdentifier = (name) => name === "it" || name === "test";
 
-// Whether this call declares a test case: the chain's root is `it` or `test`
-// and no member along it suppresses the case. Walking the chain rather than
-// matching a fixed depth is what lets `it.concurrent.only` through to the root.
-const isCaseDeclaration = (callee) => {
+// Whether this callee reaches `it` or `test` through a chain that suppresses no
+// case. Walking the chain rather than matching a fixed depth is what lets
+// `it.concurrent.only` through to the root.
+const isTestCallee = (callee) => {
   if (!callee) {
     return false;
   }
@@ -165,7 +165,7 @@ const testNamingFormat = {
   create(context) {
     return {
       CallExpression(node) {
-        if (!isCaseDeclaration(node.callee)) {
+        if (!isTestCallee(node.callee)) {
           return;
         }
         const [firstArg] = node.arguments;
@@ -212,7 +212,7 @@ const isExpectCall = (node) => {
 };
 
 const declaresCase = (node) => {
-  if (!isCaseDeclaration(node.callee)) {
+  if (!isTestCallee(node.callee)) {
     return false;
   }
   const [, secondArg] = node.arguments;
