@@ -11,12 +11,10 @@ Strips the template down to a frontend-only TanStack Start app by removing:
 - Cloudflare R2 (avatar storage)
 - Better Auth (Google OAuth)
 
-**The Cloudflare Workers deployment is deliberately kept.** `wrangler.toml`,
-`src/ssr.tsx`, the `@cloudflare/vite-plugin` wiring, `wrangler`, and the
-`deploy` / `preview` / `cf-typegen` scripts all stay, so `bun run deploy` keeps
-working the moment this procedure finishes. Only the *bindings* (D1, R2) and the
-auth vars leave `wrangler.toml`. Removing D1 and removing the hosting platform
-are separate concerns, and this skill does the first one only.
+**The Cloudflare Workers deployment is deliberately kept.** Only the *bindings*
+(D1, R2) and the auth vars leave `wrangler.toml`, so `bun run deploy` keeps
+working the moment this procedure finishes. Removing D1 and removing the hosting
+platform are separate concerns, and this skill does the first one only.
 
 What else stays: the app shell, shared UI (`src/components/ui`, header,
 mode-toggle, theme-provider), the sample home page, and the oxlint / oxfmt /
