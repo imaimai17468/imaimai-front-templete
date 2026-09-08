@@ -6,7 +6,8 @@
  *     bun run scripts/test-bash-guard.ts
  *
  * The guard carries three decisions that are easy to break and impossible to
- * notice: the protected-env-file block, the `find` gate and the git add gate.
+ * notice: the protected-env-file block, the `find` gate and the unnamed-changes
+ * gate over `git add` and `git commit`.
  * Each case below feeds the real hook a synthetic PreToolUse payload and asserts
  * the decision it returns. Nothing in the repository is modified and no command
  * from a case is ever executed.
@@ -25,7 +26,8 @@ const REPO = fileURLToPath(new URL("..", import.meta.url));
 const HOOK = path.join(REPO, ".claude/hooks/pre-bash-guard.sh");
 
 // Joined so this file's own text is not itself a commit-shaped command.
-const COMMIT = ["git ", "com", "mit"].join("");
+const COMMIT_SUB = ["com", "mit"].join("");
+const COMMIT = `git ${COMMIT_SUB}`;
 
 const DECISIONS = ["allow", "block", "ask"] as const;
 
@@ -561,9 +563,14 @@ group("git add: named paths and hunk selection stay unattended", [
     why: "the git stage synonym with a named path",
   },
   {
-    command: "git commit -F msg.txt",
+    command: "git push -u origin fix/x",
     expected: "allow",
-    why: "another git subcommand is not this guard's business",
+    why: "a subcommand whose text holds no add, stage or commit leaves at the early-out",
+  },
+  {
+    command: "git worktree add .",
+    expected: "allow",
+    why: "a subcommand this guard does not walk keeps its own operands",
   },
 ]);
 
@@ -628,6 +635,11 @@ group("git add: a blanket stage is refused", [
     expected: "block",
     why: "a leading ** matches from the top too",
   },
+  {
+    command: "git add '[a-z].ts'",
+    expected: "block",
+    why: "a bracket class in the first path component matches from the top too",
+  },
 ]);
 
 // The shell drops a quote pair and a backslash from a word, so each command
@@ -669,6 +681,26 @@ group("git add: an operand the command text does not show is refused", [
     command: "git add --pathspec-from-file=paths.txt",
     expected: "block",
     why: "the paths sit in a file the guard cannot read",
+  },
+  {
+    command: "git add --pathspec-from-file paths.txt",
+    expected: "block",
+    why: "the separate-token spelling reads the same file",
+  },
+  {
+    command: "git add --pathspec-from-f paths.txt",
+    expected: "block",
+    why: "git accepts an unambiguous prefix of the same option",
+  },
+  {
+    command: "git add --chmod +x",
+    expected: "block",
+    why: "--chmod's value is not a path either",
+  },
+  {
+    command: "git add --chmod +x src/setup.sh",
+    expected: "allow",
+    why: "--chmod with a separate value beside a named path",
   },
   {
     command: "git diff --name-only | xargs git add",
@@ -760,6 +792,325 @@ group("git add: the shapes that defeated earlier guards here", [
     command: "rg 'git add .' src",
     expected: "allow",
     why: "git does not open the segment, so searching for the text is not staging",
+  },
+]);
+
+// A commit reaches the blanket set in one step, and git reads a pathspec as
+// `--only` when neither `--include` nor `--only` is given, so a bare `.`
+// commits everything modified with no flag at all.
+group("git commit: a commit that sweeps the worktree is refused", [
+  { command: `${COMMIT} -a`, expected: "block", why: "-a" },
+  { command: `${COMMIT} --all -m x`, expected: "block", why: "--all" },
+  {
+    command: `${COMMIT} -am x`,
+    expected: "block",
+    why: "-a in a cluster that carries the message flag",
+  },
+  {
+    command: `${COMMIT} -va -m x`,
+    expected: "block",
+    why: "-a after another letter in the cluster",
+  },
+  {
+    command: `${COMMIT} '-a'`,
+    expected: "block",
+    why: "a quoted flag reaches git undecorated",
+  },
+  {
+    command: `${COMMIT} -m x .`,
+    expected: "block",
+    why: "a pathspec with no --include or --only is --only",
+  },
+  {
+    command: `${COMMIT} -m x -- .`,
+    expected: "block",
+    why: "a -- separator does not make it a path",
+  },
+  {
+    command: `${COMMIT} --only . -m x`,
+    expected: "block",
+    why: "--only whose pathspec names no path",
+  },
+  {
+    command: `${COMMIT} --include ./ -m x`,
+    expected: "block",
+    why: "--include whose pathspec names no path",
+  },
+  {
+    command: `${COMMIT} -o ':/' -m x`,
+    expected: "block",
+    why: "-o with pathspec magic for the repository root",
+  },
+  {
+    command: `${COMMIT} -m x '*.ts'`,
+    expected: "block",
+    why: "a glob in the first path component matches from the top of the tree",
+  },
+]);
+
+group("git commit: the forms that name their own set keep working", [
+  {
+    command: COMMIT,
+    expected: "allow",
+    why: "a bare commit takes the set that was already staged",
+  },
+  {
+    command: `${COMMIT} -m 'x'`,
+    expected: "allow",
+    why: "an explicit message after an explicit stage",
+  },
+  {
+    command: `${COMMIT} --amend --no-edit`,
+    expected: "allow",
+    why: "an amend of the staged set",
+  },
+  {
+    command: `${COMMIT} -F msg.txt`,
+    expected: "allow",
+    why: "a message read from a file",
+  },
+  {
+    command: `${COMMIT} -p`,
+    expected: "allow",
+    why: "hunk selection",
+  },
+  {
+    command: `${COMMIT} -o src/foo.ts -m x`,
+    expected: "allow",
+    why: "--only with the path named",
+  },
+  {
+    command: `${COMMIT} -i src/foo.ts -m x`,
+    expected: "allow",
+    why: "--include with the path named",
+  },
+  {
+    command: `${COMMIT} -m x src/foo.ts`,
+    expected: "allow",
+    why: "a bare pathspec that names a path",
+  },
+  {
+    command: `${COMMIT} -u -m x`,
+    expected: "allow",
+    why: "commit's -u is --untracked-files, a display mode rather than a stage",
+  },
+]);
+
+// Each case below moves one token of a decision the guard makes about clusters
+// and option values, so a wrong list of value-taking options changes an answer
+// here.
+group("git commit: an option's value is not read as a pathspec", [
+  {
+    command: `${COMMIT} --date . -m x`,
+    expected: "allow",
+    why: "a long option's value that reads like the working directory",
+  },
+  {
+    command: `${COMMIT} -qm .`,
+    expected: "allow",
+    why: "a message the cluster's last letter takes from the next token",
+  },
+  {
+    command: `${COMMIT} -ma`,
+    expected: "allow",
+    why: "a message attached inside the cluster is not --all",
+  },
+  {
+    command: `${COMMIT} -C HEAD --amend`,
+    expected: "allow",
+    why: "a commit named as -C's value",
+  },
+  {
+    command: `${COMMIT} -S -a -m x`,
+    expected: "block",
+    why: "-S takes its value attached, so the -a after it is still read",
+  },
+  {
+    command: `${COMMIT} -u -a -m x`,
+    expected: "block",
+    why: "-u takes its value attached, so the -a after it is still read",
+  },
+  {
+    command: `${COMMIT} -uall -m x`,
+    expected: "allow",
+    why: "-u swallows the rest of the cluster, so the a in it is a mode name",
+  },
+  {
+    command: `${COMMIT} -Sabc -m x`,
+    expected: "allow",
+    why: "-S swallows the rest of the cluster, so the a in it is a key id",
+  },
+  {
+    command: `${COMMIT} -Sm .`,
+    expected: "block",
+    why: "-S ends the cluster without taking the next token, so the . is a pathspec",
+  },
+]);
+
+// Guard 1 leaves a `-m` body in the text whenever the first word is not
+// `git`/`gh`, or a double-quoted body holds a substitution opener, so the walk
+// scrubs the body itself. Each message below was refused before it did.
+group("git commit: a message body is the message, not a pathspec", [
+  {
+    command: `${COMMIT} -m "docs: \`x\` **強調** を直した"`,
+    expected: "allow",
+    why: "a backtick blocks Guard 1's scrub and markdown bold reads as a glob",
+  },
+  {
+    command: `${COMMIT} -m "fix: \${PR} の . を直した"`,
+    expected: "allow",
+    why: "a ${ blocks Guard 1's scrub and the dot reads as the working directory",
+  },
+  {
+    command: `cd sub && ${COMMIT} -m 'test: *.ts covered'`,
+    expected: "allow",
+    why: "a leading cd leaves Guard 1 with no flag pattern at all",
+  },
+  {
+    command: `${COMMIT} -m "msg" .`,
+    expected: "block",
+    why: "a pathspec written outside the body survives the scrub",
+  },
+  {
+    command: `${COMMIT} -m "msg" -a`,
+    expected: "block",
+    why: "a flag written outside the body survives the scrub",
+  },
+  // One gsub over the whole record cannot see quote state, so a `-m` inside an
+  // earlier quoted argument matched and the deleted span carried the sweep
+  // between the two quotes with it.
+  {
+    command: `echo 'use -m' && ${COMMIT} -a -m 'x'`,
+    expected: "block",
+    why: "a -m inside an earlier single-quoted argument does not open a body",
+  },
+  {
+    command: `echo "-m" && ${COMMIT} -a -m "x"`,
+    expected: "block",
+    why: "a -m inside an earlier double-quoted argument does not open a body",
+  },
+  {
+    command: `echo 'x -m' && git add -A && ${COMMIT} -m 'y'`,
+    expected: "block",
+    why: "the same shape must not walk around the git add refusal",
+  },
+  {
+    command: `${COMMIT} -m 'x' ; echo 'y -m' ; ${COMMIT} -a -m 'z'`,
+    expected: "block",
+    why: "a fake -m after a real one is still inside quotes",
+  },
+]);
+
+group("git commit: a pathspec the command text does not show is refused", [
+  {
+    command: `${COMMIT} --pathspec-from-file=paths.txt -m x`,
+    expected: "block",
+    why: "the paths sit in a file the guard cannot read",
+  },
+  {
+    command: `${COMMIT} --pathspec-from-file paths.txt -m x`,
+    expected: "block",
+    why: "the separate-token spelling reads the same file",
+  },
+  {
+    command: `${COMMIT} --pathspec-from-f paths.txt -m x`,
+    expected: "block",
+    why: "git accepts an unambiguous prefix, which reads the same file",
+  },
+]);
+
+// Guard 3's own comments record the shapes a reviewer used to defeat it, and
+// every one of them reaches the commit walk as well.
+group("git commit: the shapes that defeated earlier guards here", [
+  {
+    command: `${COMMIT} \\-a`,
+    expected: "block",
+    why: "an escaped dash still reaches -a",
+  },
+  {
+    command: `g""it ${COMMIT_SUB} -a`,
+    expected: "block",
+    why: "an empty quote pair inside the command name still runs git",
+  },
+  {
+    command: `${COMMIT}  -a   -m x`,
+    expected: "block",
+    why: "irregular spacing",
+  },
+  {
+    command: `git status && ${COMMIT} -a`,
+    expected: "block",
+    why: "chained behind another command",
+  },
+  {
+    command: `git status\n${COMMIT} -a`,
+    expected: "block",
+    why: "on the second line of a multi-line command",
+  },
+  {
+    command: `GIT_DIR=x ${COMMIT} -a`,
+    expected: "block",
+    why: "a prefix assignment before git",
+  },
+  {
+    command: `sh -c '${COMMIT} -a'`,
+    expected: "block",
+    why: "wrapped in a shell invocation",
+  },
+  {
+    command: `git -C sub ${COMMIT_SUB} -a`,
+    expected: "block",
+    why: "behind a git global option that takes a value",
+  },
+  {
+    command: `git --no-pager ${COMMIT_SUB} -a`,
+    expected: "block",
+    why: "behind a git global option that takes no value",
+  },
+  {
+    command: `>/dev/null ${COMMIT} -a`,
+    expected: "block",
+    why: "behind a leading redirect",
+  },
+  {
+    command: `timeout 5 ${COMMIT} -a`,
+    expected: "block",
+    why: "behind a command that runs another command",
+  },
+  {
+    command: `${COMMIT} -m 'refuse ${COMMIT} -a in the hook'`,
+    expected: "allow",
+    why: "a message body describing the shape is prose",
+  },
+  {
+    command: `${COMMIT} -F - <<'MSG'\nrefuse ${COMMIT} -a in the hook\nMSG`,
+    expected: "allow",
+    why: "a heredoc commit body describing the shape is prose",
+  },
+  {
+    command: `cat <<'EOF'\n${COMMIT} -a\nEOF`,
+    expected: "allow",
+    why: "a heredoc body outside a git command is prose too",
+  },
+  {
+    command: `${COMMIT} -F - <<'MSG'\nbody\nMSG\n${COMMIT} -a`,
+    expected: "block",
+    why: "a real sweep chained after the terminator",
+  },
+  {
+    command: `rg '${COMMIT} -a' .claude`,
+    expected: "allow",
+    why: "git does not open the segment, so searching for the text is not committing",
+  },
+  // Guard 1 scrubs only --body/--title/--subject for gh, so a -f body= payload
+  // stays in the text and the split on `(` lets the quoted shape open a
+  // segment. Post such a reply with `gh pr comment --body` instead. Widening
+  // Guard 1's gh pattern to cover -f body= would also widen what its .env
+  // block can no longer see, which is the user's call rather than this gate's.
+  {
+    command: `gh api repos/o/r/pulls/comments/1/replies -f body='Fixed. (${COMMIT} -a is denied now.)'`,
+    expected: "block",
+    why: "a gh api -f body is not scrubbed, so a parenthesised shape inside it is refused",
   },
 ]);
 
