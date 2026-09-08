@@ -48,32 +48,37 @@ CMD=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""')
 # --- Guard 1: .env protection (applies to parent and sidechains alike) ---
 # Scrub the committed example files, then look for a token that *starts* with
 # `.env` (optionally `.env.local` / `.env.development` / `.env.production`).
-# For git commands only, -m/--message quoted bodies are also scrubbed first:
-# prose about env files in a commit/tag message is not file access. The scrub
+# For `git` and `gh` commands only, the quoted bodies of the inline-text flags
+# selected below are also scrubbed first: prose about env files in a commit
+# message, a pull request body or a review body is not file access. The scrub
 # is deliberately NOT applied to other commands — a quoted message flag can be
 # repurposed as a file argument elsewhere (e.g. `sort -m ".env"`).
-#
-# A `-F -` body arrives as a heredoc, so the same prose reaches this guard by a
-# route the -m scrub does not cover. It is dropped only when the command's last
-# line is the heredoc delimiter: then nothing follows the body, so nothing is
-# hidden. A redirect belongs to the operator line, which is kept either way, and
-# a command chained after the terminator leaves a different last line and blocks
-# the scrub.
 SCRUBBED=$(printf '%s' "$CMD" | sed 's/\.env[.A-Za-z]*\.example//g')
 # NR==1 with an exit: awk would otherwise print the first field of every line,
 # and a multi-line command (a heredoc body) then matched no first word at all.
 FIRST_WORD=$(printf '%s' "$SCRUBBED" | awk 'NR == 1 { print $1; exit }')
-if [ "$FIRST_WORD" = "git" ]; then
+# gh takes inline text through --body, --title and --subject, and reads a file
+# through -F/--body-file and -T/--template (gh 2.86.0). gsub runs over the
+# whole command rather than over the leading gh alone, so the short -b/-t stay
+# out: with `-b` in the pattern the scrub took the operand of a chained
+# `cat -b '.env'`, which the grep below then never saw. The pattern follows the
+# command's first word, so a gh body behind a leading command is left alone.
+case "$FIRST_WORD" in
+  git) TEXT_FLAG_PATTERN='--?m(essage)?' ;;
+  gh) TEXT_FLAG_PATTERN='--(body|title|subject)' ;;
+  *) TEXT_FLAG_PATTERN='' ;;
+esac
+if [ -n "$TEXT_FLAG_PATTERN" ]; then
   # The whole command is one awk record, so a body spanning lines is still one
   # match. sed cannot do this portably here: its `N` loop quits WITHOUT printing
   # when there is no next line on BSD sed, which emptied every single-line
-  # command. The pattern also avoids `\|` and `{1,2}` — BRE alternation is a GNU
+  # command. The patterns also avoid `\|` and `{1,2}` — BRE alternation is a GNU
   # extension and awk intervals are not universal — so `--?m(essage)?` carries
-  # both spellings instead.
+  # both git spellings instead.
   scrub_message_body() { # $1 = the quote character delimiting the body
-    awk -v q="$1" '
+    awk -v q="$1" -v flags="$TEXT_FLAG_PATTERN" '
       BEGIN { RS = "\034" }
-      { gsub("--?m(essage)?[= ]?" q "[^" q "]*" q, "", $0); printf "%s", $0 }
+      { gsub(flags "[= ]?" q "[^" q "]*" q, "", $0); printf "%s", $0 }
     '
   }
   # Single-quoted bodies are always inert (no expansion inside single quotes).
@@ -86,10 +91,11 @@ if [ "$FIRST_WORD" = "git" ]; then
     *'$('*|*'${'*|*'`'*) ;;
     *) SCRUBBED=$(printf '%s' "$SCRUBBED" | scrub_message_body '"') ;;
   esac
-  # A `-F -` body arrives as a heredoc instead. Drop it only when the command's
-  # last line is the delimiter: then nothing follows the body, so nothing is
-  # hidden. A redirect belongs to the operator line, which is kept either way,
-  # and a command chained after the terminator leaves a different last line.
+  # A `-F -` / `--body-file -` body arrives as a heredoc instead, by a route the
+  # flag scrub above does not cover. Drop it only when the command's last line
+  # is the delimiter: then nothing follows the body, so nothing is hidden. A
+  # redirect belongs to the operator line, which is kept either way, and a
+  # command chained after the terminator leaves a different last line.
   SCRUBBED=$(printf '%s' "$SCRUBBED" | awk '
     BEGIN { q = sprintf("%c", 39); op = 0 }
     { last = $0; lines[NR] = $0 }
@@ -111,7 +117,7 @@ if [ "$FIRST_WORD" = "git" ]; then
   ')
 fi
 if printf '%s' "$SCRUBBED" | grep -qE '(^|[[:space:]"'\''`={}:,;&|<>(/-])\.env(\.(local|development|production))?([[:space:]"'\''`{}:,;&|<>)*]|$)'; then
-  deny "PreToolUse(Bash): this command references a protected env file (.env / .env.local / .env.development / .env.production). Reading or writing these is denied regardless of tool. Use .env.local.example for documented placeholders. If this is a false positive (e.g. the literal string in a message), rephrase the command without the filename."
+  deny "PreToolUse(Bash): this command references a protected env file (.env / .env.local / .env.development / .env.production). Reading or writing these is denied regardless of tool. Use .env.local.example for documented placeholders. To write the filename as prose, put it in a quoted body of \`git\` -m/--message or of \`gh\` --body/--title/--subject: a single-quoted body is read as prose, a double-quoted one only when the command contains no \$(, \${ or backtick."
   exit 0
 fi
 
