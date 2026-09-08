@@ -82,17 +82,32 @@ const prRow = (number: number): PrRow => {
 const ghFailure = (error: unknown): string =>
   (error instanceof Error ? error.message : String(error)).split("\n")[0] ?? "";
 
-const watchPrs = async (numbers: readonly number[]): Promise<void> => {
-  let rows: readonly PrRow[];
+/**
+ * One poll's line and exit code, or undefined while the run needs no attention.
+ * The rows stay inside this call, so the `watchPrs` frame awaiting the next
+ * poll holds the PR numbers alone however long the run lasts.
+ */
+interface PollResult {
+  readonly exitCode: number;
+  readonly line: string;
+}
+
+const pollResult = (numbers: readonly number[]): PollResult | undefined => {
   try {
-    rows = numbers.map(prRow);
+    const event = watchEvent(numbers, numbers.map(prRow));
+    return event === undefined
+      ? undefined
+      : { exitCode: 0, line: formatEvent(event) };
   } catch (error) {
-    console.log(`gh-failed ${ghFailure(error)}`);
-    process.exit(1);
+    return { exitCode: 1, line: `gh-failed ${ghFailure(error)}` };
   }
-  const event = watchEvent(numbers, rows);
-  if (event !== undefined) {
-    console.log(formatEvent(event));
+};
+
+const watchPrs = async (numbers: readonly number[]): Promise<void> => {
+  const result = pollResult(numbers);
+  if (result !== undefined) {
+    console.log(result.line);
+    process.exitCode = result.exitCode;
     return;
   }
   await delay(POLL_MS);
