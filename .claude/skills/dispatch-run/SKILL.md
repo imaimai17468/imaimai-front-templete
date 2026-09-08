@@ -5,7 +5,7 @@ description: The two standing parts of a dispatch run: the brief every worker fo
 
 # Dispatch run
 
-A dispatch names this skill, which hands the worker the Worker brief, so the prompt carries what belongs to its ticket alone: the change and why it is wanted, the files the ticket owns and the region of a file another ticket also edits, the branch name, and the user's own words wherever an action needs them (AGENTS.md's Degraded Environments says which actions those are).
+A dispatch names this skill, which hands the worker the Worker brief, so the prompt carries what belongs to its ticket alone: the change and why it is wanted, the files the ticket owns and the region of a file another ticket also edits, the branch name, and the user's own words wherever an action needs them (AGENTS.md's Degraded Environments says which actions those are). A premise the prompt asserts about a file or a tool is opened or run in the turn that writes it, which AGENTS.md's Instruction documents rule already requires of any such claim, and a premise the session cannot check reaches the worker as the question it is. In the 2026-09-08 run a worker found four of the premises it was handed false, and one of those had already shipped as a claim in a pull request body.
 
 ## Worker brief
 
