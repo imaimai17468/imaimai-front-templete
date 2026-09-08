@@ -250,15 +250,19 @@ const ancestry = (commit: string, descendant: string): Ancestry => {
 };
 
 /**
- * What `worktreeVerdict` judges. The ancestry runs on the branch, which is the
- * commit the worktree has checked out and the ref `removeWorktree` deletes.
+ * What `worktreeVerdict` judges. Every ancestry runs on the branch, which is
+ * the commit the worktree has checked out and the ref `removeWorktree` deletes.
+ * Comparing main runs on every worktree that reaches this call, including one
+ * whose pull request settles the verdict on its own.
  */
 const worktreeFacts = (branch: string): WorktreeFacts => {
   const pullRequest = prOf(branch);
+  const mainAncestry = ancestry(branch, "main");
   return pullRequest === undefined
-    ? { kind: "no-pull-request", mainAncestry: ancestry(branch, "main") }
+    ? { kind: "no-pull-request", mainAncestry }
     : {
         kind: "pull-request",
+        mainAncestry,
         pullRequest,
         pullRequestAncestry: ancestry(branch, pullRequest.headRefOid),
       };

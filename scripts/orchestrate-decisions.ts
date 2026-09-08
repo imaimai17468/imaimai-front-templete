@@ -293,14 +293,15 @@ export const ancestryKeepReason = (
 
 /**
  * What GitHub and git report about the worktree of a branch the run named. Each
- * shape names the commit whose history the branch was looked for in: main when
- * GitHub reports no pull request for the branch, and the commit GitHub holds
- * for it when there is one.
+ * shape names every commit whose history the branch was looked for in: main
+ * alone when GitHub reports no pull request for the branch, and main together
+ * with the commit GitHub holds for it when there is one.
  */
 export type WorktreeFacts =
   | { readonly kind: "no-pull-request"; readonly mainAncestry: Ancestry }
   | {
       readonly kind: "pull-request";
+      readonly mainAncestry: Ancestry;
       readonly pullRequest: PullRequest;
       readonly pullRequestAncestry: Ancestry;
     };
@@ -308,11 +309,16 @@ export type WorktreeFacts =
 /**
  * Whether the worktree of a branch this run named can go. Removing it deletes
  * the branch, so what decides is whether anything else holds the branch's
- * commits: main for a branch whose worker died before opening a pull request,
- * and otherwise the commit GitHub holds, because a squash merge leaves the
- * branch's commits outside main's ancestry. Ancestry rather than equality,
- * because the branch also differs from GitHub's commit when it sits behind one
- * a worker never pulled, and nothing of the branch's own is lost then.
+ * commits. Two commits are asked, and either one holding them clears the
+ * worktree: the commit GitHub holds for the pull request, and main. Which of
+ * them answers depends on the branch. A squash merge leaves the commits a
+ * branch carried outside main's ancestry, so the pull request's commit is what
+ * holds those, and main holds a branch that ended at a commit main already had.
+ * Main is the one of the two this repository can still resolve once
+ * `gh pr update-branch` has left the pull request at a merge nothing fetched.
+ * Ancestry rather than equality, because the branch also differs from GitHub's
+ * commit when it sits behind one a worker never pulled, and nothing of the
+ * branch's own is lost then.
  */
 export const worktreeVerdict = (facts: WorktreeFacts): WorktreeVerdict => {
   if (facts.kind === "no-pull-request") {
@@ -321,12 +327,18 @@ export const worktreeVerdict = (facts: WorktreeFacts): WorktreeVerdict => {
       ? { kind: "remove" }
       : { kind: "keep", reason: `no pull request, ${mainReason}` };
   }
-  const { pullRequest, pullRequestAncestry } = facts;
+  const { mainAncestry, pullRequest, pullRequestAncestry } = facts;
   if (pullRequest.state !== "MERGED" && pullRequest.state !== "CLOSED") {
     return { kind: "keep", reason: `pull request ${pullRequest.state}` };
   }
-  const reason = ancestryKeepReason(pullRequestAncestry, "the pull request");
-  return reason === undefined ? { kind: "remove" } : { kind: "keep", reason };
+  const pullRequestReason = ancestryKeepReason(
+    pullRequestAncestry,
+    "the pull request"
+  );
+  const mainReason = ancestryKeepReason(mainAncestry, "main");
+  return pullRequestReason === undefined || mainReason === undefined
+    ? { kind: "remove" }
+    : { kind: "keep", reason: `${pullRequestReason}, and ${mainReason}` };
 };
 
 /** The one line `clean-worktrees` prints for a worktree. */
