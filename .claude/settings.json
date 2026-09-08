@@ -73,7 +73,7 @@
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-guard.sh",
             "timeout": 30,
-            "statusMessage": "Bash guard: .env protection + find gate..."
+            "statusMessage": "Bash guard: env-file protection + find gate + git add gate..."
           }
         ]
       }
