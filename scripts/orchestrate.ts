@@ -2,8 +2,9 @@
 
 /**
  * The commands an orchestrating session runs while and after its workers work.
- * `.claude/settings.json` allowlists this file, so the session issues no command
- * of its own to reach GitHub or git.
+ * `.claude/settings.json` allowlists this file, so the session reaches GitHub
+ * and git through these three commands instead of running `gh` and `git` of its
+ * own, which that file does not allowlist.
  *
  * ```
  * bun scripts/orchestrate.ts free-gib          # free memory in GiB, one number
