@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
+  agentWorktrees,
   formatEvent,
+  formatVerdict,
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
   prNumbers,
   watchEvent,
+  worktreeVerdict,
 } from "./orchestrate-decisions";
-import type { PrRow } from "./orchestrate-decisions";
+import type { Worktree, PrRow } from "./orchestrate-decisions";
 
 const GIB = 1024 ** 3;
 
@@ -167,5 +170,128 @@ describe(prNumbers, () => {
     const numbers = prNumbers(["9007199254740993"]);
 
     expect(numbers).toBeUndefined();
+  });
+});
+
+const PORCELAIN = [
+  "worktree /repo\nHEAD abc\nbranch refs/heads/main",
+  "worktree /repo/.claude/worktrees/agent-1\nHEAD def\nbranch refs/heads/feat/one",
+  "worktree /repo/.claude/worktrees/agent-2\nHEAD 012\nbranch refs/heads/feat/two\nlocked claude agent",
+  "worktree /repo/.claude/worktrees/agent-3\nHEAD 345\ndetached",
+  "worktree /elsewhere/hand-made\nHEAD 678\nbranch refs/heads/feat/three",
+].join("\n\n");
+
+describe(agentWorktrees, () => {
+  it("should return only the worktrees under .claude/worktrees when the list holds others", () => {
+    const worktrees = agentWorktrees(PORCELAIN);
+
+    expect(worktrees.map((worktree) => worktree.path)).toStrictEqual([
+      "/repo/.claude/worktrees/agent-1",
+      "/repo/.claude/worktrees/agent-2",
+      "/repo/.claude/worktrees/agent-3",
+    ]);
+  });
+
+  it("should read the branch and the lock of an agent worktree when both are present", () => {
+    const worktrees = agentWorktrees(PORCELAIN);
+
+    expect(worktrees[1]).toStrictEqual({
+      branch: "feat/two",
+      locked: true,
+      path: "/repo/.claude/worktrees/agent-2",
+    });
+  });
+
+  it("should leave the branch undefined when the worktree is detached", () => {
+    const worktrees = agentWorktrees(PORCELAIN);
+
+    expect(worktrees[2]).toStrictEqual({
+      branch: undefined,
+      locked: false,
+      path: "/repo/.claude/worktrees/agent-3",
+    });
+  });
+
+  it("should return no worktree when the list holds none under .claude/worktrees", () => {
+    const worktrees = agentWorktrees(
+      "worktree /repo\nHEAD abc\nbranch refs/heads/main"
+    );
+
+    expect(worktrees).toStrictEqual([]);
+  });
+});
+
+const worktree = (): Worktree => ({
+  branch: "feat/one",
+  locked: false,
+  path: "/repo/.claude/worktrees/agent-1",
+});
+
+const NO_PULL_REQUEST: string | undefined = undefined;
+
+const detached: Worktree = {
+  branch: undefined,
+  locked: false,
+  path: "/repo/.claude/worktrees/agent-1",
+};
+
+describe(worktreeVerdict, () => {
+  it("should keep the worktree when it is detached", () => {
+    const verdict = worktreeVerdict(detached, false, "MERGED");
+
+    expect(verdict).toStrictEqual({ kind: "keep", reason: "detached" });
+  });
+
+  it("should keep the worktree when it holds uncommitted changes", () => {
+    const verdict = worktreeVerdict(worktree(), true, "MERGED");
+
+    expect(verdict).toStrictEqual({
+      kind: "keep",
+      reason: "uncommitted changes",
+    });
+  });
+
+  it("should keep the worktree when its branch has no pull request", () => {
+    const verdict = worktreeVerdict(worktree(), false, NO_PULL_REQUEST);
+
+    expect(verdict).toStrictEqual({ kind: "keep", reason: "no pull request" });
+  });
+
+  it("should remove the worktree when its pull request is merged", () => {
+    const verdict = worktreeVerdict(worktree(), false, "MERGED");
+
+    expect(verdict).toStrictEqual({ kind: "remove" });
+  });
+
+  it("should remove the worktree when its pull request is closed", () => {
+    const verdict = worktreeVerdict(worktree(), false, "CLOSED");
+
+    expect(verdict).toStrictEqual({ kind: "remove" });
+  });
+
+  it("should keep the worktree when its pull request is still open", () => {
+    const verdict = worktreeVerdict(worktree(), false, "OPEN");
+
+    expect(verdict).toStrictEqual({
+      kind: "keep",
+      reason: "pull request OPEN",
+    });
+  });
+});
+
+describe(formatVerdict, () => {
+  it("should print removed with the path when the verdict is remove", () => {
+    const line = formatVerdict(worktree(), { kind: "remove" });
+
+    expect(line).toBe("removed /repo/.claude/worktrees/agent-1");
+  });
+
+  it("should print kept with the reason when the verdict is keep", () => {
+    const line = formatVerdict(worktree(), {
+      kind: "keep",
+      reason: "detached",
+    });
+
+    expect(line).toBe("kept /repo/.claude/worktrees/agent-1 (detached)");
   });
 });

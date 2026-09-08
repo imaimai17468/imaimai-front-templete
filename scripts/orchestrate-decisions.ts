@@ -94,3 +94,75 @@ export const prNumbers = (
     args.every((arg) => DECIMAL.test(arg) && Number.isSafeInteger(Number(arg)));
   return usable ? args.map(Number) : undefined;
 };
+
+/** One entry of `git worktree list --porcelain`. */
+export interface Worktree {
+  readonly branch: string | undefined;
+  readonly locked: boolean;
+  readonly path: string;
+}
+
+const HOME_SEGMENT = "/.claude/worktrees/";
+
+/**
+ * The agent worktrees of `git worktree list --porcelain`. The main checkout and
+ * any worktree a person made elsewhere are left out, so nothing this command
+ * does can reach them.
+ */
+export const agentWorktrees = (porcelain: string): readonly Worktree[] =>
+  porcelain
+    .split("\n\n")
+    .map((block) => {
+      const lines = block.split("\n");
+      const path = lines
+        .find((line) => line.startsWith("worktree "))
+        ?.slice("worktree ".length);
+      const branch = lines
+        .find((line) => line.startsWith("branch refs/heads/"))
+        ?.slice("branch refs/heads/".length);
+      return {
+        branch,
+        locked: lines.some((line) => line.startsWith("locked")),
+        path: path ?? "",
+      };
+    })
+    .filter((worktree) => worktree.path.includes(HOME_SEGMENT));
+
+export type WorktreeVerdict =
+  | { readonly kind: "keep"; readonly reason: string }
+  | { readonly kind: "remove" };
+
+/**
+ * Whether a finished worker's worktree can go. `prState` is the state GitHub
+ * reports for the branch's pull request, or undefined when the branch has none.
+ * Only a branch whose PR is finished is removable, so a worker that has not
+ * opened its PR yet keeps its worktree.
+ */
+export const worktreeVerdict = (
+  worktree: Worktree,
+  isDirty: boolean,
+  prState: string | undefined
+): WorktreeVerdict => {
+  if (worktree.branch === undefined) {
+    return { kind: "keep", reason: "detached" };
+  }
+  if (isDirty) {
+    return { kind: "keep", reason: "uncommitted changes" };
+  }
+  if (prState === undefined) {
+    return { kind: "keep", reason: "no pull request" };
+  }
+  if (prState === "MERGED" || prState === "CLOSED") {
+    return { kind: "remove" };
+  }
+  return { kind: "keep", reason: `pull request ${prState}` };
+};
+
+/** The one line `clean-worktrees` prints for a worktree. */
+export const formatVerdict = (
+  worktree: Worktree,
+  verdict: WorktreeVerdict
+): string =>
+  verdict.kind === "remove"
+    ? `removed ${worktree.path}`
+    : `kept ${worktree.path} (${verdict.reason})`;
