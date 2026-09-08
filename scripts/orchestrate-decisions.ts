@@ -152,6 +152,8 @@ export const agentWorktrees = (porcelain: string): readonly Worktree[] =>
     })
     .filter((worktree) => worktree.path.includes(HOME_SEGMENT));
 
+const AGENT_BRANCH_PREFIX = "worktree-agent-";
+
 export type WorktreeVerdict =
   | { readonly kind: "branch-kept"; readonly reason: string }
   | { readonly kind: "keep"; readonly reason: string }
@@ -165,8 +167,11 @@ export type WorktreeProbe =
  * What the porcelain entry and the run's branches alone decide. A prunable
  * entry names a directory that is already gone, so every later step, starting
  * with reading its status, would fail on it. A branch the run did not name
- * belongs to another run or to a person's own session, both of which live in
- * the same directory, so naming the run is what separates them.
+ * belongs to another run or to a person's own session; one still on the branch
+ * Claude Code created for the worktree is what a worker that died before
+ * `git switch -c` leaves, and a person's own session sitting on that branch
+ * looks the same from here, so the reason names the branch rather than the
+ * worker.
  */
 export const worktreeProbe = (
   worktree: Worktree,
@@ -183,7 +188,12 @@ export const worktreeProbe = (
   }
   return {
     kind: "verdict",
-    verdict: { kind: "keep", reason: "not in this run" },
+    verdict: {
+      kind: "keep",
+      reason: worktree.branch.startsWith(AGENT_BRANCH_PREFIX)
+        ? "never switched off the branch Claude Code created"
+        : "not in this run",
+    },
   };
 };
 
@@ -195,19 +205,52 @@ export const worktreeProbe = (
 export const localVerdict = (isDirty: boolean): WorktreeVerdict | undefined =>
   isDirty ? { kind: "keep", reason: "uncommitted changes" } : undefined;
 
+/** What `git merge-base --is-ancestor` answered about a branch and main. */
+export type Ancestry =
+  | { readonly kind: "ancestor" }
+  | { readonly kind: "failed"; readonly reason: string }
+  | { readonly kind: "not-ancestor" };
+
 /**
- * Whether the worktree of a branch this run named can go. `pullRequest` is what
- * GitHub reports for the branch, or undefined when the branch has none.
- * `headSha` is the worktree's own HEAD, compared with the commit GitHub holds
- * because a squash merge leaves the branch's commits outside main's ancestry,
- * where an ancestry test would answer nothing.
+ * Why the commits of a branch keep what holds them, or undefined when removing
+ * it loses none. A check that could not run is its own answer, because reading
+ * it as "not an ancestor" would keep the branch with a reason naming the wrong
+ * cause. A squash merge leaves the branch's commits outside main's ancestry, so
+ * the reason states what git answered rather than calling the branch unmerged.
  */
-export const worktreeVerdict = (
-  headSha: string,
-  pullRequest: PullRequest | undefined
-): WorktreeVerdict => {
+export const ancestryKeepReason = (ancestry: Ancestry): string | undefined => {
+  if (ancestry.kind === "ancestor") {
+    return undefined;
+  }
+  if (ancestry.kind === "not-ancestor") {
+    return "commits main does not hold";
+  }
+  return `failed: ${ancestry.reason}`;
+};
+
+/** What GitHub and git report about the worktree of a branch the run named. */
+export interface WorktreeFacts {
+  readonly ancestry: Ancestry;
+  readonly headSha: string;
+  readonly pullRequest: PullRequest | undefined;
+}
+
+/**
+ * Whether the worktree of a branch this run named can go. `headSha` is the
+ * worktree's own HEAD, compared with the commit GitHub holds because a squash
+ * merge leaves the branch's commits outside main's ancestry, where an ancestry
+ * test would answer nothing. `pullRequest` is undefined when GitHub has none
+ * for the branch, which is what a worker that died before opening one leaves,
+ * and `ancestry` decides that case alone: a HEAD main already holds is a
+ * worktree whose removal loses no commit.
+ */
+export const worktreeVerdict = (facts: WorktreeFacts): WorktreeVerdict => {
+  const { ancestry, headSha, pullRequest } = facts;
   if (pullRequest === undefined) {
-    return { kind: "keep", reason: "no pull request" };
+    const reason = ancestryKeepReason(ancestry);
+    return reason === undefined
+      ? { kind: "remove" }
+      : { kind: "keep", reason: `no pull request, ${reason}` };
   }
   if (pullRequest.state !== "MERGED" && pullRequest.state !== "CLOSED") {
     return { kind: "keep", reason: `pull request ${pullRequest.state}` };
@@ -232,8 +275,6 @@ export const formatVerdict = (
   return `kept ${worktree.path} (${verdict.reason})`;
 };
 
-const AGENT_BRANCH_PREFIX = "worktree-agent-";
-
 /**
  * The branches Claude Code makes for its worktrees, minus the ones a worktree
  * still holds. `git worktree remove` leaves this branch behind, so one ref
@@ -252,24 +293,3 @@ export const formatBranch = (branch: string, reason?: string): string =>
   reason === undefined
     ? `removed branch ${branch}`
     : `kept branch ${branch} (${reason})`;
-
-/** What `git merge-base --is-ancestor` answered about a branch and main. */
-export type Ancestry =
-  | { readonly kind: "ancestor" }
-  | { readonly kind: "failed"; readonly reason: string }
-  | { readonly kind: "not-ancestor" };
-
-/**
- * Why a stranded agent branch stays, or undefined when it can go. A check that
- * could not run is its own answer, because reading it as "not an ancestor"
- * would keep the branch with a reason naming the wrong cause.
- */
-export const branchKeepReason = (ancestry: Ancestry): string | undefined => {
-  if (ancestry.kind === "ancestor") {
-    return undefined;
-  }
-  if (ancestry.kind === "not-ancestor") {
-    return "not merged into main";
-  }
-  return `failed: ${ancestry.reason}`;
-};

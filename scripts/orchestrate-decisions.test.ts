@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
   agentWorktrees,
-  branchKeepReason,
+  ancestryKeepReason,
   branchNames,
   formatBranch,
   formatEvent,
@@ -284,6 +284,21 @@ describe(worktreeProbe, () => {
     });
   });
 
+  it("should name the created branch when the worktree is still on the one Claude Code made", () => {
+    const probe = worktreeProbe(
+      { ...worktree(), branch: "worktree-agent-1" },
+      RUN
+    );
+
+    expect(probe).toStrictEqual({
+      kind: "verdict",
+      verdict: {
+        kind: "keep",
+        reason: "never switched off the branch Claude Code created",
+      },
+    });
+  });
+
   it("should return the branch to probe when the run named it", () => {
     const probe = worktreeProbe(worktree(), RUN);
 
@@ -308,15 +323,72 @@ describe(localVerdict, () => {
   });
 });
 
-describe(worktreeVerdict, () => {
-  it("should keep the worktree when its branch has no pull request", () => {
-    const verdict = worktreeVerdict(HEAD_SHA, NO_PULL_REQUEST);
+describe(ancestryKeepReason, () => {
+  it("should return undefined when main holds the branch commits", () => {
+    const reason = ancestryKeepReason({ kind: "ancestor" });
 
-    expect(verdict).toStrictEqual({ kind: "keep", reason: "no pull request" });
+    expect(reason).toBeUndefined();
+  });
+
+  it("should name the commits when the branch holds one main does not", () => {
+    const reason = ancestryKeepReason({ kind: "not-ancestor" });
+
+    expect(reason).toBe("commits main does not hold");
+  });
+
+  it("should name the failure when the ancestry check could not run", () => {
+    const reason = ancestryKeepReason({
+      kind: "failed",
+      reason: "fatal: not a git repository",
+    });
+
+    expect(reason).toBe("failed: fatal: not a git repository");
+  });
+});
+
+describe(worktreeVerdict, () => {
+  it("should remove the worktree when its branch has no pull request and main holds its HEAD", () => {
+    const verdict = worktreeVerdict({
+      ancestry: { kind: "ancestor" },
+      headSha: HEAD_SHA,
+      pullRequest: NO_PULL_REQUEST,
+    });
+
+    expect(verdict).toStrictEqual({ kind: "remove" });
+  });
+
+  it("should keep the worktree when its branch has no pull request and holds a commit main does not", () => {
+    const verdict = worktreeVerdict({
+      ancestry: { kind: "not-ancestor" },
+      headSha: HEAD_SHA,
+      pullRequest: NO_PULL_REQUEST,
+    });
+
+    expect(verdict).toStrictEqual({
+      kind: "keep",
+      reason: "no pull request, commits main does not hold",
+    });
+  });
+
+  it("should keep the worktree when its branch has no pull request and the ancestry check could not run", () => {
+    const verdict = worktreeVerdict({
+      ancestry: { kind: "failed", reason: "fatal: bad revision" },
+      headSha: HEAD_SHA,
+      pullRequest: NO_PULL_REQUEST,
+    });
+
+    expect(verdict).toStrictEqual({
+      kind: "keep",
+      reason: "no pull request, failed: fatal: bad revision",
+    });
   });
 
   it("should keep the worktree when its pull request is still open", () => {
-    const verdict = worktreeVerdict(HEAD_SHA, pullRequest("OPEN"));
+    const verdict = worktreeVerdict({
+      ancestry: { kind: "ancestor" },
+      headSha: HEAD_SHA,
+      pullRequest: pullRequest("OPEN"),
+    });
 
     expect(verdict).toStrictEqual({
       kind: "keep",
@@ -325,10 +397,11 @@ describe(worktreeVerdict, () => {
   });
 
   it("should keep the worktree when its HEAD is a commit GitHub does not hold", () => {
-    const verdict = worktreeVerdict(
-      "deadbee",
-      pullRequest("MERGED", "UNKNOWN")
-    );
+    const verdict = worktreeVerdict({
+      ancestry: { kind: "ancestor" },
+      headSha: "deadbee",
+      pullRequest: pullRequest("MERGED", "UNKNOWN"),
+    });
 
     expect(verdict).toStrictEqual({
       kind: "keep",
@@ -337,13 +410,21 @@ describe(worktreeVerdict, () => {
   });
 
   it("should remove the worktree when its pull request is merged", () => {
-    const verdict = worktreeVerdict(HEAD_SHA, pullRequest("MERGED", "UNKNOWN"));
+    const verdict = worktreeVerdict({
+      ancestry: { kind: "not-ancestor" },
+      headSha: HEAD_SHA,
+      pullRequest: pullRequest("MERGED", "UNKNOWN"),
+    });
 
     expect(verdict).toStrictEqual({ kind: "remove" });
   });
 
   it("should remove the worktree when its pull request is closed", () => {
-    const verdict = worktreeVerdict(HEAD_SHA, pullRequest("CLOSED", "UNKNOWN"));
+    const verdict = worktreeVerdict({
+      ancestry: { kind: "not-ancestor" },
+      headSha: HEAD_SHA,
+      pullRequest: pullRequest("CLOSED", "UNKNOWN"),
+    });
 
     expect(verdict).toStrictEqual({ kind: "remove" });
   });
@@ -400,29 +481,6 @@ describe(strandedAgentBranches, () => {
     const stranded = strandedAgentBranches(["main"], [undefined]);
 
     expect(stranded).toStrictEqual([]);
-  });
-});
-
-describe(branchKeepReason, () => {
-  it("should return undefined when main holds the branch commits", () => {
-    const reason = branchKeepReason({ kind: "ancestor" });
-
-    expect(reason).toBeUndefined();
-  });
-
-  it("should name main when the branch holds a commit main does not", () => {
-    const reason = branchKeepReason({ kind: "not-ancestor" });
-
-    expect(reason).toBe("not merged into main");
-  });
-
-  it("should name the failure when the ancestry check could not run", () => {
-    const reason = branchKeepReason({
-      kind: "failed",
-      reason: "fatal: not a git repository",
-    });
-
-    expect(reason).toBe("failed: fatal: not a git repository");
   });
 });
 

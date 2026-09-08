@@ -29,7 +29,7 @@ import { execFileSync } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import {
   agentWorktrees,
-  branchKeepReason,
+  ancestryKeepReason,
   branchNames,
   formatBranch,
   formatEvent,
@@ -189,33 +189,6 @@ const removeWorktree = (
   return { kind: "remove" };
 };
 
-/**
- * The verdict, after acting on it. A failure anywhere becomes a `keep` naming
- * what failed, so one unreachable pull request or one worktree git refuses to
- * remove leaves the rest of the list examined and reported.
- */
-const verdictFor = (
-  worktree: Worktree,
-  branches: readonly string[]
-): WorktreeVerdict => {
-  const probe = worktreeProbe(worktree, branches);
-  if (probe.kind === "verdict") {
-    return probe.verdict;
-  }
-  try {
-    const local = localVerdict(isDirty(worktree.path));
-    if (local !== undefined) {
-      return local;
-    }
-    const verdict = worktreeVerdict(headSha(worktree.path), prOf(probe.branch));
-    return verdict.kind === "remove"
-      ? removeWorktree(worktree, probe.branch)
-      : verdict;
-  } catch (error) {
-    return { kind: "keep", reason: `failed: ${firstLine(error)}` };
-  }
-};
-
 interface CommandFailure {
   readonly status: number | null;
   readonly stderr: string;
@@ -252,9 +225,40 @@ const ancestryOfMain = (branch: string): Ancestry => {
   }
 };
 
+/**
+ * The verdict, after acting on it. A failure anywhere becomes a `keep` naming
+ * what failed, so one unreachable pull request or one worktree git refuses to
+ * remove leaves the rest of the list examined and reported.
+ */
+const verdictFor = (
+  worktree: Worktree,
+  branches: readonly string[]
+): WorktreeVerdict => {
+  const probe = worktreeProbe(worktree, branches);
+  if (probe.kind === "verdict") {
+    return probe.verdict;
+  }
+  try {
+    const local = localVerdict(isDirty(worktree.path));
+    if (local !== undefined) {
+      return local;
+    }
+    const verdict = worktreeVerdict({
+      ancestry: ancestryOfMain(probe.branch),
+      headSha: headSha(worktree.path),
+      pullRequest: prOf(probe.branch),
+    });
+    return verdict.kind === "remove"
+      ? removeWorktree(worktree, probe.branch)
+      : verdict;
+  } catch (error) {
+    return { kind: "keep", reason: `failed: ${firstLine(error)}` };
+  }
+};
+
 /** Deletes the branch once main holds its commits, and returns why it did not. */
 const deleteMergedBranch = (branch: string): string | undefined => {
-  const reason = branchKeepReason(ancestryOfMain(branch));
+  const reason = ancestryKeepReason(ancestryOfMain(branch));
   if (reason !== undefined) {
     return reason;
   }
