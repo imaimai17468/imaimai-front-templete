@@ -22,6 +22,12 @@ const importNode = (specifier: ImportSource, importedNames: string[] = []) => ({
   })),
 });
 
+const expectCall = {
+  arguments: [],
+  callee: { name: "expect", type: "Identifier" },
+  type: "CallExpression",
+};
+
 describe("no-size-props", () => {
   const rule = plugin.rules["no-size-props"];
 
@@ -624,15 +630,10 @@ describe("single-expect", () => {
       callee: { name: "it", type: "Identifier" },
       type: "CallExpression",
     };
-    const expectNode = {
-      arguments: [],
-      callee: { name: "expect", type: "Identifier" },
-      type: "CallExpression",
-    };
 
     // Act
     visitors.CallExpression(itNode);
-    visitors.CallExpression(expectNode);
+    visitors.CallExpression(expectCall);
     visitors["CallExpression:exit"](itNode);
 
     // Assert
@@ -651,16 +652,11 @@ describe("single-expect", () => {
       callee: { name: "it", type: "Identifier" },
       type: "CallExpression",
     };
-    const expectNode = {
-      arguments: [],
-      callee: { name: "expect", type: "Identifier" },
-      type: "CallExpression",
-    };
 
     // Act
     visitors.CallExpression(itNode);
-    visitors.CallExpression(expectNode);
-    visitors.CallExpression(expectNode);
+    visitors.CallExpression(expectCall);
+    visitors.CallExpression(expectCall);
     visitors["CallExpression:exit"](itNode);
 
     // Assert
@@ -679,16 +675,11 @@ describe("single-expect", () => {
       callee: { name: "test", type: "Identifier" },
       type: "CallExpression",
     };
-    const expectNode = {
-      arguments: [],
-      callee: { name: "expect", type: "Identifier" },
-      type: "CallExpression",
-    };
 
     // Act
     visitors.CallExpression(testNode);
-    visitors.CallExpression(expectNode);
-    visitors.CallExpression(expectNode);
+    visitors.CallExpression(expectCall);
+    visitors.CallExpression(expectCall);
     visitors["CallExpression:exit"](testNode);
 
     // Assert
@@ -736,16 +727,11 @@ describe("single-expect", () => {
       },
       type: "CallExpression",
     };
-    const expectNode = {
-      arguments: [],
-      callee: { name: "expect", type: "Identifier" },
-      type: "CallExpression",
-    };
 
     // Act
     visitors.CallExpression(onlyNode);
-    visitors.CallExpression(expectNode);
-    visitors.CallExpression(expectNode);
+    visitors.CallExpression(expectCall);
+    visitors.CallExpression(expectCall);
     visitors["CallExpression:exit"](onlyNode);
 
     // Assert
@@ -768,16 +754,11 @@ describe("single-expect", () => {
       },
       type: "CallExpression",
     };
-    const expectNode = {
-      arguments: [],
-      callee: { name: "expect", type: "Identifier" },
-      type: "CallExpression",
-    };
 
     // Act
     visitors.CallExpression(skipNode);
-    visitors.CallExpression(expectNode);
-    visitors.CallExpression(expectNode);
+    visitors.CallExpression(expectCall);
+    visitors.CallExpression(expectCall);
     visitors["CallExpression:exit"](skipNode);
 
     // Assert
@@ -800,15 +781,10 @@ describe("single-expect", () => {
       },
       type: "CallExpression",
     };
-    const expectNode = {
-      arguments: [],
-      callee: { name: "expect", type: "Identifier" },
-      type: "CallExpression",
-    };
 
     // Act
     visitors.CallExpression(todoNode);
-    visitors.CallExpression(expectNode);
+    visitors.CallExpression(expectCall);
     visitors["CallExpression:exit"](todoNode);
 
     // Assert
@@ -1547,16 +1523,11 @@ describe("single-expect (defensive branches)", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
-    const expectNode = {
-      arguments: [],
-      callee: { name: "expect", type: "Identifier" },
-      type: "CallExpression",
-    };
 
     // Act
     visitors.CallExpression(testNode);
     visitors.CallExpression({ callee: null, type: "CallExpression" });
-    visitors.CallExpression(expectNode);
+    visitors.CallExpression(expectCall);
     visitors["CallExpression:exit"](testNode);
 
     // Assert
