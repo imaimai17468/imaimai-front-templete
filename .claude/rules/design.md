@@ -177,7 +177,7 @@ stop running parallel at the corner.
 ## Elevation
 
 Hierarchy and separation come from background color difference, border,
-spacing, and typography, never from shadow.
+backdrop dim, spacing, and typography, never from shadow.
 
 Shadow is limited to two cases:
 - **Drag state**: the element being dragged gets shadow to communicate
@@ -190,9 +190,9 @@ a small blur, tinted to the surface or to the element's own color. A bloom
 spread evenly on all sides, or a second box placed behind the element to imitate
 one, reads as a sticker rather than a lit object.
 
-Everything else uses border or backdrop dim for separation. Where a container
-needs an edge, shift its surface a step from the background and stroke it with
-its own color at low opacity, which keeps border, shadow, and text on one hue.
+Where a container needs an edge, shift its surface a step from the background
+and stroke it with its own color at low opacity, which keeps border, shadow,
+and text on one hue.
 
 A translucent surface needs a backdrop worth showing through and a blur that
 blends at every edge. Where the blur bands, the shadow leaks past the shape, or
