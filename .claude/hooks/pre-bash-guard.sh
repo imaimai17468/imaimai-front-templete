@@ -453,8 +453,10 @@ while IFS= read -r SEG; do
           # counted `paths.txt` as a named path and staged both files that file
           # listed, where `--pathspec-from-file=paths.txt` was refused;
           # `git add --chmod +x a.txt` took `+x` as the value and staged
-          # `a.txt` (git 2.50.1, 2026-09-09).
-          --pathspec-from-file | --chmod)
+          # `a.txt`. The `-f*` tail is there because git's parse-options takes
+          # any unambiguous prefix, and `git add --pathspec-from-f paths.txt`
+          # staged both files the same way (git 2.50.1, 2026-09-09).
+          --pathspec-f* | --chmod)
             SKIP_VALUE=1
             ;;
           --all | --no-ignore-removal)
@@ -504,12 +506,13 @@ while IFS= read -r SEG; do
           --message | --file | --reedit-message | --reuse-message | --template | --fixup | --squash | --author | --date | --cleanup | --trailer)
             SKIP_VALUE=1
             ;;
-          # A file holding `.` reached the same sweep: both spellings of
-          # `git commit --pathspec-from-file <file>` reported both modified
-          # files of the scratch repository as changes to be committed (git
-          # 2.50.1, 2026-09-09). The `git add` walk refuses the option for the
-          # same reason, by way of its `it names no path to stage` branch.
-          --pathspec-from-file | --pathspec-from-file=*)
+          # A file holding `.` reached the same sweep: `--pathspec-from-file`,
+          # `--pathspec-from-file=`, and the prefix `--pathspec-from-f` that
+          # git's parse-options also accepts, each reported both modified files
+          # of the scratch repository as changes to be committed (git 2.50.1,
+          # 2026-09-09). The `git add` walk refuses the option for the same
+          # reason, by way of its `it names no path to stage` branch.
+          --pathspec-f*)
             REFUSED="\`--pathspec-from-file\` takes its pathspec from a file the command text does not show"
             break
             ;;

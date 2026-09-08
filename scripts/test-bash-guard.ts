@@ -688,6 +688,11 @@ group("git add: an operand the command text does not show is refused", [
     why: "the separate-token spelling reads the same file",
   },
   {
+    command: "git add --pathspec-from-f paths.txt",
+    expected: "block",
+    why: "git accepts an unambiguous prefix of the same option",
+  },
+  {
     command: "git add --chmod +x",
     expected: "block",
     why: "--chmod's value is not a path either",
@@ -1006,6 +1011,11 @@ group("git commit: a pathspec the command text does not show is refused", [
     command: `${COMMIT} --pathspec-from-file paths.txt -m x`,
     expected: "block",
     why: "the separate-token spelling reads the same file",
+  },
+  {
+    command: `${COMMIT} --pathspec-from-f paths.txt -m x`,
+    expected: "block",
+    why: "git accepts an unambiguous prefix, which reads the same file",
   },
 ]);
 
