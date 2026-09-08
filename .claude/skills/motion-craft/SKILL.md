@@ -587,12 +587,7 @@ Cite `file:line`. Pull exact values from Part 2 rather than approximating.
 
 Turn a vague description of a motion effect into the precise term, so you know
 what to ask for. When the user describes an effect loosely, return the matching
-term(s):
-
-```
-**Stagger** — Animate several items one after another with a small delay
-between each, creating a cascade.
-```
+term(s) in the bold-term-then-definition form the sections below use.
 
 If several terms could fit, list the best match first, then 1-2 alternates with
 a one-line note on how they differ.
