@@ -48,7 +48,7 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 - Answering "how does X work" for tools with versions
 - A user names a specific external tool or action and you're about to describe its behavior
 - Suggesting a dependency or approach the user hasn't already chosen
-- **Before writing any import path or library/framework/SDK access pattern from memory**, such as how to read a binding, load config, register a handler, or instantiate a client. These reshape between versions. Catching yourself thinking "I know how this works" or "you can only do it this way" is the cue to check rather than to skip checking, because that confident half-memory is how silently-stale code gets written
+- **Before writing any import path or library/framework/SDK access pattern from memory**, such as how to read a binding, load config, register a handler, or instantiate a client. These reshape between versions. Catching yourself thinking "I know how this works" or "you can only do it this way" is the cue to check
 
 **Not needed when:** the project already pins the version and shows the usage you need (read the project instead), it is a well-known CLI in standard usage (`git commit`, `cargo test`), the pattern is internal (read the codebase), or the concept has no versioned API.
 
