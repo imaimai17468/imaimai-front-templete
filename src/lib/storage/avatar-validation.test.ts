@@ -15,9 +15,12 @@ describe(avatarExtensionForMime, () => {
     ["image/jpeg", "jpg"],
     ["image/webp", "webp"],
     ["image/gif", "gif"],
-  ])("maps allowed type %s to extension %s", (mime, ext) => {
-    expect(avatarExtensionForMime(mime)).toBe(ext);
-  });
+  ])(
+    "should return an extension when the allowed type %s maps to %s",
+    (mime, ext) => {
+      expect(avatarExtensionForMime(mime)).toBe(ext);
+    }
+  );
 
   it.each([
     "text/html",
@@ -31,9 +34,12 @@ describe(avatarExtensionForMime, () => {
     "toString",
     "hasOwnProperty",
     "valueOf",
-  ])("rejects disallowed or malformed type %j", (mime) => {
-    expect(avatarExtensionForMime(mime)).toBeNull();
-  });
+  ])(
+    "should return null when the type %j is disallowed or malformed",
+    (mime) => {
+      expect(avatarExtensionForMime(mime)).toBeNull();
+    }
+  );
 });
 
 describe(isValidAvatarKey, () => {
@@ -49,7 +55,7 @@ describe(isValidAvatarKey, () => {
     "user-123/avatar.JPG",
     // uppercase + jpeg together (both tolerances at once)
     "user-123/avatar.JPEG",
-  ])("accepts well-formed key %s", (key) => {
+  ])("should return true when the key %s is well-formed", (key) => {
     expect(isValidAvatarKey(key)).toBeTruthy();
   });
 
@@ -66,7 +72,7 @@ describe(isValidAvatarKey, () => {
     ["prefix with dot", "user.123/avatar.png"],
     ["no extension", "user-123/avatar"],
     ["versioned key with malformed UUID", "user-123/avatars/not-a-uuid.png"],
-  ])("rejects %s: %j", (_label, key) => {
+  ])("should return false when the key is %s (%j)", (_label, key) => {
     expect(isValidAvatarKey(key)).toBeFalsy();
   });
 });
@@ -75,21 +81,21 @@ describe(avatarSizeRejection, () => {
   it.each([
     ["zero bytes", 0],
     ["negative size", -1],
-  ])("rejects %s as empty", (_label, size) => {
+  ])("should return empty when the size is %s", (_label, size) => {
     expect(avatarSizeRejection(size)).toBe("empty");
   });
 
   it.each([
     ["one byte over the ceiling", MAX_AVATAR_BYTES + 1],
     ["far over the ceiling", MAX_AVATAR_BYTES * 10],
-  ])("rejects %s as too-large", (_label, size) => {
+  ])("should return too-large when the size is %s", (_label, size) => {
     expect(avatarSizeRejection(size)).toBe("too-large");
   });
 
   it.each([
     ["the smallest non-empty size", 1],
     ["exactly the ceiling", MAX_AVATAR_BYTES],
-  ])("accepts %s", (_label, size) => {
+  ])("should return null when the size is %s", (_label, size) => {
     expect(avatarSizeRejection(size)).toBeNull();
   });
 });

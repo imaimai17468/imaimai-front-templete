@@ -46,7 +46,7 @@ describe(needsThemeNormalization, () => {
     { label: "undefined", theme: undefined },
     { label: "light", theme: "light" },
     { label: "dark", theme: "dark" },
-  ])("should return false for supported theme $label", ({ theme }) => {
+  ])("should return false when the supported theme is $label", ({ theme }) => {
     expect(needsThemeNormalization(theme)).toBeFalsy();
   });
 
@@ -54,7 +54,10 @@ describe(needsThemeNormalization, () => {
     { label: "legacy system", theme: "system" },
     { label: "unrecognized", theme: "high-contrast" },
     { label: "empty string", theme: "" },
-  ])("should return true for out-of-cycle theme $label", ({ theme }) => {
-    expect(needsThemeNormalization(theme)).toBeTruthy();
-  });
+  ])(
+    "should return true when the out-of-cycle theme is $label",
+    ({ theme }) => {
+      expect(needsThemeNormalization(theme)).toBeTruthy();
+    }
+  );
 });
