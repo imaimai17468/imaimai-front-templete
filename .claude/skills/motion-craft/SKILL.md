@@ -551,18 +551,15 @@ Each of these is a finding on sight, and no standard above decides it:
 
 When proposing fixes, prefer earlier moves over later ones:
 
-1. **Delete the animation** (high-frequency / no purpose / keyboard-triggered).
-2. **Reduce it** — shorter duration, smaller transform, fewer properties.
-3. **Fix the easing** — swap `ease-in` -> `ease-out`/custom curve.
-4. **Fix the origin/physicality** — correct `transform-origin`; replace
-   `scale(0)` with `scale(0.95)` + opacity.
-5. **Make it interruptible** — keyframes -> transitions/springs for gestures.
-6. **Move it to the GPU** — layout props -> `transform`/`opacity`.
-7. **Asymmetric timing** — slow the deliberate phase, snap the response.
-8. **Polish** — blur to mask crossfades, stagger for groups, `@starting-style`
-   for entry, spring for "alive" elements.
-9. **Accessibility & cohesion** — add reduced-motion + hover gating; tune to
-   match personality.
+1. **Delete the animation.**
+2. **Reduce it.**
+3. **Fix the easing.**
+4. **Fix the origin and physicality.**
+5. **Make it interruptible.**
+6. **Move it to the GPU.**
+7. **Make the timing asymmetric.**
+8. **Polish it.**
+9. **Fix the accessibility gating and the cohesion.**
 
 ## Review Output Format
 
