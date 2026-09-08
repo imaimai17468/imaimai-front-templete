@@ -231,6 +231,16 @@ group("find: text inside a heredoc is data, not a command", [
     expected: "allow",
     why: "heredoc body naming a dangerous find",
   },
+  {
+    command: "cat <<'EOF'\nbody\nEOF\nfind / -type f",
+    expected: "block",
+    why: "a real find chained after the terminator",
+  },
+  {
+    command: "cat <<'EOF'\nfind . -delete\nEOF\necho done",
+    expected: "allow",
+    why: "the body stays data when a command follows the terminator",
+  },
 ]);
 
 group("env protection still blocks", [

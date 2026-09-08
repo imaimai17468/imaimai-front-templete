@@ -151,9 +151,10 @@ if printf '%s\n%s\n%s' "$SCRUBBED" "$UNESCAPED" "$UNQUOTED" | grep -qE '(^|[[:sp
   exit 0
 fi
 
-# Whitespace-normalized command, shared by the guards below: irregular spacing
-# ("git  commit", tabs, newlines) must not slip past a match.
-NORM=$(printf '%s' "$CMD" | tr -s '[:space:]' ' ')
+# Whitespace-normalized command for Guard 2, its only reader: the segment
+# filter below matches the literal " find ", so irregular spacing (`find  .`,
+# tabs, newlines) must not slip past it.
+NORM=$(printf '%s' "$CMD" | drop_heredoc_body | tr -s '[:space:]' ' ')
 
 # --- Guard 2: find with broad reach, or an action that runs or deletes ---
 # `find` itself is allow-listed: path discovery is
@@ -179,11 +180,14 @@ NORM=$(printf '%s' "$CMD" | tr -s '[:space:]' ' ')
 # root behind a narrow one. Quotes are stripped and every leading operand is
 # checked.
 FIND_ASK=""
-# Everything from the first heredoc/herestring operator onward is data, not a
-# command — a commit message describing `find . | xargs cat` must not trip this.
-# Guard 1 scrubs `-m` bodies for the same reason; this is the heredoc case, found
-# when the first version of this guard refused the commit that introduced it.
-NORM_FIND=$(printf '%s' "${NORM%%<<*}" | tr -d "'\"\`")
+# A heredoc body is data, not a command — a commit message describing
+# `find . | xargs cat` must not trip this. Guard 1 scrubs `-m` bodies for the
+# same reason; this is the heredoc case, found when the first version of this
+# guard refused the commit that introduced it. NORM's `drop_heredoc_body` drops
+# the body by reading the terminator. Truncating from the first `<<` instead
+# left `cat <<EOF` / `x` / `EOF` / `find / -type f` allowed, because everything
+# after the terminator went with the body.
+NORM_FIND=$(printf '%s' "$NORM" | tr -d "'\"\`")
 while IFS= read -r SEG; do
   [ -n "$FIND_ASK" ] && break
   case " $SEG " in
