@@ -116,7 +116,21 @@ if [ -n "$TEXT_FLAG_PATTERN" ]; then
     }
   ')
 fi
-if printf '%s' "$SCRUBBED" | grep -qE '(^|[[:space:]"'\''`={}:,;&|<>(/-])\.env(\.(local|development|production))?([[:space:]"'\''`{}:,;&|<>)*]|$)'; then
+# `.env` is one of several spellings the shell turns into the same filename: it
+# drops a backslash and a quote pair from a word, so `.e\nv`, `.en"v"` and
+# `.e''nv` all reach the file (each printed `.env` on 2026-09-08). The grep gets
+# the command text and both undecorated forms as three lines, and matching any
+# one of them refuses the command, so no spelling this normalizes can cost a
+# block that the raw text already earned. Replacing the text with the
+# undecorated form instead would have cost one: `"` and `'` are members of the
+# character classes below, and dropping them turns `cat -b'.env'` into
+# `cat -b.env`, whose `b` those classes do not list.
+UNESCAPED=${SCRUBBED//\\/}
+UNQUOTED=${UNESCAPED//[\"\']/}
+# The set before `.env` decides which tokens count as the filename. `@` joined
+# it because `gh api -F key=@FILE` reads the file named after the `@` (gh
+# 2.86.0), and `curl -d @FILE` and `curl -F name=@FILE` read it too.
+if printf '%s\n%s\n%s' "$SCRUBBED" "$UNESCAPED" "$UNQUOTED" | grep -qE '(^|[[:space:]"'\''`=@{}:,;&|<>(/-])\.env(\.(local|development|production))?([[:space:]"'\''`{}:,;&|<>)*]|$)'; then
   deny "PreToolUse(Bash): this command references a protected env file (.env / .env.local / .env.development / .env.production). Reading or writing these is denied regardless of tool. Use .env.local.example for documented placeholders. To write the filename as prose, put it in a quoted body of \`git\` -m/--message or of \`gh\` --body/--title/--subject: a single-quoted body is read as prose, a double-quoted one only when the command contains no \$(, \${ or backtick."
   exit 0
 fi
