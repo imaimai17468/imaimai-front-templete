@@ -151,8 +151,7 @@ For each category in scope, inspect the codebase, configuration, and running app
 | 63 | The DB has appropriate indexes | Check the indexes in the schema definition |
 
 Items 59–63 are static heuristics, and passing them is not a Core Web Vitals
-measurement. For real LCP / CLS / INP traces run the `page-audit` skill, which
-item 58 also delegates to.
+measurement. For real LCP / CLS / INP traces run the `page-audit` skill.
 
 ### Multi-Environment
 
@@ -231,9 +230,5 @@ If a previous report exists in `docs/launch-checklist/`, compare results. Note n
 
 ### 5. Fix issues (if requested)
 
-If the user asks to fix issues after the report, address them in priority order:
-1. Critical security issues
-2. SEO / OGP issues affecting discoverability
-3. Performance issues
-4. Accessibility issues
-5. Other items
+If the user asks to fix issues after the report, work through the report's
+`## Action Items` in the order that section lists them.

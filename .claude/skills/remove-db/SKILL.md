@@ -11,12 +11,9 @@ Strips the template down to a frontend-only TanStack Start app by removing:
 - Cloudflare R2 (avatar storage)
 - Better Auth (Google OAuth)
 
-**The Cloudflare Workers deployment is deliberately kept.** `wrangler.toml`,
-`src/ssr.tsx`, the `@cloudflare/vite-plugin` wiring, `wrangler`, and the
-`deploy` / `preview` / `cf-typegen` scripts all stay, so `bun run deploy` keeps
-working the moment this procedure finishes. Only the *bindings* (D1, R2) and the
-auth vars leave `wrangler.toml`. Removing D1 and removing the hosting platform
-are separate concerns, and this skill does the first one only.
+**The Cloudflare Workers deployment is deliberately kept.** Only the *bindings*
+(D1, R2) and the auth vars leave `wrangler.toml`, so `bun run deploy` keeps
+working the moment this procedure finishes.
 
 What else stays: the app shell, shared UI (`src/components/ui`, header,
 mode-toggle, theme-provider), the sample home page, and the oxlint / oxfmt /
@@ -249,12 +246,10 @@ and strip every reference to the database, auth, and storage layer: D1, R2,
 Drizzle, Better Auth, Google OAuth, `BETTER_AUTH_*`, and the deleted `src/`
 paths.
 
-Do not expect a list of individual lines here. Earlier revisions of this skill
-carried one and it was wrong every time: an enumeration goes stale as soon as
-those documents change, and step 7's greps only catch references that contain a
-matching literal. `README.md`'s quickstart, for instance, still copies the env
-example file this procedure deletes without naming any of the terms. Reading is
-the check, and the greps are a backstop.
+Do not expect a list of individual lines here. An enumeration goes stale as soon
+as those documents change, and step 7's greps only catch references that contain
+a matching literal. `README.md`'s quickstart, for instance, still copies the env
+example file this procedure deletes without naming any of the terms.
 
 Surfaces to go through: `README.md`, `docs/DEPLOYMENT.md`, `docs/FORKING.md`,
 and `.claude/settings.json`.

@@ -38,10 +38,6 @@ When the user wants to understand a rule, disagrees with one, or wants to disabl
 
 ## Command
 
-```bash
-bun run doctor --verbose --scope changed
-```
-
 | Option            | Purpose                                                        |
 | ----------------- | -------------------------------------------------------------- |
 | `--verbose`       | Show every rule and per-file details (default shows the top 3)  |
