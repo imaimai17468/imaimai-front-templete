@@ -3,17 +3,19 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { globSync } from "tinyglobby";
 import { describe, expect, it, onTestFinished } from "vite-plus/test";
 import { coverageExclude } from "./vitest.config.mts";
 
 const ROOT = import.meta.dirname;
 
-// `globSync` takes a literal path and a wildcard pattern alike, and it reads
-// the working tree, so a module written but not yet committed counts as
-// present.
+// tinyglobby with `dot` and `onlyFiles` is what vitest expands these patterns
+// with, so a pattern that selects only a directory, and one that selects only
+// a dotted path, are counted here the way the coverage gate counts them.
 const stalePatterns = (patterns: readonly string[], root: string): string[] =>
   patterns.filter(
-    (pattern) => fs.globSync(pattern, { cwd: root }).length === 0
+    (pattern) =>
+      globSync(pattern, { cwd: root, dot: true, onlyFiles: true }).length === 0
   );
 
 /**
@@ -44,4 +46,13 @@ describe("coverage.exclude", () => {
       expect(stalePatterns([pattern], root)).toStrictEqual([pattern]);
     }
   );
+
+  it("should report a pattern as stale when the directory it selects holds no file", () => {
+    const root = treeWithOneModule();
+    fs.mkdirSync(path.join(root, "src/empty"));
+
+    expect(stalePatterns(["src/empty/**"], root)).toStrictEqual([
+      "src/empty/**",
+    ]);
+  });
 });
