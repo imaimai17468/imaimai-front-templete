@@ -31,14 +31,19 @@ describe(Badge, () => {
     }).toStrictEqual({ tagName: "A", slot: "badge", variant: "outline" });
   });
 
-  it("should keep the caller's class when className conflicts with a variant class", () => {
+  it("should drop only the conflicting base class when className overrides one of them", () => {
     render(<Badge className="rounded-md">Tag</Badge>);
 
     const badge = screen.getByText("Tag");
 
     expect({
       hasCaller: badge.classList.contains("rounded-md"),
-      hasVariant: badge.classList.contains("rounded-full"),
-    }).toStrictEqual({ hasCaller: true, hasVariant: false });
+      hasConflictingBase: badge.classList.contains("rounded-full"),
+      hasUnrelatedBase: badge.classList.contains("inline-flex"),
+    }).toStrictEqual({
+      hasCaller: true,
+      hasConflictingBase: false,
+      hasUnrelatedBase: true,
+    });
   });
 });
