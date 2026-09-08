@@ -171,16 +171,6 @@ export const localVerdict = (isDirty: boolean): WorktreeVerdict | undefined =>
   isDirty ? { kind: "keep", reason: "uncommitted changes" } : undefined;
 
 /**
- * The pull request of a branch that `gh pr list` returned newest first. An open
- * one wins over a newer finished one, because keeping a worktree that could
- * have gone costs a directory where the reverse costs the directory itself.
- */
-export const livePullRequest = (
-  rows: readonly PullRequest[]
-): PullRequest | undefined =>
-  rows.find((row) => row.state === "OPEN") ?? rows[0];
-
-/**
  * Whether a finished worker's worktree can go. `pr` is the pull request GitHub
  * reports for the branch, or undefined when the branch has none, and `run`
  * holds the pull request numbers the caller named. A worktree outside that set

@@ -30,7 +30,6 @@ import {
   formatVerdict,
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
-  livePullRequest,
   localVerdict,
   prNumbers,
   watchEvent,
@@ -141,24 +140,32 @@ const isPullRequest = (value: unknown): value is PullRequest =>
   "headRefOid" in value &&
   typeof value.headRefOid === "string";
 
-const prOf = (branch: string): PullRequest | undefined => {
+const branchPr = (branch: string, state: string): PullRequest | undefined => {
   const parsed: unknown = JSON.parse(
     run("gh", [
       "pr",
       "list",
       "--state",
-      "all",
+      state,
       "--head",
       branch,
       "--limit",
-      "20",
+      "1",
       "--json",
       "headRefOid,number,state",
     ])
   );
-  const rows: readonly unknown[] = Array.isArray(parsed) ? parsed : [];
-  return livePullRequest(rows.filter(isPullRequest));
+  const first: unknown = Array.isArray(parsed) ? parsed[0] : undefined;
+  return isPullRequest(first) ? first : undefined;
 };
+
+/**
+ * The branch's pull request. An open one is asked for on its own, because a
+ * branch whose open pull request was reopened long ago can sit behind any
+ * number of newer finished ones in a single listing.
+ */
+const prOf = (branch: string): PullRequest | undefined =>
+  branchPr(branch, "open") ?? branchPr(branch, "all");
 
 const headSha = (path: string): string =>
   run("git", ["-C", path, "rev-parse", "HEAD"]).trim();
