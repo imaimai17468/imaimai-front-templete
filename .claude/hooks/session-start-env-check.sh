@@ -53,7 +53,7 @@ node -e 'if (typeof require("node:module").registerHooks !== "function") process
 if [ "${#MISSING[@]}" -gt 0 ]; then
   echo "[env-check] This session runs DEGRADED — missing gate dependencies:"
   printf '  - %s\n' "${MISSING[@]}"
-  echo "[env-check] Per AGENTS.md 'Degraded environments': state the degrade to the user once, and do not treat skipped checks as passed."
+  echo "[env-check] Per AGENTS.md 'Degraded Environments': state the degrade to the user once, and do not treat skipped checks as passed."
 else
   echo "[env-check] Gate dependencies present (jq, bun, similarity-ts, mise, node with module.registerHooks, lefthook hooks installed, node_modules)."
 fi
