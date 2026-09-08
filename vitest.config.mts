@@ -24,6 +24,7 @@ export default defineConfig({
       // アダプタと実行スクリプト。
       include: ["src/**/*.ts", "tools/**/*.{ts,js}", "scripts/**/*.ts"],
       exclude: [
+        "scripts/check-cursor-rule-mirrors.ts",
         "scripts/check-toolchain-pins.ts",
         "scripts/orchestrate.ts",
         "scripts/test-bash-guard.ts",

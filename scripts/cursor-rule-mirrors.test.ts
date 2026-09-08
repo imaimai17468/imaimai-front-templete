@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 /**
- * Exercise check-cursor-rule-mirrors.ts against the arrangements it must judge.
+ * Exercise cursor-rule-mirrors.ts against the arrangements it must judge.
  *
  * Each case builds real files and real symlinks under a temp directory, then
  * breaks the arrangement one way. A fixture made of plain data would not reach
@@ -13,7 +13,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vite-plus/test";
-import { main, mirrorReport } from "./check-cursor-rule-mirrors";
+import { main, mirrorReport } from "./cursor-rule-mirrors";
 
 const WORK = fs.mkdtempSync(path.join(os.tmpdir(), "cursor-rule-mirrors-"));
 const RULE_NAMES = ["alpha", "beta"];
