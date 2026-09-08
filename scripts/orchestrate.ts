@@ -30,9 +30,10 @@ import {
   freeGibFromMemoryPressure,
   prNumbers,
   watchEvent,
+  worktreeProbe,
   worktreeVerdict,
 } from "./orchestrate-decisions";
-import type { PrRow, Worktree } from "./orchestrate-decisions";
+import type { PrRow, Worktree, WorktreeVerdict } from "./orchestrate-decisions";
 
 const POLL_MS = 60_000;
 
@@ -153,31 +154,35 @@ const prStateOf = (branch: string): string | undefined => {
 const isDirty = (path: string): boolean =>
   run("git", ["-C", path, "status", "--porcelain"]).trim() !== "";
 
-const removeWorktree = (worktree: Worktree): void => {
+const removeWorktree = (worktree: Worktree, branch: string): void => {
   if (worktree.locked) {
     run("git", ["worktree", "unlock", worktree.path]);
   }
   run("git", ["worktree", "remove", worktree.path]);
-  if (worktree.branch !== undefined) {
-    run("git", ["branch", "-D", worktree.branch]);
+  run("git", ["branch", "-D", branch]);
+};
+
+const verdictFor = (worktree: Worktree): WorktreeVerdict => {
+  const probe = worktreeProbe(worktree);
+  if (probe.kind === "verdict") {
+    return probe.verdict;
   }
+  const verdict = worktreeVerdict(
+    isDirty(worktree.path),
+    prStateOf(probe.branch)
+  );
+  if (verdict.kind === "remove") {
+    removeWorktree(worktree, probe.branch);
+  }
+  return verdict;
 };
 
 const cleanWorktrees = (): void => {
-  const worktrees = agentWorktrees(
-    run("git", ["worktree", "list", "--porcelain"])
-  );
-  worktrees.forEach((worktree) => {
-    const verdict = worktreeVerdict(
-      worktree,
-      isDirty(worktree.path),
-      worktree.branch === undefined ? undefined : prStateOf(worktree.branch)
-    );
-    if (verdict.kind === "remove") {
-      removeWorktree(worktree);
+  agentWorktrees(run("git", ["worktree", "list", "--porcelain"])).forEach(
+    (worktree) => {
+      console.log(formatVerdict(worktree, verdictFor(worktree)));
     }
-    console.log(formatVerdict(worktree, verdict));
-  });
+  );
 };
 
 const [command, ...rest] = process.argv.slice(2);

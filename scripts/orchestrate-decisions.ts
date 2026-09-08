@@ -100,6 +100,7 @@ export interface Worktree {
   readonly branch: string | undefined;
   readonly locked: boolean;
   readonly path: string;
+  readonly prunable: boolean;
 }
 
 const HOME_SEGMENT = "/.claude/worktrees/";
@@ -124,6 +125,7 @@ export const agentWorktrees = (porcelain: string): readonly Worktree[] =>
         branch,
         locked: lines.some((line) => line.startsWith("locked")),
         path: path ?? "",
+        prunable: lines.some((line) => line.startsWith("prunable")),
       };
     })
     .filter((worktree) => worktree.path.includes(HOME_SEGMENT));
@@ -132,20 +134,35 @@ export type WorktreeVerdict =
   | { readonly kind: "keep"; readonly reason: string }
   | { readonly kind: "remove" };
 
+export type WorktreeProbe =
+  | { readonly branch: string; readonly kind: "probe" }
+  | { readonly kind: "verdict"; readonly verdict: WorktreeVerdict };
+
+/**
+ * What the porcelain entry alone decides. A prunable entry names a directory
+ * that is already gone, so every later step, starting with reading its status,
+ * would fail on it.
+ */
+export const worktreeProbe = (worktree: Worktree): WorktreeProbe => {
+  if (worktree.prunable) {
+    return { kind: "verdict", verdict: { kind: "keep", reason: "prunable" } };
+  }
+  if (worktree.branch === undefined) {
+    return { kind: "verdict", verdict: { kind: "keep", reason: "detached" } };
+  }
+  return { branch: worktree.branch, kind: "probe" };
+};
+
 /**
  * Whether a finished worker's worktree can go. `prState` is the state GitHub
  * reports for the branch's pull request, or undefined when the branch has none.
- * Only a branch whose PR is finished is removable, so a worker that has not
- * opened its PR yet keeps its worktree.
+ * Only a branch whose pull request is finished is removable, so a worker that
+ * has not opened one yet keeps its worktree.
  */
 export const worktreeVerdict = (
-  worktree: Worktree,
   isDirty: boolean,
   prState: string | undefined
 ): WorktreeVerdict => {
-  if (worktree.branch === undefined) {
-    return { kind: "keep", reason: "detached" };
-  }
   if (isDirty) {
     return { kind: "keep", reason: "uncommitted changes" };
   }

@@ -7,11 +7,14 @@ import {
   freeGibFromMemoryPressure,
   prNumbers,
   watchEvent,
+  worktreeProbe,
   worktreeVerdict,
 } from "./orchestrate-decisions";
 import type { Worktree, PrRow } from "./orchestrate-decisions";
 
 const GIB = 1024 ** 3;
+
+const NO_PULL_REQUEST: string | undefined = undefined;
 
 describe(freeGibFromMemoryPressure, () => {
   it("should multiply the free percentage by the machine's memory when the percentage line is present", () => {
@@ -178,6 +181,7 @@ const PORCELAIN = [
   "worktree /repo/.claude/worktrees/agent-1\nHEAD def\nbranch refs/heads/feat/one",
   "worktree /repo/.claude/worktrees/agent-2\nHEAD 012\nbranch refs/heads/feat/two\nlocked claude agent",
   "worktree /repo/.claude/worktrees/agent-3\nHEAD 345\ndetached",
+  "worktree /repo/.claude/worktrees/agent-4\nHEAD 901\nbranch refs/heads/feat/four\nprunable gitdir file points to non-existent location",
   "worktree /elsewhere/hand-made\nHEAD 678\nbranch refs/heads/feat/three",
   "",
 ].join("\n\n");
@@ -190,6 +194,7 @@ describe(agentWorktrees, () => {
       "/repo/.claude/worktrees/agent-1",
       "/repo/.claude/worktrees/agent-2",
       "/repo/.claude/worktrees/agent-3",
+      "/repo/.claude/worktrees/agent-4",
     ]);
   });
 
@@ -200,6 +205,7 @@ describe(agentWorktrees, () => {
       branch: "feat/two",
       locked: true,
       path: "/repo/.claude/worktrees/agent-2",
+      prunable: false,
     });
   });
 
@@ -210,13 +216,25 @@ describe(agentWorktrees, () => {
       branch: undefined,
       locked: false,
       path: "/repo/.claude/worktrees/agent-3",
+      prunable: false,
+    });
+  });
+
+  it("should mark the worktree prunable when git reports its directory gone", () => {
+    const worktrees = agentWorktrees(PORCELAIN);
+
+    expect(worktrees[3]).toStrictEqual({
+      branch: "feat/four",
+      locked: false,
+      path: "/repo/.claude/worktrees/agent-4",
+      prunable: true,
     });
   });
 
   it("should return no extra worktree when the list ends with the blank block git prints", () => {
     const worktrees = agentWorktrees(PORCELAIN);
 
-    expect(worktrees).toHaveLength(3);
+    expect(worktrees).toHaveLength(4);
   });
 
   it("should return no worktree when the list holds none under .claude/worktrees", () => {
@@ -232,25 +250,38 @@ const worktree = (): Worktree => ({
   branch: "feat/one",
   locked: false,
   path: "/repo/.claude/worktrees/agent-1",
+  prunable: false,
 });
 
-const NO_PULL_REQUEST: string | undefined = undefined;
+describe(worktreeProbe, () => {
+  it("should keep the worktree when git reports it prunable", () => {
+    const probe = worktreeProbe({ ...worktree(), prunable: true });
 
-const detached: Worktree = {
-  branch: undefined,
-  locked: false,
-  path: "/repo/.claude/worktrees/agent-1",
-};
-
-describe(worktreeVerdict, () => {
-  it("should keep the worktree when it is detached", () => {
-    const verdict = worktreeVerdict(detached, false, "MERGED");
-
-    expect(verdict).toStrictEqual({ kind: "keep", reason: "detached" });
+    expect(probe).toStrictEqual({
+      kind: "verdict",
+      verdict: { kind: "keep", reason: "prunable" },
+    });
   });
 
+  it("should keep the worktree when it is detached", () => {
+    const probe = worktreeProbe({ ...worktree(), branch: undefined });
+
+    expect(probe).toStrictEqual({
+      kind: "verdict",
+      verdict: { kind: "keep", reason: "detached" },
+    });
+  });
+
+  it("should return the branch to probe when the worktree is neither prunable nor detached", () => {
+    const probe = worktreeProbe(worktree());
+
+    expect(probe).toStrictEqual({ branch: "feat/one", kind: "probe" });
+  });
+});
+
+describe(worktreeVerdict, () => {
   it("should keep the worktree when it holds uncommitted changes", () => {
-    const verdict = worktreeVerdict(worktree(), true, "MERGED");
+    const verdict = worktreeVerdict(true, "MERGED");
 
     expect(verdict).toStrictEqual({
       kind: "keep",
@@ -259,25 +290,25 @@ describe(worktreeVerdict, () => {
   });
 
   it("should keep the worktree when its branch has no pull request", () => {
-    const verdict = worktreeVerdict(worktree(), false, NO_PULL_REQUEST);
+    const verdict = worktreeVerdict(false, NO_PULL_REQUEST);
 
     expect(verdict).toStrictEqual({ kind: "keep", reason: "no pull request" });
   });
 
   it("should remove the worktree when its pull request is merged", () => {
-    const verdict = worktreeVerdict(worktree(), false, "MERGED");
+    const verdict = worktreeVerdict(false, "MERGED");
 
     expect(verdict).toStrictEqual({ kind: "remove" });
   });
 
   it("should remove the worktree when its pull request is closed", () => {
-    const verdict = worktreeVerdict(worktree(), false, "CLOSED");
+    const verdict = worktreeVerdict(false, "CLOSED");
 
     expect(verdict).toStrictEqual({ kind: "remove" });
   });
 
   it("should keep the worktree when its pull request is still open", () => {
-    const verdict = worktreeVerdict(worktree(), false, "OPEN");
+    const verdict = worktreeVerdict(false, "OPEN");
 
     expect(verdict).toStrictEqual({
       kind: "keep",
