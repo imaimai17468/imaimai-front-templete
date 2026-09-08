@@ -5,6 +5,9 @@
 #    grep, head, tail, redirections) could walk around it.
 # 2. find gate — prompt for the `find` shapes that reach past the deny list or
 #    run/delete, while leaving scoped path discovery unattended.
+# 3. git add gate — refuse a `git add` (or its `git stage` synonym) whose
+#    operands are not explicit paths, because a blanket stage puts files in the
+#    commit that nobody chose.
 
 set -euo pipefail
 
@@ -237,6 +240,174 @@ if [ -n "$FIND_ASK" ]; then
   # already-allowed command is unstated, and a guard that silently does nothing
   # is worse than a strict one. Revisit if that behaviour is ever confirmed.
   deny "PreToolUse(Bash): this \`find\` is refused because ${FIND_ASK}. A find scoped to a subdirectory, without -exec/-execdir/-ok/-okdir/-delete/-fprint/-fls, runs unattended — narrow it if that is enough. If the broad form is genuinely needed, ask the user to run it."
+  exit 0
+fi
+
+# --- Guard 3: a git add whose operands are not explicit paths ---
+# `-A`, `--all` and `--no-ignore-removal` stage every change in the worktree and
+# `-u`/`--update` every tracked one; `.`, `./`, `..`, `/` and a bare `*` name no
+# file of their own; a glob in an operand's first component reaches the whole
+# tree, so `git add '*.ts'` from the root staged every `.ts` in the scratch
+# repository; `:/` and `:(top)` each staged all of it from a subdirectory; and
+# `git stage` ran the same builtin (git 2.50.1, 2026-09-08). `git add -p` keeps
+# working: it selects hunks instead of sweeping the tree.
+#
+# The text is Guard 1's SCRUBBED, so a `git`/`gh` message body quoting a refused
+# shape stays prose, plus one more heredoc drop so a body written under any other
+# command is prose too. The command is then split on `;|&()` and on newlines,
+# because the shapes a reviewer used against Guard 2 reach this guard as well:
+# `git add "."`, `git  add  -A`, `git status && git add -A`, and
+# `GIT_DIR=x git add .`.
+#
+# `git` has to open the segment, behind nothing but assignments and a wrapper
+# such as `env`, `sh -c` or `xargs`. That anchor is what leaves
+# `rg 'git add .' src` unattended instead of refusing a search for the text it
+# looks for. Two routes stay out of reach: a shell function or a script file,
+# which no token walk sees, and an operand that only the shell can resolve, so
+# `git add "$FILE"` and `git add $(git diff --name-only)` pass as named paths.
+# This binds the habit rather than a deliberate bypass.
+#
+# The shell drops a quote pair and a backslash from a word, so `g""it`, `\-A`
+# and `\*` all reach git undecorated; Guard 1 normalizes the same two
+# decorations at UNQUOTED for the same reason. Both run as parameter
+# expansions, so neither forks a `tr`, and both run before the early-out below,
+# which otherwise let `g""it add -A` past with no literal `git` in its text.
+ADD_PLAIN=${SCRUBBED//[\"\'\`]/}
+ADD_PLAIN=${ADD_PLAIN//\\/}
+# Only a segment a literal `git` opens can be refused, so a command whose text
+# holds no `git` leaves before the awk fork below. This hook runs on every Bash
+# call, and on `ls -la` over two rounds of 60 interleaved runs it took 173 ms
+# and 184 ms with this case against 181 ms and 203 ms without it (a machine
+# under parallel load, 2026-09-08). Guard 3 is the last guard, so exiting here
+# and reaching the end of the file do the same thing.
+case "$ADD_PLAIN" in
+  *git*) ;;
+  *) exit 0 ;;
+esac
+ADD_REFUSED=""
+# A line of the split that reads `EOF` does not end the heredoc below, because
+# bash finds that delimiter in the script text before expanding anything into
+# the body.
+ADD_TEXT=$(printf '%s' "$ADD_PLAIN" | drop_heredoc_body)
+ADD_SEGMENTS=${ADD_TEXT//[;|\&()]/$'\n'}
+# A bare `*` operand has to survive word splitting as itself rather than
+# expanding to the working directory's entries.
+set -f
+while IFS= read -r SEG; do
+  STATE=prefix
+  SKIP_VALUE=0
+  SUB=""
+  HAS_SELECTION=0
+  for TOK in $SEG; do
+    if [ "$SKIP_VALUE" -eq 1 ]; then
+      SKIP_VALUE=0
+      continue
+    fi
+    case "$STATE" in
+      prefix)
+        case "$TOK" in
+          git) STATE=subcommand ;;
+          # An assignment, a redirect, a command that runs another command, or
+          # such a command's own flag or count (`timeout 5`) stands between the
+          # start of the segment and the git it runs.
+          *=* | -* | *'>'* | *'<'* | [0-9]* | env | command | exec | eval | xargs | sh | bash | zsh | sudo | time | timeout | nohup) ;;
+          *) break ;;
+        esac
+        ;;
+      subcommand)
+        case "$TOK" in
+          # git's own options that take the following token as their value
+          # (`git --help`, git 2.50.1). Skipping the value keeps a value that
+          # happens to read like a subcommand from ending the walk.
+          -C | -c | --git-dir | --work-tree | --namespace | --exec-path | --config-env)
+            SKIP_VALUE=1
+            ;;
+          -*) ;;
+          add | stage)
+            SUB=$TOK
+            STATE=operands
+            ;;
+          *) break ;;
+        esac
+        ;;
+      operands)
+        case "$TOK" in
+          --all | --no-ignore-removal)
+            ADD_REFUSED="\`${TOK}\` stages every change in the worktree instead of the paths you name"
+            break
+            ;;
+          --update)
+            ADD_REFUSED="\`--update\` stages every tracked change in the worktree instead of the paths you name"
+            break
+            ;;
+          --patch | --interactive | --edit) HAS_SELECTION=1 ;;
+          --*) ;;
+          -*)
+            # git clusters its short options (`git add -Av` staged the whole
+            # scratch repository), so the letters are read one by one.
+            case "${TOK#-}" in
+              *A*)
+                ADD_REFUSED="the short option -A stages every change in the worktree instead of the paths you name"
+                break
+                ;;
+              *u*)
+                ADD_REFUSED="the short option -u stages every tracked change in the worktree instead of the paths you name"
+                break
+                ;;
+              *[pie]*) HAS_SELECTION=1 ;;
+            esac
+            ;;
+          :*)
+            ADD_REFUSED="an operand begins with \`:\`, so it is pathspec magic rather than a path: \`:\` is the working directory, and \`:/\` and \`:(top)\` are the repository root"
+            break
+            ;;
+          *)
+            # Strip the punctuation a path is built from. An operand left empty
+            # spells the working directory, a parent, a root or a glob, and
+            # names no file of its own.
+            if [ -z "${TOK//[.*?~\/]/}" ]; then
+              ADD_REFUSED="\`${TOK}\` names no file or directory of its own"
+              break
+            fi
+            # A glob in the first path component starts its match at the top:
+            # `git add '*.ts'` from the repository root staged every `.ts` in
+            # the tree, including the ones nobody listed. A glob further down
+            # (`src/components/ui/*.tsx`) is bounded by the directory named
+            # ahead of it.
+            case "${TOK%%/*}" in
+              *[*?]*)
+                ADD_REFUSED="the first path component of \`${TOK}\` is a glob, so it matches names you did not list"
+                break
+                ;;
+            esac
+            HAS_SELECTION=1
+            ;;
+        esac
+        ;;
+    esac
+  done
+  # An allowed invocation either names a path or selects hunks. This branch is
+  # what makes that the rule rather than a list of bad flags, and it is the only
+  # refusal that `--pathspec-from-file=paths.txt` and
+  # `git diff --name-only | xargs git add` reach: both take their operands from
+  # somewhere the command text does not show. A bare `git add` stages nothing by
+  # itself and prints `hint: Maybe you wanted to say 'git add .'?`
+  # (git 2.50.1), so the refusal names the right form before the hint names the
+  # wrong one.
+  if [ -z "$ADD_REFUSED" ] && [ -n "$SUB" ] && [ "$HAS_SELECTION" -eq 0 ]; then
+    ADD_REFUSED="it names no path to stage"
+  fi
+  # The loop body runs in this shell, so SUB survives the break and names the
+  # subcommand the refusal came from.
+  if [ -n "$ADD_REFUSED" ]; then
+    break
+  fi
+done <<EOF
+$ADD_SEGMENTS
+EOF
+set +f
+if [ -n "$ADD_REFUSED" ]; then
+  deny "PreToolUse(Bash): this \`git ${SUB}\` is refused because ${ADD_REFUSED}. Name the files this commit needs (\`git add src/foo.ts src/bar.ts\`), and take part of a file with \`git add -p\`. \`git status --short\` lists what changed."
   exit 0
 fi
 
