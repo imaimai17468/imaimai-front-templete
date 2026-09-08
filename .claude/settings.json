@@ -6,6 +6,7 @@
       "WebSearch",
       "WebFetch",
       "Bash(bun scripts/orchestrate.ts *)",
+      "Bash(bun run setup)",
       "Bash(bun run check)",
       "Bash(bun run typecheck)",
       "Bash(bun run test)",
