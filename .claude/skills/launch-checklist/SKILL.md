@@ -151,8 +151,7 @@ For each category in scope, inspect the codebase, configuration, and running app
 | 63 | The DB has appropriate indexes | Check the indexes in the schema definition |
 
 Items 59–63 are static heuristics, and passing them is not a Core Web Vitals
-measurement. For real LCP / CLS / INP traces run the `page-audit` skill, which
-item 58 also delegates to.
+measurement. For real LCP / CLS / INP traces run the `page-audit` skill.
 
 ### Multi-Environment
 
