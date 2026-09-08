@@ -180,6 +180,9 @@ export const main = (argv: readonly string[]): number => {
 };
 
 const [, entry] = process.argv;
+// A test importing this module leaves the condition false, and taking the
+// true side would exit the test process, so coverage skips that side.
+/* v8 ignore if */
 if (entry !== undefined && path.resolve(entry) === import.meta.filename) {
   process.exit(main(process.argv.slice(2)));
 }

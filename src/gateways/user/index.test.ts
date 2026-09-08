@@ -200,6 +200,25 @@ describe("updateUserAvatar", () => {
     });
   });
 
+  it("should skip cleanup when the row holds no prior avatar", async () => {
+    const { deps, findAvatarUrl, remove } = makeFakes();
+    findAvatarUrl.mockResolvedValue({ avatarUrl: null });
+
+    const result = await createUserGateway(deps).updateUserAvatar(
+      "user-1",
+      validPng()
+    );
+
+    expect({ removeCalls: remove.mock.calls, result }).toStrictEqual({
+      removeCalls: [],
+      result: {
+        avatarUrl: NEW_URL,
+        cleanup: "complete",
+        success: true,
+      },
+    });
+  });
+
   it("should skip cleanup when the prior image is external", async () => {
     const { deps, findAvatarUrl, remove } = makeFakes();
     findAvatarUrl.mockResolvedValue({
