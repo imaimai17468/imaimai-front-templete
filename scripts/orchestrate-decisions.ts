@@ -213,3 +213,24 @@ export const formatVerdict = (
   }
   return `kept ${worktree.path} (${verdict.reason})`;
 };
+
+const AGENT_BRANCH_PREFIX = "worktree-agent-";
+
+/**
+ * The branches Claude Code makes for its worktrees, minus the ones a worktree
+ * still holds. `git worktree remove` leaves this branch behind, so one ref
+ * accumulates per dispatch.
+ */
+export const strandedAgentBranches = (
+  branches: readonly string[],
+  held: readonly (string | undefined)[]
+): readonly string[] =>
+  branches.filter(
+    (branch) => branch.startsWith(AGENT_BRANCH_PREFIX) && !held.includes(branch)
+  );
+
+/** The one line `clean-worktrees` prints for a branch it tried to delete. */
+export const formatBranch = (branch: string, reason?: string): string =>
+  reason === undefined
+    ? `removed branch ${branch}`
+    : `kept branch ${branch} (${reason})`;

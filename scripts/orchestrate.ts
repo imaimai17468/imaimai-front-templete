@@ -27,11 +27,13 @@ import { setTimeout as delay } from "node:timers/promises";
 import {
   agentWorktrees,
   formatEvent,
+  formatBranch,
   formatVerdict,
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
   localVerdict,
   prNumbers,
+  strandedAgentBranches,
   watchEvent,
   worktreeProbe,
   worktreeVerdict,
@@ -240,12 +242,40 @@ const verdictFor = (
   }
 };
 
+/**
+ * Deletes the branch with `-d`, which refuses one holding a commit main does
+ * not, and returns why it refused. These branches carry no work of their own,
+ * so a refusal means something unexpected is on this one.
+ */
+const deleteMergedBranch = (branch: string): string | undefined => {
+  try {
+    run("git", ["branch", "-d", branch]);
+    return undefined;
+  } catch (error) {
+    return firstLine(error);
+  }
+};
+
 const cleanWorktrees = (numbers: readonly number[]): void => {
-  agentWorktrees(run("git", ["worktree", "list", "--porcelain"])).forEach(
-    (worktree) => {
-      console.log(formatVerdict(worktree, verdictFor(worktree, numbers)));
-    }
+  const worktrees = agentWorktrees(
+    run("git", ["worktree", "list", "--porcelain"])
   );
+  worktrees.forEach((worktree) => {
+    console.log(formatVerdict(worktree, verdictFor(worktree, numbers)));
+  });
+  const held = agentWorktrees(
+    run("git", ["worktree", "list", "--porcelain"])
+  ).map((worktree) => worktree.branch);
+  const names = run("git", [
+    "for-each-ref",
+    "--format=%(refname:short)",
+    "refs/heads/",
+  ])
+    .split("\n")
+    .filter((line) => line !== "");
+  strandedAgentBranches(names, held).forEach((branch) => {
+    console.log(formatBranch(branch, deleteMergedBranch(branch)));
+  });
 };
 
 const [command, ...rest] = process.argv.slice(2);
