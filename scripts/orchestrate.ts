@@ -94,7 +94,7 @@ const prRow = (number: number): PrRow => {
   return parsed;
 };
 
-const ghFailure = (error: unknown): string =>
+const firstLine = (error: unknown): string =>
   (error instanceof Error ? error.message : String(error)).split("\n")[0] ?? "";
 
 /**
@@ -114,7 +114,7 @@ const pollResult = (numbers: readonly number[]): PollResult | undefined => {
       ? undefined
       : { exitCode: 0, line: formatEvent(event) };
   } catch (error) {
-    return { exitCode: 1, line: `gh-failed ${ghFailure(error)}` };
+    return { exitCode: 1, line: `gh-failed ${firstLine(error)}` };
   }
 };
 
@@ -164,14 +164,34 @@ const headSha = (path: string): string =>
 const isDirty = (path: string): boolean =>
   run("git", ["-C", path, "status", "--porcelain"]).trim() !== "";
 
+const RELOCK_REASON = "clean-worktrees could not remove it";
+
 const removeWorktree = (worktree: Worktree, branch: string): void => {
   if (worktree.locked) {
     run("git", ["worktree", "unlock", worktree.path]);
   }
-  run("git", ["worktree", "remove", worktree.path]);
+  try {
+    run("git", ["worktree", "remove", worktree.path]);
+  } catch (error) {
+    if (worktree.locked) {
+      run("git", [
+        "worktree",
+        "lock",
+        "--reason",
+        RELOCK_REASON,
+        worktree.path,
+      ]);
+    }
+    throw error;
+  }
   run("git", ["branch", "-D", branch]);
 };
 
+/**
+ * The verdict, after acting on it. A failure anywhere becomes a `keep` naming
+ * what failed, so one unreachable pull request or one worktree git refuses to
+ * remove leaves the rest of the list examined and reported.
+ */
 const verdictFor = (
   worktree: Worktree,
   numbers: readonly number[]
@@ -180,16 +200,20 @@ const verdictFor = (
   if (probe.kind === "verdict") {
     return probe.verdict;
   }
-  const verdict = worktreeVerdict(
-    isDirty(worktree.path),
-    headSha(worktree.path),
-    prOf(probe.branch),
-    numbers
-  );
-  if (verdict.kind === "remove") {
-    removeWorktree(worktree, probe.branch);
+  try {
+    const verdict = worktreeVerdict(
+      isDirty(worktree.path),
+      headSha(worktree.path),
+      prOf(probe.branch),
+      numbers
+    );
+    if (verdict.kind === "remove") {
+      removeWorktree(worktree, probe.branch);
+    }
+    return verdict;
+  } catch (error) {
+    return { kind: "keep", reason: `failed: ${firstLine(error)}` };
   }
-  return verdict;
 };
 
 const cleanWorktrees = (numbers: readonly number[]): void => {
