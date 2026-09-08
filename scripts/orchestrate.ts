@@ -27,16 +27,20 @@ import { setTimeout as delay } from "node:timers/promises";
 import {
   agentWorktrees,
   formatEvent,
+  branchKeepReason,
+  formatBranch,
   formatVerdict,
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
   localVerdict,
   prNumbers,
+  strandedAgentBranches,
   watchEvent,
   worktreeProbe,
   worktreeVerdict,
 } from "./orchestrate-decisions";
 import type {
+  Ancestry,
   PrRow,
   PullRequest,
   Worktree,
@@ -95,8 +99,8 @@ const prRow = (number: number): PrRow => {
   return parsed;
 };
 
-const firstLine = (error: unknown): string =>
-  (error instanceof Error ? error.message : String(error)).split("\n")[0] ?? "";
+const firstLine = (value: unknown): string =>
+  (value instanceof Error ? value.message : String(value)).split("\n")[0] ?? "";
 
 /**
  * One poll's line and exit code, or undefined while the run needs no attention.
@@ -240,12 +244,76 @@ const verdictFor = (
   }
 };
 
+interface CommandFailure {
+  readonly status: number | null;
+  readonly stderr: string;
+}
+
+const isCommandFailure = (value: unknown): value is CommandFailure =>
+  typeof value === "object" &&
+  value !== null &&
+  "status" in value &&
+  (typeof value.status === "number" || value.status === null) &&
+  "stderr" in value &&
+  typeof value.stderr === "string";
+
+/** What the failing command printed, rather than the wrapper's own message. */
+const commandMessage = (error: unknown): string =>
+  isCommandFailure(error) && error.stderr.trim() !== ""
+    ? firstLine(error.stderr.trim())
+    : firstLine(error);
+
+const NOT_ANCESTOR_STATUS = 1;
+
+/**
+ * Ancestry asked of main by name, where `git branch -d` would ask it of
+ * whichever branch this session happens to have checked out.
+ */
+const ancestryOfMain = (branch: string): Ancestry => {
+  try {
+    run("git", ["merge-base", "--is-ancestor", branch, "main"]);
+    return { kind: "ancestor" };
+  } catch (error) {
+    return isCommandFailure(error) && error.status === NOT_ANCESTOR_STATUS
+      ? { kind: "not-ancestor" }
+      : { kind: "failed", reason: commandMessage(error) };
+  }
+};
+
+/** Deletes the branch once main holds its commits, and returns why it did not. */
+const deleteMergedBranch = (branch: string): string | undefined => {
+  const reason = branchKeepReason(ancestryOfMain(branch));
+  if (reason !== undefined) {
+    return reason;
+  }
+  try {
+    run("git", ["branch", "-D", branch]);
+    return undefined;
+  } catch (error) {
+    return commandMessage(error);
+  }
+};
+
 const cleanWorktrees = (numbers: readonly number[]): void => {
-  agentWorktrees(run("git", ["worktree", "list", "--porcelain"])).forEach(
-    (worktree) => {
-      console.log(formatVerdict(worktree, verdictFor(worktree, numbers)));
-    }
+  const worktrees = agentWorktrees(
+    run("git", ["worktree", "list", "--porcelain"])
   );
+  worktrees.forEach((worktree) => {
+    console.log(formatVerdict(worktree, verdictFor(worktree, numbers)));
+  });
+  const held = agentWorktrees(
+    run("git", ["worktree", "list", "--porcelain"])
+  ).map((worktree) => worktree.branch);
+  const names = run("git", [
+    "for-each-ref",
+    "--format=%(refname:short)",
+    "refs/heads/",
+  ])
+    .split("\n")
+    .filter((line) => line !== "");
+  strandedAgentBranches(names, held).forEach((branch) => {
+    console.log(formatBranch(branch, deleteMergedBranch(branch)));
+  });
 };
 
 const [command, ...rest] = process.argv.slice(2);

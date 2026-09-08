@@ -213,3 +213,45 @@ export const formatVerdict = (
   }
   return `kept ${worktree.path} (${verdict.reason})`;
 };
+
+const AGENT_BRANCH_PREFIX = "worktree-agent-";
+
+/**
+ * The branches Claude Code makes for its worktrees, minus the ones a worktree
+ * still holds. `git worktree remove` leaves this branch behind, so one ref
+ * accumulates per dispatch.
+ */
+export const strandedAgentBranches = (
+  branches: readonly string[],
+  held: readonly (string | undefined)[]
+): readonly string[] =>
+  branches.filter(
+    (branch) => branch.startsWith(AGENT_BRANCH_PREFIX) && !held.includes(branch)
+  );
+
+/** The one line `clean-worktrees` prints for a branch it tried to delete. */
+export const formatBranch = (branch: string, reason?: string): string =>
+  reason === undefined
+    ? `removed branch ${branch}`
+    : `kept branch ${branch} (${reason})`;
+
+/** What `git merge-base --is-ancestor` answered about a branch and main. */
+export type Ancestry =
+  | { readonly kind: "ancestor" }
+  | { readonly kind: "failed"; readonly reason: string }
+  | { readonly kind: "not-ancestor" };
+
+/**
+ * Why a stranded agent branch stays, or undefined when it can go. A check that
+ * could not run is its own answer, because reading it as "not an ancestor"
+ * would keep the branch with a reason naming the wrong cause.
+ */
+export const branchKeepReason = (ancestry: Ancestry): string | undefined => {
+  if (ancestry.kind === "ancestor") {
+    return undefined;
+  }
+  if (ancestry.kind === "not-ancestor") {
+    return "not merged into main";
+  }
+  return `failed: ${ancestry.reason}`;
+};

@@ -5,8 +5,11 @@ import {
   formatVerdict,
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
+  branchKeepReason,
+  formatBranch,
   localVerdict,
   prNumbers,
+  strandedAgentBranches,
   watchEvent,
   worktreeProbe,
   worktreeVerdict,
@@ -376,5 +379,68 @@ describe(formatVerdict, () => {
     });
 
     expect(line).toBe("kept /repo/.claude/worktrees/agent-1 (detached)");
+  });
+});
+
+describe(strandedAgentBranches, () => {
+  it("should return the agent branch when no worktree holds it", () => {
+    const stranded = strandedAgentBranches(
+      ["main", "worktree-agent-1", "feat/one"],
+      ["feat/one"]
+    );
+
+    expect(stranded).toStrictEqual(["worktree-agent-1"]);
+  });
+
+  it("should return no branch when a worktree still holds the agent branch", () => {
+    const stranded = strandedAgentBranches(
+      ["main", "worktree-agent-1"],
+      ["worktree-agent-1"]
+    );
+
+    expect(stranded).toStrictEqual([]);
+  });
+
+  it("should return no branch when a detached worktree reports no branch", () => {
+    const stranded = strandedAgentBranches(["main"], [undefined]);
+
+    expect(stranded).toStrictEqual([]);
+  });
+});
+
+describe(formatBranch, () => {
+  it("should print removed branch when the deletion succeeded", () => {
+    const line = formatBranch("worktree-agent-1");
+
+    expect(line).toBe("removed branch worktree-agent-1");
+  });
+
+  it("should print kept branch with the reason when the deletion refused", () => {
+    const line = formatBranch("worktree-agent-1", "not fully merged");
+
+    expect(line).toBe("kept branch worktree-agent-1 (not fully merged)");
+  });
+});
+
+describe(branchKeepReason, () => {
+  it("should return undefined when main holds the branch commits", () => {
+    const reason = branchKeepReason({ kind: "ancestor" });
+
+    expect(reason).toBeUndefined();
+  });
+
+  it("should name main when the branch holds a commit main does not", () => {
+    const reason = branchKeepReason({ kind: "not-ancestor" });
+
+    expect(reason).toBe("not merged into main");
+  });
+
+  it("should name the failure when the ancestry check could not run", () => {
+    const reason = branchKeepReason({
+      kind: "failed",
+      reason: "fatal: not a git repository",
+    });
+
+    expect(reason).toBe("failed: fatal: not a git repository");
   });
 });
