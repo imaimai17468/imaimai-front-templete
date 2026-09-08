@@ -55,6 +55,7 @@
     "bun pm",
     // bun scripts, enumerated one by one (never `bun run` as a bare prefix);
     // `cmd:args` form so script names containing `:` stay literal
+    "bun:run setup",
     "bun:run lint",
     "bun:run lint:fix",
     "bun:run format",
