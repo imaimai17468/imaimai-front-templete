@@ -60,7 +60,7 @@ When internal state drives a component's behavior or appearance, structure it so
 - **Branching render → a component taking the discriminant as props**: When state selects between visuals, each variant is its own component, and the selection itself is a component whose props carry the discriminating state, typed as a discriminated union so one variant cannot receive another's data. Both are pure props → JSX mappings, so tests render each branch by passing the state directly.
 - **What remains in the parent**: `useState`, handlers calling the transition functions, and JSX passing state down. The parent holds no branch worth testing, so its test is a thin wiring check.
 - **What stays internal**: Presentation-local state with no branch worth testing (hover, a tooltip's open flag) stays inside, because externalizing it couples parents to state that is not their concern. The dividing test is whether a test needs to reach a branch on this value. Where it does, extract as above. Where it does not, keep it internal.
-- **Never expose internals for tests**: no exported setters, no mocked hooks, no test-only props. An initial-state prop (`defaultOpen`) is a real API under "Generic component naming" rather than a test hook, and that tests can start from any state is a byproduct.
+- **Never expose internals for tests**: no exported setters, no test-only props. An initial-state prop (`defaultOpen`) is a real API under "Generic component naming" rather than a test hook, and that tests can start from any state is a byproduct.
 
 # Module Organization
 
