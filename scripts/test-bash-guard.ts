@@ -971,6 +971,29 @@ group("git commit: a message body is the message, not a pathspec", [
     expected: "block",
     why: "a flag written outside the body survives the scrub",
   },
+  // One gsub over the whole record cannot see quote state, so a `-m` inside an
+  // earlier quoted argument matched and the deleted span carried the sweep
+  // between the two quotes with it.
+  {
+    command: `echo 'use -m' && ${COMMIT} -a -m 'x'`,
+    expected: "block",
+    why: "a -m inside an earlier single-quoted argument does not open a body",
+  },
+  {
+    command: `echo "-m" && ${COMMIT} -a -m "x"`,
+    expected: "block",
+    why: "a -m inside an earlier double-quoted argument does not open a body",
+  },
+  {
+    command: `echo 'x -m' && git add -A && ${COMMIT} -m 'y'`,
+    expected: "block",
+    why: "the same shape must not walk around the git add refusal",
+  },
+  {
+    command: `${COMMIT} -m 'x' ; echo 'y -m' ; ${COMMIT} -a -m 'z'`,
+    expected: "block",
+    why: "a fake -m after a real one is still inside quotes",
+  },
 ]);
 
 group("git commit: a pathspec the command text does not show is refused", [

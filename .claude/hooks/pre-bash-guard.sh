@@ -92,10 +92,38 @@ drop_heredoc_body() {
 # intervals are not universal — so `--?m(essage)?` carries both git spellings
 # instead. Guard 1 reads the result to tell prose from file access, Guard 3 to
 # tell a commit message from a pathspec.
+#
+# The loop below carries the parity of quote characters already emitted, and
+# deletes a body only where that parity is even, because one `gsub` over the
+# whole record cannot see quote state and matched a `-m` sitting INSIDE a
+# quoted argument. Its `[^q]*` then ran from that argument's closing quote to
+# the real message's opening quote, so `echo 'use -m' && git commit -a -m 'x'`
+# had `-m' && git commit -a -m '` deleted and reached Guard 3 as `echo 'usex'`.
+# `echo 'x -m' && git add -A && git commit -m 'y'` walked around the `git add`
+# refusal the same way. On odd parity the matched span is emitted unchanged up
+# to the quote that closes that argument, and scanning resumes after it.
 scrub_message_body() { # $1 = the quote character delimiting the body, $2 = flag pattern
   awk -v q="$1" -v flags="$2" '
     BEGIN { RS = "\034" }
-    { gsub(flags "[= ]?" q "[^" q "]*" q, "", $0); printf "%s", $0 }
+    {
+      pattern = flags "[= ]?" q "[^" q "]*" q
+      kept = ""
+      rest = $0
+      while (match(rest, pattern)) {
+        before = substr(rest, 1, RSTART - 1)
+        counted = before
+        if (gsub(q, q, counted) % 2 == 0) {
+          kept = kept before
+          rest = substr(rest, RSTART + RLENGTH)
+        } else {
+          from_flag = substr(rest, RSTART)
+          closes_at = index(from_flag, q)
+          kept = kept before substr(from_flag, 1, closes_at)
+          rest = substr(from_flag, closes_at + 1)
+        }
+      }
+      printf "%s", kept rest
+    }
   '
 }
 
