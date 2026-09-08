@@ -68,7 +68,7 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 **Generated types stay generated:** after any `wrangler.toml` change, run `bun run cf-typegen`. That command writes `worker-configuration.d.ts`, so never hand-edit it.
 
-**Verification before completion:** Never report done without running `bun run check` and `bun run test`, fixing every error. `check` is `vp check`, which formats, lints and type-checks in one pass. A change touching no code skips both. `knip` and `similarity-ts` judge the whole tree rather than your diff, and CI and the pre-push hook run them.
+**Verification before completion:** `knip` and `similarity-ts` judge more than your diff, so the Stop gate runs neither: CI runs `knip` on every pull request, and lefthook's pre-push runs `similarity-ts` over `src/` where that binary is on PATH, skipping the step where it is not. Neither is filtered by which files your change touched, and what either finds is yours to fix.
 
 **Never escape the type system to move on:** no `as` (except `as const`), `any`, `@ts-ignore`/`@ts-expect-error`/`@ts-nocheck`, non-null `!`, or lint-disable comments to silence an error. Fix the type (narrowing, guards, schema validation, `satisfies`). Where you genuinely cannot, dispatch a subagent with the right skill. Where that still fails, leave the PR in Draft with a comment naming the type that will not resolve and report it, and never silently cast or suppress.
 
@@ -100,7 +100,7 @@ Tests are written against the implementation, and test-first is not required. Wh
 - **One test, one `expect`, arranged as Arrange / Act / Assert.** A table-driven case is one test per row and obeys the same rule.
 - **A structural result is asserted as one whole object.** Build what the unit produced, whether that is a set of fields or a response's status and headers, and compare it with `toStrictEqual` in a single `expect`. It fails with the whole shape, where field-by-field expects stop at the first mismatch and hide the rest.
 
-Reaching a component's branches from a test depends on how the component was shaped, and `.claude/rules/react.md` (Testable Behavior Extraction) governs that. Run `bun run test` yourself, because nothing else runs the suite before CI.
+Reaching a component's branches from a test depends on how the component was shaped, and `.claude/rules/react.md` (Testable Behavior Extraction) governs that.
 
 ## Commits & Pull Requests
 
