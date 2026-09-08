@@ -25,7 +25,7 @@ The session's permission mode also changes how a step runs, and only `~/.claude/
 - A `permissions.ask` rule still prompts, and this project's `ask` list is empty.
 - Writes under `.claude/`, apart from `.claude/worktrees`, and writes to `lefthook.yml` reach the classifier whatever `permissions.allow` holds.
 - The classifier reads no `autoMode` block from `.claude/settings.json`, so classifier configuration lives in `~/.claude/settings.json` outside this repository.
-- `claude auto-mode defaults --label 'Merge Without Review'` prints a `soft_deny` rule against merging a pull request before a human has approved it, and only the user's own message naming that action clears it. So settle the merge question with the user before dispatching and quote their words to each worker.
+- `claude auto-mode defaults --label 'Merge Without Review'` prints a `soft_deny` rule against merging a pull request before a human has approved it, and only the user's own message naming that action clears it. The `gh pr merge --squash` that Commits & Pull Requests gives each PR's author is that action, so settle the merge question with the user before dispatching and quote their words to each worker.
 
 ## Design Philosophy
 
