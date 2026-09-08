@@ -172,6 +172,16 @@ const watchPrs = async (branches: readonly string[]): Promise<void> => {
 const isDirty = (path: string): boolean =>
   run("git", ["-C", path, "status", "--porcelain"]).trim() !== "";
 
+/** What git printed when it refused to delete the branch, or undefined. */
+const deleteBranch = (branch: string): string | undefined => {
+  try {
+    run("git", ["branch", "-D", branch]);
+    return undefined;
+  } catch (error) {
+    return commandMessage(error);
+  }
+};
+
 const RELOCK_REASON = "clean-worktrees could not remove it";
 
 /**
@@ -200,12 +210,10 @@ const removeWorktree = (
     }
     throw error;
   }
-  try {
-    run("git", ["branch", "-D", branch]);
-  } catch (error) {
-    return { kind: "branch-kept", reason: commandMessage(error) };
-  }
-  return { kind: "remove" };
+  const reason = deleteBranch(branch);
+  return reason === undefined
+    ? { kind: "remove" }
+    : { kind: "branch-kept", reason };
 };
 
 /**
@@ -288,18 +296,8 @@ const verdictFor = (
  * Main is named, where `git branch -d` would check the branch against its
  * upstream, or against HEAD when it has none.
  */
-const deleteMergedBranch = (branch: string): string | undefined => {
-  const reason = ancestryKeepReason(ancestry(branch, "main"), "main");
-  if (reason !== undefined) {
-    return reason;
-  }
-  try {
-    run("git", ["branch", "-D", branch]);
-    return undefined;
-  } catch (error) {
-    return commandMessage(error);
-  }
-};
+const deleteMergedBranch = (branch: string): string | undefined =>
+  ancestryKeepReason(ancestry(branch, "main"), "main") ?? deleteBranch(branch);
 
 const cleanWorktrees = (branches: readonly string[]): void => {
   const worktrees = agentWorktrees(
