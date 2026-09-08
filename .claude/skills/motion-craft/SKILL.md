@@ -52,13 +52,6 @@ The moment lag appears, the feeling of directness "falls off a cliff."
   For a drag, slider, or drawer, update the UI 1:1 with the pointer the whole
   way through.
 
-```css
-.button:active {
-  transform: scale(0.97);
-  transition: transform 100ms ease-out;
-}
-```
-
 ## 2. Direct manipulation — 1:1 tracking
 
 > "Touch and content should move together."
