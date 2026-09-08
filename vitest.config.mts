@@ -1,6 +1,6 @@
 import path from "node:path";
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite-plus";
+import { defaultExclude, defineConfig } from "vite-plus";
 
 export default defineConfig({
   resolve: {
@@ -16,6 +16,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     isolate: false,
+    exclude: [...defaultExclude, ".claude/worktrees/**"],
     setupFiles: ["./src/test-setup.ts"],
     // include が対象の全リスト。新しい純関数モジュールを
     // テスト付きで追加したらここにも足す。
