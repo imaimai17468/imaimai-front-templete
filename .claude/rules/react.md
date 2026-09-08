@@ -1,8 +1,8 @@
 ---
 description: Purity and the calling rules from the Rules of React, then effects, component splitting, testable shape, and module organization
-globs: **/*.tsx
+globs: src/**/*.ts,src/**/*.tsx
 alwaysApply: false
-paths: **/*.tsx
+paths: src/**/*.ts, src/**/*.tsx
 ---
 
 # React Purity
