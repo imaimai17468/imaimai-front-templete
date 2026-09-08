@@ -1,24 +1,23 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
   agentWorktrees,
+  ancestryKeepReason,
+  branchNames,
+  formatBranch,
   formatEvent,
   formatVerdict,
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
-  branchKeepReason,
-  formatBranch,
   localVerdict,
-  prNumbers,
+  prListing,
   strandedAgentBranches,
   watchEvent,
   worktreeProbe,
   worktreeVerdict,
 } from "./orchestrate-decisions";
-import type { PrRow, PullRequest, Worktree } from "./orchestrate-decisions";
+import type { PullRequest, Worktree } from "./orchestrate-decisions";
 
 const GIB = 1024 ** 3;
-
-const NO_PULL_REQUEST: PullRequest | undefined = undefined;
 
 describe(freeGibFromMemoryPressure, () => {
   it("should multiply the free percentage by the machine's memory when the percentage line is present", () => {
@@ -59,46 +58,145 @@ describe(freeGibFromFreeB, () => {
   });
 });
 
-const row = (
-  number: number,
-  mergeable = "MERGEABLE",
-  state = "OPEN"
-): PrRow => ({
+const HEAD_SHA = "0a2c0f8";
+
+const pullRequest = (state: string, mergeable = "MERGEABLE"): PullRequest => ({
+  headRefOid: HEAD_SHA,
   mergeable,
-  number,
   state,
 });
 
+const NO_PULL_REQUEST: PullRequest | undefined = undefined;
+
+describe(prListing, () => {
+  it("should report the pull request when the listing holds a complete row", () => {
+    const listing = prListing([
+      { headRefOid: HEAD_SHA, mergeable: "MERGEABLE", state: "OPEN" },
+    ]);
+
+    expect(listing).toStrictEqual({
+      kind: "pull-request",
+      pullRequest: {
+        headRefOid: HEAD_SHA,
+        mergeable: "MERGEABLE",
+        state: "OPEN",
+      },
+    });
+  });
+
+  it("should report none when the listing is empty", () => {
+    const listing = prListing([]);
+
+    expect(listing).toStrictEqual({ kind: "none" });
+  });
+
+  it("should report unreadable when the reply is not a listing", () => {
+    const listing = prListing({ message: "Not Found" });
+
+    expect(listing).toStrictEqual({ kind: "unreadable" });
+  });
+
+  it("should report unreadable when the row is not an object", () => {
+    const listing = prListing(["feat/a"]);
+
+    expect(listing).toStrictEqual({ kind: "unreadable" });
+  });
+
+  it("should report unreadable when the row is null", () => {
+    const listing = prListing([null]);
+
+    expect(listing).toStrictEqual({ kind: "unreadable" });
+  });
+
+  it("should report unreadable when the row has no headRefOid", () => {
+    const listing = prListing([{ mergeable: "MERGEABLE", state: "OPEN" }]);
+
+    expect(listing).toStrictEqual({ kind: "unreadable" });
+  });
+
+  it("should report unreadable when the row's headRefOid is not a string", () => {
+    const listing = prListing([
+      { headRefOid: 1, mergeable: "MERGEABLE", state: "OPEN" },
+    ]);
+
+    expect(listing).toStrictEqual({ kind: "unreadable" });
+  });
+
+  it("should report unreadable when the row has no mergeable", () => {
+    const listing = prListing([{ headRefOid: HEAD_SHA, state: "OPEN" }]);
+
+    expect(listing).toStrictEqual({ kind: "unreadable" });
+  });
+
+  it("should report unreadable when the row's mergeable is not a string", () => {
+    const listing = prListing([
+      { headRefOid: HEAD_SHA, mergeable: 1, state: "OPEN" },
+    ]);
+
+    expect(listing).toStrictEqual({ kind: "unreadable" });
+  });
+
+  it("should report unreadable when the row has no state", () => {
+    const listing = prListing([
+      { headRefOid: HEAD_SHA, mergeable: "MERGEABLE" },
+    ]);
+
+    expect(listing).toStrictEqual({ kind: "unreadable" });
+  });
+
+  it("should report unreadable when the row's state is not a string", () => {
+    const listing = prListing([
+      { headRefOid: HEAD_SHA, mergeable: "MERGEABLE", state: 1 },
+    ]);
+
+    expect(listing).toStrictEqual({ kind: "unreadable" });
+  });
+});
+
 describe(watchEvent, () => {
-  it("should report all-closed when no watched PR is listed", () => {
-    const event = watchEvent([12, 15], [row(99)]);
+  it("should name every branch when its open pull request is CONFLICTING", () => {
+    const event = watchEvent([
+      { branch: "feat/a", pullRequest: pullRequest("OPEN", "CONFLICTING") },
+      { branch: "feat/b", pullRequest: pullRequest("OPEN") },
+      { branch: "feat/c", pullRequest: pullRequest("OPEN", "CONFLICTING") },
+    ]);
+
+    expect(event).toStrictEqual({
+      branches: ["feat/a", "feat/c"],
+      kind: "conflict",
+    });
+  });
+
+  it("should report all-closed when every branch's pull request is finished", () => {
+    const event = watchEvent([
+      { branch: "feat/a", pullRequest: pullRequest("MERGED", "UNKNOWN") },
+      { branch: "feat/b", pullRequest: pullRequest("CLOSED", "UNKNOWN") },
+    ]);
 
     expect(event).toStrictEqual({ kind: "all-closed" });
   });
 
-  it("should report all-closed when the watched PRs are listed with a state other than OPEN", () => {
-    const event = watchEvent([12], [row(12, "UNKNOWN", "MERGED")]);
+  it("should report all-closed when a finished pull request is CONFLICTING", () => {
+    const event = watchEvent([
+      { branch: "feat/a", pullRequest: pullRequest("CLOSED", "CONFLICTING") },
+    ]);
 
     expect(event).toStrictEqual({ kind: "all-closed" });
   });
 
-  it("should name every watched PR when its mergeable is CONFLICTING", () => {
-    const event = watchEvent(
-      [12, 15, 18],
-      [row(12, "CONFLICTING"), row(15), row(18, "CONFLICTING")]
-    );
-
-    expect(event).toStrictEqual({ kind: "conflict", numbers: [12, 18] });
-  });
-
-  it("should return undefined when the only conflicting PR is one the run does not watch", () => {
-    const event = watchEvent([12], [row(12), row(99, "CONFLICTING")]);
+  it("should return undefined when a branch has no pull request yet", () => {
+    const event = watchEvent([
+      { branch: "feat/a", pullRequest: NO_PULL_REQUEST },
+      { branch: "feat/b", pullRequest: pullRequest("MERGED", "UNKNOWN") },
+    ]);
 
     expect(event).toBeUndefined();
   });
 
-  it("should return undefined when a watched PR is open and mergeable", () => {
-    const event = watchEvent([12], [row(12)]);
+  it("should return undefined when a branch's pull request is open and mergeable", () => {
+    const event = watchEvent([
+      { branch: "feat/a", pullRequest: pullRequest("OPEN") },
+    ]);
 
     expect(event).toBeUndefined();
   });
@@ -111,72 +209,75 @@ describe(formatEvent, () => {
     expect(line).toBe("all-closed");
   });
 
-  it("should print conflict followed by the PR numbers when the event is a conflict", () => {
-    const line = formatEvent({ kind: "conflict", numbers: [12, 18] });
+  it("should print conflict followed by the branches when the event is a conflict", () => {
+    const line = formatEvent({
+      branches: ["feat/a", "feat/c"],
+      kind: "conflict",
+    });
 
-    expect(line).toBe("conflict 12 18");
+    expect(line).toBe("conflict feat/a feat/c");
   });
 });
 
-describe(prNumbers, () => {
-  it("should return the parsed numbers when every argument is a positive integer", () => {
-    const numbers = prNumbers(["12", "15"]);
+describe(branchNames, () => {
+  it("should return the arguments when every one of them can name a branch", () => {
+    const branches = branchNames(["feat/a", "docs_b", "fix.c-2"]);
 
-    expect(numbers).toStrictEqual([12, 15]);
+    expect(branches).toStrictEqual(["feat/a", "docs_b", "fix.c-2"]);
   });
 
   it("should return undefined when no argument is given", () => {
-    const numbers = prNumbers([]);
+    const branches = branchNames([]);
 
-    expect(numbers).toBeUndefined();
+    expect(branches).toBeUndefined();
   });
 
-  it("should return undefined when an argument is not a number", () => {
-    const numbers = prNumbers(["12", "main"]);
+  it("should return undefined when an argument starts with a dash", () => {
+    const branches = branchNames(["--state"]);
 
-    expect(numbers).toBeUndefined();
+    expect(branches).toBeUndefined();
   });
 
-  it("should return undefined when an argument has a fractional part", () => {
-    const numbers = prNumbers(["1.5"]);
+  it("should return undefined when an argument holds a space", () => {
+    const branches = branchNames(["feat/a b"]);
 
-    expect(numbers).toBeUndefined();
+    expect(branches).toBeUndefined();
   });
 
-  it("should return undefined when an argument is zero or negative", () => {
-    const numbers = prNumbers(["0"]);
+  it("should return undefined when an argument holds a character git forbids in a ref", () => {
+    const branches = branchNames(["feat/a^"]);
 
-    expect(numbers).toBeUndefined();
+    expect(branches).toBeUndefined();
   });
 
-  it("should return undefined when an argument is not finite", () => {
-    const numbers = prNumbers(["Infinity"]);
+  it("should return undefined when an argument ends with a slash", () => {
+    const branches = branchNames(["feat/"]);
 
-    expect(numbers).toBeUndefined();
+    expect(branches).toBeUndefined();
   });
 
-  it("should return undefined when an argument is written in hexadecimal", () => {
-    const numbers = prNumbers(["0x10"]);
+  it("should return undefined when an argument holds a double dot", () => {
+    const branches = branchNames(["feat/a..b"]);
 
-    expect(numbers).toBeUndefined();
+    expect(branches).toBeUndefined();
   });
 
-  it("should return undefined when an argument is written in exponent notation", () => {
-    const numbers = prNumbers(["1e3"]);
+  it("should return undefined when a component of an argument starts with a dot", () => {
+    const branches = branchNames(["feat/.hidden"]);
 
-    expect(numbers).toBeUndefined();
+    expect(branches).toBeUndefined();
   });
 
-  it("should return undefined when an argument is padded with spaces", () => {
-    const numbers = prNumbers([" 12 "]);
+  it("should return undefined when a component of an argument ends with .lock", () => {
+    const branches = branchNames(["feat/a.lock"]);
 
-    expect(numbers).toBeUndefined();
+    expect(branches).toBeUndefined();
   });
 
-  it("should return undefined when an argument exceeds the safe integer range", () => {
-    const numbers = prNumbers(["9007199254740993"]);
+  it("should return undefined when an argument is a pull request number", () => {
+    const branches = branchNames(["12"]);
 
-    expect(numbers).toBeUndefined();
+    expect(branches).toBeUndefined();
   });
 });
 
@@ -250,6 +351,8 @@ describe(agentWorktrees, () => {
   });
 });
 
+const RUN = ["feat/one"] as const;
+
 const worktree = (): Worktree => ({
   branch: "feat/one",
   locked: false,
@@ -259,7 +362,7 @@ const worktree = (): Worktree => ({
 
 describe(worktreeProbe, () => {
   it("should keep the worktree when git reports it prunable", () => {
-    const probe = worktreeProbe({ ...worktree(), prunable: true });
+    const probe = worktreeProbe({ ...worktree(), prunable: true }, RUN);
 
     expect(probe).toStrictEqual({
       kind: "verdict",
@@ -268,7 +371,7 @@ describe(worktreeProbe, () => {
   });
 
   it("should keep the worktree when it is detached", () => {
-    const probe = worktreeProbe({ ...worktree(), branch: undefined });
+    const probe = worktreeProbe({ ...worktree(), branch: undefined }, RUN);
 
     expect(probe).toStrictEqual({
       kind: "verdict",
@@ -276,21 +379,35 @@ describe(worktreeProbe, () => {
     });
   });
 
-  it("should return the branch to probe when the worktree is neither prunable nor detached", () => {
-    const probe = worktreeProbe(worktree());
+  it("should keep the worktree when its branch is one the run did not name", () => {
+    const probe = worktreeProbe({ ...worktree(), branch: "feat/mine" }, RUN);
+
+    expect(probe).toStrictEqual({
+      kind: "verdict",
+      verdict: { kind: "keep", reason: "not in this run" },
+    });
+  });
+
+  it("should name the created branch when the worktree is still on the one Claude Code made", () => {
+    const probe = worktreeProbe(
+      { ...worktree(), branch: "worktree-agent-1" },
+      RUN
+    );
+
+    expect(probe).toStrictEqual({
+      kind: "verdict",
+      verdict: {
+        kind: "keep",
+        reason: "never switched off the branch Claude Code created",
+      },
+    });
+  });
+
+  it("should return the branch to probe when the run named it", () => {
+    const probe = worktreeProbe(worktree(), RUN);
 
     expect(probe).toStrictEqual({ branch: "feat/one", kind: "probe" });
   });
-});
-
-const RUN = [12] as const;
-
-const HEAD_SHA = "0a2c0f8";
-
-const pullRequest = (state: string, number = 12): PullRequest => ({
-  headRefOid: HEAD_SHA,
-  number,
-  state,
 });
 
 describe(localVerdict, () => {
@@ -310,33 +427,85 @@ describe(localVerdict, () => {
   });
 });
 
+describe(ancestryKeepReason, () => {
+  it("should return undefined when main holds the branch commits", () => {
+    const reason = ancestryKeepReason({ kind: "ancestor" });
+
+    expect(reason).toBeUndefined();
+  });
+
+  it("should name the commits when the branch holds one main does not", () => {
+    const reason = ancestryKeepReason({ kind: "not-ancestor" });
+
+    expect(reason).toBe("commits main does not hold");
+  });
+
+  it("should name the failure when the ancestry check could not run", () => {
+    const reason = ancestryKeepReason({
+      kind: "failed",
+      reason: "fatal: not a git repository",
+    });
+
+    expect(reason).toBe("failed: fatal: not a git repository");
+  });
+});
+
 describe(worktreeVerdict, () => {
-  it("should keep the worktree when its branch has no pull request", () => {
-    const verdict = worktreeVerdict(HEAD_SHA, NO_PULL_REQUEST, RUN);
-
-    expect(verdict).toStrictEqual({ kind: "keep", reason: "no pull request" });
-  });
-
-  it("should keep the worktree when its pull request is not one the caller named", () => {
-    const verdict = worktreeVerdict(HEAD_SHA, pullRequest("MERGED", 99), RUN);
-
-    expect(verdict).toStrictEqual({ kind: "keep", reason: "not in this run" });
-  });
-
-  it("should remove the worktree when its pull request is merged", () => {
-    const verdict = worktreeVerdict(HEAD_SHA, pullRequest("MERGED"), RUN);
+  it("should remove the worktree when its branch has no pull request and main holds its HEAD", () => {
+    const verdict = worktreeVerdict({
+      ancestry: { kind: "ancestor" },
+      headSha: HEAD_SHA,
+      pullRequest: NO_PULL_REQUEST,
+    });
 
     expect(verdict).toStrictEqual({ kind: "remove" });
   });
 
-  it("should remove the worktree when its pull request is closed", () => {
-    const verdict = worktreeVerdict(HEAD_SHA, pullRequest("CLOSED"), RUN);
+  it("should keep the worktree when its branch has no pull request and holds a commit main does not", () => {
+    const verdict = worktreeVerdict({
+      ancestry: { kind: "not-ancestor" },
+      headSha: HEAD_SHA,
+      pullRequest: NO_PULL_REQUEST,
+    });
 
-    expect(verdict).toStrictEqual({ kind: "remove" });
+    expect(verdict).toStrictEqual({
+      kind: "keep",
+      reason: "no pull request, commits main does not hold",
+    });
+  });
+
+  it("should keep the worktree when its branch has no pull request and the ancestry check could not run", () => {
+    const verdict = worktreeVerdict({
+      ancestry: { kind: "failed", reason: "fatal: bad revision" },
+      headSha: HEAD_SHA,
+      pullRequest: NO_PULL_REQUEST,
+    });
+
+    expect(verdict).toStrictEqual({
+      kind: "keep",
+      reason: "no pull request, failed: fatal: bad revision",
+    });
+  });
+
+  it("should keep the worktree when its pull request is still open", () => {
+    const verdict = worktreeVerdict({
+      ancestry: { kind: "ancestor" },
+      headSha: HEAD_SHA,
+      pullRequest: pullRequest("OPEN"),
+    });
+
+    expect(verdict).toStrictEqual({
+      kind: "keep",
+      reason: "pull request OPEN",
+    });
   });
 
   it("should keep the worktree when its HEAD is a commit GitHub does not hold", () => {
-    const verdict = worktreeVerdict("deadbee", pullRequest("MERGED"), RUN);
+    const verdict = worktreeVerdict({
+      ancestry: { kind: "ancestor" },
+      headSha: "deadbee",
+      pullRequest: pullRequest("MERGED", "UNKNOWN"),
+    });
 
     expect(verdict).toStrictEqual({
       kind: "keep",
@@ -344,13 +513,24 @@ describe(worktreeVerdict, () => {
     });
   });
 
-  it("should keep the worktree when its pull request is still open", () => {
-    const verdict = worktreeVerdict(HEAD_SHA, pullRequest("OPEN"), RUN);
-
-    expect(verdict).toStrictEqual({
-      kind: "keep",
-      reason: "pull request OPEN",
+  it("should remove the worktree when its pull request is merged", () => {
+    const verdict = worktreeVerdict({
+      ancestry: { kind: "not-ancestor" },
+      headSha: HEAD_SHA,
+      pullRequest: pullRequest("MERGED", "UNKNOWN"),
     });
+
+    expect(verdict).toStrictEqual({ kind: "remove" });
+  });
+
+  it("should remove the worktree when its pull request is closed", () => {
+    const verdict = worktreeVerdict({
+      ancestry: { kind: "not-ancestor" },
+      headSha: HEAD_SHA,
+      pullRequest: pullRequest("CLOSED", "UNKNOWN"),
+    });
+
+    expect(verdict).toStrictEqual({ kind: "remove" });
   });
 });
 
@@ -383,26 +563,38 @@ describe(formatVerdict, () => {
 });
 
 describe(strandedAgentBranches, () => {
-  it("should return the agent branch when no worktree holds it", () => {
+  it("should return the agent branch when no worktree is listed for it", () => {
     const stranded = strandedAgentBranches(
-      ["main", "worktree-agent-1", "feat/one"],
-      ["feat/one"]
+      ["main", "worktree-agent-2", "feat/one"],
+      [worktree()]
     );
 
-    expect(stranded).toStrictEqual(["worktree-agent-1"]);
+    expect(stranded).toStrictEqual(["worktree-agent-2"]);
   });
 
-  it("should return no branch when a worktree still holds the agent branch", () => {
+  it("should return no branch when a worktree has it checked out", () => {
+    const stranded = strandedAgentBranches(
+      ["main", "worktree-agent-2"],
+      [{ ...worktree(), branch: "worktree-agent-2" }]
+    );
+
+    expect(stranded).toStrictEqual([]);
+  });
+
+  it("should return no branch when a listed worktree was created on it", () => {
     const stranded = strandedAgentBranches(
       ["main", "worktree-agent-1"],
-      ["worktree-agent-1"]
+      [worktree()]
     );
 
     expect(stranded).toStrictEqual([]);
   });
 
   it("should return no branch when a detached worktree reports no branch", () => {
-    const stranded = strandedAgentBranches(["main"], [undefined]);
+    const stranded = strandedAgentBranches(
+      ["main"],
+      [{ ...worktree(), branch: undefined }]
+    );
 
     expect(stranded).toStrictEqual([]);
   });
@@ -419,28 +611,5 @@ describe(formatBranch, () => {
     const line = formatBranch("worktree-agent-1", "not fully merged");
 
     expect(line).toBe("kept branch worktree-agent-1 (not fully merged)");
-  });
-});
-
-describe(branchKeepReason, () => {
-  it("should return undefined when main holds the branch commits", () => {
-    const reason = branchKeepReason({ kind: "ancestor" });
-
-    expect(reason).toBeUndefined();
-  });
-
-  it("should name main when the branch holds a commit main does not", () => {
-    const reason = branchKeepReason({ kind: "not-ancestor" });
-
-    expect(reason).toBe("not merged into main");
-  });
-
-  it("should name the failure when the ancestry check could not run", () => {
-    const reason = branchKeepReason({
-      kind: "failed",
-      reason: "fatal: not a git repository",
-    });
-
-    expect(reason).toBe("failed: fatal: not a git repository");
   });
 });
