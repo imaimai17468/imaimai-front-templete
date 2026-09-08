@@ -1,12 +1,14 @@
 #!/usr/bin/env bun
 
 /**
- * The two reads an orchestrating session makes while its workers run, so the
- * session itself never issues a command that could stop on a permission prompt.
+ * The commands an orchestrating session runs while and after its workers work.
+ * `.claude/settings.json` allowlists this file, so the session issues no command
+ * that could stop it on a permission prompt.
  *
  * ```
  * bun scripts/orchestrate.ts free-gib          # free memory in GiB, one number
  * bun scripts/orchestrate.ts watch-prs 12 15   # exits when one of these needs the orchestrator
+ * bun scripts/orchestrate.ts clean-worktrees 12 15  # removes the worktrees of these finished PRs
  * ```
  *
  * `watch-prs` reads each PR with `gh pr view` once a minute and exits with a
@@ -14,18 +16,32 @@
  * `all-closed` once none of them is open, or `gh-failed <message>` when `gh`
  * itself failed. Run it in the background and start it again after acting on
  * the line.
+ *
+ * `clean-worktrees` prints one line per agent worktree saying whether it was
+ * removed or why it was kept. It touches only the worktrees whose pull request
+ * is one of the numbers given.
  */
 
 import { execFileSync } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import {
+  agentWorktrees,
   formatEvent,
+  formatVerdict,
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
+  localVerdict,
   prNumbers,
   watchEvent,
+  worktreeProbe,
+  worktreeVerdict,
 } from "./orchestrate-decisions";
-import type { PrRow } from "./orchestrate-decisions";
+import type {
+  PrRow,
+  PullRequest,
+  Worktree,
+  WorktreeVerdict,
+} from "./orchestrate-decisions";
 
 const POLL_MS = 60_000;
 
@@ -79,7 +95,7 @@ const prRow = (number: number): PrRow => {
   return parsed;
 };
 
-const ghFailure = (error: unknown): string =>
+const firstLine = (error: unknown): string =>
   (error instanceof Error ? error.message : String(error)).split("\n")[0] ?? "";
 
 /**
@@ -99,7 +115,7 @@ const pollResult = (numbers: readonly number[]): PollResult | undefined => {
       ? undefined
       : { exitCode: 0, line: formatEvent(event) };
   } catch (error) {
-    return { exitCode: 1, line: `gh-failed ${ghFailure(error)}` };
+    return { exitCode: 1, line: `gh-failed ${firstLine(error)}` };
   }
 };
 
@@ -112,6 +128,124 @@ const watchPrs = async (numbers: readonly number[]): Promise<void> => {
   }
   await delay(POLL_MS);
   await watchPrs(numbers);
+};
+
+const isPullRequest = (value: unknown): value is PullRequest =>
+  typeof value === "object" &&
+  value !== null &&
+  "state" in value &&
+  typeof value.state === "string" &&
+  "number" in value &&
+  typeof value.number === "number" &&
+  "headRefOid" in value &&
+  typeof value.headRefOid === "string";
+
+const branchPr = (branch: string, state: string): PullRequest | undefined => {
+  const parsed: unknown = JSON.parse(
+    run("gh", [
+      "pr",
+      "list",
+      "--state",
+      state,
+      "--head",
+      branch,
+      "--limit",
+      "1",
+      "--json",
+      "headRefOid,number,state",
+    ])
+  );
+  const first: unknown = Array.isArray(parsed) ? parsed[0] : undefined;
+  return isPullRequest(first) ? first : undefined;
+};
+
+/**
+ * The branch's pull request. An open one is asked for on its own, because a
+ * branch whose open pull request was reopened long ago can sit behind any
+ * number of newer finished ones in a single listing.
+ */
+const prOf = (branch: string): PullRequest | undefined =>
+  branchPr(branch, "open") ?? branchPr(branch, "all");
+
+const headSha = (path: string): string =>
+  run("git", ["-C", path, "rev-parse", "HEAD"]).trim();
+
+const isDirty = (path: string): boolean =>
+  run("git", ["-C", path, "status", "--porcelain"]).trim() !== "";
+
+const RELOCK_REASON = "clean-worktrees could not remove it";
+
+/**
+ * Removes the worktree, then its branch. The branch is a second step because a
+ * removed directory cannot be reported as kept, so its own failure gets its own
+ * verdict.
+ */
+const removeWorktree = (
+  worktree: Worktree,
+  branch: string
+): WorktreeVerdict => {
+  if (worktree.locked) {
+    run("git", ["worktree", "unlock", worktree.path]);
+  }
+  try {
+    run("git", ["worktree", "remove", worktree.path]);
+  } catch (error) {
+    if (worktree.locked) {
+      run("git", [
+        "worktree",
+        "lock",
+        "--reason",
+        RELOCK_REASON,
+        worktree.path,
+      ]);
+    }
+    throw error;
+  }
+  try {
+    run("git", ["branch", "-D", branch]);
+  } catch (error) {
+    return { kind: "branch-kept", reason: firstLine(error) };
+  }
+  return { kind: "remove" };
+};
+
+/**
+ * The verdict, after acting on it. A failure anywhere becomes a `keep` naming
+ * what failed, so one unreachable pull request or one worktree git refuses to
+ * remove leaves the rest of the list examined and reported.
+ */
+const verdictFor = (
+  worktree: Worktree,
+  numbers: readonly number[]
+): WorktreeVerdict => {
+  const probe = worktreeProbe(worktree);
+  if (probe.kind === "verdict") {
+    return probe.verdict;
+  }
+  try {
+    const local = localVerdict(isDirty(worktree.path));
+    if (local !== undefined) {
+      return local;
+    }
+    const verdict = worktreeVerdict(
+      headSha(worktree.path),
+      prOf(probe.branch),
+      numbers
+    );
+    return verdict.kind === "remove"
+      ? removeWorktree(worktree, probe.branch)
+      : verdict;
+  } catch (error) {
+    return { kind: "keep", reason: `failed: ${firstLine(error)}` };
+  }
+};
+
+const cleanWorktrees = (numbers: readonly number[]): void => {
+  agentWorktrees(run("git", ["worktree", "list", "--porcelain"])).forEach(
+    (worktree) => {
+      console.log(formatVerdict(worktree, verdictFor(worktree, numbers)));
+    }
+  );
 };
 
 const [command, ...rest] = process.argv.slice(2);
@@ -133,8 +267,14 @@ if (command === "free-gib") {
     usage("usage: bun scripts/orchestrate.ts watch-prs <pr-number>...");
   }
   await watchPrs(numbers);
+} else if (command === "clean-worktrees") {
+  const numbers = prNumbers(rest);
+  if (numbers === undefined) {
+    usage("usage: bun scripts/orchestrate.ts clean-worktrees <pr-number>...");
+  }
+  cleanWorktrees(numbers);
 } else {
   usage(
-    "usage: bun scripts/orchestrate.ts <free-gib | watch-prs <pr-number>...>"
+    "usage: bun scripts/orchestrate.ts <free-gib | watch-prs <pr-number>... | clean-worktrees <pr-number>...>"
   );
 }

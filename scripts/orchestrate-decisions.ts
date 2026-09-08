@@ -94,3 +94,122 @@ export const prNumbers = (
     args.every((arg) => DECIMAL.test(arg) && Number.isSafeInteger(Number(arg)));
   return usable ? args.map(Number) : undefined;
 };
+
+/** One entry of `git worktree list --porcelain`. */
+export interface Worktree {
+  readonly branch: string | undefined;
+  readonly locked: boolean;
+  readonly path: string;
+  readonly prunable: boolean;
+}
+
+const HOME_SEGMENT = "/.claude/worktrees/";
+
+/**
+ * The agent worktrees of `git worktree list --porcelain`. The main checkout and
+ * any worktree outside `.claude/worktrees/` are left out. A person's own
+ * `claude --worktree` session lives in that directory too, so the path is not
+ * what tells a worker's leftovers from theirs.
+ */
+export const agentWorktrees = (porcelain: string): readonly Worktree[] =>
+  porcelain
+    .split("\n\n")
+    .map((block) => {
+      const lines = block.split("\n");
+      const path = lines
+        .find((line) => line.startsWith("worktree "))
+        ?.slice("worktree ".length);
+      const branch = lines
+        .find((line) => line.startsWith("branch refs/heads/"))
+        ?.slice("branch refs/heads/".length);
+      return {
+        branch,
+        locked: lines.some((line) => line.startsWith("locked")),
+        path: path ?? "",
+        prunable: lines.some((line) => line.startsWith("prunable")),
+      };
+    })
+    .filter((worktree) => worktree.path.includes(HOME_SEGMENT));
+
+export type WorktreeVerdict =
+  | { readonly kind: "branch-kept"; readonly reason: string }
+  | { readonly kind: "keep"; readonly reason: string }
+  | { readonly kind: "remove" };
+
+export type WorktreeProbe =
+  | { readonly branch: string; readonly kind: "probe" }
+  | { readonly kind: "verdict"; readonly verdict: WorktreeVerdict };
+
+/**
+ * What the porcelain entry alone decides. A prunable entry names a directory
+ * that is already gone, so every later step, starting with reading its status,
+ * would fail on it.
+ */
+export const worktreeProbe = (worktree: Worktree): WorktreeProbe => {
+  if (worktree.prunable) {
+    return { kind: "verdict", verdict: { kind: "keep", reason: "prunable" } };
+  }
+  if (worktree.branch === undefined) {
+    return { kind: "verdict", verdict: { kind: "keep", reason: "detached" } };
+  }
+  return { branch: worktree.branch, kind: "probe" };
+};
+
+/** The fields of `gh pr list --json headRefOid,number,state` the cleanup reads. */
+export interface PullRequest {
+  readonly headRefOid: string;
+  readonly number: number;
+  readonly state: string;
+}
+
+/**
+ * The verdict the worktree's own files decide, or undefined when GitHub has to
+ * be asked. Reading the status first keeps a worktree someone is working in
+ * from depending on whether `gh` answers.
+ */
+export const localVerdict = (isDirty: boolean): WorktreeVerdict | undefined =>
+  isDirty ? { kind: "keep", reason: "uncommitted changes" } : undefined;
+
+/**
+ * Whether a finished worker's worktree can go. `pr` is the pull request GitHub
+ * reports for the branch, or undefined when the branch has none, and `run`
+ * holds the pull request numbers the caller named. A worktree outside that set
+ * belongs to another run or to a person's own session, both of which live in
+ * the same directory, so naming the run is what separates them. `headSha` is
+ * the worktree's own HEAD, compared with the commit GitHub holds because a
+ * squash merge leaves the branch's commits outside main's ancestry, where an
+ * ancestry test would answer nothing.
+ */
+export const worktreeVerdict = (
+  headSha: string,
+  pr: PullRequest | undefined,
+  run: readonly number[]
+): WorktreeVerdict => {
+  if (pr === undefined) {
+    return { kind: "keep", reason: "no pull request" };
+  }
+  if (!run.includes(pr.number)) {
+    return { kind: "keep", reason: "not in this run" };
+  }
+  if (pr.state !== "MERGED" && pr.state !== "CLOSED") {
+    return { kind: "keep", reason: `pull request ${pr.state}` };
+  }
+  if (pr.headRefOid !== headSha) {
+    return { kind: "keep", reason: "commits GitHub has not seen" };
+  }
+  return { kind: "remove" };
+};
+
+/** The one line `clean-worktrees` prints for a worktree. */
+export const formatVerdict = (
+  worktree: Worktree,
+  verdict: WorktreeVerdict
+): string => {
+  if (verdict.kind === "remove") {
+    return `removed ${worktree.path}`;
+  }
+  if (verdict.kind === "branch-kept") {
+    return `removed ${worktree.path} (branch kept: ${verdict.reason})`;
+  }
+  return `kept ${worktree.path} (${verdict.reason})`;
+};
