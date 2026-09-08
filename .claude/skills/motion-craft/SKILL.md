@@ -152,6 +152,9 @@ const target = nearestSnapPoint(projectedEndpoint);
 animateSpringTo(target, { velocity: releaseVelocity });
 ```
 
+At release, the **sign of the velocity** decides between reverse and commit,
+not the position the gesture reached.
+
 ## 7. Spatial consistency
 
 > "If something disappears one way, we expect it to emerge from where it came."
@@ -160,7 +163,8 @@ animateSpringTo(target, { velocity: releaseVelocity });
   must dismiss to the right.
 - **Anchor interactions to their source.** A menu or popover should originate
   from the element that triggered it — set `transform-origin` to the trigger.
-- **Mirror the easing on reversible transitions.**
+- **Mirror the easing on reversible transitions** with the inverse
+  cubic-bezier.
 
 ## 8. Hint in the direction of the gesture
 
@@ -294,23 +298,6 @@ and abrupt brightness jumps.
 - **Test with real people in real context**, and review motion with fresh
   eyes — play it in slow motion / frame-by-frame to catch what's invisible at
   full speed.
-
-## Quick Reference
-
-| Need | Technique | Concrete value |
-| --- | --- | --- |
-| Gesture -> spring velocity | Hand off release velocity | `gestureVelocity / (target - current)` if normalized |
-| Flick landing point | Project momentum | `current + (v/1000)*d/(1-d)`, `d ~ 0.998` |
-| Interrupt cleanly | Start from presentation (live) value | read the on-screen transform |
-| Avoid reversal "brick wall" | Carry velocity through re-target | spring that blends velocity |
-| Reversible transition | Mirror the easing curve | inverse cubic-bezier |
-| Decide reverse vs. commit | Use velocity **sign**, not position | at release |
-| 1:1 drag | Pointer Events + capture | respect the grab offset |
-| Feedback | On pointer-down, continuous | never only at the end |
-| Boundary | Rubber-band, don't hard-stop | progressive resistance |
-| Translucent chrome | `backdrop-filter` layer | content scrolls under |
-| Type tracking | Size-specific, never fixed | tighten large text (`-0.02em`), body near `0` |
-| Reduced motion | Cross-fade, not slide/spring | `@media (prefers-reduced-motion)` |
 
 ---
 
