@@ -34,65 +34,86 @@ export const freeGibFromFreeB = (output: string): number | undefined => {
   return Number(available) / GIB;
 };
 
-/** The fields of `gh pr view --json number,state,mergeable` the watch reads. */
-export interface PrRow {
+/**
+ * The fields of `gh pr list --head <branch> --json headRefOid,mergeable,state`
+ * both commands read. The watch reads `state` and `mergeable`, the cleanup
+ * `state` and `headRefOid`.
+ */
+export interface PullRequest {
+  readonly headRefOid: string;
   readonly mergeable: string;
-  readonly number: number;
   readonly state: string;
+}
+
+/** A branch of the run and the pull request GitHub reports for it. */
+export interface BranchPullRequest {
+  readonly branch: string;
+  readonly pullRequest: PullRequest | undefined;
 }
 
 export type WatchEvent =
   | { readonly kind: "all-closed" }
-  | { readonly kind: "conflict"; readonly numbers: readonly number[] };
+  | { readonly kind: "conflict"; readonly branches: readonly string[] };
 
 /**
  * What the watch reports back, or undefined while nothing needs the
- * orchestrator. `rows` holds one row per watched PR, and a watched PR with no
- * row counts as closed.
+ * orchestrator. A branch whose pull request is undefined is one whose worker
+ * has not opened it yet, and it holds the watch for the same reason an open
+ * pull request does.
  */
 export const watchEvent = (
-  watched: readonly number[],
-  rows: readonly PrRow[]
+  resolved: readonly BranchPullRequest[]
 ): WatchEvent | undefined => {
-  const open = rows.filter(
-    (row) => watched.includes(row.number) && row.state === "OPEN"
-  );
-  if (open.length === 0) {
-    return { kind: "all-closed" };
-  }
-  const conflicting = open
-    .filter((row) => row.mergeable === "CONFLICTING")
-    .map((row) => row.number);
+  const conflicting = resolved
+    .filter(
+      (entry) =>
+        entry.pullRequest?.state === "OPEN" &&
+        entry.pullRequest.mergeable === "CONFLICTING"
+    )
+    .map((entry) => entry.branch);
   if (conflicting.length > 0) {
-    return { kind: "conflict", numbers: conflicting };
+    return { branches: conflicting, kind: "conflict" };
   }
-  return undefined;
+  const waiting = resolved.filter(
+    (entry) =>
+      entry.pullRequest === undefined || entry.pullRequest.state === "OPEN"
+  );
+  return waiting.length === 0 ? { kind: "all-closed" } : undefined;
 };
 
 /** The one line the watch prints before exiting. */
 export const formatEvent = (event: WatchEvent): string =>
   event.kind === "all-closed"
     ? "all-closed"
-    : `conflict ${event.numbers.join(" ")}`;
+    : `conflict ${event.branches.join(" ")}`;
 
 /**
- * `Number` reads `0x10`, `1e3` and ` 12 ` as integers, so the digits are
- * matched before the conversion rather than after it.
+ * `gh pr list --head -x` reads the argument as a flag, and a name holding a
+ * character git forbids in a ref matches no pull request, which the watch would
+ * wait on for as long as it runs. Both shapes are rejected before `gh` sees
+ * them.
  */
-const DECIMAL = /^[1-9]\d*$/u;
+const BRANCH_NAME = /^\w[\w./-]*(?<![./])$/u;
 
 /**
- * The PR numbers of `watch-prs`, or undefined when an argument is not one.
- * `gh pr view 1.5` reports a PR that does not exist rather than the argument
- * that was wrong, so the shape is rejected before `gh` sees it.
+ * These commands took pull request numbers before they took branches, and
+ * `gh pr list --head 12` reports no pull request for a branch named `12`
+ * rather than the argument that was wrong.
  */
-export const prNumbers = (
+const ALL_DIGITS = /^\d+$/u;
+
+/**
+ * The branches of the run, or undefined when an argument cannot name one. The
+ * orchestrating session assigns these at dispatch, where it learns a pull
+ * request number only once a worker has opened one.
+ */
+export const branchNames = (
   args: readonly string[]
-): readonly number[] | undefined => {
+): readonly string[] | undefined => {
   const usable =
     args.length > 0 &&
-    args.every((arg) => DECIMAL.test(arg) && Number.isSafeInteger(Number(arg)));
-  return usable ? args.map(Number) : undefined;
+    args.every((arg) => BRANCH_NAME.test(arg) && !ALL_DIGITS.test(arg));
+  return usable ? args : undefined;
 };
 
 /** One entry of `git worktree list --porcelain`. */
@@ -141,26 +162,30 @@ export type WorktreeProbe =
   | { readonly kind: "verdict"; readonly verdict: WorktreeVerdict };
 
 /**
- * What the porcelain entry alone decides. A prunable entry names a directory
- * that is already gone, so every later step, starting with reading its status,
- * would fail on it.
+ * What the porcelain entry and the run's branches alone decide. A prunable
+ * entry names a directory that is already gone, so every later step, starting
+ * with reading its status, would fail on it. A branch the run did not name
+ * belongs to another run or to a person's own session, both of which live in
+ * the same directory, so naming the run is what separates them.
  */
-export const worktreeProbe = (worktree: Worktree): WorktreeProbe => {
+export const worktreeProbe = (
+  worktree: Worktree,
+  run: readonly string[]
+): WorktreeProbe => {
   if (worktree.prunable) {
     return { kind: "verdict", verdict: { kind: "keep", reason: "prunable" } };
   }
   if (worktree.branch === undefined) {
     return { kind: "verdict", verdict: { kind: "keep", reason: "detached" } };
   }
-  return { branch: worktree.branch, kind: "probe" };
+  if (run.includes(worktree.branch)) {
+    return { branch: worktree.branch, kind: "probe" };
+  }
+  return {
+    kind: "verdict",
+    verdict: { kind: "keep", reason: "not in this run" },
+  };
 };
-
-/** The fields of `gh pr list --json headRefOid,number,state` the cleanup reads. */
-export interface PullRequest {
-  readonly headRefOid: string;
-  readonly number: number;
-  readonly state: string;
-}
 
 /**
  * The verdict the worktree's own files decide, or undefined when GitHub has to
@@ -171,30 +196,23 @@ export const localVerdict = (isDirty: boolean): WorktreeVerdict | undefined =>
   isDirty ? { kind: "keep", reason: "uncommitted changes" } : undefined;
 
 /**
- * Whether a finished worker's worktree can go. `pr` is the pull request GitHub
- * reports for the branch, or undefined when the branch has none, and `run`
- * holds the pull request numbers the caller named. A worktree outside that set
- * belongs to another run or to a person's own session, both of which live in
- * the same directory, so naming the run is what separates them. `headSha` is
- * the worktree's own HEAD, compared with the commit GitHub holds because a
- * squash merge leaves the branch's commits outside main's ancestry, where an
- * ancestry test would answer nothing.
+ * Whether the worktree of a branch this run named can go. `pullRequest` is what
+ * GitHub reports for the branch, or undefined when the branch has none.
+ * `headSha` is the worktree's own HEAD, compared with the commit GitHub holds
+ * because a squash merge leaves the branch's commits outside main's ancestry,
+ * where an ancestry test would answer nothing.
  */
 export const worktreeVerdict = (
   headSha: string,
-  pr: PullRequest | undefined,
-  run: readonly number[]
+  pullRequest: PullRequest | undefined
 ): WorktreeVerdict => {
-  if (pr === undefined) {
+  if (pullRequest === undefined) {
     return { kind: "keep", reason: "no pull request" };
   }
-  if (!run.includes(pr.number)) {
-    return { kind: "keep", reason: "not in this run" };
+  if (pullRequest.state !== "MERGED" && pullRequest.state !== "CLOSED") {
+    return { kind: "keep", reason: `pull request ${pullRequest.state}` };
   }
-  if (pr.state !== "MERGED" && pr.state !== "CLOSED") {
-    return { kind: "keep", reason: `pull request ${pr.state}` };
-  }
-  if (pr.headRefOid !== headSha) {
+  if (pullRequest.headRefOid !== headSha) {
     return { kind: "keep", reason: "commits GitHub has not seen" };
   }
   return { kind: "remove" };

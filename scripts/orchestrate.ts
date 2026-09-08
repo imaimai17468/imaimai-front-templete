@@ -3,37 +3,40 @@
 /**
  * The commands an orchestrating session runs while and after its workers work.
  * `.claude/settings.json` allowlists this file, so the session issues no command
- * that could stop it on a permission prompt.
+ * of its own to reach GitHub or git.
  *
  * ```
  * bun scripts/orchestrate.ts free-gib          # free memory in GiB, one number
- * bun scripts/orchestrate.ts watch-prs 12 15   # exits when one of these needs the orchestrator
- * bun scripts/orchestrate.ts clean-worktrees 12 15  # removes the worktrees of these finished PRs
+ * bun scripts/orchestrate.ts watch-prs feat/a feat/b       # exits when one of these needs the orchestrator
+ * bun scripts/orchestrate.ts clean-worktrees feat/a feat/b # removes the worktrees of these finished branches
  * ```
  *
- * `watch-prs` reads each PR with `gh pr view` once a minute and exits with a
- * single line: `conflict <n> ...` when an open PR of the run turns CONFLICTING,
- * `all-closed` once none of them is open, or `gh-failed <message>` when `gh`
- * itself failed. Run it in the background and start it again after acting on
- * the line.
+ * Both commands name the run by the branches the session assigned at dispatch,
+ * which is what it knows before a worker has opened a pull request.
+ *
+ * `watch-prs` resolves each branch's pull request with `gh pr list --head` once
+ * a minute and exits with a single line: `conflict <branch> ...` when an open
+ * pull request of the run turns CONFLICTING, `all-closed` once no branch of the
+ * run is waiting on one, or `gh-failed <message>` when `gh` itself failed. Run
+ * it in the background and start it again after acting on the line.
  *
  * `clean-worktrees` prints one line per agent worktree saying whether it was
- * removed or why it was kept. It touches only the worktrees whose pull request
- * is one of the numbers given.
+ * removed or why it was kept. It removes only the worktrees of the branches
+ * given.
  */
 
 import { execFileSync } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import {
   agentWorktrees,
-  formatEvent,
   branchKeepReason,
+  branchNames,
   formatBranch,
+  formatEvent,
   formatVerdict,
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
   localVerdict,
-  prNumbers,
   strandedAgentBranches,
   watchEvent,
   worktreeProbe,
@@ -41,7 +44,6 @@ import {
 } from "./orchestrate-decisions";
 import type {
   Ancestry,
-  PrRow,
   PullRequest,
   Worktree,
   WorktreeVerdict,
@@ -51,6 +53,9 @@ const POLL_MS = 60_000;
 
 const run = (file: string, args: readonly string[]): string =>
   execFileSync(file, args, { encoding: "utf-8" });
+
+const firstLine = (value: unknown): string =>
+  (value instanceof Error ? value.message : String(value)).split("\n")[0] ?? "";
 
 /**
  * Undefined covers both ways the platform can withhold the number: a command
@@ -71,78 +76,15 @@ const freeGib = (): number | undefined => {
   }
 };
 
-const isPrRow = (value: unknown): value is PrRow =>
-  typeof value === "object" &&
-  value !== null &&
-  "number" in value &&
-  typeof value.number === "number" &&
-  "state" in value &&
-  typeof value.state === "string" &&
-  "mergeable" in value &&
-  typeof value.mergeable === "string";
-
-const prRow = (number: number): PrRow => {
-  const parsed: unknown = JSON.parse(
-    run("gh", [
-      "pr",
-      "view",
-      String(number),
-      "--json",
-      "number,state,mergeable",
-    ])
-  );
-  if (!isPrRow(parsed)) {
-    throw new Error(
-      `gh pr view ${number} returned a shape without number/state/mergeable`
-    );
-  }
-  return parsed;
-};
-
-const firstLine = (value: unknown): string =>
-  (value instanceof Error ? value.message : String(value)).split("\n")[0] ?? "";
-
-/**
- * One poll's line and exit code, or undefined while the run needs no attention.
- * The rows stay inside this call, so the `watchPrs` frame awaiting the next
- * poll holds the PR numbers alone however long the run lasts.
- */
-interface PollResult {
-  readonly exitCode: number;
-  readonly line: string;
-}
-
-const pollResult = (numbers: readonly number[]): PollResult | undefined => {
-  try {
-    const event = watchEvent(numbers, numbers.map(prRow));
-    return event === undefined
-      ? undefined
-      : { exitCode: 0, line: formatEvent(event) };
-  } catch (error) {
-    return { exitCode: 1, line: `gh-failed ${firstLine(error)}` };
-  }
-};
-
-const watchPrs = async (numbers: readonly number[]): Promise<void> => {
-  const result = pollResult(numbers);
-  if (result !== undefined) {
-    console.log(result.line);
-    process.exitCode = result.exitCode;
-    return;
-  }
-  await delay(POLL_MS);
-  await watchPrs(numbers);
-};
-
 const isPullRequest = (value: unknown): value is PullRequest =>
   typeof value === "object" &&
   value !== null &&
-  "state" in value &&
-  typeof value.state === "string" &&
-  "number" in value &&
-  typeof value.number === "number" &&
   "headRefOid" in value &&
-  typeof value.headRefOid === "string";
+  typeof value.headRefOid === "string" &&
+  "mergeable" in value &&
+  typeof value.mergeable === "string" &&
+  "state" in value &&
+  typeof value.state === "string";
 
 const branchPr = (branch: string, state: string): PullRequest | undefined => {
   const parsed: unknown = JSON.parse(
@@ -156,7 +98,7 @@ const branchPr = (branch: string, state: string): PullRequest | undefined => {
       "--limit",
       "1",
       "--json",
-      "headRefOid,number,state",
+      "headRefOid,mergeable,state",
     ])
   );
   const first: unknown = Array.isArray(parsed) ? parsed[0] : undefined;
@@ -170,6 +112,40 @@ const branchPr = (branch: string, state: string): PullRequest | undefined => {
  */
 const prOf = (branch: string): PullRequest | undefined =>
   branchPr(branch, "open") ?? branchPr(branch, "all");
+
+/**
+ * One poll's line and exit code, or undefined while the run needs no attention.
+ * The pull requests stay inside this call, so the `watchPrs` frame awaiting the
+ * next poll holds the branch names alone however long the run lasts.
+ */
+interface PollResult {
+  readonly exitCode: number;
+  readonly line: string;
+}
+
+const pollResult = (branches: readonly string[]): PollResult | undefined => {
+  try {
+    const event = watchEvent(
+      branches.map((branch) => ({ branch, pullRequest: prOf(branch) }))
+    );
+    return event === undefined
+      ? undefined
+      : { exitCode: 0, line: formatEvent(event) };
+  } catch (error) {
+    return { exitCode: 1, line: `gh-failed ${firstLine(error)}` };
+  }
+};
+
+const watchPrs = async (branches: readonly string[]): Promise<void> => {
+  const result = pollResult(branches);
+  if (result !== undefined) {
+    console.log(result.line);
+    process.exitCode = result.exitCode;
+    return;
+  }
+  await delay(POLL_MS);
+  await watchPrs(branches);
+};
 
 const headSha = (path: string): string =>
   run("git", ["-C", path, "rev-parse", "HEAD"]).trim();
@@ -220,9 +196,9 @@ const removeWorktree = (
  */
 const verdictFor = (
   worktree: Worktree,
-  numbers: readonly number[]
+  branches: readonly string[]
 ): WorktreeVerdict => {
-  const probe = worktreeProbe(worktree);
+  const probe = worktreeProbe(worktree, branches);
   if (probe.kind === "verdict") {
     return probe.verdict;
   }
@@ -231,11 +207,7 @@ const verdictFor = (
     if (local !== undefined) {
       return local;
     }
-    const verdict = worktreeVerdict(
-      headSha(worktree.path),
-      prOf(probe.branch),
-      numbers
-    );
+    const verdict = worktreeVerdict(headSha(worktree.path), prOf(probe.branch));
     return verdict.kind === "remove"
       ? removeWorktree(worktree, probe.branch)
       : verdict;
@@ -294,12 +266,12 @@ const deleteMergedBranch = (branch: string): string | undefined => {
   }
 };
 
-const cleanWorktrees = (numbers: readonly number[]): void => {
+const cleanWorktrees = (branches: readonly string[]): void => {
   const worktrees = agentWorktrees(
     run("git", ["worktree", "list", "--porcelain"])
   );
   worktrees.forEach((worktree) => {
-    console.log(formatVerdict(worktree, verdictFor(worktree, numbers)));
+    console.log(formatVerdict(worktree, verdictFor(worktree, branches)));
   });
   const held = agentWorktrees(
     run("git", ["worktree", "list", "--porcelain"])
@@ -330,19 +302,19 @@ if (command === "free-gib") {
   }
   console.log(gib.toFixed(1));
 } else if (command === "watch-prs") {
-  const numbers = prNumbers(rest);
-  if (numbers === undefined) {
-    usage("usage: bun scripts/orchestrate.ts watch-prs <pr-number>...");
+  const branches = branchNames(rest);
+  if (branches === undefined) {
+    usage("usage: bun scripts/orchestrate.ts watch-prs <branch>...");
   }
-  await watchPrs(numbers);
+  await watchPrs(branches);
 } else if (command === "clean-worktrees") {
-  const numbers = prNumbers(rest);
-  if (numbers === undefined) {
-    usage("usage: bun scripts/orchestrate.ts clean-worktrees <pr-number>...");
+  const branches = branchNames(rest);
+  if (branches === undefined) {
+    usage("usage: bun scripts/orchestrate.ts clean-worktrees <branch>...");
   }
-  cleanWorktrees(numbers);
+  cleanWorktrees(branches);
 } else {
   usage(
-    "usage: bun scripts/orchestrate.ts <free-gib | watch-prs <pr-number>... | clean-worktrees <pr-number>...>"
+    "usage: bun scripts/orchestrate.ts <free-gib | watch-prs <branch>... | clean-worktrees <branch>...>"
   );
 }
