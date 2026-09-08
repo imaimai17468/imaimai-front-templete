@@ -8,8 +8,7 @@ const GIB = 1024 ** 3;
 
 /**
  * macOS `memory_pressure` ends with "System-wide memory free percentage: 95%".
- * Returns undefined when that line is absent, so the caller reports the
- * command's output instead of a number it made up.
+ * Returns undefined when that line is absent.
  */
 export const freeGibFromMemoryPressure = (
   output: string,
