@@ -19,8 +19,7 @@ export default defineConfig({
     exclude: [...defaultExclude, ".claude/worktrees/**"],
     setupFiles: ["./src/test-setup.ts"],
     coverage: {
-      // include のパターンに入るモジュールは既定でゲートされ、exclude が
-      // 例外をパスで挙げる。例外は生成物、テストハーネス、コンポーネント、
+      // exclude に並ぶ例外は、生成物、テストハーネス、コンポーネント、
       // そして依存を引数で受け取らず実バインディングの上でしか動かない
       // アダプタと実行スクリプト。
       include: ["src/**/*.ts", "tools/**/*.{ts,js}", "scripts/**/*.ts"],
