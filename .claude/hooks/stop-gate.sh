@@ -109,21 +109,21 @@ fi
 # deleted, and the file holding the link is then untouched. Scoping to the diff
 # would have missed the case that motivated the check (docs/adr/ deleted on
 # 2026-07-29, dead links left in files the same commit did not edit).
-LINKS_AVAILABLE=true
+# LINK_NOTE carries this step's own verdict into the block body and into both
+# summary branches, so a Stop that blocks on another step still says what this
+# one did. Each branch below sets it, because a note left at "clean" while the
+# check failed would contradict the failure section in the same body.
+LINK_NOTE="md links: clean"
 if command -v bun >/dev/null 2>&1; then
-  LINKS=$(bun "$ROOT/.claude/hooks/check-md-links.ts" 2>&1) ||
+  if ! LINKS=$(bun "$ROOT/.claude/hooks/check-md-links.ts" 2>&1); then
     record_failure "markdown link check" "$LINKS"
+    LINK_NOTE="md links: FAILED"
+  fi
 else
   # A missing runtime downgrades the step; it never silently passes
-  # (AGENTS.md, "Degraded Environments"). Reported in the summary below.
-  LINKS_AVAILABLE=false
+  # (AGENTS.md, "Degraded Environments").
+  LINK_NOTE="md links: SKIPPED (bun not installed)"
 fi
-
-# Set below the `command -v bun` branch that assigns LINKS_AVAILABLE, and read
-# by the block body and by both summary branches, so a Stop that blocks on
-# another step still says whether this step ran.
-LINK_NOTE="md links: clean"
-[ "$LINKS_AVAILABLE" = "false" ] && LINK_NOTE="md links: SKIPPED (bun not installed)"
 
 # ==== Report every failure the steps above collected ====
 
