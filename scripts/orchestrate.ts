@@ -83,18 +83,17 @@ const watchPrs = async (numbers: readonly number[]): Promise<void> => {
 
 const [command, ...rest] = process.argv.slice(2);
 
-const usage = (line: string): never => {
+const usage: (line: string) => never = (line) => {
   console.error(line);
   process.exit(1);
 };
 
 if (command === "free-gib") {
   const gib = freeGib();
-  console.log(
-    gib === undefined
-      ? usage("could not read free memory from the platform command")
-      : gib.toFixed(1)
-  );
+  if (gib === undefined) {
+    usage("could not read free memory from the platform command");
+  }
+  console.log(gib.toFixed(1));
 } else if (command === "watch-prs") {
   const numbers = rest.map(Number);
   if (numbers.length === 0 || numbers.some(Number.isNaN)) {
