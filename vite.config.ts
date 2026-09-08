@@ -79,6 +79,13 @@ export default defineConfig({
       "vitest/no-hooks": "off",
       "@typescript-eslint/ban-ts-comment": "error",
       "@typescript-eslint/no-non-null-assertion": "error",
+      // Without the option the rule rewrites `<T>x` into `x as T` and lets
+      // `as` through. `never` reports both forms and leaves `as const` and
+      // `satisfies` alone.
+      "@typescript-eslint/consistent-type-assertions": [
+        "error",
+        { assertionStyle: "never" },
+      ],
       "@typescript-eslint/switch-exhaustiveness-check": "error",
       "@typescript-eslint/no-misused-promises": "error",
       "@typescript-eslint/consistent-type-imports": "error",
