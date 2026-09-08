@@ -30,6 +30,7 @@ import {
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
   livePullRequest,
+  localVerdict,
   prNumbers,
   watchEvent,
   worktreeProbe,
@@ -201,8 +202,11 @@ const verdictFor = (
     return probe.verdict;
   }
   try {
+    const local = localVerdict(isDirty(worktree.path));
+    if (local !== undefined) {
+      return local;
+    }
     const verdict = worktreeVerdict(
-      isDirty(worktree.path),
       headSha(worktree.path),
       prOf(probe.branch),
       numbers

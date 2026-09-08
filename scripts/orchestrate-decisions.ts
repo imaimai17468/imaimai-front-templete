@@ -162,6 +162,14 @@ export interface PullRequest {
 }
 
 /**
+ * The verdict the worktree's own files decide, or undefined when GitHub has to
+ * be asked. Reading the status first keeps a worktree someone is working in
+ * from depending on whether `gh` answers.
+ */
+export const localVerdict = (isDirty: boolean): WorktreeVerdict | undefined =>
+  isDirty ? { kind: "keep", reason: "uncommitted changes" } : undefined;
+
+/**
  * The pull request of a branch that `gh pr list` returned newest first. An open
  * one wins over a newer finished one, because keeping a worktree that could
  * have gone costs a directory where the reverse costs the directory itself.
@@ -182,14 +190,10 @@ export const livePullRequest = (
  * ancestry test would answer nothing.
  */
 export const worktreeVerdict = (
-  isDirty: boolean,
   headSha: string,
   pr: PullRequest | undefined,
   run: readonly number[]
 ): WorktreeVerdict => {
-  if (isDirty) {
-    return { kind: "keep", reason: "uncommitted changes" };
-  }
   if (pr === undefined) {
     return { kind: "keep", reason: "no pull request" };
   }

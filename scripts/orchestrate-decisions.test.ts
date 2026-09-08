@@ -6,6 +6,7 @@ import {
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
   livePullRequest,
+  localVerdict,
   prNumbers,
   watchEvent,
   worktreeProbe,
@@ -290,6 +291,23 @@ const pullRequest = (state: string, number = 12): PullRequest => ({
   state,
 });
 
+describe(localVerdict, () => {
+  it("should keep the worktree when it holds uncommitted changes", () => {
+    const verdict = localVerdict(true);
+
+    expect(verdict).toStrictEqual({
+      kind: "keep",
+      reason: "uncommitted changes",
+    });
+  });
+
+  it("should return undefined when the worktree is clean", () => {
+    const verdict = localVerdict(false);
+
+    expect(verdict).toBeUndefined();
+  });
+});
+
 describe(livePullRequest, () => {
   it("should return the open pull request when a newer finished one is listed first", () => {
     const pr = livePullRequest([
@@ -317,61 +335,32 @@ describe(livePullRequest, () => {
 });
 
 describe(worktreeVerdict, () => {
-  it("should keep the worktree when it holds uncommitted changes", () => {
-    const verdict = worktreeVerdict(true, HEAD_SHA, pullRequest("MERGED"), RUN);
-
-    expect(verdict).toStrictEqual({
-      kind: "keep",
-      reason: "uncommitted changes",
-    });
-  });
-
   it("should keep the worktree when its branch has no pull request", () => {
-    const verdict = worktreeVerdict(false, HEAD_SHA, NO_PULL_REQUEST, RUN);
+    const verdict = worktreeVerdict(HEAD_SHA, NO_PULL_REQUEST, RUN);
 
     expect(verdict).toStrictEqual({ kind: "keep", reason: "no pull request" });
   });
 
   it("should keep the worktree when its pull request is not one the caller named", () => {
-    const verdict = worktreeVerdict(
-      false,
-      HEAD_SHA,
-      pullRequest("MERGED", 99),
-      RUN
-    );
+    const verdict = worktreeVerdict(HEAD_SHA, pullRequest("MERGED", 99), RUN);
 
     expect(verdict).toStrictEqual({ kind: "keep", reason: "not in this run" });
   });
 
   it("should remove the worktree when its pull request is merged", () => {
-    const verdict = worktreeVerdict(
-      false,
-      HEAD_SHA,
-      pullRequest("MERGED"),
-      RUN
-    );
+    const verdict = worktreeVerdict(HEAD_SHA, pullRequest("MERGED"), RUN);
 
     expect(verdict).toStrictEqual({ kind: "remove" });
   });
 
   it("should remove the worktree when its pull request is closed", () => {
-    const verdict = worktreeVerdict(
-      false,
-      HEAD_SHA,
-      pullRequest("CLOSED"),
-      RUN
-    );
+    const verdict = worktreeVerdict(HEAD_SHA, pullRequest("CLOSED"), RUN);
 
     expect(verdict).toStrictEqual({ kind: "remove" });
   });
 
   it("should keep the worktree when its HEAD is a commit GitHub does not hold", () => {
-    const verdict = worktreeVerdict(
-      false,
-      "deadbee",
-      pullRequest("MERGED"),
-      RUN
-    );
+    const verdict = worktreeVerdict("deadbee", pullRequest("MERGED"), RUN);
 
     expect(verdict).toStrictEqual({
       kind: "keep",
@@ -380,7 +369,7 @@ describe(worktreeVerdict, () => {
   });
 
   it("should keep the worktree when its pull request is still open", () => {
-    const verdict = worktreeVerdict(false, HEAD_SHA, pullRequest("OPEN"), RUN);
+    const verdict = worktreeVerdict(HEAD_SHA, pullRequest("OPEN"), RUN);
 
     expect(verdict).toStrictEqual({
       kind: "keep",
