@@ -13,8 +13,7 @@ Strips the template down to a frontend-only TanStack Start app by removing:
 
 **The Cloudflare Workers deployment is deliberately kept.** Only the *bindings*
 (D1, R2) and the auth vars leave `wrangler.toml`, so `bun run deploy` keeps
-working the moment this procedure finishes. Removing D1 and removing the hosting
-platform are separate concerns, and this skill does the first one only.
+working the moment this procedure finishes.
 
 What else stays: the app shell, shared UI (`src/components/ui`, header,
 mode-toggle, theme-provider), the sample home page, and the oxlint / oxfmt /
