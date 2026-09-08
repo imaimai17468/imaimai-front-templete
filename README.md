@@ -23,7 +23,7 @@ TanStack Start + TypeScript + Tailwind CSS + shadcn/ui を使用したモダン�
 git clone <your-repo-url>
 cd <your-repo-name>
 mise install                 # Node / Bun / actionlint を mise.toml の版で用意
-cargo install similarity-ts  # Stop gate の重複検出（Rust 製）
+cargo install similarity-ts  # lefthook の pre-push が回す重複検出（Rust 製）
 bun install
 cp .env.local.example .env.local
 bun run dev
@@ -31,7 +31,7 @@ bun run dev
 
 `src/routeTree.gen.ts` は `bun run dev` と `bun run build` が生成し、ルートファイルの追加や削除に追従します。`worker-configuration.d.ts` は `bun run dev` が生成し、`wrangler.toml` の編集にも追従します（build は生成しません）。dev を起動せずに `bun run check` や `bun run test` を走らせるときだけ、先に `bun run generate-routes` と `bun run cf-typegen` を叩いてください。
 
-`similarity-ts` が無い環境では SessionStart の env-check が欠落を報告し、Stop gate は重複検出を「スキップした」と明示します（黙って合格扱いにはなりません）。
+`similarity-ts` が無い環境では、lefthook の pre-push が重複検出（`similarity-ts ./src --fail-on-duplicates`）を飛ばして push を通します。その欠落は SessionStart の env-check がセッション開始時に報告します。
 
 [mise](https://mise.jdx.dev/) を使わない場合は、`package.json` の `engines.node` を満たす Node と、`mise.toml` が指定する版の Bun を手動で用意してください。Cursor Cloud Agent 環境では `.cursor/environment.json` が同じセットアップ（`scripts/cloud-agent-install.sh`）を自動実行します。shims の PATH 追記は rc ファイルを読むシェルにしか効かないため、rc を読まない非対話シェルからは `mise exec -- <コマンド>` で実行してください。
 
@@ -97,7 +97,7 @@ src/
 - **[AGENTS.md](./AGENTS.md)**：規約の本体。毎セッション自動でロードされます（`CLAUDE.md` はこれを読み込むだけ）
 - **`.claude/rules/`**：規約の分冊。path scope を持つものは対象ファイルを編集するときだけ、持たないものは毎セッション読み込まれます
 - **`.claude/skills/`**：名前のついた作業の手順。チケット粒度の作業は `ticket-work` が持ち、AGENTS.md はそれを指します
-- **`.claude/hooks/`**：規約を機械的に強制する側。SessionStart で依存の欠落を報告し、Bash 実行前にガードを掛け、Stop で品質ゲート（typecheck / lint / format / knip / similarity / markdown リンク）を回します
+- **`.claude/hooks/`**：規約を機械的に強制する側。SessionStart で依存の欠落を報告し、Bash 実行前にガードを掛け、Stop ではコードが変わった turn だけ `bun run check`（format / lint / 型検査）と `bun run test` を回します。markdown のリンク切れ検査は変更があれば毎回走ります。ツリー全体を判定する検査は Stop に置かず、knip は CI、`similarity-ts` は lefthook の pre-push が回します
 
 コミット前のレビューは `code-reviewer` エージェントが担い、PR ブランチへのコミットと push はエージェントが AGENTS.md の規律に従って自分で行います。`main` へは PR 経由でだけ入ります。
 
