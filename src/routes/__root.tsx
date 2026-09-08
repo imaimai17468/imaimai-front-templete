@@ -10,6 +10,7 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { Header } from "@/components/shared/header/header";
 import { ThemeProvider } from "@/components/shared/theme-provider/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { getCurrentUserFn } from "@/server/fn/user";
 import "@/styles.css";
 
@@ -31,15 +32,17 @@ const RootComponent = () => {
           enableSystem={false}
           disableTransitionOnChange
         >
-          <div className="flex min-h-dvh flex-col gap-16">
-            <Header user={user} />
-            <div className="flex w-full flex-1 justify-center px-6 md:px-4">
-              <div className="container w-full">
-                <Outlet />
+          <TooltipProvider>
+            <div className="flex min-h-dvh flex-col gap-16">
+              <Header user={user} />
+              <div className="flex w-full flex-1 justify-center px-6 md:px-4">
+                <div className="container w-full">
+                  <Outlet />
+                </div>
               </div>
             </div>
-          </div>
-          <Toaster richColors position="top-center" />
+            <Toaster richColors position="top-center" />
+          </TooltipProvider>
         </ThemeProvider>
         <TanStackDevtools
           plugins={[
