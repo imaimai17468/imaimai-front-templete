@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "setup": "bash scripts/setup.sh",
     "prepare": "lefthook install",
     "generate-routes": "tsr generate",
     "dev": "portless run vp dev",
