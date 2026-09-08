@@ -438,11 +438,7 @@ Slow where the user is deciding, fast where the system responds.
 
 - **Momentum dismissal**: compute velocity (`Math.abs(distance)/elapsedMs`);
   dismiss if `> ~0.11`. A flick should be enough.
-- **Damping at boundaries**: dragging past a natural edge moves less the
-  further you go.
-- **Pointer capture** once dragging starts.
 - **Multi-touch protection**: ignore extra touch points after drag begins.
-- **Friction over hard stops** — allow over-drag with rising resistance.
 
 ## Masking imperfect crossfades
 
