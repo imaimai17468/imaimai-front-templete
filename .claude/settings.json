@@ -58,8 +58,8 @@
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/stop-gate.sh",
-            "timeout": 120,
-            "statusMessage": "Stop gate: typecheck / lint / format + markdown links..."
+            "timeout": 240,
+            "statusMessage": "Stop gate: typecheck / lint / format + tests + markdown links..."
           }
         ]
       }

@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # Stop combined gate:
-# 1. Quality gate — typecheck / lint / format (blocking)
-#    — knip and similarity are not here: their verdict is a property of the whole
-#      tree rather than of this turn's diff, so CI runs knip and lefthook's
-#      pre-push runs similarity-ts
+# 1. Quality gate — typecheck / lint / format, then the test suite (blocking)
+#    — knip and similarity are not here: their verdict is a property of more
+#      than this turn's diff, so CI runs knip and lefthook's pre-push runs
+#      similarity-ts
 #    — runs only when code-relevant files changed (docs-only turns skip it)
 #    — respects stop_hook_active: if this Stop was already blocked once, a
-#      still-failing gate downgrades to a warning instead of blocking again,
-#      so a pre-existing failure the agent cannot fix does not loop forever
+#      failing gate downgrades to a warning instead of blocking again, so a
+#      pre-existing failure the agent cannot fix does not loop forever. The
+#      steps below fail fast, so the second Stop can carry a failure the first
+#      one never reported
 # 2. Markdown link check — blocking; dead relative links are decidable by opening
 #    the path, so they belong here rather than in a reviewer's judgment
 
@@ -50,6 +52,14 @@ emit_block() { # $1 = summary, $2 = reason body (stdin-free)
   exit 0
 }
 
+# `local out` is separate from the assignment because `local out=$(...)` would
+# report local's own exit status and lose the one `bun run` returned.
+run_or_block() { # $1 = the `bun run` script to run
+  local out
+  out=$(bun run "$1" 2>&1) ||
+    emit_block "bun run $1 failed. Fix before ending the turn." "$out"
+}
+
 # Skip when there are no changes
 if [ -z "$(git status --porcelain)" ]; then
   exit 0
@@ -65,16 +75,13 @@ ALL_FILES=$(printf '%s\n%s' "$CHANGED" "$UNTRACKED" | sort -u)
 
 # ==== 1. Quality gate (only when code-relevant files changed) ====
 
-CODE_CHANGED=$(printf '%s\n' "$ALL_FILES" | grep -cE '\.(ts|tsx|js|jsx|mjs|cjs|json|css)$' || true)
+CODE_CHANGED=$(printf '%s\n' "$ALL_FILES" | grep -cE '\.(ts|mts|cts|tsx|js|jsx|mjs|cjs|json|css)$' || true)
 
 if [ "$CODE_CHANGED" -gt 0 ]; then
-  # Layer 1: format, lint and type check in one pass. `bun run check` is
-  # `vp check`, which runs all three over one file walk.
-  OUT=$(bun run check 2>&1)
-  RC=$?
-  if [ $RC -ne 0 ]; then
-    emit_block "bun run check failed. Fix before ending the turn." "$OUT"
-  fi
+  # `bun run check` is `vp check`, which formats, lints and type-checks over one
+  # file walk. `bun run test` is `vp test --run --coverage`.
+  run_or_block check
+  run_or_block test
 fi
 
 # ==== 2. Markdown link check ====
@@ -103,7 +110,7 @@ LINK_NOTE="md links: clean"
 [ "$LINKS_AVAILABLE" = "false" ] && LINK_NOTE="md links: SKIPPED (bun not installed)"
 
 if [ "$CODE_CHANGED" -gt 0 ]; then
-  jq -n --arg links "$LINK_NOTE" '{"systemMessage":("✅ Stop gate: typecheck / lint / format pass (" + $links + ")")}'
+  jq -n --arg links "$LINK_NOTE" '{"systemMessage":("✅ Stop gate: typecheck / lint / format and the test suite pass (" + $links + ")")}'
 else
   jq -n --arg links "$LINK_NOTE" '{"systemMessage":("✅ Stop gate: no code-relevant changes (quality gate skipped, " + $links + ")")}'
 fi
