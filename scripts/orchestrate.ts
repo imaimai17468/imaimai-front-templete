@@ -48,6 +48,7 @@ import type {
   Ancestry,
   PullRequest,
   Worktree,
+  WorktreeFacts,
   WorktreeVerdict,
 } from "./orchestrate-decisions";
 
@@ -144,9 +145,6 @@ const watchPrs = async (branches: readonly string[]): Promise<void> => {
   await watchPrs(branches);
 };
 
-const headSha = (path: string): string =>
-  run("git", ["-C", path, "rev-parse", "HEAD"]).trim();
-
 const isDirty = (path: string): boolean =>
   run("git", ["-C", path, "status", "--porcelain"]).trim() !== "";
 
@@ -208,18 +206,34 @@ const commandMessage = (error: unknown): string =>
 const NOT_ANCESTOR_STATUS = 1;
 
 /**
- * Ancestry asked of main by name, where `git branch -d` would ask it of
- * whichever branch this session happens to have checked out.
+ * Whether `commit` is in the history of `descendant`. Exit status 1 is git's
+ * answer that it is not, where any other failure is the command not answering,
+ * which is what a commit missing from this repository gives.
  */
-const ancestryOfMain = (branch: string): Ancestry => {
+const ancestry = (commit: string, descendant: string): Ancestry => {
   try {
-    run("git", ["merge-base", "--is-ancestor", branch, "main"]);
+    run("git", ["merge-base", "--is-ancestor", commit, descendant]);
     return { kind: "ancestor" };
   } catch (error) {
     return isCommandFailure(error) && error.status === NOT_ANCESTOR_STATUS
       ? { kind: "not-ancestor" }
       : { kind: "failed", reason: commandMessage(error) };
   }
+};
+
+/**
+ * What `worktreeVerdict` judges. The ancestry runs on the branch, which is the
+ * commit the worktree has checked out and the ref `removeWorktree` deletes.
+ */
+const worktreeFacts = (branch: string): WorktreeFacts => {
+  const pullRequest = prOf(branch);
+  return pullRequest === undefined
+    ? { kind: "no-pull-request", mainAncestry: ancestry(branch, "main") }
+    : {
+        kind: "pull-request",
+        pullRequest,
+        pullRequestAncestry: ancestry(branch, pullRequest.headRefOid),
+      };
 };
 
 /**
@@ -240,11 +254,7 @@ const verdictFor = (
     if (local !== undefined) {
       return local;
     }
-    const verdict = worktreeVerdict({
-      ancestry: ancestryOfMain(probe.branch),
-      headSha: headSha(worktree.path),
-      pullRequest: prOf(probe.branch),
-    });
+    const verdict = worktreeVerdict(worktreeFacts(probe.branch));
     return verdict.kind === "remove"
       ? removeWorktree(worktree, probe.branch)
       : verdict;
@@ -253,9 +263,13 @@ const verdictFor = (
   }
 };
 
-/** Deletes the branch once main holds its commits, and returns why it did not. */
+/**
+ * Deletes the branch once main holds its commits, and returns why it did not.
+ * Main is named, where `git branch -d` would check the branch against its
+ * upstream, or against HEAD when it has none.
+ */
 const deleteMergedBranch = (branch: string): string | undefined => {
-  const reason = ancestryKeepReason(ancestryOfMain(branch));
+  const reason = ancestryKeepReason(ancestry(branch, "main"), "main");
   if (reason !== undefined) {
     return reason;
   }
