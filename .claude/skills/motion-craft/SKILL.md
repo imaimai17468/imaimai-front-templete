@@ -5,14 +5,9 @@ description: Unified animation and motion skill — Apple-style fluid interface 
 
 # Motion Craft
 
-Everything you need to design, build, and review web animation — in one place.
-Three concerns, one skill: **design philosophy** (how motion should feel),
-**implementation reference** (exact values and techniques), and **review
-standards** (how to audit animation code). Plus a vocabulary glossary for
-naming effects precisely.
-
-Read this before writing any animation code. Re-check the review standards
-before calling the work done.
+Read Part 1 when deciding how a motion should feel, Part 2 when writing the
+value, Part 3 before calling animation work done, and Part 4 when the user
+describes an effect without naming it.
 
 ---
 
@@ -51,13 +46,6 @@ The moment lag appears, the feeling of directness "falls off a cliff."
 - **Feedback must be continuous *during* the interaction, not just at the end.**
   For a drag, slider, or drawer, update the UI 1:1 with the pointer the whole
   way through.
-
-```css
-.button:active {
-  transform: scale(0.97);
-  transition: transform 100ms ease-out;
-}
-```
 
 ## 2. Direct manipulation — 1:1 tracking
 
@@ -159,6 +147,9 @@ const target = nearestSnapPoint(projectedEndpoint);
 animateSpringTo(target, { velocity: releaseVelocity });
 ```
 
+At release, the **sign of the velocity** decides between reverse and commit,
+not the position the gesture reached.
+
 ## 7. Spatial consistency
 
 > "If something disappears one way, we expect it to emerge from where it came."
@@ -167,7 +158,8 @@ animateSpringTo(target, { velocity: releaseVelocity });
   must dismiss to the right.
 - **Anchor interactions to their source.** A menu or popover should originate
   from the element that triggered it — set `transform-origin` to the trigger.
-- **Mirror the easing on reversible transitions.**
+- **Mirror the easing on reversible transitions** with the inverse
+  cubic-bezier.
 
 ## 8. Hint in the direction of the gesture
 
@@ -302,25 +294,6 @@ and abrupt brightness jumps.
   eyes — play it in slow motion / frame-by-frame to catch what's invisible at
   full speed.
 
-## Quick Reference
-
-| Need | Technique | Concrete value |
-| --- | --- | --- |
-| Default UI spring | Critically damped, no overshoot | `damping 1.0`, `response 0.3-0.4` |
-| Momentum / flick spring | Under-damped, slight bounce | `damping ~0.8`, `response 0.3-0.4` |
-| Gesture -> spring velocity | Hand off release velocity | `gestureVelocity / (target - current)` if normalized |
-| Flick landing point | Project momentum | `current + (v/1000)*d/(1-d)`, `d ~ 0.998` |
-| Interrupt cleanly | Start from presentation (live) value | read the on-screen transform |
-| Avoid reversal "brick wall" | Carry velocity through re-target | spring that blends velocity |
-| Reversible transition | Mirror the easing curve | inverse cubic-bezier |
-| Decide reverse vs. commit | Use velocity **sign**, not position | at release |
-| 1:1 drag | Pointer Events + capture | respect the grab offset |
-| Feedback | On pointer-down, continuous | never only at the end |
-| Boundary | Rubber-band, don't hard-stop | progressive resistance |
-| Translucent chrome | `backdrop-filter` layer | content scrolls under |
-| Type tracking | Size-specific, never fixed | tighten large text (`-0.02em`), body near `0` |
-| Reduced motion | Cross-fade, not slide/spring | `@media (prefers-reduced-motion)` |
-
 ---
 
 # Part 2 — Implementation Reference
@@ -370,7 +343,8 @@ Find curves at [easing.dev](https://easing.dev/) or
 | Modals, drawers | 200-500ms |
 | Marketing / explanatory | Can be longer |
 
-**Rule: UI animations stay under 300ms.**
+**Rule: stay inside the element's row above. A longer duration needs a stated
+reason.**
 
 ## Physicality
 
@@ -396,13 +370,7 @@ Feel natural because they simulate physics; no fixed duration.
 ```
 
 Keep bounce subtle (0.1-0.3); reserve for drag-to-dismiss and playful
-interactions. Springs maintain velocity when interrupted (keyframes restart
-from zero).
-
-| Need | Config |
-| --- | --- |
-| Default UI spring | `damping 1.0`, `response 0.3-0.4` |
-| Momentum / flick spring | `damping ~0.8`, `response 0.3-0.4` |
+interactions. Springs maintain velocity when interrupted.
 
 ## Interruptibility
 
@@ -464,11 +432,7 @@ Slow where the user is deciding, fast where the system responds.
 
 - **Momentum dismissal**: compute velocity (`Math.abs(distance)/elapsedMs`);
   dismiss if `> ~0.11`. A flick should be enough.
-- **Damping at boundaries**: dragging past a natural edge moves less the
-  further you go.
-- **Pointer capture** once dragging starts.
 - **Multi-touch protection**: ignore extra touch points after drag begins.
-- **Friction over hard stops** — allow over-drag with rising resistance.
 
 ## Masking imperfect crossfades
 
@@ -490,16 +454,10 @@ Stagger is decorative — never block interaction while it plays.
 ## Accessibility (implementation)
 
 ```css
-@media (prefers-reduced-motion: reduce) {
-  .element { animation: fade 0.2s ease; }
-}
 @media (hover: hover) and (pointer: fine) {
   .element:hover { transform: scale(1.05); }
 }
 ```
-
-Reduced motion means fewer and gentler animations, not zero — keep transitions
-that aid comprehension, remove movement/position changes.
 
 ## Debugging
 
@@ -538,8 +496,8 @@ Every animation in the diff is measured against these. A violation is a finding.
 3. **Responsive easing.** Entering/exiting elements use `ease-out` or a strong
    custom curve. `ease-in` on UI is a block. Built-in CSS easings are too weak.
 
-4. **Sub-300ms UI.** UI animations stay under 300ms; anything slower needs
-   justification.
+4. **Duration within range.** A duration past its element's row in Part 2's
+   duration table needs justification.
 
 5. **Origin & physical correctness.** Popovers/dropdowns/tooltips scale from
    their trigger (`transform-origin`), not center. Never `scale(0)` — start
@@ -565,39 +523,27 @@ Every animation in the diff is measured against these. A violation is a finding.
 
 ## Aggressive Escalation Triggers
 
-Flag these on sight:
+Each of these is a finding on sight, and no standard above decides it:
 
 - `transition: all`
-- `scale(0)` or pure-fade entrances with no initial transform
-- `ease-in` on any UI interaction; weak built-in easing on deliberate animation
-- Animation on a keyboard shortcut or 100+/day action
-- UI duration > 300ms with no stated reason
-- `transform-origin: center` on a trigger-anchored popover/dropdown/tooltip
-- Keyframes on toasts, toggles, or anything added/triggered rapidly
-- Animating layout properties (`width`/`height`/`margin`/`padding`/`top`/`left`)
+- A pure-fade entrance with no initial transform
 - Motion `x`/`y`/`scale` props on motion that runs while the page is busy
 - Updating a CSS variable on a parent to drive a child transform
-- Missing `prefers-reduced-motion` handling on movement
-- Ungated `:hover` motion
-- Symmetric enter/exit timing on a press-and-release
 - Everything-at-once entrance where a 30-80ms stagger belongs
 
 ## Remedial Preference Hierarchy
 
 When proposing fixes, prefer earlier moves over later ones:
 
-1. **Delete the animation** (high-frequency / no purpose / keyboard-triggered).
-2. **Reduce it** — shorter duration, smaller transform, fewer properties.
-3. **Fix the easing** — swap `ease-in` -> `ease-out`/custom curve.
-4. **Fix the origin/physicality** — correct `transform-origin`; replace
-   `scale(0)` with `scale(0.95)` + opacity.
-5. **Make it interruptible** — keyframes -> transitions/springs for gestures.
-6. **Move it to the GPU** — layout props -> `transform`/`opacity`.
-7. **Asymmetric timing** — slow the deliberate phase, snap the response.
-8. **Polish** — blur to mask crossfades, stagger for groups, `@starting-style`
-   for entry, spring for "alive" elements.
-9. **Accessibility & cohesion** — add reduced-motion + hover gating; tune to
-   match personality.
+1. **Delete the animation.**
+2. **Reduce it.**
+3. **Fix the easing.**
+4. **Fix the origin and physicality.**
+5. **Make it interruptible.**
+6. **Move it to the GPU.**
+7. **Make the timing asymmetric.**
+8. **Polish it.**
+9. **Fix the accessibility gating and the cohesion.**
 
 ## Review Output Format
 
@@ -641,12 +587,7 @@ Cite `file:line`. Pull exact values from Part 2 rather than approximating.
 
 Turn a vague description of a motion effect into the precise term, so you know
 what to ask for. When the user describes an effect loosely, return the matching
-term(s):
-
-```
-**Stagger** — Animate several items one after another with a small delay
-between each, creating a cascade.
-```
+term(s) in the bold-term-then-definition form the sections below use.
 
 If several terms could fit, list the best match first, then 1-2 alternates with
 a one-line note on how they differ.
@@ -768,12 +709,7 @@ a one-line note on how they differ.
 
 ## Principles
 
-- **Purposeful animation** — Motion serves a function, not just decoration.
 - **Anticipation** — Small wind-up in the opposite direction before a move.
 - **Follow-through** — Parts keep moving and settle after the main motion stops.
 - **Squash & stretch** — Deforming to convey weight, speed, and flexibility.
 - **Perceived performance** — The right animation makes an interface feel faster.
-- **Frequency of use** — The more often it's seen, the shorter and subtler it should be.
-- **Spatial consistency** — Animate so elements keep identity and position across states.
-- **Hardware acceleration** — Animating transform and opacity lets the GPU keep motion smooth.
-- **Reduced motion** — Respecting the user's `prefers-reduced-motion` setting.
