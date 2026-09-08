@@ -25,6 +25,7 @@ export default defineConfig({
         "src/entities/**",
         "src/lib/storage/avatar-validation.ts",
         "src/lib/utils.ts",
+        "scripts/orchestrate-decisions.ts",
         "tools/oxlint-plugins/arch-rules.js",
         "tools/oxlint-plugins/style-rules.js",
         "tools/vite-plugins/wrangler-types.ts",
