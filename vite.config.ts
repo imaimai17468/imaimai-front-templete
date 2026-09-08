@@ -157,11 +157,12 @@ export default defineConfig({
         rules: { "vitest/require-hook": "off" },
       },
       {
-        // These files are run as commands, so what they write to stdout is the
-        // report their caller reads rather than leftover debugging. They also
-        // iterate for effect rather than for a value, writing a scratch file
-        // per name or a line per finding, and the remedy `no-array-for-each`
-        // asks for is `for...of`, which `style-rules/no-loops` forbids.
+        // The scripts and hooks here are run as commands, so what they write
+        // to stdout is the report their caller reads rather than leftover
+        // debugging, and the hook tests beside them iterate for effect rather
+        // than for a value, writing a scratch file per name. The remedy
+        // `no-array-for-each` asks for is `for...of`, which
+        // `style-rules/no-loops` forbids.
         files: CLI_ENTRYPOINTS,
         rules: {
           "no-console": "off",
