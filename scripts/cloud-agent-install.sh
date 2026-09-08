@@ -21,6 +21,7 @@ mise exec -- bun run cf-typegen
 # rc を読むシェル(対話・ログイン)に shims の PATH を通す。
 # rc を読まないワンショットの非対話シェルには届かないため、そこでは
 # `mise exec -- <cmd>` を使う(このスクリプト自身も上でそうしている)
+# shellcheck disable=SC2016 # the rc file this line is appended to expands it
 shims_line='export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"'
 for rc in "$HOME/.bashrc" "$HOME/.profile"; do
   grep -qsF 'mise/shims' "$rc" || printf '%s\n' "$shims_line" >>"$rc"

@@ -28,10 +28,11 @@ command -v bun >/dev/null 2>&1 || MISSING+=("bun (the Stop quality gate, its mar
 # binary the hook cannot invoke is absent as far as the gate is concerned, so
 # accepting ~/.cargo/bin here would report a skipped check as present.
 command -v similarity-ts >/dev/null 2>&1 || MISSING+=("similarity-ts not on PATH (lefthook pre-push skips duplicate-type/function detection; install: cargo install similarity-ts, and put ~/.cargo/bin on PATH)")
-# `mise`, not `actionlint`: lefthook runs the workflow check as `mise exec --
-# actionlint` and skips on a missing mise, so mise is the condition that decides
-# whether the check runs. mise.toml pins the version it resolves.
-command -v mise >/dev/null 2>&1 || MISSING+=("mise not on PATH (lefthook pre-push skips the GitHub Actions workflow check; install: https://mise.jdx.dev/, then mise install)")
+# `mise`, not `actionlint` or `shellcheck`: lefthook runs both static checks
+# through `mise exec --` and skips each on a missing mise, so mise is the
+# condition that decides whether they run. mise.toml pins the versions it
+# resolves.
+command -v mise >/dev/null 2>&1 || MISSING+=("mise not on PATH (lefthook pre-push skips the GitHub Actions workflow check and the shellcheck run; install: https://mise.jdx.dev/, then mise install)")
 # The installed hooks, not the binary: `bun run setup` writes them through
 # `lefthook install`, and a tree whose hooks are absent runs no pre-commit check
 # while every binary above is present. Resolved through git because in a linked

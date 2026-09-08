@@ -162,6 +162,7 @@ if [ -n "$TEXT_FLAG_PATTERN" ]; then
   # only when the command contains no substitution opener at all. A bare `$`
   # (e.g. "$5/mo") is inert and still scrubs; any backtick is conservatively
   # treated as a potential pair (= execution) and blocks scrubbing.
+  # shellcheck disable=SC2016 # the openers are matched as literal text here
   case "$SCRUBBED" in
     *'$('*|*'${'*|*'`'*) ;;
     *) SCRUBBED=$(printf '%s' "$SCRUBBED" | scrub_message_body '"' "$TEXT_FLAG_PATTERN") ;;

@@ -42,6 +42,14 @@ pre-push:
       run: mise exec -- actionlint
       skip:
         - run: "! command -v mise"
+    # The shell counterpart of the step above, over every tracked `*.sh`: the
+    # PreToolUse, Stop and SessionStart hooks and the two setup scripts, which
+    # no other step here reads. It goes through `mise exec` for the same PATH
+    # reason, and skips on the same missing binary.
+    shellcheck:
+      run: mise exec -- bun run check:shell
+      skip:
+        - run: "! command -v mise"
     # `similarity-ignore` comments are honoured by similarity-ts itself, and
     # without --fail-on-duplicates it exits 0 whatever it finds. The skip keeps a
     # machine that never installed this cargo binary from being unable to push

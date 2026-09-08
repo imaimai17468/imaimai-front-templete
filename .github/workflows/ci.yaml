@@ -74,6 +74,13 @@ jobs:
       - name: Lint GitHub Actions workflows (actionlint)
         run: actionlint
 
+      # The shell counterpart of the step above, over every tracked `*.sh`: the
+      # PreToolUse, Stop and SessionStart hooks and the two setup scripts. It
+      # sits here rather than beside "Run Tests" so a finding in a hook fails
+      # ahead of the check, knip, doctor, test and build steps below.
+      - name: Lint the shell hooks and scripts (shellcheck)
+        run: bun run check:shell
+
       # `bg-sidebar` and `text-chart-3` are tokens only src/styles.css defines,
       # so sorting them proves the formatter resolved that stylesheet. When it
       # cannot, oxfmt leaves the classes untouched and still exits 0, which no
