@@ -5,13 +5,14 @@
 #      than this turn's diff, so CI runs knip and lefthook's pre-push runs
 #      similarity-ts
 #    — runs only when code-relevant files changed (docs-only turns skip it)
-#    — respects stop_hook_active: if this Stop was already blocked once, a
-#      failing gate downgrades to a warning instead of blocking again, so a
-#      pre-existing failure the agent cannot fix does not loop forever. The
-#      steps below fail fast, so the second Stop can carry a failure the first
-#      one never reported
 # 2. Markdown link check — blocking; dead relative links are decidable by opening
 #    the path, so they belong here rather than in a reviewer's judgment
+#
+# Every step above runs even after an earlier one failed, and one block names
+# all of them, so no failure waits for a later Stop to be reported. That block
+# respects stop_hook_active: if this Stop was already blocked once, it
+# downgrades to a warning instead of blocking again, so a pre-existing failure
+# the agent cannot fix does not loop forever.
 
 set -uo pipefail
 
@@ -37,13 +38,17 @@ STOP_ACTIVE=$(printf '%s' "$INPUT" | jq -r \
 
 # Emit a block — downgraded to a warning when this Stop was already blocked
 # once (stop_hook_active), to prevent an unfixable failure from looping.
-emit_block() { # $1 = summary, $2 = reason body (stdin-free)
+# The body reaches jq through a pipe rather than argv: `--arg body "$2"` made
+# execve fail with E2BIG once a step's diagnostics crossed ARG_MAX (1048576 on
+# macOS), and the exit below then ended the turn having printed nothing.
+# `printf` is a shell builtin, so the body never passes through an argv again.
+emit_block() { # $1 = summary, $2 = reason body
   if [ "$STOP_ACTIVE" = "true" ]; then
-    jq -n --arg sum "$1" --arg body "$2" '{
+    printf '%s' "$2" | jq -n --arg sum "$1" --rawfile body /dev/stdin '{
       systemMessage: ("⚠️ Stop gate STILL failing (not re-blocking — stop_hook_active): " + $sum + " — if this failure is pre-existing or unfixable, report it to the user explicitly; do not treat it as passed.\n" + $body)
     }'
   else
-    jq -n --arg sum "$1" --arg body "$2" '{
+    printf '%s' "$2" | jq -n --arg sum "$1" --rawfile body /dev/stdin '{
       systemMessage: ("⛔ Stop block: " + $sum),
       decision: "block",
       reason: ($sum + "\n\n" + $body)
@@ -52,12 +57,25 @@ emit_block() { # $1 = summary, $2 = reason body (stdin-free)
   exit 0
 }
 
+FAILED_STEPS=""
+FAILURE_OUTPUT=""
+
+# A failure is collected instead of emitted, so the steps after it still run and
+# one block names all of them.
+record_failure() { # $1 = step name, $2 = the step's output
+  FAILED_STEPS="${FAILED_STEPS:+$FAILED_STEPS, }$1"
+  FAILURE_OUTPUT="${FAILURE_OUTPUT}===== $1 =====
+$2
+
+"
+}
+
 # `local out` is separate from the assignment because `local out=$(...)` would
 # report local's own exit status and lose the one `bun run` returned.
-run_or_block() { # $1 = the `bun run` script to run
+run_step() { # $1 = the `bun run` script to run
   local out
-  out=$(bun run "$1" 2>&1) ||
-    emit_block "bun run $1 failed. Fix before ending the turn." "$out"
+  out=$(bun run "$1" 2>&1) && return 0
+  record_failure "bun run $1" "$out"
 }
 
 # Skip when there are no changes
@@ -80,8 +98,8 @@ CODE_CHANGED=$(printf '%s\n' "$ALL_FILES" | grep -cE '\.(ts|mts|cts|tsx|js|jsx|m
 if [ "$CODE_CHANGED" -gt 0 ]; then
   # `bun run check` is `vp check`, which formats, lints and type-checks over one
   # file walk. `bun run test` is `vp test --run --coverage`.
-  run_or_block check
-  run_or_block test
+  run_step check
+  run_step test
 fi
 
 # ==== 2. Markdown link check ====
@@ -91,23 +109,27 @@ fi
 # deleted, and the file holding the link is then untouched. Scoping to the diff
 # would have missed the case that motivated the check (docs/adr/ deleted on
 # 2026-07-29, dead links left in files the same commit did not edit).
-LINKS_AVAILABLE=true
+# LINK_NOTE carries this step's own verdict into the block body and into both
+# summary branches, so a Stop that blocks on another step still says what this
+# one did. Each branch below sets it, because a note left at "clean" while the
+# check failed would contradict the failure section in the same body.
+LINK_NOTE="md links: clean"
 if command -v bun >/dev/null 2>&1; then
-  LINKS=$(bun "$ROOT/.claude/hooks/check-md-links.ts" 2>&1)
-  LINKS_RC=$?
-  if [ $LINKS_RC -ne 0 ]; then
-    emit_block "dead markdown links. Fix the paths before ending the turn." "$LINKS"
+  if ! LINKS=$(bun "$ROOT/.claude/hooks/check-md-links.ts" 2>&1); then
+    record_failure "markdown link check" "$LINKS"
+    LINK_NOTE="md links: FAILED"
   fi
 else
   # A missing runtime downgrades the step; it never silently passes
-  # (AGENTS.md, "Degraded Environments"). Reported in the summary below.
-  LINKS_AVAILABLE=false
+  # (AGENTS.md, "Degraded Environments").
+  LINK_NOTE="md links: SKIPPED (bun not installed)"
 fi
 
-# Computed once here and read by both summary branches below. Nothing between
-# this point and the summary can exit, so the position is for reuse, not order.
-LINK_NOTE="md links: clean"
-[ "$LINKS_AVAILABLE" = "false" ] && LINK_NOTE="md links: SKIPPED (bun not installed)"
+# ==== Report every failure the steps above collected ====
+
+if [ -n "$FAILED_STEPS" ]; then
+  emit_block "$FAILED_STEPS failed. Fix before ending the turn." "$FAILURE_OUTPUT$LINK_NOTE"
+fi
 
 if [ "$CODE_CHANGED" -gt 0 ]; then
   jq -n --arg links "$LINK_NOTE" '{"systemMessage":("✅ Stop gate: typecheck / lint / format and the test suite pass (" + $links + ")")}'
