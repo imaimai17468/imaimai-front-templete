@@ -32,18 +32,27 @@ describe(Badge, () => {
   });
 
   it("should drop only the conflicting base class when className overrides one of them", () => {
-    render(<Badge className="rounded-md">Tag</Badge>);
+    render(
+      <>
+        <Badge>Plain</Badge>
+        <Badge className="rounded-md">Tag</Badge>
+      </>
+    );
 
-    const badge = screen.getByText("Tag");
+    const plain = screen.getByText("Plain");
+    const overridden = screen.getByText("Tag");
 
     expect({
-      hasCaller: badge.classList.contains("rounded-md"),
-      hasConflictingBase: badge.classList.contains("rounded-full"),
-      hasUnrelatedBase: badge.classList.contains("inline-flex"),
+      plainHasConflictingBase: plain.classList.contains("rounded-full"),
+      overriddenHasCaller: overridden.classList.contains("rounded-md"),
+      overriddenHasConflictingBase:
+        overridden.classList.contains("rounded-full"),
+      overriddenHasUnrelatedBase: overridden.classList.contains("inline-flex"),
     }).toStrictEqual({
-      hasCaller: true,
-      hasConflictingBase: false,
-      hasUnrelatedBase: true,
+      plainHasConflictingBase: true,
+      overriddenHasCaller: true,
+      overriddenHasConflictingBase: false,
+      overriddenHasUnrelatedBase: true,
     });
   });
 });
