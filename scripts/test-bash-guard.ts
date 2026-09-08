@@ -302,6 +302,100 @@ group("env protection: a git message body is prose, a chained command is not", [
   },
 ]);
 
+// A worker whose ticket touches local env setup has to name the file in a pull
+// request body, a comment and a review reply.
+group("env protection: a gh body is prose, a gh body file is access", [
+  {
+    command:
+      "gh pr create --draft --title t --body 'the .env.local setup step'",
+    expected: "allow",
+    why: "a single-quoted pull request body naming the file",
+  },
+  {
+    command: 'gh pr comment 1 --body "the .env.local setup step"',
+    expected: "allow",
+    why: "a double-quoted comment body naming the file",
+  },
+  {
+    command: "gh pr review 1 --comment --body 'the .env.local setup step'",
+    expected: "allow",
+    why: "a review body naming the file",
+  },
+  {
+    command: "gh issue create --title 'document .env.local' --body x",
+    expected: "allow",
+    why: "a title naming the file",
+  },
+  {
+    command:
+      "gh pr merge 1 --squash --subject 'drop the .env.local step' --body x",
+    expected: "allow",
+    why: "a merge subject naming the file",
+  },
+  {
+    command:
+      "gh pr create --title t --body-file - <<'MSG'\nthe .env.local setup step\nMSG",
+    expected: "allow",
+    why: "a heredoc body naming the file",
+  },
+  {
+    command: "gh pr create --title t --body-file .env.local",
+    expected: "block",
+    why: "--body-file names a file to read",
+  },
+  {
+    command: "gh pr comment 1 -F .env.local",
+    expected: "block",
+    why: "-F names a file to read",
+  },
+  {
+    command: "gh pr create --title t -T .env.local",
+    expected: "block",
+    why: "-T names a template file to read",
+  },
+  {
+    command: 'gh pr comment 1 --body "$(cat .env.local)"',
+    expected: "block",
+    why: "a substitution in the body is not scrubbed",
+  },
+  {
+    command: 'gh pr comment 1 --body "the `.env.local` step"',
+    expected: "block",
+    why: "a backtick in the body is not scrubbed",
+  },
+  {
+    command: "gh pr comment 1 --body 'the .env.local step' && cat .env.local",
+    expected: "block",
+    why: "a real access chained after the body",
+  },
+]);
+
+// The scrub runs over the whole command rather than over the leading gh alone,
+// so a short -b in the pattern also took the operand of a chained `cat -b`,
+// which reads that file.
+group("env protection: the gh scrub covers long flags on a leading gh", [
+  {
+    command: "gh pr comment 1 -b 'the .env.local step'",
+    expected: "block",
+    why: "-b is not scrubbed",
+  },
+  {
+    command: "gh pr create -t 'document .env.local' --body x",
+    expected: "block",
+    why: "-t is not scrubbed",
+  },
+  {
+    command: "gh pr view 1 && cat -b '.env'",
+    expected: "block",
+    why: "a chained cat -b keeps its operand",
+  },
+  {
+    command: "git add x && gh pr create --body 'the .env.local step'",
+    expected: "block",
+    why: "the pattern follows the first word only",
+  },
+]);
+
 console.log("");
 if (failures.length > 0) {
   console.log(`FAILED: ${failures.length}`);
