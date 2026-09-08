@@ -34,7 +34,7 @@ export const freeGibFromFreeB = (output: string): number | undefined => {
   return Number(available) / GIB;
 };
 
-/** The fields of `gh pr list --json number,state,mergeable` the watch reads. */
+/** The fields of `gh pr view --json number,state,mergeable` the watch reads. */
 export interface PrRow {
   readonly mergeable: string;
   readonly number: number;
@@ -47,8 +47,8 @@ export type WatchEvent =
 
 /**
  * What the watch reports back, or undefined while nothing needs the
- * orchestrator. A PR absent from `rows` counts as closed, because
- * `gh pr list --state open` stops listing a PR once it merges or closes.
+ * orchestrator. `rows` holds one row per watched PR, and a watched PR with no
+ * row counts as closed.
  */
 export const watchEvent = (
   watched: readonly number[],

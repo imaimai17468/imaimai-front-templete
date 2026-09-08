@@ -9,7 +9,8 @@
  * bun scripts/orchestrate.ts watch-prs 12 15   # exits when one of these needs the orchestrator
  * ```
  *
- * `watch-prs` polls `gh pr list` once a minute and exits with a single line:
+ * `watch-prs` reads each PR with `gh pr view` once a minute and exits with a
+ * single line:
  * `conflict <n> ...` when an open PR of the run turns CONFLICTING, or
  * `all-closed` once none of them is open. Run it in the background and start it
  * again after acting on the line.
@@ -50,29 +51,26 @@ const isPrRow = (value: unknown): value is PrRow =>
   "mergeable" in value &&
   typeof value.mergeable === "string";
 
-const openPrs = (): readonly PrRow[] => {
+const prRow = (number: number): PrRow => {
   const parsed: unknown = JSON.parse(
     run("gh", [
       "pr",
-      "list",
-      "--state",
-      "open",
-      "--limit",
-      "100",
+      "view",
+      String(number),
       "--json",
       "number,state,mergeable",
     ])
   );
-  if (!Array.isArray(parsed) || !parsed.every(isPrRow)) {
+  if (!isPrRow(parsed)) {
     throw new Error(
-      "gh pr list returned a shape without number/state/mergeable"
+      `gh pr view ${number} returned a shape without number/state/mergeable`
     );
   }
   return parsed;
 };
 
 const watchPrs = async (numbers: readonly number[]): Promise<void> => {
-  const event = watchEvent(numbers, openPrs());
+  const event = watchEvent(numbers, numbers.map(prRow));
   if (event !== undefined) {
     console.log(formatEvent(event));
     return;
