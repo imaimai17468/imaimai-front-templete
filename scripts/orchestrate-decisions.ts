@@ -154,8 +154,9 @@ export const worktreeProbe = (worktree: Worktree): WorktreeProbe => {
   return { branch: worktree.branch, kind: "probe" };
 };
 
-/** The fields of `gh pr list --json number,state` the cleanup reads. */
+/** The fields of `gh pr list --json headRefOid,number,state` the cleanup reads. */
 export interface PullRequest {
+  readonly headRefOid: string;
   readonly number: number;
   readonly state: string;
 }
@@ -165,10 +166,14 @@ export interface PullRequest {
  * reports for the branch, or undefined when the branch has none, and `run`
  * holds the pull request numbers the caller named. A worktree outside that set
  * belongs to another run or to a person's own session, both of which live in
- * the same directory, so naming the run is what separates them.
+ * the same directory, so naming the run is what separates them. `headSha` is
+ * the worktree's own HEAD, compared with the commit GitHub holds because a
+ * squash merge leaves the branch's commits outside main's ancestry, where an
+ * ancestry test would answer nothing.
  */
 export const worktreeVerdict = (
   isDirty: boolean,
+  headSha: string,
   pr: PullRequest | undefined,
   run: readonly number[]
 ): WorktreeVerdict => {
@@ -181,10 +186,13 @@ export const worktreeVerdict = (
   if (!run.includes(pr.number)) {
     return { kind: "keep", reason: "not in this run" };
   }
-  if (pr.state === "MERGED" || pr.state === "CLOSED") {
-    return { kind: "remove" };
+  if (pr.state !== "MERGED" && pr.state !== "CLOSED") {
+    return { kind: "keep", reason: `pull request ${pr.state}` };
   }
-  return { kind: "keep", reason: `pull request ${pr.state}` };
+  if (pr.headRefOid !== headSha) {
+    return { kind: "keep", reason: "commits GitHub has not seen" };
+  }
+  return { kind: "remove" };
 };
 
 /** The one line `clean-worktrees` prints for a worktree. */

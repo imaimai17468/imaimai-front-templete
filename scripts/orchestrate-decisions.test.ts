@@ -281,14 +281,17 @@ describe(worktreeProbe, () => {
 
 const RUN = [12] as const;
 
+const HEAD_SHA = "0a2c0f8";
+
 const pullRequest = (state: string, number = 12): PullRequest => ({
+  headRefOid: HEAD_SHA,
   number,
   state,
 });
 
 describe(worktreeVerdict, () => {
   it("should keep the worktree when it holds uncommitted changes", () => {
-    const verdict = worktreeVerdict(true, pullRequest("MERGED"), RUN);
+    const verdict = worktreeVerdict(true, HEAD_SHA, pullRequest("MERGED"), RUN);
 
     expect(verdict).toStrictEqual({
       kind: "keep",
@@ -297,31 +300,60 @@ describe(worktreeVerdict, () => {
   });
 
   it("should keep the worktree when its branch has no pull request", () => {
-    const verdict = worktreeVerdict(false, NO_PULL_REQUEST, RUN);
+    const verdict = worktreeVerdict(false, HEAD_SHA, NO_PULL_REQUEST, RUN);
 
     expect(verdict).toStrictEqual({ kind: "keep", reason: "no pull request" });
   });
 
   it("should keep the worktree when its pull request is not one the caller named", () => {
-    const verdict = worktreeVerdict(false, pullRequest("MERGED", 99), RUN);
+    const verdict = worktreeVerdict(
+      false,
+      HEAD_SHA,
+      pullRequest("MERGED", 99),
+      RUN
+    );
 
     expect(verdict).toStrictEqual({ kind: "keep", reason: "not in this run" });
   });
 
   it("should remove the worktree when its pull request is merged", () => {
-    const verdict = worktreeVerdict(false, pullRequest("MERGED"), RUN);
+    const verdict = worktreeVerdict(
+      false,
+      HEAD_SHA,
+      pullRequest("MERGED"),
+      RUN
+    );
 
     expect(verdict).toStrictEqual({ kind: "remove" });
   });
 
   it("should remove the worktree when its pull request is closed", () => {
-    const verdict = worktreeVerdict(false, pullRequest("CLOSED"), RUN);
+    const verdict = worktreeVerdict(
+      false,
+      HEAD_SHA,
+      pullRequest("CLOSED"),
+      RUN
+    );
 
     expect(verdict).toStrictEqual({ kind: "remove" });
   });
 
+  it("should keep the worktree when its HEAD is a commit GitHub does not hold", () => {
+    const verdict = worktreeVerdict(
+      false,
+      "deadbee",
+      pullRequest("MERGED"),
+      RUN
+    );
+
+    expect(verdict).toStrictEqual({
+      kind: "keep",
+      reason: "commits GitHub has not seen",
+    });
+  });
+
   it("should keep the worktree when its pull request is still open", () => {
-    const verdict = worktreeVerdict(false, pullRequest("OPEN"), RUN);
+    const verdict = worktreeVerdict(false, HEAD_SHA, pullRequest("OPEN"), RUN);
 
     expect(verdict).toStrictEqual({
       kind: "keep",

@@ -134,7 +134,9 @@ const isPullRequest = (value: unknown): value is PullRequest =>
   "state" in value &&
   typeof value.state === "string" &&
   "number" in value &&
-  typeof value.number === "number";
+  typeof value.number === "number" &&
+  "headRefOid" in value &&
+  typeof value.headRefOid === "string";
 
 const prOf = (branch: string): PullRequest | undefined => {
   const parsed: unknown = JSON.parse(
@@ -148,12 +150,15 @@ const prOf = (branch: string): PullRequest | undefined => {
       "--limit",
       "1",
       "--json",
-      "number,state",
+      "headRefOid,number,state",
     ])
   );
   const first: unknown = Array.isArray(parsed) ? parsed[0] : undefined;
   return isPullRequest(first) ? first : undefined;
 };
+
+const headSha = (path: string): string =>
+  run("git", ["-C", path, "rev-parse", "HEAD"]).trim();
 
 const isDirty = (path: string): boolean =>
   run("git", ["-C", path, "status", "--porcelain"]).trim() !== "";
@@ -176,6 +181,7 @@ const verdictFor = (
   }
   const verdict = worktreeVerdict(
     isDirty(worktree.path),
+    headSha(worktree.path),
     prOf(probe.branch),
     numbers
   );
