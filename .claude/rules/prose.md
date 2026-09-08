@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Prose
 
-This governs every text a person reads: replies to the user, plans, reports, commit messages, PR descriptions, review comments, code comments, and instruction documents. Check a reply against these rules before sending it, including where the sentence names a category in one word or hands a decision back. Code Practices settles what such prose may take as its subject, and Knowledge Currency whether its claims are verified. This file settles how the sentence is built. Every rule here describes what a sentence does rather than which words it uses, so all of them hold in both languages, and two sections near the end add what applies to Japanese alone and what bounds the whole file.
+This governs every text a person reads: replies to the user, plans, reports, commit messages, PR descriptions, review comments, code comments, and instruction documents. Check a reply against these rules before sending it, including where the sentence names a category in one word or hands a decision back. Code Practices settles what such prose may take as its subject, and Knowledge Currency whether its claims are verified. This file settles how the sentence is built. Every rule here describes what a sentence does rather than which words it uses, so all of them hold in both languages.
 
 ## Plain words
 
@@ -98,7 +98,7 @@ Knowledge Currency decides whether a claim was checked. These decide whether the
 
 **Do not use a dash in running text or in a heading.** Not the em dash `—`, the horizontal bar `―`, or the doubled `——`. Write a parenthetical with `（）`, and split a restatement into two sentences or join it with a comma. The en dash in a range or in a compound name such as `Curry–Howard` is exempt, as is anything inside a code block.
 
-**Do not build a heading out of two elements joined by a rule or a dash.** Make it one natural phrase.
+**Do not build a heading out of two elements joined by a rule.** Make it one natural phrase.
 
 **Do not end a clause with an i-adjective plus `です`** (`難しいです`, `多いです`, `わかりやすいです`). Read its appearance as a symptom that the sentence has come loose from the ones around it, and rewrite the passage rather than the ending alone. `重要です` and other na-adjectives are unaffected.
 
