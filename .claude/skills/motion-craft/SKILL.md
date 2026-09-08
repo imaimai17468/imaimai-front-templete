@@ -730,12 +730,7 @@ a one-line note on how they differ.
 
 ## Principles
 
-- **Purposeful animation** — Motion serves a function, not just decoration.
 - **Anticipation** — Small wind-up in the opposite direction before a move.
 - **Follow-through** — Parts keep moving and settle after the main motion stops.
 - **Squash & stretch** — Deforming to convey weight, speed, and flexibility.
 - **Perceived performance** — The right animation makes an interface feel faster.
-- **Frequency of use** — The more often it's seen, the shorter and subtler it should be.
-- **Spatial consistency** — Animate so elements keep identity and position across states.
-- **Hardware acceleration** — Animating transform and opacity lets the GPU keep motion smooth.
-- **Reduced motion** — Respecting the user's `prefers-reduced-motion` setting.
