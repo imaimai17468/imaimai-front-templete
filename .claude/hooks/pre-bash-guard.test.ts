@@ -57,7 +57,14 @@ const readDecision = (stdout: string): Decision => {
   return asDecision(parsed.hookSpecificOutput?.permissionDecision);
 };
 
-/** The hook's decision for a Bash command. */
+/**
+ * The hook's decision for a Bash command.
+ *
+ * A silent hook means "allow", so a hook that died before printing would read
+ * as allow and every case expecting that would pass on a broken guard. The
+ * hook writes nothing to stderr while it is working, so anything there ends
+ * the case instead of being read as a decision.
+ */
 const decide = async (command: string): Promise<Decision> => {
   const hook = spawn("bash", [HOOK], {
     env: { ...process.env, CLAUDE_PROJECT_DIR: REPO },
@@ -65,7 +72,14 @@ const decide = async (command: string): Promise<Decision> => {
   hook.stdin.end(
     JSON.stringify({ tool_input: { command }, tool_name: "Bash" })
   );
-  return readDecision(await text(hook.stdout));
+  const [stdout, stderr] = await Promise.all([
+    text(hook.stdout),
+    text(hook.stderr),
+  ]);
+  if (stderr !== "") {
+    throw new Error(`the hook wrote to stderr instead of deciding: ${stderr}`);
+  }
+  return readDecision(stdout);
 };
 
 interface Case {
