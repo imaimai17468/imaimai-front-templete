@@ -40,15 +40,13 @@ export const createGetAvatarResponse =
         });
       }
       // A new result kind fails to compile here rather than falling through to
-      // a response nobody chose, because it has no `never` to widen into. That
-      // same widening failure is what stops a test from reaching the arm, so
-      // coverage skips it instead of counting a branch nothing can enter.
-      /* v8 ignore start */
+      // a response nobody chose, because it has no `never` to widen into. The
+      // same widening failure keeps a test out of this arm.
+      /* v8 ignore next */
       default: {
         const unhandled: never = result;
         throw new Error(`Unhandled avatar read result: ${String(unhandled)}`);
       }
-      /* v8 ignore stop */
     }
   };
 

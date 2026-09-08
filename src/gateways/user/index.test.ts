@@ -200,30 +200,12 @@ describe("updateUserAvatar", () => {
     });
   });
 
-  it("should skip cleanup when the row holds no prior avatar", async () => {
+  it.each([
+    ["the row holds no prior avatar", null],
+    ["the prior image is external", "https://images.example.com/avatar.png"],
+  ])("should skip cleanup when %s", async (_label, avatarUrl) => {
     const { deps, findAvatarUrl, remove } = makeFakes();
-    findAvatarUrl.mockResolvedValue({ avatarUrl: null });
-
-    const result = await createUserGateway(deps).updateUserAvatar(
-      "user-1",
-      validPng()
-    );
-
-    expect({ removeCalls: remove.mock.calls, result }).toStrictEqual({
-      removeCalls: [],
-      result: {
-        avatarUrl: NEW_URL,
-        cleanup: "complete",
-        success: true,
-      },
-    });
-  });
-
-  it("should skip cleanup when the prior image is external", async () => {
-    const { deps, findAvatarUrl, remove } = makeFakes();
-    findAvatarUrl.mockResolvedValue({
-      avatarUrl: "https://images.example.com/avatar.png",
-    });
+    findAvatarUrl.mockResolvedValue({ avatarUrl });
 
     const result = await createUserGateway(deps).updateUserAvatar(
       "user-1",
