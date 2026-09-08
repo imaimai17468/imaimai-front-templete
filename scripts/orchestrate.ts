@@ -31,14 +31,23 @@ const POLL_MS = 60_000;
 const run = (file: string, args: readonly string[]): string =>
   execFileSync(file, args, { encoding: "utf-8" });
 
+/**
+ * Undefined covers both ways the platform can withhold the number: a command
+ * that is absent (a Linux image without procps) throws, and one that runs but
+ * prints a shape the parser does not recognise returns undefined.
+ */
 const freeGib = (): number | undefined => {
-  if (process.platform === "darwin") {
-    return freeGibFromMemoryPressure(
-      run("memory_pressure", []),
-      Number(run("sysctl", ["-n", "hw.memsize"]).trim())
-    );
+  try {
+    if (process.platform === "darwin") {
+      return freeGibFromMemoryPressure(
+        run("memory_pressure", []),
+        Number(run("sysctl", ["-n", "hw.memsize"]).trim())
+      );
+    }
+    return freeGibFromFreeB(run("free", ["-b"]));
+  } catch {
+    return undefined;
   }
-  return freeGibFromFreeB(run("free", ["-b"]));
 };
 
 const isPrRow = (value: unknown): value is PrRow =>
