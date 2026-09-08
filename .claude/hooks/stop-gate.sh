@@ -26,7 +26,6 @@ CWD=$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)
 if [ -n "$CWD" ] && [ -d "$CWD/.claude/hooks" ]; then
   ROOT="$CWD"
 fi
-cd "$ROOT"
 # `stop_hook_active` is Claude Code's "this Stop was already blocked once"
 # flag. Cursor's stop payload carries `loop_count` (auto-followups already
 # triggered) instead — and it runs Claude-registered stop hooks with NO loop
@@ -77,6 +76,15 @@ run_step() { # $1 = the `bun run` script to run
   out=$(bun run "$1" 2>&1) && return 0
   record_failure "bun run $1" "$out"
 }
+
+# Every step below reads the tree through the working directory, and `set -e` is
+# off, so a failed `cd` would leave them judging whatever tree the session was
+# started from. This is the one failure where nothing at all ran, so it takes
+# the same block as a failed step rather than a quieter exit. It sits after
+# emit_block for that reason.
+cd "$ROOT" || emit_block \
+  "the Stop gate could not enter $ROOT, so no check ran." \
+  "The directory named by the Stop payload's cwd, or by CLAUDE_PROJECT_DIR, is gone or unreadable. Nothing below it was judged: no typecheck, no lint, no format, no test suite, no markdown link check."
 
 # Skip when there are no changes
 if [ -z "$(git status --porcelain)" ]; then
