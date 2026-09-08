@@ -22,6 +22,7 @@ import {
   formatEvent,
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
+  prNumbers,
   watchEvent,
 } from "./orchestrate-decisions";
 import type { PrRow } from "./orchestrate-decisions";
@@ -112,8 +113,8 @@ if (command === "free-gib") {
   }
   console.log(gib.toFixed(1));
 } else if (command === "watch-prs") {
-  const numbers = rest.map(Number);
-  if (numbers.length === 0 || numbers.some(Number.isNaN)) {
+  const numbers = prNumbers(rest);
+  if (numbers === undefined) {
     usage("usage: bun scripts/orchestrate.ts watch-prs <pr-number>...");
   }
   await watchPrs(numbers);

@@ -74,3 +74,18 @@ export const formatEvent = (event: WatchEvent): string =>
   event.kind === "all-closed"
     ? "all-closed"
     : `conflict ${event.numbers.join(" ")}`;
+
+/**
+ * The PR numbers of `watch-prs`, or undefined when an argument is not one.
+ * `gh pr view 1.5` reports a PR that does not exist rather than the argument
+ * that was wrong, so the shape is rejected before `gh` sees it.
+ */
+export const prNumbers = (
+  args: readonly string[]
+): readonly number[] | undefined => {
+  const numbers = args.map(Number);
+  const usable =
+    numbers.length > 0 &&
+    numbers.every((value) => Number.isSafeInteger(value) && value > 0);
+  return usable ? numbers : undefined;
+};

@@ -3,6 +3,7 @@ import {
   formatEvent,
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
+  prNumbers,
   watchEvent,
 } from "./orchestrate-decisions";
 import type { PrRow } from "./orchestrate-decisions";
@@ -104,5 +105,43 @@ describe(formatEvent, () => {
     const line = formatEvent({ kind: "conflict", numbers: [12, 18] });
 
     expect(line).toBe("conflict 12 18");
+  });
+});
+
+describe(prNumbers, () => {
+  it("should return the parsed numbers when every argument is a positive integer", () => {
+    const numbers = prNumbers(["12", "15"]);
+
+    expect(numbers).toStrictEqual([12, 15]);
+  });
+
+  it("should return undefined when no argument is given", () => {
+    const numbers = prNumbers([]);
+
+    expect(numbers).toBeUndefined();
+  });
+
+  it("should return undefined when an argument is not a number", () => {
+    const numbers = prNumbers(["12", "main"]);
+
+    expect(numbers).toBeUndefined();
+  });
+
+  it("should return undefined when an argument has a fractional part", () => {
+    const numbers = prNumbers(["1.5"]);
+
+    expect(numbers).toBeUndefined();
+  });
+
+  it("should return undefined when an argument is zero or negative", () => {
+    const numbers = prNumbers(["0"]);
+
+    expect(numbers).toBeUndefined();
+  });
+
+  it("should return undefined when an argument is not finite", () => {
+    const numbers = prNumbers(["Infinity"]);
+
+    expect(numbers).toBeUndefined();
   });
 });
