@@ -76,6 +76,12 @@ export const formatEvent = (event: WatchEvent): string =>
     : `conflict ${event.numbers.join(" ")}`;
 
 /**
+ * `Number` reads `0x10`, `1e3` and ` 12 ` as integers, so the digits are
+ * matched before the conversion rather than after it.
+ */
+const DECIMAL = /^[1-9]\d*$/u;
+
+/**
  * The PR numbers of `watch-prs`, or undefined when an argument is not one.
  * `gh pr view 1.5` reports a PR that does not exist rather than the argument
  * that was wrong, so the shape is rejected before `gh` sees it.
@@ -83,9 +89,8 @@ export const formatEvent = (event: WatchEvent): string =>
 export const prNumbers = (
   args: readonly string[]
 ): readonly number[] | undefined => {
-  const numbers = args.map(Number);
   const usable =
-    numbers.length > 0 &&
-    numbers.every((value) => Number.isSafeInteger(value) && value > 0);
-  return usable ? numbers : undefined;
+    args.length > 0 &&
+    args.every((arg) => DECIMAL.test(arg) && Number.isSafeInteger(Number(arg)));
+  return usable ? args.map(Number) : undefined;
 };

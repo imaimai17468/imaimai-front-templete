@@ -144,4 +144,28 @@ describe(prNumbers, () => {
 
     expect(numbers).toBeUndefined();
   });
+
+  it("should return undefined when an argument is written in hexadecimal", () => {
+    const numbers = prNumbers(["0x10"]);
+
+    expect(numbers).toBeUndefined();
+  });
+
+  it("should return undefined when an argument is written in exponent notation", () => {
+    const numbers = prNumbers(["1e3"]);
+
+    expect(numbers).toBeUndefined();
+  });
+
+  it("should return undefined when an argument is padded with spaces", () => {
+    const numbers = prNumbers([" 12 "]);
+
+    expect(numbers).toBeUndefined();
+  });
+
+  it("should return undefined when an argument exceeds the safe integer range", () => {
+    const numbers = prNumbers(["9007199254740993"]);
+
+    expect(numbers).toBeUndefined();
+  });
 });
