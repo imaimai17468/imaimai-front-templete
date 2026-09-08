@@ -16,9 +16,8 @@ That base is a starting point rather than an identity, so a project that wants a
 palette, a typeface, or a corner treatment of its own replaces the values there
 and leaves the rules below alone.
 
-This document governs how those tokens are used. A token value changes in
-`src/styles.css` and never here. Keyboard behavior, forms, hydration, and
-performance sit outside its subject.
+Keyboard behavior, forms, hydration, and performance sit outside this
+document's subject.
 
 ## Colors
 
@@ -150,10 +149,8 @@ inter-component, largest for page structure.
 - Respect the safe areas with `env(safe-area-inset-*)` where a fixed or
   full-bleed element reaches the viewport edge.
 - Don't add padding to a child when the parent already provides it. Read the
-  parent's styles before adding spacing to children, since doubling padding
-  is a common cause of uneven gaps. External examples and copy-paste snippets
-  often assume a different parent context, so always verify against the
-  actual component you're composing into.
+  parent's styles before adding spacing to children. External examples and
+  copy-paste snippets often assume a different parent context.
 
 ### Alignment
 
@@ -284,7 +281,7 @@ trigger reflow on every frame.
 ## Decoration
 
 A decoration earns its place by encoding information. Each form below arrives by
-reflex when nothing was decided, so the bullet names the move that replaces it.
+reflex when nothing was decided.
 
 - **Place a mark bare.** A tile, chip, or circle behind an icon or a logo
   carries nothing, so size and color the mark itself.
