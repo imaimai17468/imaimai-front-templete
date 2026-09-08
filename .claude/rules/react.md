@@ -1,8 +1,8 @@
 ---
 description: Purity and the calling rules from the Rules of React, then effects, component splitting, testable shape, and module organization
-globs: **/*.tsx
+globs: src/**/*.ts,src/**/*.tsx
 alwaysApply: false
-paths: **/*.tsx
+paths: src/**/*.ts, src/**/*.tsx
 ---
 
 # React Purity
@@ -71,5 +71,5 @@ When internal state drives a component's behavior or appearance, structure it so
 - **No ceremony for small modules**: Don't wrap every small component in its own directory with `index.ts`. Place files directly in the parent directory. The overhead of a directory plus a re-export barrel for each module discourages the fine-grained splitting this rule exists to encourage.
 - **Directories mirror exclusive ownership**: Inside a feature, create a subdirectory only when a parent exclusively owns its children (a control panel and its private field/slider/toggle components). Imports decide exclusivity, and JSX nesting does not. A component consumed by two parents has lost exclusivity: move it up to the nearest common ancestor, or out of the feature when the consumers are different features. Within a feature, never a directory for a single file (shared components are the exception: each shared concern gets its own directory).
 - **A web of functions is one box**: "Place a function in its caller's directory" only works when the call graph is a tree. When modules form a web (a measurement/layout engine whose parts call each other and share constants/types), group the whole concern in one purpose-named directory (`engine/`) instead of nesting by caller. Otherwise nobody owns the shared pieces and the tree churns on every refactor.
-- **Cross-feature sharing**: a shared non-component value with no component affinity (a repo URL) goes to `src/lib/`. One feature must never import from another feature's directory. The exception to the `src/lib/` rule: a style-string constant tied to one shared component colocates next to that component in its own `.ts` file (never co-exported from the component file).
+- **Component affinity places a non-component value**: a value tied to one component lives beside that component, and one that two or more components of the same feature read lives at their nearest common ancestor inside that feature. A value with no component affinity (a repo URL) goes to `src/lib/`. A style-string constant tied to one shared component is the first case, so it colocates next to that component in its own `.ts` file (never co-exported from the component file). One feature must never import from another feature's directory.
 - **CSS backing a shared class loads globally**: A colocated feature stylesheet only loads when that feature's component is imported. When a class is used across features (a shared link treatment), its rules belong in the global stylesheet. Otherwise a route that never mounts the owning feature silently loses them.
