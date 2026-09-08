@@ -28,6 +28,7 @@
   },
   "include": [
     "**/*.ts",
+    "**/*.mts",
     "**/*.tsx",
     ".claude/hooks/**/*.ts",
     "src/routeTree.gen.ts"
