@@ -96,7 +96,7 @@ The next rule has no path scope, and applies whenever you write any instruction 
 
 ## Testing
 
-Tests are written against the implementation, and test-first is not required. What is required is that every branch you added is reached by a test that fails when that branch breaks. White-box: tests cover internal logic paths and branches as well as inputs and outputs. Pure functions require 100% branch coverage, which `vitest.config.mts` enforces per file over an explicit module list. A new module whose exports are all pure joins that list when its test lands, or nothing gates its coverage and no one notices. A module that reaches I/O stays out of it, and so does a component.
+Tests are written against the implementation, and test-first is not required. What is required is that every branch you added is reached by a test that fails when that branch breaks. White-box: tests cover internal logic paths and branches as well as inputs and outputs. Pure functions require 100% branch coverage, which `vitest.config.mts` enforces per file, and a module is inside that gate with no config edit. A module whose logic only runs against a live binding, and a component, are named in that file's `coverage.exclude`. A new one of either fails the suite naming its own path until its author adds it there.
 
 - **A test name states a condition and its result.** The name alone says what broke, without opening the body. Follow the phrasing of the tests around it.
 - **One test, one `expect`, arranged as Arrange / Act / Assert.** A table-driven case is one test per row and obeys the same rule.
