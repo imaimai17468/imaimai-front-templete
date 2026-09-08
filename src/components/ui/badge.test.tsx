@@ -3,7 +3,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { Badge } from "./badge";
 
 describe(Badge, () => {
-  it("should render a span when asChild is omitted", () => {
+  it("should render a span with the default variant when asChild and variant are omitted", () => {
     render(<Badge>New</Badge>);
 
     const badge = screen.getByText("New");
@@ -15,7 +15,7 @@ describe(Badge, () => {
     }).toStrictEqual({ tagName: "SPAN", slot: "badge", variant: "default" });
   });
 
-  it("should render the child element when asChild is true", () => {
+  it("should render the child element with the given variant when asChild is true", () => {
     render(
       <Badge asChild variant="outline">
         <a href="/releases">Releases</a>
