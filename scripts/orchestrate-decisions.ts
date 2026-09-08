@@ -88,12 +88,20 @@ export const formatEvent = (event: WatchEvent): string =>
     : `conflict ${event.branches.join(" ")}`;
 
 /**
- * `gh pr list --head -x` reads the argument as a flag, and a name holding a
- * character git forbids in a ref matches no pull request, which the watch would
- * wait on for as long as it runs. Both shapes are rejected before `gh` sees
- * them.
+ * A name that can carry a branch. `--head` takes the next argument as its value
+ * whatever it starts with, so `gh pr list --state open --head -x` returns an
+ * empty listing rather than an argument error, and a name no branch can carry
+ * reads the same as a branch whose worker has not opened a pull request, which
+ * the watch waits on for as long as it runs.
  */
 const BRANCH_NAME = /^\w[\w./-]*(?<![./])$/u;
+
+/**
+ * The sequences `git check-ref-format --branch` rejects that BRANCH_NAME's own
+ * characters allow. It exits 128 on `feat/a..b`, on `feat/.hidden` and on
+ * `feat/a.lock`.
+ */
+const FORBIDDEN_IN_REF = /\.\.|\/\.|\.lock(?:\/|$)/u;
 
 /**
  * These commands took pull request numbers before they took branches, and
@@ -112,7 +120,12 @@ export const branchNames = (
 ): readonly string[] | undefined => {
   const usable =
     args.length > 0 &&
-    args.every((arg) => BRANCH_NAME.test(arg) && !ALL_DIGITS.test(arg));
+    args.every(
+      (arg) =>
+        BRANCH_NAME.test(arg) &&
+        !FORBIDDEN_IN_REF.test(arg) &&
+        !ALL_DIGITS.test(arg)
+    );
   return usable ? args : undefined;
 };
 

@@ -170,6 +170,24 @@ describe(branchNames, () => {
     expect(branches).toBeUndefined();
   });
 
+  it("should return undefined when an argument holds a double dot", () => {
+    const branches = branchNames(["feat/a..b"]);
+
+    expect(branches).toBeUndefined();
+  });
+
+  it("should return undefined when a component of an argument starts with a dot", () => {
+    const branches = branchNames(["feat/.hidden"]);
+
+    expect(branches).toBeUndefined();
+  });
+
+  it("should return undefined when a component of an argument ends with .lock", () => {
+    const branches = branchNames(["feat/a.lock"]);
+
+    expect(branches).toBeUndefined();
+  });
+
   it("should return undefined when an argument is a pull request number", () => {
     const branches = branchNames(["12"]);
 
