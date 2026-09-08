@@ -16,7 +16,7 @@ Ticket-granularity work follows the `ticket-work` skill: implementing a componen
 
 ## Degraded Environments
 
-Not every session has the full toolchain, and a remote container may lack MCP servers or local binaries. A missing tool downgrades a step. It never waives that step, and it never blocks unrelated work. Report a step the session could not run as "not run", never as "passed", and name it when reporting completion. The SessionStart env-check reports an absent gate binary such as `similarity-ts`.
+Not every session has the full toolchain, and a remote container may lack MCP servers or local binaries. A missing tool downgrades a step. It never waives that step, and it never blocks unrelated work. Report a step the session could not run as "not run", never as "passed", and name it when reporting completion.
 
 The session's permission mode also changes how a step runs, and only `~/.claude/settings.json` can set `permissions.defaultMode` to `auto`, because that value is ignored in `.claude/settings.json` and `.claude/settings.local.json`. Read the user file to learn the mode. Where it is `auto`:
 
