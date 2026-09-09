@@ -291,6 +291,27 @@ or grid children, never on elements in normal flow.
 
 Never animate a keyboard-initiated action.
 
+### Easing
+
+Pick the curve from what the element is doing:
+- Entering or exiting: `ease-out`
+- Moving or morphing on screen: `ease-in-out`
+- Hover or a color change: `ease`
+- Constant motion (marquee, progress): `linear`
+- Anything else: `ease-out`
+
+Never `ease-in` on UI. The built-in CSS curves are weak, so define the ones a
+project takes alongside the other tokens in `src/styles.css`:
+
+```css
+--ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+--ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+--ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);      /* iOS-like drawer */
+```
+
+Find further curves at [easing.dev](https://easing.dev/) or
+[easings.co](https://easings.co/).
+
 ### Properties
 
 Animate `transform` and `opacity` only, because the compositor runs them

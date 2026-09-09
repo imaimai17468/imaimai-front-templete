@@ -299,27 +299,6 @@ Distilled from Emil Kowalski's design engineering philosophy (animations.dev).
 What this repository's CSS and TSX must do is settled in
 `.claude/rules/design.md` (Animations); this part is the reference behind it.
 
-## Easing
-
-Decision order:
-- Entering or exiting -> **`ease-out`**
-- Moving / morphing on screen -> **`ease-in-out`**
-- Hover / color change -> **`ease`**
-- Constant motion (marquee, progress) -> **`linear`**
-- Default -> **`ease-out`**
-
-**Never `ease-in` on UI.** Built-in CSS easings are too weak. Use strong custom
-curves:
-
-```css
---ease-out: cubic-bezier(0.23, 1, 0.32, 1);
---ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
---ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);      /* iOS-like drawer */
-```
-
-Find curves at [easing.dev](https://easing.dev/) or
-[easings.co](https://easings.co/).
-
 ## Duration
 
 | Element | Duration |
@@ -483,8 +462,8 @@ Every animation in the diff is measured against these. A violation is a finding.
 2. **Frequency-appropriate.** Measured against the frequency table in
    `.claude/rules/design.md` (Animations).
 
-3. **Responsive easing.** Entering/exiting elements use `ease-out` or a strong
-   custom curve. `ease-in` on UI is a block. Built-in CSS easings are too weak.
+3. **Responsive easing.** Measured against the curve order in
+   `.claude/rules/design.md` (Animations).
 
 4. **Duration within range.** A duration past its element's row in Part 2's
    duration table needs justification.
