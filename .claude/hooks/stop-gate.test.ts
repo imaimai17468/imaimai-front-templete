@@ -47,7 +47,7 @@ const PASSING: Steps = {
 /**
  * A committed git repository with the three step stand-ins in place, plus the
  * named files left untracked so `git status --porcelain` reports them and
- * CODE_CHANGED counts them.
+ * `holds_code_relevant_file` sees them.
  */
 const scratchRepo = (steps: Steps, untracked: readonly string[]): string => {
   const root = scratchDir("stop-gate-");
