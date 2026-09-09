@@ -2,7 +2,7 @@
 
 This project runs on **TanStack Start** on Cloudflare Workers. Its APIs and conventions may differ from your training data, and reading it as Next.js is the specific error that follows.
 
-This file carries the directives. Step-by-step procedure for a named task lives in the skill it names. Follow the pointer rather than assuming the summary is the whole rule.
+This file carries the directives, and the Rules section settles which document holds what. Follow the pointer rather than assuming the summary is the whole rule.
 
 ## Workflow
 
@@ -80,7 +80,7 @@ Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/
 
 - **`react.md`** names the concrete `src/components/` homes in its Module Organization section, so `.tsx` placement is settled there rather than here.
 
-A principle lives in this file. A concrete of this repository, such as a path, a file name, or a command, lives in the rule whose scope covers the files it names, and the part of it a scope would hide from a session that needs it stays here.
+A principle lives in this file. A concrete of this repository, such as a path, a file name, or a command, lives in the rule whose scope covers the files it names, and the part of it a scope would hide from a session that needs it stays here. A step-by-step procedure for a named task lives in the skill that names it, and a constraint lives in the structure or the types.
 
 `src/` is layered as `routes/` → `server/fn/` → `gateways/` → `entities/`, imports flow downward only, and `server/fn/` is the authorization boundary. `src/lib/` holds framework/infrastructure adapters, and `src/components/` holds UI. Where a non-component value lives follows its component affinity, and `react.md`'s Module Organization section states that test.
 
@@ -92,7 +92,7 @@ The next rule has no path scope, and applies whenever you write any instruction 
 
 **Write a rule as the move to make.** Where the user asks for a rule that removes a behavior, state the action that replaces it, because a prohibition leaves every other route open and makes the reader invent the replacement. Where no action replaces the behavior, the prohibition is the whole rule and stands as one.
 
-**Nothing an agent learns goes into its auto-memory.** A memory binds only the agent that happens to recall it and is read by no reviewer, so what would be saved there is put where the next agent meets it: this file or a rule for a judgment, the skill for a procedure, the structure or the types for a constraint.
+**Nothing an agent learns goes into its auto-memory.** A memory binds only the agent that happens to recall it and is read by no reviewer. Put what would be saved there where the next agent meets it, which this section's placement rule decides.
 
 ## Testing
 
