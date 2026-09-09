@@ -89,6 +89,31 @@ interface Case {
   answer: string;
 }
 
+/**
+ * Every suffix `holds_code_relevant_file` accepts, one case each. A single
+ * case listing all ten would pass on the first match alone, so dropping one
+ * pattern from the decision file would leave the suite green and a turn that
+ * changed a file with that suffix would skip the quality gate.
+ */
+const CODE_EXTENSIONS = [
+  "ts",
+  "mts",
+  "cts",
+  "tsx",
+  "js",
+  "jsx",
+  "mjs",
+  "cjs",
+  "json",
+  "css",
+] as const;
+
+const EXTENSION_CASES: readonly Case[] = CODE_EXTENSIONS.map((extension) => ({
+  answer: "yes",
+  name: `should reach the quality gate when a changed path ends in .${extension}`,
+  snippet: `answers_yes ${call("holds_code_relevant_file", `docs/note.md\nsrc/a.${extension}`)}`,
+}));
+
 const CASES: readonly Case[] = [
   {
     answer: "stop_hook_active",
@@ -134,11 +159,7 @@ const CASES: readonly Case[] = [
     name: "should name no cause when the payload is not JSON",
     snippet: call("downgrade_cause", "{not json"),
   },
-  {
-    answer: "yes",
-    name: "should reach the quality gate when one changed path carries a code extension",
-    snippet: `answers_yes ${call("holds_code_relevant_file", "docs/note.md\nsrc/a.ts")}`,
-  },
+  ...EXTENSION_CASES,
   {
     answer: "no",
     name: "should skip the quality gate when every changed path is a document",
