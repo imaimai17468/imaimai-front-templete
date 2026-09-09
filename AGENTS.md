@@ -12,7 +12,7 @@ Ticket-granularity work follows the `ticket-work` skill: implementing a componen
 
 **Dispatch when the split yields two or more tickets.** The session that received the request resolves the ambiguities that change the split (ticket-work's Clarify step, with the user when present), splits, dispatches one `general-purpose` worker per ticket (a docs-only ticket included), naming the `dispatch-run` skill in each worker's prompt, runs that skill itself, and reports the run's PRs once its watch says every one of them is closed. Each worker is the parent that `ticket-work` describes. A request that yields one ticket is done in the session with `ticket-work`. A request whose tickets cannot be settled yet, because the design between them is open, is one ticket until the design is decided.
 
-**Parallel tickets each get their own worktree.** Start a session with `claude --worktree <name>`, or give a subagent `isolation: worktree`. Either way Claude Code creates the worktree under `.claude/worktrees/` on its own branch and copies the gitignored files listed in `.worktreeinclude` into it.
+**Parallel tickets each get their own worktree.** Start a session with `claude --worktree <name>`, or give a subagent `isolation: worktree`. Either way Claude Code creates the worktree under `.claude/worktrees/` on its own branch and copies the gitignored files listed in `.worktreeinclude` into it. `ticket-work`'s opening paragraph says what it still lacks and which commands put those there.
 
 ## Degraded Environments
 

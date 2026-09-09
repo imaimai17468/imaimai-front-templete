@@ -11,7 +11,7 @@ A dispatch names `model`, and the value follows the ticket rather than the sessi
 
 ## Worker brief
 
-In a fresh worktree, run `bun run setup` first. Create the ticket's branch, and push it with `-u`.
+In a fresh worktree, run the setup `ticket-work`'s opening paragraph names before anything else. Create the ticket's branch, and push it with `-u`.
 
 Hold the pull request as `ticket-work` step 7 says, from the Draft opened after the first commit through `gh pr merge --squash` and the deletion of the remote branch. Writing that step's poll as `[ "$(gh pr checks …)" = pass ]` was refused by the pre-Bash guard as a construct it could not check against a worktree-isolated agent's git.
 
