@@ -299,19 +299,6 @@ Distilled from Emil Kowalski's design engineering philosophy (animations.dev).
 What this repository's CSS and TSX must do is settled in
 `.claude/rules/design.md` (Animations); this part is the reference behind it.
 
-## Duration
-
-| Element | Duration |
-| --- | --- |
-| Button press feedback | 100-160ms |
-| Tooltips, small popovers | 125-200ms |
-| Dropdowns, selects | 150-250ms |
-| Modals, drawers | 200-500ms |
-| Marketing / explanatory | Can be longer |
-
-**Rule: stay inside the element's row above. A longer duration needs a stated
-reason.**
-
 ## Physicality
 
 - **Never `scale(0)`.** Start from `scale(0.9-0.97)` + `opacity: 0`.
@@ -465,8 +452,8 @@ Every animation in the diff is measured against these. A violation is a finding.
 3. **Responsive easing.** Measured against the curve order in
    `.claude/rules/design.md` (Animations).
 
-4. **Duration within range.** A duration past its element's row in Part 2's
-   duration table needs justification.
+4. **Duration within range.** Measured against the duration table in
+   `.claude/rules/design.md` (Animations).
 
 5. **Origin & physical correctness.** Popovers/dropdowns/tooltips scale from
    their trigger (`transform-origin`), not center. Never `scale(0)` — start
@@ -543,7 +530,8 @@ Close with an explicit decision:
 - **Approve** — no feel-breaking regressions, durations and easing within
   bounds, interruptibility handled, reduced-motion respected.
 
-Cite `file:line`. Pull exact values from Part 2 rather than approximating.
+Cite `file:line`. Pull exact values from `.claude/rules/design.md` and Part 2
+rather than approximating.
 
 ## Guidelines
 

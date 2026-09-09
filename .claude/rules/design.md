@@ -291,6 +291,18 @@ or grid children, never on elements in normal flow.
 
 Never animate a keyboard-initiated action.
 
+### Duration
+
+| Element | Duration |
+| --- | --- |
+| Button press feedback | 100-160ms |
+| Tooltips, small popovers | 125-200ms |
+| Dropdowns, selects | 150-250ms |
+| Modals, drawers | 200-500ms |
+| Marketing or explanatory motion | Longer is allowed |
+
+Stay inside the element's row. A longer duration needs a stated reason.
+
 ### Easing
 
 Pick the curve from what the element is doing:
