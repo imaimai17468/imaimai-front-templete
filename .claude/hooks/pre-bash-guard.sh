@@ -322,8 +322,9 @@ fi
 # such as `env`, `sh -c` or `xargs`. That anchor is what leaves
 # `rg 'git add .' src` unattended instead of refusing a search for the text it
 # looks for. Two routes stay out of reach: a shell function or a script file,
-# which no token walk sees, and an operand that only the shell can resolve, so
+# which no token walk sees, and an operand whose value only the shell holds, so
 # `git add "$FILE"` and `git add $(git diff --name-only)` pass as named paths.
+# `$PWD` and `pwd` are the exception, and the rewrite below spells them `.`.
 # This binds the habit rather than a deliberate bypass.
 #
 # The shell drops a quote pair and a backslash from a word, so `g""it`, `\-A`
@@ -457,6 +458,32 @@ WALK_PLAIN=$(printf '%s' "$WALK_PLAIN" | drop_heredoc_body)
 # takes and `git commit -m $'fix .'` is still refused.
 WALK_PLAIN=${WALK_PLAIN//\$\'/\'}
 WALK_PLAIN=${WALK_PLAIN//\$\"/\"}
+# `$PWD`, `${PWD}`, `$(pwd)` and a backticked `pwd` each expand to the working
+# directory. `git rm -r` given each of those four spellings, and given
+# `"$PWD"/.`, took all three tracked files of the scratch repository out of the
+# index and off disk, the set `git rm -r .` took, and `--cached` left all three
+# on disk for `"$PWD"` as it did for `.` (git 2.50.1, 2026-09-09). Rewriting
+# them to `.` puts them through the operand tests the plain spelling already
+# meets, and leaves `git add "$PWD/src/foo.ts"` naming its own file. This runs
+# ahead of the quote strip below so the backticked form is still a pair, and
+# ahead of the segment split so `$(pwd)`'s parentheses do not cut the segment
+# in two. The four patterns are literal, so a spelling one character off prints
+# the same directory and is left alone: this guard allowed `git rm -r` given
+# `${PWD:-.}`, `$(pwd -P)` and `$(pwd )`, and `-n` listed all three tracked
+# files of the scratch repository for each of them (2026-09-09).
+WALK_BEFORE_PWD=$WALK_PLAIN
+WALK_PLAIN=${WALK_PLAIN//\$\{PWD\}/.}
+WALK_PLAIN=${WALK_PLAIN//\$\(pwd\)/.}
+WALK_PLAIN=${WALK_PLAIN//\`pwd\`/.}
+WALK_PLAIN=${WALK_PLAIN//\$PWD/.}
+# The rewrite runs before `refuse_unnamed_operand` reads an operand, so
+# `git rm -r "$PWD"` is refused for a `.` the command does not contain. This
+# note joins that refusal wherever the rewrite changed the text, so the agent
+# reads a verdict on the token it wrote.
+PWD_NOTE=""
+if [ "$WALK_PLAIN" != "$WALK_BEFORE_PWD" ]; then
+  PWD_NOTE=" \`\$PWD\` and \`pwd\` expand to the working directory, so this guard reads the operand you spelled with one of them as \`.\`."
+fi
 WALK_PLAIN=${WALK_PLAIN//[\"\'\`]/}
 # A backslash before a newline is a line continuation the shell splices away,
 # so `git \` on one line and `rm -r .` on the next is one command running
@@ -687,7 +714,7 @@ if [ -n "$REFUSED" ]; then
       NEXT_STEP="Name the files this commit needs (\`git add src/foo.ts src/bar.ts\`), and take part of a file with \`git add -p\`. \`git status --short\` lists what changed."
       ;;
   esac
-  deny "PreToolUse(Bash): this \`git ${SUB}\` is refused because ${REFUSED}. ${NEXT_STEP}"
+  deny "PreToolUse(Bash): this \`git ${SUB}\` is refused because ${REFUSED}.${PWD_NOTE} ${NEXT_STEP}"
   exit 0
 fi
 
