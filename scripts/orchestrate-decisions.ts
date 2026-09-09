@@ -34,6 +34,210 @@ export const freeGibFromFreeB = (output: string): number | undefined => {
   return Number(available) / GIB;
 };
 
+/** What `orchestrate.ts` found at the path it reads, before anything parsed it. */
+export type RateLimitsFile =
+  | { readonly kind: "absent" }
+  | { readonly kind: "content"; readonly text: string }
+  | { readonly detail: string; readonly kind: "unreadable" };
+
+/** A usage window of the account, under the key the file holds it at. */
+interface BudgetWindowSpec {
+  readonly key: string;
+  readonly label: string;
+}
+
+/** The windows the line prints, in order. A further window joins as an entry. */
+const BUDGET_WINDOWS: readonly BudgetWindowSpec[] = [
+  { key: "five_hour", label: "5h" },
+  { key: "seven_day", label: "7d" },
+];
+
+/**
+ * One window of the line. Each window is absent from the file on its own, and
+ * one the file carries past its own reset holds what was spent in a window
+ * that has since restarted, so both get an answer of their own rather than a
+ * percentage.
+ */
+export type BudgetWindowReading =
+  | { readonly kind: "expired"; readonly label: string }
+  | { readonly kind: "no-window"; readonly label: string }
+  | {
+      readonly kind: "window";
+      readonly label: string;
+      readonly resetsInSeconds: number;
+      readonly usedPercentage: number;
+    };
+
+/** Why the command has no percentage to print. */
+export type BudgetUnknown =
+  | { readonly kind: "absent" }
+  | { readonly kind: "no-json" }
+  | { readonly kind: "no-rate-limits" }
+  | { readonly kind: "no-windows" }
+  | { readonly kind: "no-written-at" }
+  | { readonly ageSeconds: number; readonly kind: "stale" }
+  | { readonly detail: string; readonly kind: "unreadable" };
+
+export type RemainingBudget =
+  | {
+      readonly ageSeconds: number;
+      readonly kind: "budget";
+      readonly windows: readonly BudgetWindowReading[];
+    }
+  | { readonly kind: "unknown"; readonly reason: BudgetUnknown };
+
+/**
+ * How long a written file counts as the account's current usage. Past this age
+ * `remainingBudget` answers `unknown`, so numbers whose writer stopped are not
+ * read as what the windows hold now.
+ */
+const STALE_AFTER_SECONDS = 120;
+
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+/** The parsed file, carrying the epoch second its writer stamped on it. */
+type WrittenFile = Record<string, unknown> & { readonly written_at: number };
+
+const isWrittenFile = (value: unknown): value is WrittenFile =>
+  isRecord(value) && typeof value.written_at === "number";
+
+/** One window of `rate_limits`, in the field names the JSON carries. */
+interface RateWindowJson {
+  readonly resets_at: number;
+  readonly used_percentage: number;
+}
+
+const isRateWindowJson = (value: unknown): value is RateWindowJson =>
+  isRecord(value) &&
+  typeof value.used_percentage === "number" &&
+  typeof value.resets_at === "number";
+
+const unknownBudget = (reason: BudgetUnknown): RemainingBudget => ({
+  kind: "unknown",
+  reason,
+});
+
+const windowReading = (
+  spec: BudgetWindowSpec,
+  limits: Record<string, unknown>,
+  nowSeconds: number
+): BudgetWindowReading => {
+  const window: unknown = limits[spec.key];
+  if (!isRateWindowJson(window)) {
+    return { kind: "no-window", label: spec.label };
+  }
+  return window.resets_at <= nowSeconds
+    ? { kind: "expired", label: spec.label }
+    : {
+        kind: "window",
+        label: spec.label,
+        resetsInSeconds: window.resets_at - nowSeconds,
+        usedPercentage: window.used_percentage,
+      };
+};
+
+/**
+ * What the file says about the account's usage windows. Every shape without a
+ * window carrying numbers answers `unknown`, which the caller prints in place
+ * of a percentage.
+ */
+export const remainingBudget = (
+  file: RateLimitsFile,
+  nowSeconds: number
+): RemainingBudget => {
+  if (file.kind === "absent") {
+    return unknownBudget({ kind: "absent" });
+  }
+  if (file.kind === "unreadable") {
+    return unknownBudget({ detail: file.detail, kind: "unreadable" });
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(file.text);
+  } catch {
+    return unknownBudget({ kind: "no-json" });
+  }
+  if (!isWrittenFile(parsed)) {
+    return unknownBudget({ kind: "no-written-at" });
+  }
+  const limits: unknown = parsed.rate_limits;
+  if (!isRecord(limits)) {
+    return unknownBudget({ kind: "no-rate-limits" });
+  }
+  const ageSeconds = Math.max(0, nowSeconds - parsed.written_at);
+  if (ageSeconds > STALE_AFTER_SECONDS) {
+    return unknownBudget({ ageSeconds, kind: "stale" });
+  }
+  const windows = BUDGET_WINDOWS.map((spec) =>
+    windowReading(spec, limits, nowSeconds)
+  );
+  return windows.every((window) => window.kind !== "window")
+    ? unknownBudget({ kind: "no-windows" })
+    : { ageSeconds, kind: "budget", windows };
+};
+
+const SECONDS_PER_MINUTE = 60;
+const SECONDS_PER_HOUR = 3600;
+const SECONDS_PER_DAY = 86_400;
+
+/** A span in the two largest units it reaches, down to whole seconds. */
+const formatSeconds = (seconds: number): string => {
+  const whole = Math.max(0, Math.floor(seconds));
+  const days = Math.floor(whole / SECONDS_PER_DAY);
+  const hours = Math.floor((whole % SECONDS_PER_DAY) / SECONDS_PER_HOUR);
+  const minutes = Math.floor((whole % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
+  if (days > 0) {
+    return `${days}d${hours}h`;
+  }
+  if (hours > 0) {
+    return `${hours}h${minutes}m`;
+  }
+  return minutes > 0 ? `${minutes}m` : `${whole}s`;
+};
+
+const formatWindow = (window: BudgetWindowReading): string => {
+  if (window.kind === "no-window") {
+    return `${window.label} unknown`;
+  }
+  if (window.kind === "expired") {
+    return `${window.label} unknown, that window has reset`;
+  }
+  return `${window.label} ${Math.round(window.usedPercentage)}% resets in ${formatSeconds(window.resetsInSeconds)}`;
+};
+
+/** A reason the file itself explains, against one the reader has to. */
+type StatedUnknown = Exclude<BudgetUnknown["kind"], "stale" | "unreadable">;
+
+const UNKNOWN_STATEMENTS = {
+  absent:
+    "is not there, so no status line has written the account's usage windows on this machine",
+  "no-json": "holds no JSON",
+  "no-rate-limits": "holds no rate_limits object",
+  "no-windows":
+    "carries no five-hour or seven-day window whose reset is still ahead",
+  "no-written-at": "holds no numeric written_at",
+} satisfies Record<StatedUnknown, string>;
+
+const formatUnknown = (reason: BudgetUnknown, path: string): string => {
+  if (reason.kind === "stale") {
+    return `unknown ${path} is ${formatSeconds(reason.ageSeconds)} old, past the ${formatSeconds(STALE_AFTER_SECONDS)} this command treats as current`;
+  }
+  if (reason.kind === "unreadable") {
+    return `unknown ${path} could not be read: ${reason.detail}`;
+  }
+  return `unknown ${path} ${UNKNOWN_STATEMENTS[reason.kind]}`;
+};
+
+/** The one line `remaining-budget` prints. */
+export const formatRemainingBudget = (
+  budget: RemainingBudget,
+  path: string
+): string =>
+  budget.kind === "unknown"
+    ? formatUnknown(budget.reason, path)
+    : `budget ${budget.windows.map(formatWindow).join(", ")}, written ${formatSeconds(budget.ageSeconds)} ago`;
+
 /**
  * The fields of `gh pr list --head <branch> --json headRefOid,mergeable,state`
  * both commands read. The watch reads `state` and `mergeable`, the cleanup

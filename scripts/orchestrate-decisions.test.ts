@@ -5,17 +5,23 @@ import {
   branchNames,
   formatBranch,
   formatEvent,
+  formatRemainingBudget,
   formatVerdict,
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
   localVerdict,
   prListing,
+  remainingBudget,
   strandedAgentBranches,
   watchEvent,
   worktreeProbe,
   worktreeVerdict,
 } from "./orchestrate-decisions";
-import type { PullRequest, Worktree } from "./orchestrate-decisions";
+import type {
+  PullRequest,
+  RateLimitsFile,
+  Worktree,
+} from "./orchestrate-decisions";
 
 const GIB = 1024 ** 3;
 
@@ -55,6 +61,455 @@ describe(freeGibFromFreeB, () => {
     const gib = freeGibFromFreeB("free: command not found\n");
 
     expect(gib).toBeUndefined();
+  });
+});
+
+const NOW_SECONDS = 1_788_912_806;
+
+const FIVE_HOUR = { resets_at: NOW_SECONDS + 8000, used_percentage: 23.5 };
+
+const SEVEN_DAY = { resets_at: NOW_SECONDS + 273_600, used_percentage: 41.2 };
+
+const RATE_LIMITS_PATH = "/home/dev/.claude/rate-limits.json";
+
+const fileHolding = (value: unknown): RateLimitsFile => ({
+  kind: "content",
+  text: JSON.stringify(value),
+});
+
+describe(remainingBudget, () => {
+  it("should report both windows when the file carries them and was written just now", () => {
+    const budget = remainingBudget(
+      fileHolding({
+        rate_limits: { five_hour: FIVE_HOUR, seven_day: SEVEN_DAY },
+        written_at: NOW_SECONDS - 8,
+      }),
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      ageSeconds: 8,
+      kind: "budget",
+      windows: [
+        {
+          kind: "window",
+          label: "5h",
+          resetsInSeconds: 8000,
+          usedPercentage: 23.5,
+        },
+        {
+          kind: "window",
+          label: "7d",
+          resetsInSeconds: 273_600,
+          usedPercentage: 41.2,
+        },
+      ],
+    });
+  });
+
+  it("should report the five-hour window as no-window when the file carries only the seven-day one", () => {
+    const budget = remainingBudget(
+      fileHolding({
+        rate_limits: { seven_day: SEVEN_DAY },
+        written_at: NOW_SECONDS,
+      }),
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      ageSeconds: 0,
+      kind: "budget",
+      windows: [
+        { kind: "no-window", label: "5h" },
+        {
+          kind: "window",
+          label: "7d",
+          resetsInSeconds: 273_600,
+          usedPercentage: 41.2,
+        },
+      ],
+    });
+  });
+
+  it("should report a window as no-window when its used_percentage is not a number", () => {
+    const budget = remainingBudget(
+      fileHolding({
+        rate_limits: {
+          five_hour: { resets_at: NOW_SECONDS + 8000, used_percentage: "23.5" },
+          seven_day: SEVEN_DAY,
+        },
+        written_at: NOW_SECONDS,
+      }),
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      ageSeconds: 0,
+      kind: "budget",
+      windows: [
+        { kind: "no-window", label: "5h" },
+        {
+          kind: "window",
+          label: "7d",
+          resetsInSeconds: 273_600,
+          usedPercentage: 41.2,
+        },
+      ],
+    });
+  });
+
+  it("should report a window as no-window when its resets_at is not a number", () => {
+    const budget = remainingBudget(
+      fileHolding({
+        rate_limits: {
+          five_hour: { resets_at: null, used_percentage: 23.5 },
+          seven_day: SEVEN_DAY,
+        },
+        written_at: NOW_SECONDS,
+      }),
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      ageSeconds: 0,
+      kind: "budget",
+      windows: [
+        { kind: "no-window", label: "5h" },
+        {
+          kind: "window",
+          label: "7d",
+          resetsInSeconds: 273_600,
+          usedPercentage: 41.2,
+        },
+      ],
+    });
+  });
+
+  it("should report a window as expired when its reset has already passed", () => {
+    const budget = remainingBudget(
+      fileHolding({
+        rate_limits: {
+          five_hour: { resets_at: NOW_SECONDS, used_percentage: 92 },
+          seven_day: SEVEN_DAY,
+        },
+        written_at: NOW_SECONDS,
+      }),
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      ageSeconds: 0,
+      kind: "budget",
+      windows: [
+        { kind: "expired", label: "5h" },
+        {
+          kind: "window",
+          label: "7d",
+          resetsInSeconds: 273_600,
+          usedPercentage: 41.2,
+        },
+      ],
+    });
+  });
+
+  it("should answer no-windows when every window the file carries has reset", () => {
+    const budget = remainingBudget(
+      fileHolding({
+        rate_limits: {
+          five_hour: { resets_at: NOW_SECONDS - 3600, used_percentage: 92 },
+          seven_day: { resets_at: NOW_SECONDS - 60, used_percentage: 65 },
+        },
+        written_at: NOW_SECONDS,
+      }),
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      kind: "unknown",
+      reason: { kind: "no-windows" },
+    });
+  });
+
+  it("should count the age as zero when the file was written ahead of the clock", () => {
+    const budget = remainingBudget(
+      fileHolding({
+        rate_limits: { five_hour: FIVE_HOUR, seven_day: SEVEN_DAY },
+        written_at: NOW_SECONDS + 30,
+      }),
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      ageSeconds: 0,
+      kind: "budget",
+      windows: [
+        {
+          kind: "window",
+          label: "5h",
+          resetsInSeconds: 8000,
+          usedPercentage: 23.5,
+        },
+        {
+          kind: "window",
+          label: "7d",
+          resetsInSeconds: 273_600,
+          usedPercentage: 41.2,
+        },
+      ],
+    });
+  });
+
+  it("should answer no-windows when the file carries neither window", () => {
+    const budget = remainingBudget(
+      fileHolding({
+        rate_limits: { spend_limit: FIVE_HOUR },
+        written_at: NOW_SECONDS,
+      }),
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      kind: "unknown",
+      reason: { kind: "no-windows" },
+    });
+  });
+
+  it("should answer stale when the file was written before the freshness threshold", () => {
+    const budget = remainingBudget(
+      fileHolding({
+        rate_limits: { five_hour: FIVE_HOUR },
+        written_at: NOW_SECONDS - 900,
+      }),
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      kind: "unknown",
+      reason: { ageSeconds: 900, kind: "stale" },
+    });
+  });
+
+  it("should answer absent when no file was found", () => {
+    const budget = remainingBudget({ kind: "absent" }, NOW_SECONDS);
+
+    expect(budget).toStrictEqual({
+      kind: "unknown",
+      reason: { kind: "absent" },
+    });
+  });
+
+  it("should keep what the reader said when the file could not be opened", () => {
+    const budget = remainingBudget(
+      { detail: "EACCES", kind: "unreadable" },
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      kind: "unknown",
+      reason: { detail: "EACCES", kind: "unreadable" },
+    });
+  });
+
+  it("should answer no-json when the file holds no JSON", () => {
+    const budget = remainingBudget(
+      { kind: "content", text: "{oops" },
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      kind: "unknown",
+      reason: { kind: "no-json" },
+    });
+  });
+
+  it("should answer no-written-at when the JSON is not an object", () => {
+    const budget = remainingBudget(
+      { kind: "content", text: "12" },
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      kind: "unknown",
+      reason: { kind: "no-written-at" },
+    });
+  });
+
+  it("should answer no-written-at when written_at is not a number", () => {
+    const budget = remainingBudget(
+      fileHolding({ rate_limits: {}, written_at: "2026-09-09" }),
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      kind: "unknown",
+      reason: { kind: "no-written-at" },
+    });
+  });
+
+  it("should answer no-rate-limits when rate_limits is not an object", () => {
+    const budget = remainingBudget(
+      fileHolding({ rate_limits: null, written_at: NOW_SECONDS }),
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      kind: "unknown",
+      reason: { kind: "no-rate-limits" },
+    });
+  });
+});
+
+describe(formatRemainingBudget, () => {
+  it("should print both percentages, both resets and the age when the windows were read", () => {
+    const line = formatRemainingBudget(
+      {
+        ageSeconds: 8,
+        kind: "budget",
+        windows: [
+          {
+            kind: "window",
+            label: "5h",
+            resetsInSeconds: 8000,
+            usedPercentage: 23.5,
+          },
+          {
+            kind: "window",
+            label: "7d",
+            resetsInSeconds: 273_600,
+            usedPercentage: 41.2,
+          },
+        ],
+      },
+      RATE_LIMITS_PATH
+    );
+
+    expect(line).toBe(
+      "budget 5h 24% resets in 2h13m, 7d 41% resets in 3d4h, written 8s ago"
+    );
+  });
+
+  it("should print a window as unknown when the file carried no numbers for it", () => {
+    const line = formatRemainingBudget(
+      {
+        ageSeconds: 90,
+        kind: "budget",
+        windows: [
+          { kind: "no-window", label: "5h" },
+          {
+            kind: "window",
+            label: "7d",
+            resetsInSeconds: 0,
+            usedPercentage: 41.2,
+          },
+        ],
+      },
+      RATE_LIMITS_PATH
+    );
+
+    expect(line).toBe("budget 5h unknown, 7d 41% resets in 0s, written 1m ago");
+  });
+
+  it("should print a window as unknown when its reset has passed", () => {
+    const line = formatRemainingBudget(
+      {
+        ageSeconds: 0,
+        kind: "budget",
+        windows: [
+          { kind: "expired", label: "5h" },
+          {
+            kind: "window",
+            label: "7d",
+            resetsInSeconds: 273_600,
+            usedPercentage: 41.2,
+          },
+        ],
+      },
+      RATE_LIMITS_PATH
+    );
+
+    expect(line).toBe(
+      "budget 5h unknown, that window has reset, 7d 41% resets in 3d4h, written 0s ago"
+    );
+  });
+
+  it("should name the path when no file was found", () => {
+    const line = formatRemainingBudget(
+      { kind: "unknown", reason: { kind: "absent" } },
+      RATE_LIMITS_PATH
+    );
+
+    expect(line).toBe(
+      "unknown /home/dev/.claude/rate-limits.json is not there, so no status line has written the account's usage windows on this machine"
+    );
+  });
+
+  it("should print the age against the threshold when the file is stale", () => {
+    const line = formatRemainingBudget(
+      { kind: "unknown", reason: { ageSeconds: 900, kind: "stale" } },
+      RATE_LIMITS_PATH
+    );
+
+    expect(line).toBe(
+      "unknown /home/dev/.claude/rate-limits.json is 15m old, past the 2m this command treats as current"
+    );
+  });
+
+  it("should say no window is live when the file carries none with a reset ahead", () => {
+    const line = formatRemainingBudget(
+      { kind: "unknown", reason: { kind: "no-windows" } },
+      RATE_LIMITS_PATH
+    );
+
+    expect(line).toBe(
+      "unknown /home/dev/.claude/rate-limits.json carries no five-hour or seven-day window whose reset is still ahead"
+    );
+  });
+
+  it("should print the detail when the file could not be read", () => {
+    const line = formatRemainingBudget(
+      {
+        kind: "unknown",
+        reason: { detail: "EACCES", kind: "unreadable" },
+      },
+      RATE_LIMITS_PATH
+    );
+
+    expect(line).toBe(
+      "unknown /home/dev/.claude/rate-limits.json could not be read: EACCES"
+    );
+  });
+
+  it("should say the file holds no JSON when it could not be parsed", () => {
+    const line = formatRemainingBudget(
+      { kind: "unknown", reason: { kind: "no-json" } },
+      RATE_LIMITS_PATH
+    );
+
+    expect(line).toBe(
+      "unknown /home/dev/.claude/rate-limits.json holds no JSON"
+    );
+  });
+
+  it("should say the file holds no written_at when the stamp is missing", () => {
+    const line = formatRemainingBudget(
+      { kind: "unknown", reason: { kind: "no-written-at" } },
+      RATE_LIMITS_PATH
+    );
+
+    expect(line).toBe(
+      "unknown /home/dev/.claude/rate-limits.json holds no numeric written_at"
+    );
+  });
+
+  it("should say the file holds no rate_limits when that object is missing", () => {
+    const line = formatRemainingBudget(
+      { kind: "unknown", reason: { kind: "no-rate-limits" } },
+      RATE_LIMITS_PATH
+    );
+
+    expect(line).toBe(
+      "unknown /home/dev/.claude/rate-limits.json holds no rate_limits object"
+    );
   });
 });
 

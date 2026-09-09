@@ -3,17 +3,23 @@
 /**
  * The commands an orchestrating session runs while and after its workers work.
  * `.claude/settings.json` allowlists this file, so the session reaches GitHub
- * and git through these three commands instead of running `gh` and `git` of its
+ * and git through these four commands instead of running `gh` and `git` of its
  * own, which that file does not allowlist.
  *
  * ```
  * bun scripts/orchestrate.ts free-gib          # free memory in GiB, one number
+ * bun scripts/orchestrate.ts remaining-budget  # the account's usage windows, one line
  * bun scripts/orchestrate.ts watch-prs feat/a feat/b       # exits when one of these needs the orchestrator
  * bun scripts/orchestrate.ts clean-worktrees feat/a feat/b # removes the worktrees of these finished branches
  * ```
  *
- * Both commands name the run by the branches the session assigned at dispatch,
- * which is what it knows before a worker has opened a pull request.
+ * `watch-prs` and `clean-worktrees` name the run by the branches the session
+ * assigned at dispatch, which is what it knows before a worker has opened a
+ * pull request.
+ *
+ * `remaining-budget` reads `~/.claude/rate-limits.json`, which a status line
+ * outside this repository writes, and prints what each usage window has spent
+ * and when it resets, or `unknown` and what stopped it.
  *
  * `watch-prs` resolves each branch's pull request with `gh pr list --head` once
  * a minute and exits with a single line: `conflict <branch> ...` when an open
@@ -27,6 +33,9 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import {
   agentWorktrees,
@@ -34,11 +43,14 @@ import {
   branchNames,
   formatBranch,
   formatEvent,
+  formatRemainingBudget,
   formatVerdict,
   freeGibFromFreeB,
   freeGibFromMemoryPressure,
+  isRecord,
   localVerdict,
   prListing,
+  remainingBudget,
   strandedAgentBranches,
   watchEvent,
   worktreeProbe,
@@ -47,6 +59,7 @@ import {
 import type {
   Ancestry,
   PullRequest,
+  RateLimitsFile,
   Worktree,
   WorktreeFacts,
   WorktreeVerdict,
@@ -66,11 +79,8 @@ interface CommandFailure {
 }
 
 const isCommandFailure = (value: unknown): value is CommandFailure =>
-  typeof value === "object" &&
-  value !== null &&
-  "status" in value &&
+  isRecord(value) &&
   (typeof value.status === "number" || value.status === null) &&
-  "stderr" in value &&
   typeof value.stderr === "string";
 
 /**
@@ -100,6 +110,35 @@ const freeGib = (): number | undefined => {
     return freeGibFromFreeB(run("free", ["-b"]));
   } catch {
     return undefined;
+  }
+};
+
+/** The path `remaining-budget` reads, written from outside this repository. */
+const RATE_LIMITS_PATH = path.join(homedir(), ".claude", "rate-limits.json");
+
+const MS_PER_SECOND = 1000;
+
+const FILE_NOT_FOUND = "ENOENT";
+
+interface ErrnoFailure {
+  readonly code: string;
+}
+
+const isErrnoFailure = (value: unknown): value is ErrnoFailure =>
+  isRecord(value) && typeof value.code === "string";
+
+/**
+ * The file's text. A missing file is the one failure that answers `absent`, so
+ * a permission or I/O error reaches the line as what the platform said about
+ * it rather than as a status line that never wrote.
+ */
+const rateLimitsFile = (): RateLimitsFile => {
+  try {
+    return { kind: "content", text: readFileSync(RATE_LIMITS_PATH, "utf-8") };
+  } catch (error) {
+    return isErrnoFailure(error) && error.code === FILE_NOT_FOUND
+      ? { kind: "absent" }
+      : { detail: firstLine(error), kind: "unreadable" };
   }
 };
 
@@ -169,8 +208,8 @@ const watchPrs = async (branches: readonly string[]): Promise<void> => {
   await watchPrs(branches);
 };
 
-const isDirty = (path: string): boolean =>
-  run("git", ["-C", path, "status", "--porcelain"]).trim() !== "";
+const isDirty = (worktreePath: string): boolean =>
+  run("git", ["-C", worktreePath, "status", "--porcelain"]).trim() !== "";
 
 /** What git printed when it refused to delete the branch, or undefined. */
 const deleteBranch = (branch: string): string | undefined => {
@@ -338,6 +377,13 @@ if (command === "free-gib") {
     usage("could not read free memory from the platform command");
   }
   console.log(gib.toFixed(1));
+} else if (command === "remaining-budget") {
+  console.log(
+    formatRemainingBudget(
+      remainingBudget(rateLimitsFile(), Date.now() / MS_PER_SECOND),
+      RATE_LIMITS_PATH
+    )
+  );
 } else if (command === "watch-prs") {
   const branches = branchNames(rest);
   if (branches === undefined) {
@@ -352,6 +398,6 @@ if (command === "free-gib") {
   cleanWorktrees(branches);
 } else {
   usage(
-    "usage: bun scripts/orchestrate.ts <free-gib | watch-prs <branch>... | clean-worktrees <branch>...>"
+    "usage: bun scripts/orchestrate.ts <free-gib | remaining-budget | watch-prs <branch>... | clean-worktrees <branch>...>"
   );
 }
