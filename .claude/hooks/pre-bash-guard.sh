@@ -352,6 +352,26 @@ refuse_unnamed_operand() { # $1 = one operand token
     REFUSED="\`${1}\` names no file or directory of its own"
     return
   fi
+  # An operand that ends at `..` climbs back out of the directory it names:
+  # `git rm -n -r sub/..`, `sub/../` and `sub/../.` each listed all three
+  # tracked files of the scratch repository, where `sub` listed one
+  # (git 2.50.1, 2026-09-09). Trailing `/` and `/.` come off first so all three
+  # spellings meet the same test, and only where `..` is the last component,
+  # which leaves `git add ../sibling/foo.ts` naming its own file.
+  CLIMBS_OUT=$1
+  while :; do
+    case "$CLIMBS_OUT" in
+      */) CLIMBS_OUT=${CLIMBS_OUT%/} ;;
+      */.) CLIMBS_OUT=${CLIMBS_OUT%/.} ;;
+      *) break ;;
+    esac
+  done
+  case "$CLIMBS_OUT" in
+    .. | */..)
+      REFUSED="\`${1}\` ends at \`..\`, so it reaches the directory above the one it names"
+      return
+      ;;
+  esac
   # A glob in the first path component starts its match at the top:
   # `git add '*.ts'` from the repository root staged every `.ts` in the tree,
   # including the ones nobody listed, and `git commit -m x '[ab].txt'` reported

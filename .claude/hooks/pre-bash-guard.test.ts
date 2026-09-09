@@ -1216,6 +1216,42 @@ group("git rm: named paths stay unattended", [
   },
 ]);
 
+// `sub/..` is the directory above `sub`, and the operand test reads the last
+// component rather than searching the whole path, so a `..` in the middle of a
+// named path keeps that path named.
+group("an operand that ends at .. reaches above what it names", [
+  {
+    command: `${RM} -r sub/..`,
+    expected: "block",
+    why: "a removal that climbs back to the repository root",
+  },
+  {
+    command: `${RM} -r sub/../`,
+    expected: "block",
+    why: "the same climb with a trailing slash",
+  },
+  {
+    command: `${RM} -r sub/../.`,
+    expected: "block",
+    why: "the same climb with a trailing dot",
+  },
+  {
+    command: "git add sub/..",
+    expected: "block",
+    why: "the same operand stages everything above sub",
+  },
+  {
+    command: "git add ../sibling/foo.ts",
+    expected: "allow",
+    why: "a .. that is not the last component still names its own file",
+  },
+  {
+    command: `${RM} -r ../sibling/old-dir`,
+    expected: "allow",
+    why: "a directory outside the working directory is still named",
+  },
+]);
+
 // The shell splices a backslash-newline pair away before it reads the command,
 // so each of these runs one `git` with its subcommand beside it.
 group("a line continuation does not split a subcommand from its git", [
