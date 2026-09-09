@@ -19,6 +19,7 @@ import { z } from "zod";
 import { readHookJson } from "./hook-output";
 
 const GATE = path.resolve(import.meta.dirname, "stop-gate.sh");
+const DECISION = path.resolve(import.meta.dirname, "stop-gate-decision.sh");
 
 /** A directory the case owns, removed when the case ends. */
 const scratchDir = (prefix: string): string => {
@@ -46,7 +47,7 @@ const PASSING: Steps = {
 /**
  * A committed git repository with the three step stand-ins in place, plus the
  * named files left untracked so `git status --porcelain` reports them and
- * CODE_CHANGED counts them.
+ * `holds_code_relevant_file` sees them.
  */
 const scratchRepo = (steps: Steps, untracked: readonly string[]): string => {
   const root = scratchDir("stop-gate-");
@@ -108,14 +109,12 @@ const GateOutput = z.object({
 /** What one Stop gate run reported. */
 type GateRun = z.infer<typeof GateOutput> & {
   status: number | null;
-  stderr: string;
   stdout: string;
 };
 
 /** The Stop payload the harness sends. JSON.stringify drops the absent fields. */
 interface StopPayload {
   cwd: string;
-  hook_event_name: string;
   loop_count: number | undefined;
   stop_hook_active: boolean | undefined;
 }
@@ -123,6 +122,8 @@ interface StopPayload {
 interface RunOptions {
   /** Overrides the payload's `cwd`, which the gate prefers over CLAUDE_PROJECT_DIR. */
   cwd?: string;
+  /** Overrides the copy of the gate that runs, which decides where it looks for the decision file. */
+  gate?: string;
   loopCount?: number;
   path?: string;
   projectDir?: string;
@@ -132,11 +133,10 @@ interface RunOptions {
 const runGate = (root: string, options: RunOptions = {}): GateRun => {
   const payload: StopPayload = {
     cwd: options.cwd ?? root,
-    hook_event_name: "Stop",
     loop_count: options.loopCount,
     stop_hook_active: options.stopHookActive,
   };
-  const result = spawnSync("bash", [GATE], {
+  const result = spawnSync("bash", [options.gate ?? GATE], {
     cwd: root,
     encoding: "utf-8",
     env: {
@@ -150,7 +150,6 @@ const runGate = (root: string, options: RunOptions = {}): GateRun => {
   return {
     ...readHookJson(result.stdout, GateOutput),
     status: result.status,
-    stderr: result.stderr,
     stdout: result.stdout,
   };
 };
@@ -331,7 +330,7 @@ md links: FAILED`,
     const root = scratchRepo(PASSING, ["notes.md"]);
 
     const run = runGate(root, {
-      path: pathWithOnly(["bash", "cat", "git", "grep", "jq", "sort"]),
+      path: pathWithOnly(["bash", "cat", "git", "jq", "sort"]),
     });
 
     expect(run.systemMessage).toBe(
@@ -392,6 +391,51 @@ md links: FAILED`,
       decision: "block",
       status: 0,
       systemMessage: `⛔ Stop block: the Stop gate could not read git status in ${broken}, so no check ran.`,
+    });
+  });
+
+  // A copy of the entry alone has no stop-gate-decision.sh beside it, which
+  // leaves every function it calls undefined. With the entry's `source` guard
+  // loosened to `if false`, the gate carried on and emitted an empty
+  // systemMessage, ending the turn with nothing judged. Deciding that needs no
+  // scratch repository.
+  it("should block naming the decision file when the entry cannot load it", () => {
+    const lone = scratchDir("stop-gate-lone-");
+    fs.copyFileSync(GATE, path.join(lone, "stop-gate.sh"));
+
+    const run = runGate(lone, { gate: path.join(lone, "stop-gate.sh") });
+
+    expect({
+      decision: run.decision,
+      status: run.status,
+      systemMessage: run.systemMessage,
+    }).toStrictEqual({
+      decision: "block",
+      status: 0,
+      systemMessage: `⛔ Stop block: the Stop gate could not load ${lone}/stop-gate-decision.sh, so no check ran.`,
+    });
+  });
+
+  // The other way the `source` fails is a decision file that will not parse,
+  // and the block's remedy for a missing file is the wrong one for it, so the
+  // reason carries what bash says about this file rather than a guess.
+  it("should carry bash's reason into the block when the decision file does not parse", () => {
+    const broken = scratchDir("stop-gate-unparsable-");
+    fs.copyFileSync(GATE, path.join(broken, "stop-gate.sh"));
+    fs.copyFileSync(DECISION, path.join(broken, "stop-gate-decision.sh"));
+    fs.appendFileSync(
+      path.join(broken, "stop-gate-decision.sh"),
+      "if [ x ; then\n"
+    );
+
+    const run = runGate(broken, { gate: path.join(broken, "stop-gate.sh") });
+
+    expect({
+      decision: run.decision,
+      reasonNamesTheParseFailure: run.reason.includes("syntax error"),
+    }).toStrictEqual({
+      decision: "block",
+      reasonNamesTheParseFailure: true,
     });
   });
 });
