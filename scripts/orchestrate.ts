@@ -29,7 +29,8 @@
  *
  * `clean-worktrees` prints one line per agent worktree saying whether it was
  * removed or why it was kept. It removes only the worktrees of the branches
- * given.
+ * given, and it fetches MAIN_REF first, because whether a branch's commits are
+ * held anywhere else is asked of that ref.
  */
 
 import { execFileSync } from "node:child_process";
@@ -39,8 +40,12 @@ import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import {
   agentWorktrees,
+  ancestryAfterFetch,
   ancestryKeepReason,
   branchNames,
+  MAIN_BRANCH,
+  MAIN_REF,
+  MAIN_REMOTE,
   formatBranch,
   formatEvent,
   formatRemainingBudget,
@@ -58,6 +63,7 @@ import {
 } from "./orchestrate-decisions";
 import type {
   Ancestry,
+  MainFetch,
   PullRequest,
   RateLimitsFile,
   Worktree,
@@ -289,14 +295,37 @@ const ancestry = (commit: string, descendant: string): Ancestry => {
 };
 
 /**
+ * Brings MAIN_REF up to what the remote holds. The refspec names the ref it
+ * writes, and running the fetch once per `clean-worktrees` leaves every verdict
+ * of that call reading the one it wrote.
+ */
+const fetchMain = (): MainFetch => {
+  try {
+    run("git", [
+      "fetch",
+      "--quiet",
+      MAIN_REMOTE,
+      `+refs/heads/${MAIN_BRANCH}:refs/remotes/${MAIN_REF}`,
+    ]);
+    return { kind: "fetched" };
+  } catch (error) {
+    return { kind: "failed", reason: commandMessage(error) };
+  }
+};
+
+/** Where the branch sits in MAIN_REF's history, as this call's fetch left it. */
+const mainRefAncestry = (branch: string, mainFetch: MainFetch): Ancestry =>
+  ancestryAfterFetch(mainFetch, () => ancestry(branch, MAIN_REF));
+
+/**
  * What `worktreeVerdict` judges. Every ancestry runs on the branch, which is
  * the commit the worktree has checked out and the ref `removeWorktree` deletes.
- * Comparing main runs on every worktree that reaches this call, including one
- * whose pull request settles the verdict on its own.
+ * Comparing MAIN_REF runs on every worktree that reaches this call, including
+ * one whose pull request settles the verdict on its own.
  */
-const worktreeFacts = (branch: string): WorktreeFacts => {
+const worktreeFacts = (branch: string, mainFetch: MainFetch): WorktreeFacts => {
   const pullRequest = prOf(branch);
-  const mainAncestry = ancestry(branch, "main");
+  const mainAncestry = mainRefAncestry(branch, mainFetch);
   return pullRequest === undefined
     ? { kind: "no-pull-request", mainAncestry }
     : {
@@ -314,7 +343,8 @@ const worktreeFacts = (branch: string): WorktreeFacts => {
  */
 const verdictFor = (
   worktree: Worktree,
-  branches: readonly string[]
+  branches: readonly string[],
+  mainFetch: MainFetch
 ): WorktreeVerdict => {
   const probe = worktreeProbe(worktree, branches);
   if (probe.kind === "verdict") {
@@ -325,7 +355,7 @@ const verdictFor = (
     if (local !== undefined) {
       return local;
     }
-    const verdict = worktreeVerdict(worktreeFacts(probe.branch));
+    const verdict = worktreeVerdict(worktreeFacts(probe.branch, mainFetch));
     return verdict.kind === "remove"
       ? removeWorktree(worktree, probe.branch)
       : verdict;
@@ -335,19 +365,26 @@ const verdictFor = (
 };
 
 /**
- * Deletes the branch once main holds its commits, and returns why it did not.
- * Main is named, where `git branch -d` would check the branch against its
- * upstream, or against HEAD when it has none.
+ * Deletes the branch once MAIN_REF holds its commits, and returns why it did
+ * not. MAIN_REF is named, where `git branch -d` would check the branch against
+ * its upstream, or against HEAD when it has none.
  */
-const deleteMergedBranch = (branch: string): string | undefined =>
-  ancestryKeepReason(ancestry(branch, "main"), "main") ?? deleteBranch(branch);
+const deleteMergedBranch = (
+  branch: string,
+  mainFetch: MainFetch
+): string | undefined =>
+  ancestryKeepReason(mainRefAncestry(branch, mainFetch), MAIN_REF) ??
+  deleteBranch(branch);
 
 const cleanWorktrees = (branches: readonly string[]): void => {
+  const mainFetch = fetchMain();
   const worktrees = agentWorktrees(
     run("git", ["worktree", "list", "--porcelain"])
   );
   worktrees.forEach((worktree) => {
-    console.log(formatVerdict(worktree, verdictFor(worktree, branches)));
+    console.log(
+      formatVerdict(worktree, verdictFor(worktree, branches, mainFetch))
+    );
   });
   const remaining = agentWorktrees(
     run("git", ["worktree", "list", "--porcelain"])
@@ -360,7 +397,7 @@ const cleanWorktrees = (branches: readonly string[]): void => {
     .split("\n")
     .filter((line) => line !== "");
   strandedAgentBranches(names, remaining).forEach((branch) => {
-    console.log(formatBranch(branch, deleteMergedBranch(branch)));
+    console.log(formatBranch(branch, deleteMergedBranch(branch, mainFetch)));
   });
 };
 
