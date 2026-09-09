@@ -13,7 +13,7 @@ A dispatch names `model`, and the value follows the ticket rather than the sessi
 
 In a fresh worktree, run the setup `ticket-work`'s opening paragraph names before anything else. Create the ticket's branch, and push it with `-u`.
 
-Hold the pull request as `ticket-work` step 7 says, from the Draft opened after the first commit through `gh pr merge --squash` and the deletion of the remote branch. Writing that step's poll as `[ "$(gh pr checks …)" = pass ]` was refused by the pre-Bash guard as a construct it could not check against a worktree-isolated agent's git.
+Hold the pull request as `ticket-work` step 7 says, from the Draft opened after the first commit through `gh pr merge --squash` and the deletion of the remote branch. Writing that step's poll as `[ "$(gh pr checks …)" = pass ]` instead was refused, as AGENTS.md's Degraded Environments says of a worktree-isolated session's commands.
 
 While a subagent runs, waiting means ending the turn, because the `Agent` tool notifies you when one completes. A shell that sleeps to pass the time buys nothing, and when the dispatching session killed one worker's sleep shells in the 2026-09-08 run, the kill also stopped the background task carrying that worker's mutation runs, which it then re-ran. A wait on a condition nothing will make true never returns. Ending the turn waits only while something that will wake you is running, so where nothing is in flight and you still need a result, dispatch it again rather than end, as `ticket-work` step 7 says for a `code-reviewer` that returned no report. The pull-request poll of that same step is the exception, because `gh pr checks` is not a subagent and nothing wakes you when `build` turns green.
 

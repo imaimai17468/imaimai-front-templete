@@ -28,6 +28,8 @@ The session's permission mode also changes how a step runs, and only `~/.claude/
 - The classifier reads no `autoMode` block from `.claude/settings.json`, so classifier configuration lives in `~/.claude/settings.json` outside this repository.
 - `claude auto-mode defaults --label 'Merge Without Review'` prints a `soft_deny` rule against merging a pull request before a human has approved it, and the `gh pr merge --squash` that Commits & Pull Requests gives each PR's author is that action.
 
+Two guards read a Bash command's text before the command runs, and each refuses it rather than prompting. `.claude/hooks/pre-bash-guard.sh` refuses a command that names a protected env file, a `find` whose root reaches the whole repository or that runs a command or deletes per match, and a `git add`, `git stage`, `git rm` or `git commit` whose operands take files nobody named; its refusal says which operand took more than it named, so name the paths and run it again. A worktree-isolated session meets a second guard, which refuses a command it cannot show stays inside that worktree, and names the worktree to run the plain command from: a value another program acts on, text naming `git` fed to another program, and a chain of commands it called too complex to check were each refused on 2026-09-09. Write the words out as literals and send one command per Bash call.
+
 ## Design Philosophy
 
 **Extensibility by default.** Every implementation is designed for future expansion: APIs, interfaces, types, data structures. This applies to all work, regardless of stated scope or finality. Code that cannot accommodate growth gets rewritten from scratch.
