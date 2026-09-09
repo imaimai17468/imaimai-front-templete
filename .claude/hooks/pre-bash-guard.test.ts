@@ -114,97 +114,65 @@ const bashPayload = (command: string): Payload => ({
   tool_name: "Bash",
 });
 
-// A case waits on the other cases of its group, so its wall time tracks the
-// machine's load rather than the hook's own work. At vitest's 5 s default this
-// file failed 18 of its 202 cases in one round of three, and passed the other
-// two, on a machine under parallel load (2026-09-09). Six times that default
-// carried three rounds run beside a `bun run check`, and a hook that hangs
-// still fails.
-const HOOK_TIMEOUT_MS = 30_000;
-
 describe.concurrent("the deny the hook prints", () => {
-  it(
-    "should carry the refusal in both dialects when a guard refuses the command",
-    async () => {
-      await expect(runHook(bashPayload(SWEEP))).resolves.toStrictEqual({
-        output: denyOutput(SWEEP_REASON),
-        status: 0,
-        stderr: "",
-      });
-    },
-    HOOK_TIMEOUT_MS
-  );
+  it("should carry the refusal in both dialects when a guard refuses the command", async () => {
+    await expect(runHook(bashPayload(SWEEP))).resolves.toStrictEqual({
+      output: denyOutput(SWEEP_REASON),
+      status: 0,
+      stderr: "",
+    });
+  });
 
-  it(
-    "should stay silent when no guard refuses the command",
-    async () => {
-      await expect(runHook(bashPayload("ls -la"))).resolves.toStrictEqual({
-        output: "",
-        status: 0,
-        stderr: "",
-      });
-    },
-    HOOK_TIMEOUT_MS
-  );
+  it("should stay silent when no guard refuses the command", async () => {
+    await expect(runHook(bashPayload("ls -la"))).resolves.toStrictEqual({
+      output: "",
+      status: 0,
+      stderr: "",
+    });
+  });
 });
 
 describe.concurrent("the payload's tool name decides whether the guards run", () => {
-  it(
-    "should refuse the same sweep it refuses for Bash when the payload names Cursor's Shell tool",
-    async () => {
-      await expect(
-        runHook({ tool_input: { command: SWEEP }, tool_name: "Shell" })
-      ).resolves.toStrictEqual({
-        output: denyOutput(SWEEP_REASON),
-        status: 0,
-        stderr: "",
-      });
-    },
-    HOOK_TIMEOUT_MS
-  );
+  it("should refuse the same sweep it refuses for Bash when the payload names Cursor's Shell tool", async () => {
+    await expect(
+      runHook({ tool_input: { command: SWEEP }, tool_name: "Shell" })
+    ).resolves.toStrictEqual({
+      output: denyOutput(SWEEP_REASON),
+      status: 0,
+      stderr: "",
+    });
+  });
 
-  it(
-    "should let the payload through untouched when its tool is not a terminal",
-    async () => {
-      await expect(
-        runHook({ tool_input: { command: SWEEP }, tool_name: "Read" })
-      ).resolves.toStrictEqual({ output: "", status: 0, stderr: "" });
-    },
-    HOOK_TIMEOUT_MS
-  );
+  it("should let the payload through untouched when its tool is not a terminal", async () => {
+    await expect(
+      runHook({ tool_input: { command: SWEEP }, tool_name: "Read" })
+    ).resolves.toStrictEqual({ output: "", status: 0, stderr: "" });
+  });
 });
 
 describe.concurrent("the payload's command is what the guards read", () => {
-  it(
-    "should judge the empty command when the payload carries no command at all",
-    async () => {
-      await expect(
-        runHook({ tool_input: {}, tool_name: "Bash" })
-      ).resolves.toStrictEqual({ output: "", status: 0, stderr: "" });
-    },
-    HOOK_TIMEOUT_MS
-  );
+  it("should judge the empty command when the payload carries no command at all", async () => {
+    await expect(
+      runHook({ tool_input: {}, tool_name: "Bash" })
+    ).resolves.toStrictEqual({ output: "", status: 0, stderr: "" });
+  });
 });
 
 describe.concurrent("the decision file the hook sources", () => {
-  it(
-    "should refuse the command when the decision file is not beside the hook",
-    async () => {
-      const alone = fs.mkdtempSync(path.join(os.tmpdir(), "pre-bash-guard-"));
-      onTestFinished(() => {
-        fs.rmSync(alone, { force: true, recursive: true });
-      });
-      const copy = path.join(alone, "pre-bash-guard.sh");
-      fs.copyFileSync(HOOK, copy);
+  it("should refuse the command when the decision file is not beside the hook", async () => {
+    const alone = fs.mkdtempSync(path.join(os.tmpdir(), "pre-bash-guard-"));
+    onTestFinished(() => {
+      fs.rmSync(alone, { force: true, recursive: true });
+    });
+    const copy = path.join(alone, "pre-bash-guard.sh");
+    fs.copyFileSync(HOOK, copy);
 
-      await expect(runHook(bashPayload(SWEEP), copy)).resolves.toStrictEqual({
-        output: denyOutput(
-          `PreToolUse(Bash): the guard could not load ${alone}/pre-bash-guard-decision.sh, so nothing checked this command. Put that file back beside pre-bash-guard.sh, or run the hook by a path that names its directory.`
-        ),
-        status: 0,
-        stderr: "",
-      });
-    },
-    HOOK_TIMEOUT_MS
-  );
+    await expect(runHook(bashPayload(SWEEP), copy)).resolves.toStrictEqual({
+      output: denyOutput(
+        `PreToolUse(Bash): the guard could not load ${alone}/pre-bash-guard-decision.sh, so nothing checked this command. Put that file back beside pre-bash-guard.sh, or run the hook by a path that names its directory.`
+      ),
+      status: 0,
+      stderr: "",
+    });
+  });
 });
