@@ -19,6 +19,7 @@ import { z } from "zod";
 import { readHookJson } from "./hook-output";
 
 const GATE = path.resolve(import.meta.dirname, "stop-gate.sh");
+const DECISION = path.resolve(import.meta.dirname, "stop-gate-decision.sh");
 
 /** A directory the case owns, removed when the case ends. */
 const scratchDir = (prefix: string): string => {
@@ -412,6 +413,29 @@ md links: FAILED`,
       decision: "block",
       status: 0,
       systemMessage: `⛔ Stop block: the Stop gate could not load ${lone}/stop-gate-decision.sh, so no check ran.`,
+    });
+  });
+
+  // The other way the `source` fails is a decision file that will not parse,
+  // and the block's remedy for a missing file is the wrong one for it, so the
+  // reason carries what bash says about this file rather than a guess.
+  it("should carry bash's reason into the block when the decision file does not parse", () => {
+    const broken = scratchDir("stop-gate-unparsable-");
+    fs.copyFileSync(GATE, path.join(broken, "stop-gate.sh"));
+    fs.copyFileSync(DECISION, path.join(broken, "stop-gate-decision.sh"));
+    fs.appendFileSync(
+      path.join(broken, "stop-gate-decision.sh"),
+      "if [ x ; then\n"
+    );
+
+    const run = runGate(broken, { gate: path.join(broken, "stop-gate.sh") });
+
+    expect({
+      decision: run.decision,
+      reasonNamesTheParseFailure: run.reason.includes("syntax error"),
+    }).toStrictEqual({
+      decision: "block",
+      reasonNamesTheParseFailure: true,
     });
   });
 });

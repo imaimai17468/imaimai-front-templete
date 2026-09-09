@@ -40,7 +40,7 @@ NOTHING_RAN="Nothing below it was judged: no typecheck, no lint, no format, no t
 # and the gate would then end the turn having judged nothing. Blocking instead
 # puts that failure where the turn cannot pass it by. This is the one block the
 # downgrade below cannot reach, because the mapping that reads it is in the
-# file that would not load; restoring the file is what ends the block.
+# file that would not load; loading that file again is what ends the block.
 # `$0` carries the directory whenever the caller names this file by path, which
 # .claude/settings.json and stop-gate.test.ts both do; a bare
 # `bash stop-gate.sh` leaves the name in place, finds no file under it and
@@ -48,10 +48,18 @@ NOTHING_RAN="Nothing below it was judged: no typecheck, no lint, no format, no t
 HOOK_DIR=${0%/*}
 # shellcheck source=.claude/hooks/stop-gate-decision.sh
 if ! source "$HOOK_DIR/stop-gate-decision.sh" 2>/dev/null; then
-  jq -n --arg dir "$HOOK_DIR" --arg nothing "$NOTHING_RAN" '{
+  # A file that is absent and a file that will not parse are the two ways the
+  # `source` above fails, and they need different fixes, so the block carries
+  # what bash says about this one. `bash -n` reads the file without running it,
+  # and prints the path for the first and the line and the token for the
+  # second. Reading the failing `source`'s own stderr instead would need a
+  # temp file, because a command substitution around it would define the
+  # functions in a subshell that then exits.
+  SOURCE_ERROR=$(bash -n "$HOOK_DIR/stop-gate-decision.sh" 2>&1)
+  jq -n --arg dir "$HOOK_DIR" --arg why "$SOURCE_ERROR" --arg nothing "$NOTHING_RAN" '{
     systemMessage: ("⛔ Stop block: the Stop gate could not load " + $dir + "/stop-gate-decision.sh, so no check ran."),
     decision: "block",
-    reason: ("The Stop gate could not load " + $dir + "/stop-gate-decision.sh, so no check ran. Put that file back beside stop-gate.sh, or run the hook by a path that names its directory. " + $nothing)
+    reason: ("The Stop gate could not load " + $dir + "/stop-gate-decision.sh, so no check ran:\n" + $why + "\n" + $nothing)
   }'
   exit 0
 fi
