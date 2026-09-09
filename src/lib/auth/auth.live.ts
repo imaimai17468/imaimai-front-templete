@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { getDb } from "@/lib/drizzle/db.live";
 import * as schema from "@/lib/drizzle/schema";
-import { getCloudflareEnv } from "@/server/cloudflare";
+import { getCloudflareEnv } from "@/server/cloudflare.live";
 import { requireAuthSecret } from "./required-secret";
 
 const buildAuth = () => {

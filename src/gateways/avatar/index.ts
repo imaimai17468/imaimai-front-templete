@@ -1,4 +1,4 @@
-import { getCloudflareEnv } from "@/server/cloudflare";
+import { getCloudflareEnv } from "@/server/cloudflare.live";
 
 export interface AvatarObject {
   body: R2ObjectBody["body"];

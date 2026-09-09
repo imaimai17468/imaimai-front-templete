@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/d1";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
-import { getCloudflareEnv } from "@/server/cloudflare";
+import { getCloudflareEnv } from "@/server/cloudflare.live";
 import * as schema from "./schema";
 
 type Db = DrizzleD1Database<typeof schema>;

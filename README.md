@@ -69,7 +69,7 @@ src/
 │   ├── auth.auth-code-error.tsx  # OAuth failure landing page
 │   └── api/                # API routes (auth catch-all, avatars)
 ├── server/
-│   ├── cloudflare.ts       # CloudflareEnv helper (cloudflare:workers)
+│   ├── cloudflare.live.ts  # CloudflareEnv helper (cloudflare:workers)
 │   └── fn/                 # Server functions (createServerFn)
 ├── gateways/               # D1 / R2 persistence
 ├── entities/               # Domain types and schemas
