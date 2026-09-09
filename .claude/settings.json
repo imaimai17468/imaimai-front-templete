@@ -14,7 +14,8 @@
       "Bash(bun run knip)",
       "Bash(bun .claude/hooks/check-md-links.ts *)",
       "Bash(similarity-ts *)",
-      "Bash(memory_pressure)"
+      "Bash(memory_pressure)",
+      "Bash(gh pr merge --squash *)"
     ],
     "deny": [
       "Bash(rm -rf /)",
