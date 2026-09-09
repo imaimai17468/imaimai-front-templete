@@ -428,6 +428,21 @@ group("find: scoped discovery runs unattended", [
     expected: "allow",
     why: "piped into a reader, scoped",
   },
+  {
+    command: "find src/*.ts -type f",
+    expected: "allow",
+    why: "a named directory ahead of the glob bounds what it matches",
+  },
+  {
+    command: "find ./src/*.tsx -type f",
+    expected: "allow",
+    why: "the same bound written with a leading ./",
+  },
+  {
+    command: "find src* -type f",
+    expected: "allow",
+    why: "a glob that starts inside a name the command shows",
+  },
 ]);
 
 group("find: broad reach is refused", [
@@ -451,6 +466,26 @@ group("find: broad reach is refused", [
     command: "find -name '*.ts'",
     expected: "block",
     why: "no root operand at all",
+  },
+  {
+    command: "find .* -type f",
+    expected: "block",
+    why: "a dot glob the shell expands to `.` and `..` where it does not skip them",
+  },
+  {
+    command: "find .[a-z]* -type f",
+    expected: "block",
+    why: "a bracket class in the same position reaches the same two names",
+  },
+  {
+    command: "find * -type f",
+    expected: "block",
+    why: "a glob starting from nothing takes every entry of the working directory",
+  },
+  {
+    command: "find ./* -type f",
+    expected: "block",
+    why: "the same reach written from ./",
   },
   {
     command: "find\t.\t-type f",
@@ -510,6 +545,11 @@ group("find: quoting must not hide the shape", [
     why: "quoted action flag",
   },
   { command: "find src '-delete'", expected: "block", why: "quoted -delete" },
+  {
+    command: "find '.*' -type f",
+    expected: "block",
+    why: "quoted dot glob root",
+  },
 ]);
 
 group("find: a broad root hidden behind a narrow one is still caught", [

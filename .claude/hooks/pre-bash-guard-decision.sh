@@ -273,7 +273,7 @@ refuse_protected_env_file() { # reads GUARD_SCRUBBED; sets GUARD_REFUSAL
 refuse_broad_find() { # $1 = the Bash tool's command text; sets GUARD_REFUSAL
   local -a LINES
   local NORM NORM_FIND FIND_ASK SEG WORDS_REST WORD SAW_FIND ROOT_COUNT
-  local IN_PREDICATES HEREDOC_DROPPED
+  local IN_PREDICATES BROAD_ROOT HEREDOC_DROPPED
   # A heredoc body is data, not a command — a commit message describing
   # `find . | xargs cat` must not trip this. Guard 1 scrubs `-m` bodies for the
   # same reason; this is the heredoc case, found when the first version of this
@@ -316,12 +316,28 @@ refuse_broad_find() { # $1 = the Bash tool's command text; sets GUARD_REFUSAL
         *)
           [ "$IN_PREDICATES" -eq 1 ] && continue
           ROOT_COUNT=$((ROOT_COUNT + 1))
-          case "$WORD" in
-            . | ./ | .. | ../ | /* | '~'* | '$'* | *'..'*)
-              FIND_ASK="a search root reaches the whole repository (or outside it), so it can read files the deny list protects"
-              break
-              ;;
+          BROAD_ROOT=0
+          # What the shell hands `find` for a root carrying a glob starts at the
+          # literal text ahead of the glob's first character, and a root
+          # carrying no glob is that text itself, so one test covers both. An
+          # empty start is `find *`, which searches every entry of the working
+          # directory whose name does not begin with a dot. A `.` start is
+          # `find .*`, which expanded to `.` and `..` under /bin/bash 3.2.57 in
+          # an empty directory on 2026-09-09 and stayed literal under bash
+          # 5.3.9, whose `globskipdots` is on. `src/` and `./src/` start inside
+          # a directory the command names, so `find ./src/*.tsx` runs
+          # unattended.
+          case "${WORD%%[*?[]*}" in
+            '' | . | ./ | .. | ../ | /* | '~'* | '$'*) BROAD_ROOT=1 ;;
           esac
+          # A `..` past that start still climbs out of what the root names.
+          case "$WORD" in
+            *'..'*) BROAD_ROOT=1 ;;
+          esac
+          if [ "$BROAD_ROOT" -eq 1 ]; then
+            FIND_ASK="a search root reaches the whole repository (or outside it), so it can read files the deny list protects"
+            break
+          fi
           ;;
       esac
     done
