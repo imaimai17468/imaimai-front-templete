@@ -48,11 +48,11 @@ Four document-side forms survive, and only at a boundary such as an opening or a
 - A request to the reader, such as a scope caveat.
 - Opening and closing the frame of an example.
 
-Shortening a document-side sentence does not save it. Cutting one down to a crisp declarative makes it read like a considered remark, and that is the most common way this rule gets evaded. Settle what the sentence is about before judging how it sounds.
+Cutting a document-side sentence down to a crisp declarative does not save it, because it then reads like a considered remark, and that cut is the most common way this rule gets evaded. Settle what the sentence is about before judging how it sounds.
 
 ## Sentence shape
 
-Each shape below is read as machine-written, and each also costs the reader something specific. Density is what gets noticed: one instance is invisible, and the same shape returning at intervals becomes the whole impression. Budget them per file rather than per sentence, and measure before calling a file clean.
+Each shape below is read as machine-written, and each also costs the reader something specific. Density is what gets noticed, so budget them per file rather than per sentence, and measure before calling a file clean.
 
 **Em dash: 5 per 1000 words of English.** Past that it carries work that punctuation should refuse, giving a subordinate clause the same weight as the main clause, so the reader cannot tell the instruction from its reason. Where the right side restates the left, delete it. Where it adds a condition, give it its own sentence. Japanese is stricter, below.
 
@@ -74,7 +74,7 @@ Each shape below is read as machine-written, and each also costs the reader some
 
 ## Precision
 
-Knowledge Currency decides whether a claim was checked. These decide whether the sentence says only as much as was checked.
+These decide whether the sentence says only as much as was checked, where Knowledge Currency decides whether it was.
 
 **Keep a hedge that carries real uncertainty.** `かもしれない`, `だろう`, "appears to" are removable only where they weaken something the text has already established. Where they mark an unverified possibility, an inference from a log, or a doubt the reader would raise, flattening them into an assertion makes the text wrong.
 
