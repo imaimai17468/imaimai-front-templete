@@ -82,7 +82,7 @@ Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/
 
 A principle lives in this file. A concrete of this repository, such as a path, a file name, or a command, lives in the rule whose scope covers the files it names, and the part of it a scope would hide from a session that needs it stays here. A step-by-step procedure for a named task lives in the skill that names it, and a constraint lives in the structure or the types.
 
-`src/` is layered as `routes/` → `server/fn/` → `gateways/` → `entities/`, imports flow downward only, and `server/fn/` is the authorization boundary. `src/lib/` holds framework/infrastructure adapters, and `src/components/` holds UI. Where a non-component value lives follows its component affinity, and `react.md`'s Module Organization section states that test.
+`src/` is layered as `routes/` → `server/fn/` → `gateways/` → `entities/`, imports flow downward only, and `server/fn/` is the authorization boundary. `react.md`'s Module Organization section settles where UI and a non-component value live, `src/components/` and `src/lib/` included.
 
 The next rule has no path scope, and applies whenever you write any instruction document, whatever the file type:
 
