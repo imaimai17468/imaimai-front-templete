@@ -156,8 +156,9 @@ not the position the gesture reached.
 
 - **Enter and exit along the same path.** A panel that slides in from the right
   must dismiss to the right.
-- **Anchor interactions to their source.** A menu or popover should originate
-  from the element that triggered it — set `transform-origin` to the trigger.
+- **Anchor interactions to their source.** A menu or popover originates from
+  the element that triggered it, and `.claude/rules/design.md` (Animations)
+  sets how.
 - **Mirror the easing on reversible transitions** with the inverse
   cubic-bezier.
 
@@ -193,19 +194,17 @@ function rubberband(overshoot, dimension, constant = 0.55) {
   strobing.
 - For very fast motion, a subtle **motion blur / stretch** reads better than a
   hard sharp streak.
-- `requestAnimationFrame` is the web's display-synced clock. Animate only
-  compositor-friendly properties — `transform` and `opacity`.
+- `requestAnimationFrame` is the web's display-synced clock. Which properties
+  may animate is settled in `.claude/rules/design.md` (Animations).
 
 ## 12. Materials & depth
 
 Apple uses translucent materials as a floating functional layer. On the web,
-approximate with `backdrop-filter`.
+approximate with `backdrop-filter`. Which surfaces here may be translucent, and
+where a shadow is allowed at all, is settled in `.claude/rules/design.md`
+(Elevation), which carries hierarchy on background color, border, backdrop dim,
+spacing, and typography instead.
 
-- **Build nav/toolbars/sheets as translucent layers** with content scrolling
-  underneath — not opaque bars.
-- **Material weight encodes hierarchy:** darker/heavier = structural,
-  lighter = interactive. **Never stack a light translucent surface on another.**
-- **Bigger surfaces should read as thicker:** stronger blur + deeper shadow.
 - **Scroll edge effects, not hard dividers.** Fade a gradient mask where
   content meets floating chrome.
 - **Materialize, don't just fade.** Animate blur radius and scale together on
@@ -229,32 +228,15 @@ Three rules for combining visual + sound + haptic:
 
 ## 14. Reduced motion & accessibility
 
-Reduced motion means *gentler*, not zero. Respond to three independent signals:
-
-- **`prefers-reduced-motion: reduce`** — replace slides/springs with short
-  cross-fades. Drop elastic/overshoot. Keep opacity/color.
-- **`prefers-reduced-transparency: reduce`** — frostier/solid surfaces.
-- **`prefers-contrast: more`** — near-solid backgrounds with defined borders.
-
-Avoid full-viewport moving backgrounds, slow looping oscillations (~0.2 Hz),
-and abrupt brightness jumps.
-
-```css
-@media (prefers-reduced-motion: reduce) {
-  .sheet { transition: opacity 200ms ease; transform: none !important; }
-}
-@media (prefers-reduced-transparency: reduce) {
-  .toolbar { background: white; backdrop-filter: none; }
-}
-```
+`.claude/rules/design.md` sets what this repository does under
+`prefers-reduced-motion` (Animations), and under
+`prefers-reduced-transparency` and `prefers-contrast` (Elevation).
 
 ## 15. Typography — optical sizing, tracking, leading
 
-- **Tracking is size-specific.** Large display text wants *negative* tracking;
-  small text wants slightly *positive* tracking. Tighten headings, leave body
-  near `0`.
+- **Tracking and hierarchy.** Both are settled in `.claude/rules/design.md`
+  (Typographic Rules, Typographic Pitfalls).
 - **Leading tracks size inversely.** Tight on large headings, looser on body.
-- **Build hierarchy from weight + size + leading as a set,** not size alone.
 - **Respect the user's text-size setting.** Scale layout with `rem`/`em`.
 
 ```css
@@ -290,9 +272,8 @@ and abrupt brightness jumps.
 - **Design interaction and visuals together.** "You shouldn't be able to tell
   where one ends and the other begins." Motion is not a layer added after the
   pixels.
-- **Test with real people in real context**, and review motion with fresh
-  eyes — play it in slow motion / frame-by-frame to catch what's invisible at
-  full speed.
+- **Test with real people in real context.** Part 2's Debugging section says
+  how to review the motion itself.
 
 ---
 
@@ -300,62 +281,8 @@ and abrupt brightness jumps.
 
 Precise values, curves, and techniques. Cite these in code and reviews.
 Distilled from Emil Kowalski's design engineering philosophy (animations.dev).
-
-## Frequency table — should it animate?
-
-| Frequency | Decision |
-| --- | --- |
-| 100+/day (keyboard shortcuts, command palette) | No animation. Ever. |
-| Tens/day (hover effects, list navigation) | Remove or drastically reduce |
-| Occasional (modals, drawers, toasts) | Standard animation |
-| Rare / first-time (onboarding, celebrations) | Can add delight |
-
-**Never animate keyboard-initiated actions.**
-
-## Easing
-
-Decision order:
-- Entering or exiting -> **`ease-out`**
-- Moving / morphing on screen -> **`ease-in-out`**
-- Hover / color change -> **`ease`**
-- Constant motion (marquee, progress) -> **`linear`**
-- Default -> **`ease-out`**
-
-**Never `ease-in` on UI.** Built-in CSS easings are too weak. Use strong custom
-curves:
-
-```css
---ease-out: cubic-bezier(0.23, 1, 0.32, 1);
---ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
---ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);      /* iOS-like drawer */
-```
-
-Find curves at [easing.dev](https://easing.dev/) or
-[easings.co](https://easings.co/).
-
-## Duration
-
-| Element | Duration |
-| --- | --- |
-| Button press feedback | 100-160ms |
-| Tooltips, small popovers | 125-200ms |
-| Dropdowns, selects | 150-250ms |
-| Modals, drawers | 200-500ms |
-| Marketing / explanatory | Can be longer |
-
-**Rule: stay inside the element's row above. A longer duration needs a stated
-reason.**
-
-## Physicality
-
-- **Never `scale(0)`.** Start from `scale(0.9-0.97)` + `opacity: 0`.
-- **Origin-aware popovers.** Scale from the trigger, not center:
-  ```css
-  .popover { transform-origin: var(--radix-popover-content-transform-origin); }
-  ```
-  **Modals are exempt** — keep `transform-origin: center`.
-- **Button press feedback.** `transform: scale(0.97)` on `:active`,
-  `transition: transform 160ms ease-out`. Subtle (0.95-0.98).
+What this repository's CSS and TSX must do is settled in
+`.claude/rules/design.md` (Animations); this part is the reference behind it.
 
 ## Springs
 
@@ -372,22 +299,6 @@ Feel natural because they simulate physics; no fixed duration.
 Keep bounce subtle (0.1-0.3); reserve for drag-to-dismiss and playful
 interactions. Springs maintain velocity when interrupted.
 
-## Interruptibility
-
-CSS **transitions** can be interrupted and retargeted mid-animation;
-**keyframes** restart from zero. For anything triggered rapidly, transitions
-are smoother.
-
-Use `@starting-style` for entry without JS:
-
-```css
-.toast {
-  opacity: 1; transform: translateY(0);
-  transition: opacity 400ms ease, transform 400ms ease;
-  @starting-style { opacity: 0; transform: translateY(100%); }
-}
-```
-
 ## Asymmetric timing
 
 Slow where the user is deciding, fast where the system responds.
@@ -399,11 +310,8 @@ Slow where the user is deciding, fast where the system responds.
 
 ## Performance
 
-- **Only animate `transform` and `opacity`** — they skip layout/paint and run
-  on the GPU. `padding`/`margin`/`height`/`width`/`top`/`left` trigger all
-  three rendering steps.
-- **Don't drive child transforms via a CSS variable on the parent** — it recalcs
-  styles for all children. Set `transform` directly on the element.
+- **Animated properties.** `.claude/rules/design.md` (Animations) settles which
+  properties may animate.
 - **Motion (Framer Motion) shorthands `x`/`y`/`scale` are NOT
   hardware-accelerated.** They run on the main thread via rAF and drop frames
   under load. Use the full transform string:
@@ -425,8 +333,9 @@ Slow where the user is deciding, fast where the system responds.
   `translateY(100%)` moves by the element's height regardless of dimensions.
 - **`scale()` scales children too** (font, icons, content).
 - **3D**: `rotateX/Y` + `transform-style: preserve-3d` for depth/orbit/flip.
-- **`clip-path: inset(t r b l)`** is a powerful animation tool: reveal-on-scroll,
-  hold-to-delete overlay, seamless tab color transitions, comparison sliders.
+- **`clip-path: inset(t r b l)`** drives a hold-to-delete overlay, a seamless
+  tab color transition, and a comparison slider. A reveal gated on scroll is
+  ruled out by `.claude/rules/design.md` (Content States).
 
 ## Gestures & drag
 
@@ -442,8 +351,8 @@ Safari).
 
 ## Stagger
 
-Stagger group entrances; 30-80ms between items. Longer delays feel slow.
-Stagger is decorative — never block interaction while it plays.
+`.claude/rules/design.md` (Animations) sets the delay between items and what a
+stagger may not hold up.
 
 ```css
 .item { opacity: 0; transform: translateY(8px); animation: fadeIn 300ms ease-out forwards; }
@@ -453,9 +362,12 @@ Stagger is decorative — never block interaction while it plays.
 
 ## Accessibility (implementation)
 
+`.claude/rules/design.md` (Interactive States) gates hover animation and bounds
+what a hover may change.
+
 ```css
 @media (hover: hover) and (pointer: fine) {
-  .element:hover { transform: scale(1.05); }
+  .card:hover .card-icon { transform: translateX(2px); }
 }
 ```
 
@@ -490,46 +402,36 @@ Every animation in the diff is measured against these. A violation is a finding.
    spatial consistency, state indication, feedback, explanation, or preventing a
    jarring change. "It looks cool" on a frequently-seen element is a block.
 
-2. **Frequency-appropriate.** Match motion to how often it's seen (see the
-   frequency table in Part 2).
+2. **Frequency-appropriate.** Measured against the frequency table in
+   `.claude/rules/design.md` (Animations).
 
-3. **Responsive easing.** Entering/exiting elements use `ease-out` or a strong
-   custom curve. `ease-in` on UI is a block. Built-in CSS easings are too weak.
+3. **Responsive easing.** Measured against the curve order in
+   `.claude/rules/design.md` (Animations).
 
-4. **Duration within range.** A duration past its element's row in Part 2's
-   duration table needs justification.
+4. **Duration within range.** Measured against the duration table in
+   `.claude/rules/design.md` (Animations).
 
-5. **Origin & physical correctness.** Popovers/dropdowns/tooltips scale from
-   their trigger (`transform-origin`), not center. Never `scale(0)` — start
-   from `scale(0.9-0.97)` + opacity. Modals are exempt.
+5. **Origin & physical correctness.** Measured against the physicality rules in
+   `.claude/rules/design.md` (Animations).
 
-6. **Interruptibility.** Rapidly-triggered motion (toasts, toggles) must be
-   interruptible via CSS transitions that retarget from current state, not
-   keyframes that restart from zero. Gesture-driven motion (drag, swipe)
-   specifically requires springs or WAAPI — CSS transitions cannot receive
-   release-velocity handoff (see Part 1 section 3).
+6. **Interruptibility.** Measured against `.claude/rules/design.md`
+   (Animations) for CSS, and against Part 1 section 3 for gesture-driven
+   motion.
 
-7. **GPU-only properties.** Animate `transform` and `opacity` only.
+7. **GPU-only properties.** Measured against `.claude/rules/design.md`
+   (Animations). Motion's `x`/`y`/`scale` shorthands run on the main thread, so
+   they are a finding on motion that plays while the page is busy.
 
-8. **Accessibility.** `prefers-reduced-motion` is honored (gentler, not zero).
-   Hover animations gated behind `@media (hover: hover) and (pointer: fine)`.
+8. **Accessibility.** Measured against `.claude/rules/design.md`: reduced
+   motion in Animations, hover in Interactive States.
 
-9. **Asymmetric enter/exit.** Deliberate actions animate slower; system
-   responses snap. Symmetric timing on a press-and-release is a finding.
+9. **Asymmetric enter/exit.** Measured against Part 2's Asymmetric timing.
+   Symmetric timing on a press-and-release is a finding.
 
 10. **Cohesion.** Motion matches the component's personality and the rest of the
-    product. Mismatched personality is a finding. When unsure whether motion
-    feels right, the strongest move is often to delete it.
-
-## Aggressive Escalation Triggers
-
-Each of these is a finding on sight, and no standard above decides it:
-
-- `transition: all`
-- A pure-fade entrance with no initial transform
-- Motion `x`/`y`/`scale` props on motion that runs while the page is busy
-- Updating a CSS variable on a parent to drive a child transform
-- Everything-at-once entrance where a 30-80ms stagger belongs
+    product. Mismatched personality is a finding. Where it is unclear whether
+    the motion feels right, review it as Part 2's Debugging section says before
+    deciding, and deleting it is often the strongest move.
 
 ## Remedial Preference Hierarchy
 
@@ -572,14 +474,8 @@ Close with an explicit decision:
 - **Approve** — no feel-breaking regressions, durations and easing within
   bounds, interruptibility handled, reduced-motion respected.
 
-Cite `file:line`. Pull exact values from Part 2 rather than approximating.
-
-## Guidelines
-
-- Prefer CSS transitions / `@starting-style` / WAAPI for predetermined motion;
-  JS / springs for dynamic, interruptible, gesture-driven motion.
-- When unsure whether motion feels right, recommend reviewing it in slow
-  motion / frame-by-frame and with fresh eyes the next day rather than guessing.
+Cite `file:line`. Pull exact values from `.claude/rules/design.md` and Part 2
+rather than approximating.
 
 ---
 
