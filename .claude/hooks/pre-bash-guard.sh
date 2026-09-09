@@ -421,6 +421,13 @@ case "$SCRUBBED" in
     ;;
 esac
 WALK_PLAIN=${WALK_PLAIN//[\"\'\`]/}
+# A backslash before a newline is a line continuation the shell splices away,
+# so `git \` on one line and `rm -r .` on the next is one command running
+# `git rm -r .`. The blanket backslash strip below leaves the newline behind,
+# and the segment split reads a newline as a separator, so the walk got `git`
+# and `rm -r .` as two segments and neither is a refusable shape. Joining the
+# pair into a space puts the subcommand back beside its `git`.
+WALK_PLAIN=${WALK_PLAIN//\\$'\n'/ }
 WALK_PLAIN=${WALK_PLAIN//\\/}
 # A line of the split that reads `EOF` does not end the heredoc below, because
 # bash finds that delimiter in the script text before expanding anything into

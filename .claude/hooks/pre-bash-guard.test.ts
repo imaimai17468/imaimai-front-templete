@@ -1216,6 +1216,36 @@ group("git rm: named paths stay unattended", [
   },
 ]);
 
+// The shell splices a backslash-newline pair away before it reads the command,
+// so each of these runs one `git` with its subcommand beside it.
+group("a line continuation does not split a subcommand from its git", [
+  {
+    command: `git \\\n  ${RM_SUB} -r .`,
+    expected: "block",
+    why: "a wrapped git rm still takes the whole tree",
+  },
+  {
+    command: "git \\\n  add -A",
+    expected: "block",
+    why: "a wrapped git add still stages the whole worktree",
+  },
+  {
+    command: `git \\\n  ${COMMIT_SUB} -a`,
+    expected: "block",
+    why: "a wrapped git commit still sweeps the worktree",
+  },
+  {
+    command: `${RM} \\\n  src/foo.ts`,
+    expected: "allow",
+    why: "a wrapped removal that names its path is still named",
+  },
+  {
+    command: `${COMMIT} -F - <<'MSG'\nends with a backslash \\\nMSG\ngit push`,
+    expected: "allow",
+    why: "a heredoc body line ending in a backslash still ends at its terminator",
+  },
+]);
+
 group("git rm: a pathspec the command text does not show is refused", [
   { command: RM, expected: "block", why: "no operand at all" },
   {
