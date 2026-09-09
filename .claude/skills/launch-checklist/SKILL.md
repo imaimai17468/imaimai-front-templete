@@ -184,7 +184,7 @@ Create `docs/launch-checklist/YYYY-MM-DD.md`:
 ```markdown
 # Launch Checklist Report: YYYY-MM-DD
 
-Commit: `{short hash}` {commit message}
+Commit: `{short hash}` {subject}
 
 ## Summary
 
@@ -224,9 +224,10 @@ Priority fixes (FAIL items ordered by severity):
 3. **[Minor]** {item}: {fix suggestion}
 ```
 
-### 4. Compare with previous
+### 4. Compare with the previous report
 
-If a previous report exists in `docs/launch-checklist/`, compare results. Note newly passing or regressed items under `## Changes from previous audit`.
+Where `docs/launch-checklist/` already holds an earlier file, compare against the
+newest one and list newly passing and newly failing items under `## Changes`.
 
 ### 5. Fix issues (if requested)
 
