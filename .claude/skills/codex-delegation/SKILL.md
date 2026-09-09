@@ -23,7 +23,7 @@ Anything this repository's own rules decide rather than a gate:
 
 - prose and instruction documents (`.claude/`, `AGENTS.md`, a PR body, a review comment). `.claude/rules/prose.md` and AGENTS.md's comment rules are judgment no gate checks, so text is not delegated.
 - a design choice between credible alternatives, which is `ticket-work` step 2
-- the commit split, the `simplify` and `code-reviewer` pass, the PR body, and the merge
+- the commit split, the `code-reviewer` pass, the PR body, and the merge
 
 ## The call
 
