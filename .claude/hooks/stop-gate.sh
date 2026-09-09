@@ -59,6 +59,10 @@ emit_block() { # $1 = summary, $2 = reason body
 FAILED_STEPS=""
 FAILURE_OUTPUT=""
 
+# Both blocks that fire before any step runs end with this, so a step added
+# below reaches them without being written into each body again.
+NOTHING_RAN="Nothing below it was judged: no typecheck, no lint, no format, no test suite, no markdown link check."
+
 # A failure is collected instead of emitted, so the steps after it still run and
 # one block names all of them.
 record_failure() { # $1 = step name, $2 = the step's output
@@ -84,7 +88,7 @@ run_step() { # $1 = the `bun run` script to run
 # emit_block for that reason.
 cd "$ROOT" || emit_block \
   "the Stop gate could not enter $ROOT, so no check ran." \
-  "The directory named by the Stop payload's cwd, or by CLAUDE_PROJECT_DIR, is gone or unreadable. Nothing below it was judged: no typecheck, no lint, no format, no test suite, no markdown link check."
+  "The directory named by the Stop payload's cwd, or by CLAUDE_PROJECT_DIR, is gone or unreadable. $NOTHING_RAN"
 
 # A failed `git status` prints nothing on stdout, and the emptiness test below
 # reads that as a clean tree and ends the turn with no check run, so the exit
@@ -100,7 +104,7 @@ if [ "$GIT_STATUS_RC" -ne 0 ]; then
     "\`git status --porcelain\` exited $GIT_STATUS_RC in $ROOT:
 $GIT_STATUS
 
-The gate cannot tell a clean tree from an unjudged one. Nothing below it was judged: no typecheck, no lint, no format, no test suite, no markdown link check."
+The gate cannot tell a clean tree from an unjudged one. $NOTHING_RAN"
 fi
 
 # Skip when there are no changes
