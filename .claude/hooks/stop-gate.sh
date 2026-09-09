@@ -86,8 +86,25 @@ cd "$ROOT" || emit_block \
   "the Stop gate could not enter $ROOT, so no check ran." \
   "The directory named by the Stop payload's cwd, or by CLAUDE_PROJECT_DIR, is gone or unreadable. Nothing below it was judged: no typecheck, no lint, no format, no test suite, no markdown link check."
 
+# A failed `git status` prints nothing on stdout, and the emptiness test below
+# reads that as a clean tree and ends the turn with no check run, so the exit
+# status is tested first. stderr joins stdout so the block carries git's own
+# diagnostic, which names causes the gate cannot tell apart itself and often
+# carries the command that fixes them. A warning on a successful run lands in
+# GIT_STATUS too, and costs a checked run over a clean tree, never a skipped one.
+GIT_STATUS=$(git status --porcelain 2>&1)
+GIT_STATUS_RC=$?
+if [ "$GIT_STATUS_RC" -ne 0 ]; then
+  emit_block \
+    "the Stop gate could not read git status in $ROOT, so no check ran." \
+    "\`git status --porcelain\` exited $GIT_STATUS_RC in $ROOT:
+$GIT_STATUS
+
+The gate cannot tell a clean tree from an unjudged one. Nothing below it was judged: no typecheck, no lint, no format, no test suite, no markdown link check."
+fi
+
 # Skip when there are no changes
-if [ -z "$(git status --porcelain)" ]; then
+if [ -z "$GIT_STATUS" ]; then
   exit 0
 fi
 

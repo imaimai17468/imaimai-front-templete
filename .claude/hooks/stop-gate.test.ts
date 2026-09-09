@@ -372,4 +372,26 @@ md links: FAILED`,
       systemMessage: `⛔ Stop block: the Stop gate could not enter ${missing}, so no check ran.`,
     });
   });
+
+  // `.git` is a file holding text that is not a gitfile pointer, so `git status`
+  // exits non-zero with empty stdout without walking up to any repository above
+  // the scratch directory. The gate's step stand-ins are absent, so a gate that
+  // read that emptiness as a clean tree would exit 0 having judged nothing.
+  it("should block naming the root when it cannot read git status in the tree", () => {
+    const broken = scratchDir("stop-gate-nogit-");
+    fs.mkdirSync(path.join(broken, ".claude/hooks"), { recursive: true });
+    fs.writeFileSync(path.join(broken, ".git"), "not a gitfile\n");
+
+    const run = runGate(broken, { cwd: broken, projectDir: broken });
+
+    expect({
+      decision: run.decision,
+      status: run.status,
+      systemMessage: run.systemMessage,
+    }).toStrictEqual({
+      decision: "block",
+      status: 0,
+      systemMessage: `⛔ Stop block: the Stop gate could not read git status in ${broken}, so no check ran.`,
+    });
+  });
 });
