@@ -100,7 +100,9 @@ export const isRecord = (value: unknown): value is Record<string, unknown> =>
 type WrittenFile = Record<string, unknown> & { readonly written_at: number };
 
 const isWrittenFile = (value: unknown): value is WrittenFile =>
-  isRecord(value) && typeof value.written_at === "number";
+  isRecord(value) &&
+  typeof value.written_at === "number" &&
+  Number.isFinite(value.written_at);
 
 /** One window of `rate_limits`, in the field names the JSON carries. */
 interface RateWindowJson {
@@ -111,7 +113,9 @@ interface RateWindowJson {
 const isRateWindowJson = (value: unknown): value is RateWindowJson =>
   isRecord(value) &&
   typeof value.used_percentage === "number" &&
-  typeof value.resets_at === "number";
+  Number.isFinite(value.used_percentage) &&
+  typeof value.resets_at === "number" &&
+  Number.isFinite(value.resets_at);
 
 const unknownBudget = (reason: BudgetUnknown): RemainingBudget => ({
   kind: "unknown",

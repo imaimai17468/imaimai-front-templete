@@ -334,6 +334,72 @@ describe(remainingBudget, () => {
     });
   });
 
+  it("should answer no-written-at when written_at overflows to Infinity", () => {
+    const budget = remainingBudget(
+      { kind: "content", text: '{"rate_limits":{},"written_at":1e400}' },
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      kind: "unknown",
+      reason: { kind: "no-written-at" },
+    });
+  });
+
+  it("should report a window as no-window when its used_percentage overflows to Infinity", () => {
+    const budget = remainingBudget(
+      {
+        kind: "content",
+        text: `{"rate_limits":{"five_hour":{"used_percentage":1e400,"resets_at":${
+          NOW_SECONDS + 8000
+        }},"seven_day":${JSON.stringify(
+          SEVEN_DAY
+        )}},"written_at":${NOW_SECONDS}}`,
+      },
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      ageSeconds: 0,
+      kind: "budget",
+      windows: [
+        { kind: "no-window", label: "5h" },
+        {
+          kind: "window",
+          label: "7d",
+          resetsInSeconds: 273_600,
+          usedPercentage: 41.2,
+        },
+      ],
+    });
+  });
+
+  it("should report a window as no-window when its resets_at overflows to Infinity", () => {
+    const budget = remainingBudget(
+      {
+        kind: "content",
+        text: `{"rate_limits":{"five_hour":{"used_percentage":23.5,"resets_at":1e400},"seven_day":${JSON.stringify(
+          SEVEN_DAY
+        )}},"written_at":${NOW_SECONDS}}`,
+      },
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      ageSeconds: 0,
+      kind: "budget",
+      windows: [
+        { kind: "no-window", label: "5h" },
+        {
+          kind: "window",
+          label: "7d",
+          resetsInSeconds: 273_600,
+          usedPercentage: 41.2,
+        },
+      ],
+    });
+  });
+
   it("should answer no-written-at when written_at is not a number", () => {
     const budget = remainingBudget(
       fileHolding({ rate_limits: {}, written_at: "2026-09-09" }),
