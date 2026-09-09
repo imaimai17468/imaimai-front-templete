@@ -123,36 +123,10 @@ step 1 deleted. Remove the `alias` block and the now-unused `node:path` import.
 
 Keep the `coverage` block. It is the per-file 100% branch gate that AGENTS.md's
 Testing section names this file as the home of, and dropping it retires that gate
-silently. What changes inside it is the `include` list: prune the entries whose
-paths step 1 deleted, and leave the rest.
-
-```ts
-import { defineConfig } from "vite-plus";
-import react from "@vitejs/plugin-react";
-
-export default defineConfig({
-  resolve: {
-    tsconfigPaths: true,
-  },
-  plugins: [react()],
-  test: {
-    environment: "jsdom",
-    isolate: false,
-    setupFiles: ["./src/test-setup.ts"],
-    coverage: {
-      include: [
-        "src/lib/utils.ts",
-        "tools/oxlint-plugins/arch-rules.js",
-        "tools/oxlint-plugins/style-rules.js",
-      ],
-      thresholds: {
-        perFile: true,
-        branches: 100,
-      },
-    },
-  },
-});
-```
+silently. Inside it, remove the `coverageExclude` entry
+`"src/routes/api/auth.$.ts"` and the comment above it, because step 1 deletes that
+route. Then read the remaining entries against the tree step 1 leaves and drop any
+other one that names a file it deleted.
 
 ### `tools/oxlint-plugins/arch-rules.js`: prune the dead layer bans
 
