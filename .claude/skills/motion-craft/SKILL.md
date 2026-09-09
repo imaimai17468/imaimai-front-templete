@@ -296,17 +296,8 @@ and abrupt brightness jumps.
 
 Precise values, curves, and techniques. Cite these in code and reviews.
 Distilled from Emil Kowalski's design engineering philosophy (animations.dev).
-
-## Frequency table — should it animate?
-
-| Frequency | Decision |
-| --- | --- |
-| 100+/day (keyboard shortcuts, command palette) | No animation. Ever. |
-| Tens/day (hover effects, list navigation) | Remove or drastically reduce |
-| Occasional (modals, drawers, toasts) | Standard animation |
-| Rare / first-time (onboarding, celebrations) | Can add delight |
-
-**Never animate keyboard-initiated actions.**
+What this repository's CSS and TSX must do is settled in
+`.claude/rules/design.md` (Animations); this part is the reference behind it.
 
 ## Easing
 
@@ -489,8 +480,8 @@ Every animation in the diff is measured against these. A violation is a finding.
    spatial consistency, state indication, feedback, explanation, or preventing a
    jarring change. "It looks cool" on a frequently-seen element is a block.
 
-2. **Frequency-appropriate.** Match motion to how often it's seen (see the
-   frequency table in Part 2).
+2. **Frequency-appropriate.** Measured against the frequency table in
+   `.claude/rules/design.md` (Animations).
 
 3. **Responsive easing.** Entering/exiting elements use `ease-out` or a strong
    custom curve. `ease-in` on UI is a block. Built-in CSS easings are too weak.

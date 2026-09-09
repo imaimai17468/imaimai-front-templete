@@ -1,5 +1,5 @@
 ---
-description: Design system, covering color roles, typography, spacing, shapes, composition, and component conventions
+description: Design system, covering color roles, typography, spacing, shapes, composition, animation, and component conventions
 globs: src/**/*.css,src/**/*.tsx
 alwaysApply: false
 paths: src/**/*.css, src/**/*.tsx
@@ -16,8 +16,9 @@ That base is a starting point rather than an identity, so a project that wants a
 palette, a typeface, or a corner treatment of its own replaces the values there
 and leaves the rules below alone.
 
-Keyboard behavior, forms, hydration, and performance sit outside this
-document's subject.
+Keyboard behavior, forms, and hydration sit outside this document's subject.
+Page performance sits outside it too, apart from the frame cost of animation,
+which the Animations section below settles.
 
 ## Colors
 
@@ -277,7 +278,20 @@ visible.
 Avoid over-targeting selectors. `z-index` only works on positioned, flex,
 or grid children, never on elements in normal flow.
 
-### Animations
+## Animations
+
+### Frequency
+
+| How often the element is seen | Decision |
+| --- | --- |
+| 100+/day (keyboard shortcuts, command palette) | No animation |
+| Tens/day (hover effects, list navigation) | Remove it, or reduce it |
+| Occasional (modals, drawers, toasts) | Standard animation |
+| Rare or first-time (onboarding, celebrations) | Delight is allowed |
+
+Never animate a keyboard-initiated action.
+
+### Properties
 
 Animate `transform` and `opacity` only, because the compositor runs them
 without layout or paint. `padding`, `margin`, `height`, `width`, `top`, and
