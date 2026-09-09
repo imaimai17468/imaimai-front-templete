@@ -299,17 +299,6 @@ Distilled from Emil Kowalski's design engineering philosophy (animations.dev).
 What this repository's CSS and TSX must do is settled in
 `.claude/rules/design.md` (Animations); this part is the reference behind it.
 
-## Physicality
-
-- **Never `scale(0)`.** Start from `scale(0.9-0.97)` + `opacity: 0`.
-- **Origin-aware popovers.** Scale from the trigger, not center:
-  ```css
-  .popover { transform-origin: var(--radix-popover-content-transform-origin); }
-  ```
-  **Modals are exempt** — keep `transform-origin: center`.
-- **Button press feedback.** `transform: scale(0.97)` on `:active`,
-  `transition: transform 160ms ease-out`. Subtle (0.95-0.98).
-
 ## Springs
 
 Feel natural because they simulate physics; no fixed duration.
@@ -395,8 +384,8 @@ Safari).
 
 ## Stagger
 
-Stagger group entrances; 30-80ms between items. Longer delays feel slow.
-Stagger is decorative — never block interaction while it plays.
+`.claude/rules/design.md` (Animations) sets the delay between items and what a
+stagger may not hold up.
 
 ```css
 .item { opacity: 0; transform: translateY(8px); animation: fadeIn 300ms ease-out forwards; }
@@ -455,9 +444,8 @@ Every animation in the diff is measured against these. A violation is a finding.
 4. **Duration within range.** Measured against the duration table in
    `.claude/rules/design.md` (Animations).
 
-5. **Origin & physical correctness.** Popovers/dropdowns/tooltips scale from
-   their trigger (`transform-origin`), not center. Never `scale(0)` — start
-   from `scale(0.9-0.97)` + opacity. Modals are exempt.
+5. **Origin & physical correctness.** Measured against the physicality rules in
+   `.claude/rules/design.md` (Animations).
 
 6. **Interruptibility.** Rapidly-triggered motion (toasts, toggles) must be
    interruptible via CSS transitions that retarget from current state, not

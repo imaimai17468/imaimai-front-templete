@@ -324,6 +324,24 @@ project takes alongside the other tokens in `src/styles.css`:
 Find further curves at [easing.dev](https://easing.dev/) or
 [easings.co](https://easings.co/).
 
+### Physicality
+
+An entrance starts at `scale(0.9)` to `scale(0.97)` with `opacity: 0`, never at
+`scale(0)`.
+
+A popover, dropdown, or tooltip scales from its trigger. The Radix primitives in
+`src/components/ui/` publish that point as a CSS variable, which
+`dropdown-menu.tsx` and `tooltip.tsx` read through Tailwind's
+`origin-(--radix-<part>-content-transform-origin)`. A modal keeps
+`transform-origin: center`.
+
+A button's press feedback is `transform: scale(0.97)` on `:active` with
+`transition: transform 160ms ease-out`, and the scale stays between `0.95` and
+`0.98`.
+
+Stagger a group's entrance by 30-80ms per item. A longer delay reads as slow,
+and the stagger never blocks interaction while it plays.
+
 ### Properties
 
 Animate `transform` and `opacity` only, because the compositor runs them
