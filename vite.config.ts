@@ -10,7 +10,7 @@ import tanstack from "ultracite/oxlint/tanstack";
 import ultraciteVitest from "ultracite/oxlint/vitest";
 import { defineConfig } from "vite-plus";
 import reactDoctor from "./oxlint.react-doctor.ts";
-import { wranglerTypes } from "./tools/vite-plugins/wrangler-types-plugin";
+import { wranglerTypes } from "./tools/vite-plugins/wrangler-types-plugin.live";
 
 const CONFIG_FILES = "*.config.{js,ts,mjs,mts}";
 const FILES_VITEST_NEVER_LOADS = [CONFIG_FILES, "scripts/**"];

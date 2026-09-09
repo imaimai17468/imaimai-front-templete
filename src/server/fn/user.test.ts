@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vite-plus/test";
-import type { getSession } from "@/lib/auth/session";
+import type { getSession } from "@/lib/auth/session.live";
 import { createGetCurrentUser } from "./user";
 import type { CurrentUserDeps } from "./user";
 

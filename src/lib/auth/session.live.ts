@@ -1,5 +1,5 @@
 import { getRequest } from "@tanstack/react-start/server";
-import { getAuth } from "./auth";
+import { getAuth } from "./auth.live";
 
 export const getSession = async () =>
   await getAuth().api.getSession({ headers: getRequest().headers });

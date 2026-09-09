@@ -1066,7 +1066,7 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it.each(["@/lib/auth/auth", "@/lib/auth/actions.live"])(
+  it.each(["@/lib/auth/auth.live", "@/lib/auth/actions.live"])(
     "should allow the auth adapter %s when a route imports it",
     (specifier) => {
       // Arrange

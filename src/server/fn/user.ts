@@ -1,7 +1,7 @@
 import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import type { UserWithEmail } from "@/entities/user";
 import { userGateway } from "@/gateways/user";
-import { getSession } from "@/lib/auth/session";
+import { getSession } from "@/lib/auth/session.live";
 
 /**
  * The identity source and the profile read this server function needs.
