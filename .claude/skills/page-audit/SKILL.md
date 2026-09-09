@@ -73,5 +73,7 @@ score down 5 or more, LCP up 500ms or more, or CLS up 0.05 or more.
 In priority order: render-blocking resources (defer or async-load), LCP (preload the
 element, cut server response time, optimize images), CLS (explicit dimensions, nothing
 inserted above the fold), long tasks and INP (split the tasks, debounce handlers,
-`startTransition` for non-urgent updates). Rebuild and restart the preview server before
-re-measuring, and add the after-fix numbers to the same report.
+`startTransition` for non-urgent updates). Where the shift arrives as data lands,
+`.claude/rules/design.md` (Content States) settles the dimensions the skeleton holds.
+Rebuild and restart the preview server before re-measuring, and add the after-fix numbers
+to the same report.
