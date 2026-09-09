@@ -2,35 +2,33 @@ import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { defaultExclude, defineConfig } from "vite-plus";
 
-export const coverageInclude = [
-  "src/**/*.ts",
-  "tools/**/*.{ts,js}",
-  "scripts/**/*.ts",
-];
+const COVERED_ROOTS = "{src,scripts,tools}";
 
-// coverage の gate から外す例外は、生成物、テストハーネス、コンポーネント、
-// そして依存を引数で受け取らず実バインディングの上でしか動かないアダプタと
-// 実行スクリプト。
+export const coverageInclude = [`${COVERED_ROOTS}/**/*.ts`, "tools/**/*.js"];
+
+// coverage の gate から外れる条件はファイル名。実依存を配線するだけの
+// モジュールは `*.live.ts`、コマンドとして実行されるファイルは `*.entry.ts`
+// と名付ければ、この配列を編集せずに外れる。パスで並ぶのは、改名がまだの
+// ファイルと、名前を別の何かが決めているファイル。
 export const coverageExclude = [
-  "scripts/check-cursor-rule-mirrors.ts",
+  "src/**/*.gen.ts",
+  // include の `*.ts` は picomatch の contains モードで照合されるので `.tsx`
+  // にも当たる。コンポーネントはこの行で外れる。
+  "src/**/*.tsx",
+  "src/test/**",
+  `${COVERED_ROOTS}/**/*.entry.ts`,
+  `${COVERED_ROOTS}/**/*.live.ts`,
   "scripts/check-toolchain-pins.ts",
   "scripts/orchestrate.ts",
-  // include のパターンは picomatch の contains モードで照合されるので
-  // `*.ts` が `.tsx` にも当たる。コンポーネントはこの行で外れる。
-  "src/**/*.tsx",
-  "src/gateways/user/drizzle-store.ts",
-  "src/lib/auth/actions.ts",
-  "src/lib/auth/auth-client.ts",
   "src/lib/auth/auth.ts",
   "src/lib/auth/session.ts",
   "src/lib/drizzle/db.ts",
   "src/lib/drizzle/schema.ts",
-  "src/lib/storage/r2.ts",
-  "src/routeTree.gen.ts",
+  // ファイル名が URL を決めるファイルルートで、`auth.$` が `/api/auth/$` を
+  // 生む。改名するとその URL が変わる。
   "src/routes/api/auth.$.ts",
   "src/server/cloudflare.ts",
   "src/server/fn/profile.ts",
-  "src/test/**",
   "tools/vite-plugins/wrangler-types-plugin.ts",
 ];
 

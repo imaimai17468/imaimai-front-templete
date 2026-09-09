@@ -55,4 +55,11 @@ The commit takes one `Co-Authored-By:` trailer, crediting the model the worker r
 
 Executed on 2026-09-09: `codex --version` (`codex-cli 0.153.4` at `~/.local/bin/codex`), `codex login status` (`Logged in using ChatGPT`), `~/.codex/config.toml`'s two model keys, and the `--help` output of `codex exec`, `codex exec resume` and `codex sandbox`.
 
-Read rather than run: every flag's effect, what `workspace-write` leaves writable, and the network opt-in, which come from `--help` and Codex's configuration reference. No delegation has been run through this skill, because doing so would have spent the user's Codex quota on invented work. The first worker to use it reports where the procedure diverges instead of assuming these steps hold.
+Read rather than run: every flag's effect, what `workspace-write` leaves writable, and the network opt-in, which come from `--help` and Codex's configuration reference.
+
+One delegation has been run, on 2026-09-09: five renames with their reference updates and a rewritten `coverageExclude` array in `vitest.config.mts`, accepted by `bun run test` and `bun run check`, which Codex ran itself. It inherited `gpt-6-astra` at `model_reasoning_effort = "low"`, took 2m35s wall clock, exited 0, and made every edit the prompt named, with nothing for the worker's own read of the diff to change. `codex exec` printed `tokens used 57,463`, which is its uncached input (54,909) plus its output (2,554); that run's rollout under `~/.codex/sessions/` ends at `total_token_usage.total_tokens` 436,343, the gap being 378,880 cached input tokens, and a 35-second fork of the same session recorded a further 89,408. The Claude worker holding the ticket had spent 225k by the counter AGENTS.md's dispatch bullet measures, by the time it had the pull request open and rebased onto main, with the design, the prose, the review and the pull request its own work.
+
+Two places that run diverged from the procedure above:
+
+- The call as written, with `-C "$WORKTREE"` and the prompt in `"$PROMPT"`, was refused by `.claude/hooks/pre-bash-guard.sh`, which cannot check a command built from shell variables against a worktree-isolated agent's git. Write the worktree path and the `-o` path as literals, and pass the prompt file on stdin with a `-` argument in place of the prompt.
+- `git mv` is refused by `workspace-write`, which leaves git's index unwritable, so Codex renamed the files on the filesystem and `git status` showed each as a deletion plus an untracked file. `git add` naming both the old and the new path restores rename detection.
