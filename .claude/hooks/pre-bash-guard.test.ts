@@ -48,6 +48,7 @@ const HookOutput = z.object({
   hookSpecificOutput: z
     .object({ permissionDecision: z.string().optional() })
     .optional(),
+  reason: z.string().optional(),
 });
 
 const asDecision = (permissionDecision: string | undefined): Decision =>
@@ -86,19 +87,35 @@ interface HookRun {
   stderr: string;
 }
 
-const runHook = async (command: string): Promise<HookRun> => {
+const hookStdout = async (
+  command: string
+): Promise<[string, string, number | null]> => {
   const hook = spawn("bash", [HOOK], {
     env: { ...process.env, CLAUDE_PROJECT_DIR: REPO },
   });
   hook.stdin.end(
     JSON.stringify({ tool_input: { command }, tool_name: "Bash" })
   );
-  const [stdout, stderr, status] = await Promise.all([
+  return await Promise.all([
     text(hook.stdout),
     text(hook.stderr),
     exitStatusOf(hook),
   ]);
+};
+
+const runHook = async (command: string): Promise<HookRun> => {
+  const [stdout, stderr, status] = await hookStdout(command);
   return { decision: readDecision(stdout), status, stderr };
+};
+
+/**
+ * The sentence a refusal hands the agent, which `runHook` drops. A case built
+ * on the decision alone cannot tell one subcommand's remediation from
+ * another's, so `git rm` could be told to run `git add`.
+ */
+const refusalOf = async (command: string): Promise<string> => {
+  const [stdout] = await hookStdout(command);
+  return readHookJson(stdout, HookOutput).reason ?? "";
 };
 
 interface Case {
@@ -1330,3 +1347,38 @@ group("git rm: a pathspec the command text does not show is refused", [
     why: "the paths sit in a file the guard cannot read, under the prefix spelling git accepts",
   },
 ]);
+
+// Every case above reads the decision, so the sentence a refusal hands the
+// agent is judged here instead: a `git rm` told to stage with `git add` would
+// pass all of them.
+describe.concurrent("the refusal names the subcommand's own next step", () => {
+  it(
+    "should name git rm and git ls-files when a git rm is refused",
+    async () => {
+      await expect(refusalOf(`${RM} -r .`)).resolves.toBe(
+        "PreToolUse(Bash): this `git rm` is refused because `.` names no file or directory of its own. Name the paths to delete (`git rm src/foo.ts src/bar.ts`, or `git rm -r src/old-dir` for one directory). `git ls-files` lists the tracked paths."
+      );
+    },
+    HOOK_TIMEOUT_MS
+  );
+
+  it(
+    "should name git add and git status when a git add is refused",
+    async () => {
+      await expect(refusalOf("git add -A")).resolves.toBe(
+        "PreToolUse(Bash): this `git add` is refused because the short option -A stages every change in the worktree instead of the paths you name. Name the files this commit needs (`git add src/foo.ts src/bar.ts`), and take part of a file with `git add -p`. `git status --short` lists what changed."
+      );
+    },
+    HOOK_TIMEOUT_MS
+  );
+
+  it(
+    "should name staging first when a git commit is refused",
+    async () => {
+      await expect(refusalOf(`${COMMIT} -a`)).resolves.toBe(
+        "PreToolUse(Bash): this `git commit` is refused because the short option -a commits every tracked change in the worktree instead of the ones you staged. Stage the files this commit needs (`git add src/foo.ts src/bar.ts`, or `git add -p` for part of a file), then commit that staged set with `git commit -m`. `git status --short` lists what changed."
+      );
+    },
+    HOOK_TIMEOUT_MS
+  );
+});
