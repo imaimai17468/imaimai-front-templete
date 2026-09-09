@@ -121,6 +121,8 @@ interface StopPayload {
 interface RunOptions {
   /** Overrides the payload's `cwd`, which the gate prefers over CLAUDE_PROJECT_DIR. */
   cwd?: string;
+  /** Overrides the copy of the gate that runs, which decides where it looks for the decision file. */
+  gate?: string;
   loopCount?: number;
   path?: string;
   projectDir?: string;
@@ -133,7 +135,7 @@ const runGate = (root: string, options: RunOptions = {}): GateRun => {
     loop_count: options.loopCount,
     stop_hook_active: options.stopHookActive,
   };
-  const result = spawnSync("bash", [GATE], {
+  const result = spawnSync("bash", [options.gate ?? GATE], {
     cwd: root,
     encoding: "utf-8",
     env: {
@@ -388,6 +390,28 @@ md links: FAILED`,
       decision: "block",
       status: 0,
       systemMessage: `⛔ Stop block: the Stop gate could not read git status in ${broken}, so no check ran.`,
+    });
+  });
+
+  // A copy of the entry alone has no stop-gate-decision.sh beside it, which
+  // leaves every function it calls undefined. With the entry's `source` guard
+  // loosened to `if false`, the gate carried on and emitted an empty
+  // systemMessage, ending the turn with nothing judged. Deciding that needs no
+  // scratch repository.
+  it("should block naming the decision file when the entry cannot load it", () => {
+    const lone = scratchDir("stop-gate-lone-");
+    fs.copyFileSync(GATE, path.join(lone, "stop-gate.sh"));
+
+    const run = runGate(lone, { gate: path.join(lone, "stop-gate.sh") });
+
+    expect({
+      decision: run.decision,
+      status: run.status,
+      systemMessage: run.systemMessage,
+    }).toStrictEqual({
+      decision: "block",
+      status: 0,
+      systemMessage: `⛔ Stop block: the Stop gate could not load ${lone}/stop-gate-decision.sh, so no check ran.`,
     });
   });
 });
