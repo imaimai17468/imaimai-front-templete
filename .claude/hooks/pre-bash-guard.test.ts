@@ -24,7 +24,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it, onTestFinished } from "vite-plus/test";
+import { afterAll, describe, expect, it } from "vite-plus/test";
 import { z } from "zod";
 import { readHookJson } from "./hook-output";
 import { runBash } from "./run-bash";
@@ -163,11 +163,22 @@ describe.concurrent("the payload's command is what the guards read", () => {
 });
 
 describe.concurrent("the decision file the hook sources", () => {
+  /**
+   * The directory this suite's cases write into, removed when the suite ends.
+   * `onTestFinished` registers against whichever case is current when it runs,
+   * which under `describe.concurrent` is not reliably the case that created
+   * the directory.
+   */
+  const scratchRoot = fs.mkdtempSync(
+    path.join(os.tmpdir(), "pre-bash-guard-cases-")
+  );
+
+  afterAll(() => {
+    fs.rmSync(scratchRoot, { force: true, recursive: true });
+  });
+
   it("should refuse the command when the decision file is not beside the hook", async () => {
-    const alone = fs.mkdtempSync(path.join(os.tmpdir(), "pre-bash-guard-"));
-    onTestFinished(() => {
-      fs.rmSync(alone, { force: true, recursive: true });
-    });
+    const alone = fs.mkdtempSync(path.join(scratchRoot, "lone-"));
     const copy = path.join(alone, "pre-bash-guard.sh");
     fs.copyFileSync(HOOK, copy);
 
