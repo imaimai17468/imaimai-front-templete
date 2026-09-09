@@ -275,8 +275,9 @@ or grid children, never on elements in normal flow.
 
 ### Animations
 
-Animate `transform` and `opacity` only, never layout properties, which
-trigger reflow on every frame.
+Animate `transform` and `opacity` only, because the compositor runs them
+without layout or paint. `padding`, `margin`, `height`, `width`, `top`, and
+`left` run all three steps on every frame.
 
 ## Decoration
 

@@ -193,8 +193,8 @@ function rubberband(overshoot, dimension, constant = 0.55) {
   strobing.
 - For very fast motion, a subtle **motion blur / stretch** reads better than a
   hard sharp streak.
-- `requestAnimationFrame` is the web's display-synced clock. Animate only
-  compositor-friendly properties — `transform` and `opacity`.
+- `requestAnimationFrame` is the web's display-synced clock. Which properties
+  may animate is settled in `.claude/rules/design.md` (Animations).
 
 ## 12. Materials & depth
 
@@ -399,9 +399,8 @@ Slow where the user is deciding, fast where the system responds.
 
 ## Performance
 
-- **Only animate `transform` and `opacity`** — they skip layout/paint and run
-  on the GPU. `padding`/`margin`/`height`/`width`/`top`/`left` trigger all
-  three rendering steps.
+- **Animated properties.** `.claude/rules/design.md` (Animations) settles which
+  properties may animate.
 - **Don't drive child transforms via a CSS variable on the parent** — it recalcs
   styles for all children. Set `transform` directly on the element.
 - **Motion (Framer Motion) shorthands `x`/`y`/`scale` are NOT
@@ -509,7 +508,8 @@ Every animation in the diff is measured against these. A violation is a finding.
    specifically requires springs or WAAPI — CSS transitions cannot receive
    release-velocity handoff (see Part 1 section 3).
 
-7. **GPU-only properties.** Animate `transform` and `opacity` only.
+7. **GPU-only properties.** Measured against `.claude/rules/design.md`
+   (Animations).
 
 8. **Accessibility.** `prefers-reduced-motion` is honored (gentler, not zero).
    Hover animations gated behind `@media (hover: hover) and (pointer: fine)`.
