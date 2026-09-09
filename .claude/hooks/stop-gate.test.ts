@@ -92,6 +92,9 @@ const git = (root: string, ...args: string[]): void => {
 
 const buildTemplateRepo = (): void => {
   git(templateRoot, "init", "--quiet");
+  fs.mkdirSync(path.join(templateRoot, path.dirname(STAND_INS.links)), {
+    recursive: true,
+  });
   fs.writeFileSync(
     path.join(templateRoot, ".git/info/exclude"),
     `${Object.values(STAND_INS)
@@ -109,7 +112,6 @@ const buildTemplateRepo = (): void => {
 const scratchRepo = (steps: Steps, untracked: readonly string[]): string => {
   const root = scratchDir("stop-gate-");
   fs.cpSync(templateRoot, root, { recursive: true });
-  fs.mkdirSync(path.join(root, ".claude/hooks"), { recursive: true });
   fs.writeFileSync(
     path.join(root, STAND_INS.packageJson),
     `${JSON.stringify({
