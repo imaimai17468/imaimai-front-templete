@@ -86,34 +86,37 @@ const runShard = async (commands: readonly string[]): Promise<DriverRun> => {
 };
 
 /**
- * Answer every command, keeping the answers in the order the tables enqueued
- * them.
+ * What the shards answered between them.
  *
- * Each shard takes a contiguous slice, so concatenating the answers restores
- * that order. A shard that died partway through leaves the concatenation
- * shorter than the table, which the batch test at the bottom of this file
- * reads as a count.
+ * `guard_refusal` answers a command out of the command alone, so a case finds
+ * its answer under the command it sent rather than at a position it has to
+ * keep track of, and two cases sending the same command read the same answer.
+ * `answered` counts what came back before the duplicates collapse, which is
+ * what the batch test at the bottom of this file compares against the table.
  */
-const runDriver = async (commands: readonly string[]): Promise<DriverRun> => {
+interface Batch {
+  answered: number;
+  answers: ReadonlyMap<string, string | undefined>;
+  stderr: string;
+}
+
+const runDriver = async (commands: readonly string[]): Promise<Batch> => {
   const size = Math.ceil(commands.length / SHARD_COUNT);
   const slices = Array.from({ length: SHARD_COUNT }, (_, shard) =>
     commands.slice(shard * size, shard * size + size)
   );
-  const runs = await Promise.all(slices.map(runShard));
+  const shards = await Promise.all(
+    slices.map(async (slice) => ({ run: await runShard(slice), slice }))
+  );
   return {
-    refusals: runs.flatMap((run) => run.refusals),
-    stderr: runs.map((run) => run.stderr).join(""),
+    answered: shards.reduce((total, { run }) => total + run.refusals.length, 0),
+    answers: new Map(
+      shards.flatMap(({ run, slice }) =>
+        slice.map((command, offset) => [command, run.refusals[offset]] as const)
+      )
+    ),
+    stderr: shards.map(({ run }) => run.stderr).join(""),
   };
-};
-
-/** The commands the batch answers, in the order the tables enqueue them. */
-const COMMANDS: string[] = [];
-
-/** Enqueues a table's commands and returns the index its first answer lands at. */
-const enqueue = (commands: readonly string[]): number => {
-  const start = COMMANDS.length;
-  COMMANDS.push(...commands);
-  return start;
 };
 
 const ENV_REFUSAL =
@@ -387,8 +390,6 @@ const SENTENCE_CASES: readonly SentenceCase[] = [
   },
 ];
 
-const SENTENCE_START = enqueue(SENTENCE_CASES.map((one) => one.command));
-
 type Decision = "allow" | "block";
 
 interface Case {
@@ -399,24 +400,17 @@ interface Case {
 
 interface Group {
   cases: readonly Case[];
-  start: number;
   title: string;
 }
 
 /**
- * The groups below, in registration order.
- *
- * A group enqueues its commands as it is declared and its cases are turned
- * into tests further down, once the batch that answers every command has run.
+ * The groups declared below, turned into tests further down once the batch
+ * that answers their commands has run.
  */
 const GROUPS: Group[] = [];
 
 const group = (title: string, cases: readonly Case[]): void => {
-  GROUPS.push({
-    cases,
-    start: enqueue(cases.map((one) => one.command)),
-    title,
-  });
+  GROUPS.push({ cases, title });
 };
 
 group("find: scoped discovery runs unattended", [
@@ -1688,26 +1682,26 @@ group("a working-directory spelling the four patterns miss passes", [
   },
 ]);
 
-// Every table above has enqueued its commands by now, so this answers all of
-// them at once and each test below reads its own answer out of RUN.
+/** Every command both tables above hold, which the batch answers at once. */
+const COMMANDS = [
+  ...SENTENCE_CASES.map((one) => one.command),
+  ...GROUPS.flatMap((one) => one.cases.map((row) => row.command)),
+];
+
 const RUN = await runDriver(COMMANDS);
 
 describe("the batch behind every case", () => {
   it("should answer every command with nothing on stderr when every shard ran to the end", () => {
-    expect({ answered: RUN.refusals.length, stderr: RUN.stderr }).toStrictEqual(
-      { answered: COMMANDS.length, stderr: "" }
-    );
+    expect({ answered: RUN.answered, stderr: RUN.stderr }).toStrictEqual({
+      answered: COMMANDS.length,
+      stderr: "",
+    });
   });
 });
 
 describe("the refusal names the branch it came from", () => {
-  it.each(
-    SENTENCE_CASES.map((one, offset) => ({
-      ...one,
-      index: SENTENCE_START + offset,
-    }))
-  )("$name", ({ command, index, refusal }) => {
-    expect({ command, refusal: RUN.refusals[index] }).toStrictEqual({
+  it.each(SENTENCE_CASES)("$name", ({ command, refusal }) => {
+    expect({ command, refusal: RUN.answers.get(command) }).toStrictEqual({
       command,
       refusal,
     });
@@ -1729,19 +1723,18 @@ const decisionOf = (refusal: string | undefined): Decision | undefined => {
 // A heredoc case spans lines, and a test name has to stay on one.
 const oneLine = (command: string): string => command.replaceAll("\n", "\\n");
 
-describe.each(GROUPS)("$title", ({ cases, start }) => {
+describe.each(GROUPS)("$title", ({ cases }) => {
   it.each(
-    cases.map((one, offset) => ({
+    cases.map((one) => ({
       ...one,
-      index: start + offset,
       // The reason comes ahead of the command because a failure line
       // truncates the label from the right.
       label: `${one.expected} (${one.why}) \`${oneLine(one.command)}\``,
     }))
-  )("$label", ({ command, expected, index }) => {
+  )("$label", ({ command, expected }) => {
     expect({
       command,
-      decision: decisionOf(RUN.refusals[index]),
+      decision: decisionOf(RUN.answers.get(command)),
     }).toStrictEqual({ command, decision: expected });
   });
 });
