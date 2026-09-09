@@ -22,7 +22,6 @@ export const coverageExclude = [
   // ファイル名が URL を決めるファイルルートで、`auth.$` が `/api/auth/$` を
   // 生む。改名するとその URL が変わる。
   "src/routes/api/auth.$.ts",
-  "src/server/fn/profile.ts",
 ];
 
 export default defineConfig({
