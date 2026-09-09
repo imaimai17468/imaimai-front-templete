@@ -37,7 +37,7 @@ codex exec -C "$WORKTREE" -s workspace-write -o "$TMPDIR/codex-<ticket>.md" "$PR
 
 `-s workspace-write` is the sandbox for this. `read-only` cannot edit a file, so Codex could not make the change at all, and `danger-full-access` executes model-generated commands with no filesystem boundary, so one of them reaches the main checkout and `~`, which is what running the ticket in its own worktree exists to prevent. Pass neither `--approve-for-me` nor `--dangerously-bypass-approvals-and-sandbox`: a command the sandbox refused is information the worker wants, and the second flag removes the sandbox.
 
-The prompt carries the ticket's own text, the command that accepts the work (`bun run check`, `bun run test`, or the one test file), and the constraint that Codex commits nothing and pushes nothing, leaving every change in the working tree. Add AGENTS.md's layering rule when the change crosses `routes/` → `server/fn/` → `gateways/` → `entities/`.
+The prompt carries the ticket's own text, the command that accepts the work (`bun run check`, `bun run test`, or the one test file), and the constraint that Codex commits nothing and pushes nothing, leaving every change in the working tree. Add AGENTS.md's layering rule when the change crosses the layers its Rules section names.
 
 Outbound network inside this sandbox is a separate opt-in (`sandbox_workspace_write.network_access`), so run `bun run setup` in the worktree before delegating rather than widening the sandbox for `bun install`. Where a command Codex needs is refused, the worker runs that command itself.
 
