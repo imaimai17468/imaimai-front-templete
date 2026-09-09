@@ -105,10 +105,8 @@ export const avatarExtensionForMime = (mimeType: string): string | null =>
  */
 export const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 
-// Why an upload's byte length is unacceptable, if it is. Not exported until a
-// caller needs to name it — consumers switch on the literals, and knip treats an
-// unconsumed export as dead surface.
-type AvatarSizeRejection = "empty" | "too-large";
+// Why an upload's byte length is unacceptable, if it is.
+export type AvatarSizeRejection = "empty" | "too-large";
 
 /**
  * Classifies an upload's byte length, returning `null` when the size is

@@ -8,8 +8,8 @@ export const coverageInclude = [`${COVERED_ROOTS}/**/*.ts`, "tools/**/*.js"];
 
 // coverage の gate から外れる条件はファイル名。実依存を配線するだけの
 // モジュールは `*.live.ts`、コマンドとして実行されるファイルは `*.entry.ts`
-// と名付ければ、この配列を編集せずに外れる。パスで並ぶのは、改名がまだの
-// ファイルと、名前を別の何かが決めているファイル。
+// と名付ければ、この配列を編集せずに外れる。パスで並ぶ 2 本は、ファイル名を
+// この規約の外が決めていて、改名するとその外側まで書き換わる。
 export const coverageExclude = [
   "src/**/*.gen.ts",
   // include の `*.ts` は picomatch の contains モードで照合されるので `.tsx`
@@ -18,13 +18,12 @@ export const coverageExclude = [
   "src/test/**",
   `${COVERED_ROOTS}/**/*.entry.ts`,
   `${COVERED_ROOTS}/**/*.live.ts`,
-  "scripts/check-toolchain-pins.ts",
+  // `.claude/settings.json` の allow ルール `Bash(bun scripts/orchestrate.ts *)`
+  // がこのパスを名指すので、改名はその設定ファイルの編集になる。
   "scripts/orchestrate.ts",
   // ファイル名が URL を決めるファイルルートで、`auth.$` が `/api/auth/$` を
   // 生む。改名するとその URL が変わる。
   "src/routes/api/auth.$.ts",
-  "src/server/cloudflare.ts",
-  "src/server/fn/profile.ts",
 ];
 
 export default defineConfig({

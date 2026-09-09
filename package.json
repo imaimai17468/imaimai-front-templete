@@ -16,7 +16,7 @@
     "format:fix": "vp fmt .",
     "check": "vp check",
     "check:fix": "vp check --fix",
-    "check:pins": "bun scripts/check-toolchain-pins.ts",
+    "check:pins": "bun scripts/check-toolchain-pins.entry.ts",
     "check:shell": "git ls-files -z '*.sh' | xargs -0r shellcheck",
     "typecheck": "vp check --no-fmt --no-lint",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv",
