@@ -146,7 +146,7 @@ For each category in scope, inspect the codebase, configuration, and running app
 |---|------|---------------|
 | 59 | Unnecessary modules are not included in the bundle | Check with a `bundle-analyzer` or similar |
 | 60 | Static files are cached by the CDN | Check `Cache-Control` headers and CDN settings |
-| 61 | Layout shift is prevented | Check that `<img>` has `aspect-ratio` or `width` / `height` set |
+| 61 | Layout shift is prevented | Check that `<img>` has `aspect-ratio` or `width` / `height` set. `.claude/rules/design.md` (Content States) settles the dimensions a loading state holds |
 | 62 | Image sizes are optimized | Check there are no images far larger than their display size |
 | 63 | The DB has appropriate indexes | Check the indexes in the schema definition |
 
