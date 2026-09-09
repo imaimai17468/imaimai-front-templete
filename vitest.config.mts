@@ -15,7 +15,6 @@ export const coverageExclude = [
   "scripts/check-cursor-rule-mirrors.ts",
   "scripts/check-toolchain-pins.ts",
   "scripts/orchestrate.ts",
-  "scripts/test-bash-guard.ts",
   // include のパターンは picomatch の contains モードで照合されるので
   // `*.ts` が `.tsx` にも当たる。コンポーネントはこの行で外れる。
   "src/**/*.tsx",

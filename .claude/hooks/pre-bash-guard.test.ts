@@ -1,9 +1,5 @@
-#!/usr/bin/env bun
-
 /**
  * Exercise .claude/hooks/pre-bash-guard.sh against the shapes it must judge.
- *
- *     bun run scripts/test-bash-guard.ts
  *
  * The guard carries three decisions that are easy to break and impossible to
  * notice: the protected-env-file block, the `find` gate and the unnamed-changes
@@ -12,57 +8,95 @@
  * the decision it returns. Nothing in the repository is modified and no command
  * from a case is ever executed.
  *
- * Not named `*.test.ts` on purpose: vitest would then run it on every
- * `bun run test` and in CI, where a hook that only runs during local agent
- * sessions has nothing to report. Run it after touching pre-bash-guard.sh.
- * Exits non-zero on a mismatch.
+ * Every case forks the hook, which forks jq and awk of its own, so one case took
+ * 235 ms on average when they ran one after another (202 cases in 47.4 s,
+ * 2026-09-09, a machine under parallel load). The cases of a group run
+ * concurrently to spend that on several cores instead of one.
  */
 
-import { spawnSync } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { text } from "node:stream/consumers";
+import { describe, expect, it } from "vite-plus/test";
+import { z } from "zod";
+import { readHookJson } from "./hook-output";
 
-const REPO = fileURLToPath(new URL("..", import.meta.url));
-const HOOK = path.join(REPO, ".claude/hooks/pre-bash-guard.sh");
+const HOOK = path.resolve(import.meta.dirname, "pre-bash-guard.sh");
+const REPO = path.resolve(import.meta.dirname, "../..");
 
 // Joined so this file's own text is not itself a commit-shaped command.
 const COMMIT_SUB = ["com", "mit"].join("");
 const COMMIT = `git ${COMMIT_SUB}`;
 
+// `ask` is a decision the guard's find gate weighs emitting and argues against
+// where it denies instead, so a case may come to expect it; none does today.
 const DECISIONS = ["allow", "block", "ask"] as const;
 
 type Decision = (typeof DECISIONS)[number];
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
+/**
+ * The two dialects the hook emits at once. `permissionDecision` stays a plain
+ * string because a deny carries Cursor's own word "deny", which is not one of
+ * the DECISIONS a case expects.
+ */
+const HookOutput = z.object({
+  decision: z.string().optional(),
+  hookSpecificOutput: z
+    .object({ permissionDecision: z.string().optional() })
+    .optional(),
+});
 
-const asDecision = (value: unknown): Decision | undefined =>
-  DECISIONS.find((decision) => decision === value);
+const asDecision = (permissionDecision: string | undefined): Decision =>
+  DECISIONS.find((decision) => decision === permissionDecision) ?? "allow";
 
-/** The hook's decision for a Bash command. */
-const decide = (command: string): Decision => {
-  const { stdout } = spawnSync("bash", [HOOK], {
-    encoding: "utf-8",
-    env: { ...process.env, CLAUDE_PROJECT_DIR: REPO },
-    input: JSON.stringify({ tool_input: { command }, tool_name: "Bash" }),
-  });
-  const out = stdout.trim();
-  const hookStayedSilent = out === "";
-  if (hookStayedSilent) {
-    return "allow";
-  }
-  const parsed: unknown = JSON.parse(out);
-  if (!isRecord(parsed)) {
-    return "allow";
-  }
+const readDecision = (stdout: string): Decision => {
+  const parsed = readHookJson(stdout, HookOutput);
   if (parsed.decision === "block") {
     return "block";
   }
-  const specific = parsed.hookSpecificOutput;
-  if (!isRecord(specific)) {
-    return "allow";
-  }
-  return asDecision(specific.permissionDecision) ?? "allow";
+  return asDecision(parsed.hookSpecificOutput?.permissionDecision);
+};
+
+/** node emits `close` with the exit code and the signal that ended the child. */
+const CloseArgs = z.tuple([z.number().nullable(), z.string().nullable()]);
+
+const exitStatusOf = async (hook: ChildProcess): Promise<number | null> => {
+  const closed: unknown = await once(hook, "close");
+  const [status] = CloseArgs.parse(closed);
+  return status;
+};
+
+/**
+ * What one run of the hook produced for a Bash command.
+ *
+ * The decision alone is not enough to judge a case. A silent hook means
+ * "allow", so a hook that died before printing produces the same empty stdout
+ * as an allow, and every `exit` in pre-bash-guard.sh is `exit 0`, both deny
+ * sites included. So a case asserts the status and the empty stderr with the
+ * decision, and a guard that dies under GNU awk on the CI runner fails the
+ * cases expecting allow rather than passing them.
+ */
+interface HookRun {
+  decision: Decision;
+  status: number | null;
+  stderr: string;
+}
+
+const runHook = async (command: string): Promise<HookRun> => {
+  const hook = spawn("bash", [HOOK], {
+    env: { ...process.env, CLAUDE_PROJECT_DIR: REPO },
+  });
+  hook.stdin.end(
+    JSON.stringify({ tool_input: { command }, tool_name: "Bash" })
+  );
+  const [stdout, stderr, status] = await Promise.all([
+    text(hook.stdout),
+    text(hook.stderr),
+    exitStatusOf(hook),
+  ]);
+  return { decision: readDecision(stdout), status, stderr };
 };
 
 interface Case {
@@ -71,19 +105,25 @@ interface Case {
   why: string;
 }
 
-const failures: string[] = [];
+// A heredoc case spans lines, and a test name has to stay on one.
+const oneLine = (command: string): string => command.replaceAll("\n", "\\n");
 
 const group = (title: string, cases: readonly Case[]): void => {
-  console.log(title);
-  cases.forEach(({ command, expected, why }) => {
-    const actual = decide(command);
-    const ok = actual === expected;
-    if (!ok) {
-      failures.push(`${why}: ${command}`);
-    }
-    console.log(
-      `  ${ok ? "ok  " : "FAIL"} ${actual.padEnd(5)} (want ${expected.padEnd(5)})  ${why}`
-    );
+  describe.concurrent(title, () => {
+    it.each(
+      cases.map((one) => ({
+        ...one,
+        // The reason comes ahead of the command because a failure line
+        // truncates the label from the right.
+        label: `${one.expected} (${one.why}) \`${oneLine(one.command)}\``,
+      }))
+    )("$label", async ({ command, expected }) => {
+      await expect(runHook(command)).resolves.toStrictEqual({
+        decision: expected,
+        status: 0,
+        stderr: "",
+      });
+    });
   });
 };
 
@@ -1113,13 +1153,3 @@ group("git commit: the shapes that defeated earlier guards here", [
     why: "a gh api -f body is not scrubbed, so a parenthesised shape inside it is refused",
   },
 ]);
-
-console.log("");
-if (failures.length > 0) {
-  console.log(`FAILED: ${failures.length}`);
-  failures.forEach((failure) => {
-    console.log(`  - ${failure}`);
-  });
-  process.exit(1);
-}
-console.log("all checks passed");

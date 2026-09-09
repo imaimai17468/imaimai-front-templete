@@ -22,7 +22,7 @@ TanStack Start + TypeScript + Tailwind CSS + shadcn/ui を使用したモダン�
 ```bash
 git clone <your-repo-url>
 cd <your-repo-name>
-mise install                 # Node / Bun / actionlint を mise.toml の版で用意
+mise install                 # Node / Bun / actionlint / shellcheck を mise.toml の版で用意
 cargo install similarity-ts  # lefthook の pre-push が回す重複検出（Rust 製）
 cp .env.local.example .env.local
 bun run setup                # 依存・git hooks・生成ファイルをまとめて用意
@@ -41,7 +41,7 @@ bun run dev
 
 ## Tools
 
-- **[mise](https://mise.jdx.dev/)**：Node / Bun / actionlint のバージョン固定 (`mise.toml`)
+- **[mise](https://mise.jdx.dev/)**：Node / Bun / actionlint / shellcheck のバージョン固定 (`mise.toml`)
 - **[shadcn/ui](https://ui.shadcn.com/)**：UI components (`components.json`)
 - **[TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)**：Type checker (Go-native `tsc`)
 - **[Vite+](https://viteplus.dev/)**：Vite / Vitest / oxlint / oxfmt を束ねる CLI。設定は `vite.config.ts` の `lint` / `fmt` ブロックに集約される
@@ -55,6 +55,7 @@ bun run dev
 - **[knip](https://knip.dev/)**：Unused deps/exports/files detection (`knip.json`)
 - **[similarity-ts](https://github.com/mizchi/similarity)**：Code similarity detector
 - **[actionlint](https://github.com/rhysd/actionlint)**：GitHub Actions workflow checker (`mise.toml` が版を固定)
+- **[shellcheck](https://www.shellcheck.net/)**：tracked な `*.sh` の静的検査。`bun run check:shell` が lefthook の pre-push と CI の両方から呼ぶ (`mise.toml` が版を固定)
 
 ## プロジェクト構成
 

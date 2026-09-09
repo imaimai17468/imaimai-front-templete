@@ -1,0 +1,397 @@
+/**
+ * Exercise .claude/hooks/stop-gate.sh against the payloads and step outcomes it
+ * has to judge.
+ *
+ * Two of its decisions cost a turn's report when they break, and both broke:
+ * a failure body over ARG_MAX made `jq --arg` fail with E2BIG, so the gate ended
+ * the turn having printed nothing, and a LINK_NOTE left at "clean" contradicted
+ * the link failure in the same body. Each case runs the real hook against a
+ * scratch git repository whose `check`, `test` and link-check steps this file
+ * writes, so no step of this repository's own toolchain runs.
+ */
+
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { describe, expect, it, onTestFinished } from "vite-plus/test";
+import { z } from "zod";
+import { readHookJson } from "./hook-output";
+
+const GATE = path.resolve(import.meta.dirname, "stop-gate.sh");
+
+/** A directory the case owns, removed when the case ends. */
+const scratchDir = (prefix: string): string => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  onTestFinished(() => {
+    fs.rmSync(dir, { force: true, recursive: true });
+  });
+  return dir;
+};
+
+/** A step's stand-in: what `bun run <script>` runs, and what bun executes for the link check. */
+interface Steps {
+  check: string;
+  test: string;
+  /** The body of the check-md-links.ts stand-in bun runs directly. */
+  links: string;
+}
+
+const PASSING: Steps = {
+  check: "exit 0",
+  links: "process.exit(0);",
+  test: "exit 0",
+};
+
+/**
+ * A committed git repository with the three step stand-ins in place, plus the
+ * named files left untracked so `git status --porcelain` reports them and
+ * CODE_CHANGED counts them.
+ */
+const scratchRepo = (steps: Steps, untracked: readonly string[]): string => {
+  const root = scratchDir("stop-gate-");
+  fs.mkdirSync(path.join(root, ".claude/hooks"), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, "package.json"),
+    `${JSON.stringify({
+      name: "stop-gate-scratch",
+      scripts: { check: steps.check, test: steps.test },
+    })}\n`
+  );
+  fs.writeFileSync(
+    path.join(root, ".claude/hooks/check-md-links.ts"),
+    `${steps.links}\n`
+  );
+  // The identity comes from the environment because a CI runner's git has
+  // none, and signing is turned off because a machine whose global config
+  // signs every commit has no key for this scratch repository.
+  const git = (...args: string[]): void => {
+    const result = spawnSync(
+      "git",
+      ["-c", "commit.gpgsign=false", "-c", "init.defaultBranch=main", ...args],
+      {
+        cwd: root,
+        encoding: "utf-8",
+        env: {
+          ...process.env,
+          GIT_AUTHOR_EMAIL: "gate@example.com",
+          GIT_AUTHOR_NAME: "gate",
+          GIT_COMMITTER_EMAIL: "gate@example.com",
+          GIT_COMMITTER_NAME: "gate",
+        },
+      }
+    );
+    if (result.status !== 0) {
+      throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
+    }
+  };
+  git("init", "--quiet");
+  git("add", "package.json", ".claude/hooks/check-md-links.ts");
+  git("commit", "--quiet", "-m", "scaffolding");
+  untracked.forEach((name) => {
+    fs.writeFileSync(path.join(root, name), "x\n");
+  });
+  return root;
+};
+
+/**
+ * The gate's own output shape. Each field defaults to "" so a run that emitted
+ * nothing, and one whose branch emits no `decision`, both read as absent rather
+ * than as a parse failure.
+ */
+const GateOutput = z.object({
+  decision: z.string().default(""),
+  reason: z.string().default(""),
+  systemMessage: z.string().default(""),
+});
+
+/** What one Stop gate run reported. */
+type GateRun = z.infer<typeof GateOutput> & {
+  status: number | null;
+  stderr: string;
+  stdout: string;
+};
+
+/** The Stop payload the harness sends. JSON.stringify drops the absent fields. */
+interface StopPayload {
+  cwd: string;
+  hook_event_name: string;
+  loop_count: number | undefined;
+  stop_hook_active: boolean | undefined;
+}
+
+interface RunOptions {
+  /** Overrides the payload's `cwd`, which the gate prefers over CLAUDE_PROJECT_DIR. */
+  cwd?: string;
+  loopCount?: number;
+  path?: string;
+  projectDir?: string;
+  stopHookActive?: boolean;
+}
+
+const runGate = (root: string, options: RunOptions = {}): GateRun => {
+  const payload: StopPayload = {
+    cwd: options.cwd ?? root,
+    hook_event_name: "Stop",
+    loop_count: options.loopCount,
+    stop_hook_active: options.stopHookActive,
+  };
+  const result = spawnSync("bash", [GATE], {
+    cwd: root,
+    encoding: "utf-8",
+    env: {
+      ...process.env,
+      CLAUDE_PROJECT_DIR: options.projectDir ?? root,
+      PATH: options.path ?? process.env.PATH,
+    },
+    input: JSON.stringify(payload),
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  return {
+    ...readHookJson(result.stdout, GateOutput),
+    status: result.status,
+    stderr: result.stderr,
+    stdout: result.stdout,
+  };
+};
+
+/**
+ * The gate's warning branch puts the failure body in the same string as its
+ * summary, separated by a newline, so a case about the summary reads this.
+ */
+const firstLine = (text: string): string => text.split("\n")[0] ?? "";
+
+/**
+ * A PATH resolving the named commands and nothing else, so `command -v bun`
+ * answers no while the commands the gate needs before it still resolve. `bash`
+ * is one of them because node looks the gate's own interpreter up on this PATH.
+ */
+const pathWithOnly = (names: readonly string[]): string => {
+  const dir = scratchDir("stop-gate-path-");
+  const searched = (process.env.PATH ?? "").split(path.delimiter);
+  names.forEach((name) => {
+    const found = searched
+      .map((searchDir) => path.join(searchDir, name))
+      .find((candidate) => fs.existsSync(candidate));
+    if (found === undefined) {
+      throw new Error(`${name} is not on PATH, so this case cannot run`);
+    }
+    fs.symlinkSync(found, path.join(dir, name));
+  });
+  return dir;
+};
+
+describe("stop-gate.sh", () => {
+  it("should stay silent when the tree holds no change", () => {
+    const root = scratchRepo(PASSING, []);
+
+    const run = runGate(root);
+
+    expect({ status: run.status, stdout: run.stdout }).toStrictEqual({
+      status: 0,
+      stdout: "",
+    });
+  });
+
+  it("should skip the quality gate when only a docs file changed", () => {
+    const root = scratchRepo(PASSING, ["notes.md"]);
+
+    const run = runGate(root);
+
+    expect(run.systemMessage).toBe(
+      "✅ Stop gate: no code-relevant changes (quality gate skipped, md links: clean)"
+    );
+  });
+
+  it("should report the quality gate and the link check as passing when a code file changed and every step succeeds", () => {
+    const root = scratchRepo(PASSING, ["a.ts"]);
+
+    const run = runGate(root);
+
+    expect(run.systemMessage).toBe(
+      "✅ Stop gate: typecheck / lint / format and the test suite pass (md links: clean)"
+    );
+  });
+
+  it("should block and name the step when the quality gate fails", () => {
+    const root = scratchRepo({ ...PASSING, check: "exit 1" }, ["a.ts"]);
+
+    const run = runGate(root);
+
+    expect({
+      decision: run.decision,
+      status: run.status,
+      systemMessage: run.systemMessage,
+    }).toStrictEqual({
+      decision: "block",
+      status: 0,
+      systemMessage:
+        "⛔ Stop block: bun run check failed. Fix before ending the turn.",
+    });
+  });
+
+  it("should name both steps in one block when the step after a failing one fails too", () => {
+    const root = scratchRepo({ ...PASSING, check: "exit 1", test: "exit 1" }, [
+      "a.ts",
+    ]);
+
+    const run = runGate(root);
+
+    expect(run.systemMessage).toBe(
+      "⛔ Stop block: bun run check, bun run test failed. Fix before ending the turn."
+    );
+  });
+
+  it("should report the link check as failed rather than clean when it fails", () => {
+    const root = scratchRepo(
+      {
+        ...PASSING,
+        links: 'console.log("links said no");\nprocess.exit(1);',
+      },
+      ["a.ts"]
+    );
+
+    const run = runGate(root);
+
+    expect({ decision: run.decision, reason: run.reason }).toStrictEqual({
+      decision: "block",
+      reason: `markdown link check failed. Fix before ending the turn.
+
+===== markdown link check =====
+links said no
+
+md links: FAILED`,
+    });
+  });
+
+  // `jq --arg body "$2"` failed with E2BIG here (ARG_MAX is 1048576 on macOS,
+  // and Linux caps one argument at 131072), and the gate's own `exit` then
+  // ended the turn having printed nothing at all.
+  it("should carry the whole failure body into the block when that body is larger than ARG_MAX", () => {
+    const fillerBytes = 1_500_000;
+    const root = scratchRepo(
+      {
+        ...PASSING,
+        // `process.exit` after a write this large on a pipe dropped everything
+        // past 65 KB, so the exit code is set and the runtime flushes on its own.
+        links: `process.stdout.write("x".repeat(${fillerBytes}) + "\\ntail-marker\\n");\nprocess.exitCode = 1;`,
+      },
+      ["a.ts"]
+    );
+    // The reason is this head, the filler, and this tail; the whole 1.5 MB
+    // string is never built here, because only its length is compared.
+    const head =
+      "markdown link check failed. Fix before ending the turn.\n\n===== markdown link check =====\n";
+    const tail = "\ntail-marker\n\nmd links: FAILED";
+
+    const run = runGate(root);
+
+    expect({
+      decision: run.decision,
+      reasonBytes: run.reason.length,
+      reasonTail: run.reason.slice(-tail.length),
+    }).toStrictEqual({
+      decision: "block",
+      reasonBytes: head.length + fillerBytes + tail.length,
+      reasonTail: tail,
+    });
+  });
+
+  it("should warn instead of blocking when Claude Code reports this Stop was already blocked", () => {
+    const root = scratchRepo({ ...PASSING, check: "exit 1" }, ["a.ts"]);
+
+    const run = runGate(root, { stopHookActive: true });
+
+    expect({
+      decision: run.decision,
+      summary: firstLine(run.systemMessage),
+    }).toStrictEqual({
+      decision: "",
+      summary:
+        "⚠️ Stop gate STILL failing (not re-blocking — stop_hook_active): bun run check failed. Fix before ending the turn. — if this failure is pre-existing or unfixable, report it to the user explicitly; do not treat it as passed.",
+    });
+  });
+
+  it("should warn instead of blocking when Cursor reports an auto-followup already ran", () => {
+    const root = scratchRepo({ ...PASSING, check: "exit 1" }, ["a.ts"]);
+
+    const run = runGate(root, { loopCount: 1 });
+
+    expect({
+      decision: run.decision,
+      summary: firstLine(run.systemMessage),
+    }).toStrictEqual({
+      decision: "",
+      summary:
+        "⚠️ Stop gate STILL failing (not re-blocking — loop_count): bun run check failed. Fix before ending the turn. — if this failure is pre-existing or unfixable, report it to the user explicitly; do not treat it as passed.",
+    });
+  });
+
+  it("should report the link check as skipped rather than clean when bun is not installed", () => {
+    const root = scratchRepo(PASSING, ["notes.md"]);
+
+    const run = runGate(root, {
+      path: pathWithOnly(["bash", "cat", "git", "grep", "jq", "sort"]),
+    });
+
+    expect(run.systemMessage).toBe(
+      "✅ Stop gate: no code-relevant changes (quality gate skipped, md links: SKIPPED (bun not installed))"
+    );
+  });
+
+  // In a worktree session CLAUDE_PROJECT_DIR is the checkout the session
+  // started in and the payload's cwd is the one the turn edited, so the gate
+  // prefers cwd. The session tree here is clean, which is what the gate would
+  // report if it read CLAUDE_PROJECT_DIR instead.
+  it("should judge the tree the payload names when the session started in another one", () => {
+    const session = scratchRepo(PASSING, []);
+    const work = scratchRepo(PASSING, ["a.ts"]);
+
+    const run = runGate(work, { cwd: work, projectDir: session });
+
+    expect(run.systemMessage).toBe(
+      "✅ Stop gate: typecheck / lint / format and the test suite pass (md links: clean)"
+    );
+  });
+
+  // The scratch repository's `check` fails, so a gate that carried on in the
+  // wrong tree would block naming `bun run check` rather than the root.
+  it("should block naming the unreachable root when it cannot enter the tree to judge", () => {
+    const root = scratchRepo({ ...PASSING, check: "exit 1" }, ["a.ts"]);
+    const missing = path.join(root, "gone");
+
+    const run = runGate(root, { cwd: missing, projectDir: missing });
+
+    expect({
+      decision: run.decision,
+      status: run.status,
+      systemMessage: run.systemMessage,
+    }).toStrictEqual({
+      decision: "block",
+      status: 0,
+      systemMessage: `⛔ Stop block: the Stop gate could not enter ${missing}, so no check ran.`,
+    });
+  });
+
+  // `.git` is a file holding text that is not a gitfile pointer, so `git status`
+  // exits non-zero with empty stdout without walking up to any repository above
+  // the scratch directory. The gate's step stand-ins are absent, so a gate that
+  // read that emptiness as a clean tree would exit 0 having judged nothing.
+  it("should block naming the root when it cannot read git status in the tree", () => {
+    const broken = scratchDir("stop-gate-nogit-");
+    fs.mkdirSync(path.join(broken, ".claude/hooks"), { recursive: true });
+    fs.writeFileSync(path.join(broken, ".git"), "not a gitfile\n");
+
+    const run = runGate(broken, { cwd: broken, projectDir: broken });
+
+    expect({
+      decision: run.decision,
+      status: run.status,
+      systemMessage: run.systemMessage,
+    }).toStrictEqual({
+      decision: "block",
+      status: 0,
+      systemMessage: `⛔ Stop block: the Stop gate could not read git status in ${broken}, so no check ran.`,
+    });
+  });
+});

@@ -10,9 +10,9 @@
 #
 # Every step above runs even after an earlier one failed, and one block names
 # all of them, so no failure waits for a later Stop to be reported. That block
-# respects stop_hook_active: if this Stop was already blocked once, it
-# downgrades to a warning instead of blocking again, so a pre-existing failure
-# the agent cannot fix does not loop forever.
+# downgrades to a warning instead of blocking again when the payload says this
+# Stop already triggered a followup, so a pre-existing failure the agent cannot
+# fix does not loop forever. The warning names which field said so.
 
 set -uo pipefail
 
@@ -26,26 +26,27 @@ CWD=$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)
 if [ -n "$CWD" ] && [ -d "$CWD/.claude/hooks" ]; then
   ROOT="$CWD"
 fi
-cd "$ROOT"
 # `stop_hook_active` is Claude Code's "this Stop was already blocked once"
 # flag. Cursor's stop payload carries `loop_count` (auto-followups already
 # triggered) instead — and it runs Claude-registered stop hooks with NO loop
 # limit (loop_limit defaults to null for third-party hooks), so without this
 # mapping a pre-existing failure would re-block forever there.
-STOP_ACTIVE=$(printf '%s' "$INPUT" | jq -r \
-  'if (.stop_hook_active == true) or ((.loop_count // 0) > 0) then "true" else "false" end' \
-  2>/dev/null || echo false)
+# The warning below quotes this value, so a Cursor turn reads `loop_count`
+# rather than a Claude field its payload never carried.
+DOWNGRADE_CAUSE=$(printf '%s' "$INPUT" | jq -r \
+  'if .stop_hook_active == true then "stop_hook_active" elif (.loop_count // 0) > 0 then "loop_count" else "" end' \
+  2>/dev/null || echo "")
 
-# Emit a block — downgraded to a warning when this Stop was already blocked
-# once (stop_hook_active), to prevent an unfixable failure from looping.
+# Emit a block, downgraded to a warning when DOWNGRADE_CAUSE is set, to prevent
+# an unfixable failure from looping.
 # The body reaches jq through a pipe rather than argv: `--arg body "$2"` made
 # execve fail with E2BIG once a step's diagnostics crossed ARG_MAX (1048576 on
 # macOS), and the exit below then ended the turn having printed nothing.
 # `printf` is a shell builtin, so the body never passes through an argv again.
 emit_block() { # $1 = summary, $2 = reason body
-  if [ "$STOP_ACTIVE" = "true" ]; then
-    printf '%s' "$2" | jq -n --arg sum "$1" --rawfile body /dev/stdin '{
-      systemMessage: ("⚠️ Stop gate STILL failing (not re-blocking — stop_hook_active): " + $sum + " — if this failure is pre-existing or unfixable, report it to the user explicitly; do not treat it as passed.\n" + $body)
+  if [ -n "$DOWNGRADE_CAUSE" ]; then
+    printf '%s' "$2" | jq -n --arg sum "$1" --arg cause "$DOWNGRADE_CAUSE" --rawfile body /dev/stdin '{
+      systemMessage: ("⚠️ Stop gate STILL failing (not re-blocking — " + $cause + "): " + $sum + " — if this failure is pre-existing or unfixable, report it to the user explicitly; do not treat it as passed.\n" + $body)
     }'
   else
     printf '%s' "$2" | jq -n --arg sum "$1" --rawfile body /dev/stdin '{
@@ -59,6 +60,10 @@ emit_block() { # $1 = summary, $2 = reason body
 
 FAILED_STEPS=""
 FAILURE_OUTPUT=""
+
+# Both blocks that fire before any step runs end with this, so a step added
+# below reaches them without being written into each body again.
+NOTHING_RAN="Nothing below it was judged: no typecheck, no lint, no format, no test suite, no markdown link check."
 
 # A failure is collected instead of emitted, so the steps after it still run and
 # one block names all of them.
@@ -78,8 +83,34 @@ run_step() { # $1 = the `bun run` script to run
   record_failure "bun run $1" "$out"
 }
 
+# Every step below reads the tree through the working directory, and `set -e` is
+# off, so a failed `cd` would leave them judging whatever tree the session was
+# started from. This is the one failure where nothing at all ran, so it takes
+# the same block as a failed step rather than a quieter exit. It sits after
+# emit_block for that reason.
+cd "$ROOT" || emit_block \
+  "the Stop gate could not enter $ROOT, so no check ran." \
+  "The directory named by the Stop payload's cwd, or by CLAUDE_PROJECT_DIR, is gone or unreadable. $NOTHING_RAN"
+
+# A failed `git status` prints nothing on stdout, and the emptiness test below
+# reads that as a clean tree and ends the turn with no check run, so the exit
+# status is tested first. stderr joins stdout so the block carries git's own
+# diagnostic, which names causes the gate cannot tell apart itself and often
+# carries the command that fixes them. A warning on a successful run lands in
+# GIT_STATUS too, and costs a checked run over a clean tree, never a skipped one.
+GIT_STATUS=$(git status --porcelain 2>&1)
+GIT_STATUS_RC=$?
+if [ "$GIT_STATUS_RC" -ne 0 ]; then
+  emit_block \
+    "the Stop gate could not read git status in $ROOT, so no check ran." \
+    "\`git status --porcelain\` exited $GIT_STATUS_RC in $ROOT:
+$GIT_STATUS
+
+The gate cannot tell a clean tree from an unjudged one. $NOTHING_RAN"
+fi
+
 # Skip when there are no changes
-if [ -z "$(git status --porcelain)" ]; then
+if [ -z "$GIT_STATUS" ]; then
   exit 0
 fi
 
