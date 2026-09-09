@@ -130,9 +130,9 @@ other one that names a file it deleted.
 
 ### `tools/oxlint-plugins/arch-rules.js`: prune the dead layer bans
 
-`LAYER_BANS` encodes the layer contract (routes → server/fn → gateways →
-entities) as import bans. Step 1 deletes every layer below `routes`, so a ban
-whose `layer` or `target` names a deleted path has nothing left to protect.
+`LAYER_BANS` encodes as import bans the layer order AGENTS.md's Rules section
+names. Step 1 deletes every layer below `routes`, so a ban whose `layer` or
+`target` names a deleted path has nothing left to protect.
 Remove those entries together with the cases in `arch-rules.test.ts` that cover
 them: `vitest.config.mts` holds this file at 100% branch coverage, so a pruned
 ban with a surviving test, or the reverse, fails `bun run test`. If every ban
