@@ -438,12 +438,18 @@ const LAYER_BANS = [
 
 const SRC_MARKER = "/src/";
 
+// `session.live` と `session` は同じレイヤ位置のモジュールを指すので、ban の
+// 照合前にこの接尾辞を落とす。
+const COVERAGE_NAME_SUFFIX = /\.(?:live|entry)$/u;
+
 const resolveImportTarget = (fileSrcDir, specifier) => {
   if (specifier.startsWith("@/")) {
-    return `src/${specifier.slice(2)}`;
+    return `src/${specifier.slice(2)}`.replace(COVERAGE_NAME_SUFFIX, "");
   }
   if (specifier.startsWith(".")) {
-    return path.posix.join(fileSrcDir, specifier);
+    return path.posix
+      .join(fileSrcDir, specifier)
+      .replace(COVERAGE_NAME_SUFFIX, "");
   }
   return null;
 };

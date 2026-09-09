@@ -1066,7 +1066,7 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it.each(["@/lib/auth/auth", "@/lib/auth/actions"])(
+  it.each(["@/lib/auth/auth", "@/lib/auth/actions.live"])(
     "should allow the auth adapter %s when a route imports it",
     (specifier) => {
       // Arrange
@@ -1202,6 +1202,33 @@ describe("layer-boundaries", () => {
 
     // Act
     visitors.ImportDeclaration?.(importNode("../gateways/user"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it.each(["@/lib/auth/session.live", "@/server/cloudflare.live"])(
+    "should report when a route imports %s, a banned module carrying the coverage suffix",
+    (specifier) => {
+      // Arrange
+      const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
+      const visitors = rule.create(context);
+
+      // Act
+      visitors.ImportDeclaration?.(importNode(specifier));
+
+      // Assert
+      expect(context.report).toHaveBeenCalledOnce();
+    }
+  );
+
+  it("should report when a route imports the session adapter carrying the coverage suffix via relative path", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/profile.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("../lib/auth/session.live"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
