@@ -330,7 +330,7 @@ md links: FAILED`,
     const root = scratchRepo(PASSING, ["notes.md"]);
 
     const run = runGate(root, {
-      path: pathWithOnly(["bash", "cat", "git", "grep", "jq", "sort"]),
+      path: pathWithOnly(["bash", "cat", "git", "jq", "sort"]),
     });
 
     expect(run.systemMessage).toBe(
