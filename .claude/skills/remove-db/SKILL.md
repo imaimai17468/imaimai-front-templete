@@ -220,10 +220,10 @@ and strip every reference to the database, auth, and storage layer: D1, R2,
 Drizzle, Better Auth, Google OAuth, `BETTER_AUTH_*`, and the deleted `src/`
 paths.
 
-Do not expect a list of individual lines here. An enumeration goes stale as soon
-as those documents change, and step 7's greps only catch references that contain
-a matching literal. `README.md`'s quickstart, for instance, still copies the env
-example file this procedure deletes without naming any of the terms.
+No list of individual lines follows, for the reason AGENTS.md's Instruction
+documents rule gives. Step 7's greps catch only references that contain a
+matching literal, and `README.md`'s quickstart copies the env example file this
+procedure deletes without naming any of the terms.
 
 Surfaces to go through: `README.md`, `docs/DEPLOYMENT.md`, `docs/FORKING.md`,
 and `.claude/settings.json`.
@@ -283,10 +283,10 @@ grep -rn "better-auth\|BETTER_AUTH\|drizzle\|D1Database\|R2Bucket\|AVATARS_BUCKE
   README.md AGENTS.md .claude/settings.json docs/DEPLOYMENT.md docs/FORKING.md
 ```
 
-Read every hit and decide, because a hit is not automatically a leftover. An empty
-result is not evidence the removal is complete either: this finds the eight
-literals above in the paths above, and anything phrased differently or living
-elsewhere is invisible to it. One exclusion from the path list is deliberate:
+Read every hit and decide, because a hit is not automatically a leftover. This
+grep reaches the eight literals above in the paths above and nothing else, so an
+empty result carries no proof, which AGENTS.md's Instruction documents rule
+states for a grep in general. One exclusion from the path list is deliberate:
 generic infra checklists (e.g. `.claude/skills/launch-checklist`) keep their
 generic D1 / R2 mentions.
 
