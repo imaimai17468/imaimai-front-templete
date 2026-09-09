@@ -18,7 +18,6 @@ export const coverageExclude = [
   "src/test/**",
   `${COVERED_ROOTS}/**/*.entry.ts`,
   `${COVERED_ROOTS}/**/*.live.ts`,
-  "scripts/check-toolchain-pins.ts",
   "scripts/orchestrate.ts",
   // ファイル名が URL を決めるファイルルートで、`auth.$` が `/api/auth/$` を
   // 生む。改名するとその URL が変わる。
