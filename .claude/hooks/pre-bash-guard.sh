@@ -49,12 +49,20 @@ case "$TOOL" in
   *) exit 0 ;;
 esac
 
+# A `source` that fails would leave `guard_refusal` undefined, and the command
+# substitution below would then hand an empty refusal to a command nothing
+# checked. Denying instead puts that failure on the side that stops the command.
 # `$0` carries the directory whenever the caller names this file by path, which
-# .claude/settings.json and pre-bash-guard.test.ts both do. `dirname` would fork
-# a process on a hook that runs before every Bash call.
+# .claude/settings.json and pre-bash-guard.test.ts both do; a bare
+# `bash pre-bash-guard.sh` leaves the name in place, finds no file under it and
+# takes the deny. `dirname` would fork a process on a hook that runs before
+# every Bash call.
 HOOK_DIR=${0%/*}
 # shellcheck source=.claude/hooks/pre-bash-guard-decision.sh
-source "$HOOK_DIR/pre-bash-guard-decision.sh"
+if ! source "$HOOK_DIR/pre-bash-guard-decision.sh" 2>/dev/null; then
+  deny "PreToolUse(Bash): the guard could not load ${HOOK_DIR}/pre-bash-guard-decision.sh, so nothing checked this command. Put that file back beside pre-bash-guard.sh, or run the hook by a path that names its directory."
+  exit 0
+fi
 
 CMD=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""')
 REFUSAL=$(guard_refusal "$CMD")

@@ -17,9 +17,11 @@
 import type { ChildProcess } from "node:child_process";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { text } from "node:stream/consumers";
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, onTestFinished } from "vite-plus/test";
 import { z } from "zod";
 import { readHookJson } from "./hook-output";
 
@@ -88,9 +90,10 @@ interface HookRun {
 
 const hookStdout = async (
   command: string,
-  toolName = "Bash"
+  toolName = "Bash",
+  hookPath = HOOK
 ): Promise<[string, string, number | null]> => {
-  const hook = spawn("bash", [HOOK]);
+  const hook = spawn("bash", [hookPath]);
   hook.stdin.end(
     JSON.stringify({ tool_input: { command }, tool_name: toolName })
   );
@@ -103,9 +106,14 @@ const hookStdout = async (
 
 const runHook = async (
   command: string,
-  toolName?: string
+  toolName?: string,
+  hookPath?: string
 ): Promise<HookRun> => {
-  const [stdout, stderr, status] = await hookStdout(command, toolName);
+  const [stdout, stderr, status] = await hookStdout(
+    command,
+    toolName,
+    hookPath
+  );
   return { decision: readDecision(stdout), status, stderr };
 };
 
@@ -1429,7 +1437,8 @@ group("a working-directory spelling the four patterns miss passes", [
 ]);
 
 // The payload's tool_name decides whether the guards run at all, and every
-// case above sends "Bash". The two other routes are here.
+// case above sends "Bash". The two other routes are here, with the one where
+// the guards cannot be loaded at all.
 describe.concurrent("the payload's tool name decides whether the guards run", () => {
   it(
     "should refuse the same sweep it refuses for Bash when the payload names Cursor's Shell tool",
@@ -1448,6 +1457,25 @@ describe.concurrent("the payload's tool name decides whether the guards run", ()
     async () => {
       await expect(runHook("git add -A", "Read")).resolves.toStrictEqual({
         decision: "allow",
+        status: 0,
+        stderr: "",
+      });
+    },
+    HOOK_TIMEOUT_MS
+  );
+
+  it(
+    "should refuse the command when the decision file is not beside the hook",
+    async () => {
+      const alone = fs.mkdtempSync(path.join(os.tmpdir(), "pre-bash-guard-"));
+      onTestFinished(() => {
+        fs.rmSync(alone, { force: true, recursive: true });
+      });
+      const copy = path.join(alone, "pre-bash-guard.sh");
+      fs.copyFileSync(HOOK, copy);
+
+      await expect(runHook("git add -A", "Bash", copy)).resolves.toStrictEqual({
+        decision: "block",
         status: 0,
         stderr: "",
       });
