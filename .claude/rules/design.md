@@ -196,7 +196,8 @@ and text on one hue.
 
 A translucent surface needs a backdrop worth showing through and a blur that
 blends at every edge. Where the blur bands, the shadow leaks past the shape, or
-the effect jumps on hover, give the element an opaque surface.
+the effect jumps on hover, give the element an opaque surface. Never stack one
+translucent surface on another.
 
 ## Interaction & Content
 

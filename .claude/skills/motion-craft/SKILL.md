@@ -199,13 +199,11 @@ function rubberband(overshoot, dimension, constant = 0.55) {
 ## 12. Materials & depth
 
 Apple uses translucent materials as a floating functional layer. On the web,
-approximate with `backdrop-filter`.
+approximate with `backdrop-filter`. Which surfaces here may be translucent, and
+where a shadow is allowed at all, is settled in `.claude/rules/design.md`
+(Elevation), which carries hierarchy on background color, border, backdrop dim,
+spacing, and typography instead.
 
-- **Build nav/toolbars/sheets as translucent layers** with content scrolling
-  underneath — not opaque bars.
-- **Material weight encodes hierarchy:** darker/heavier = structural,
-  lighter = interactive. **Never stack a light translucent surface on another.**
-- **Bigger surfaces should read as thicker:** stronger blur + deeper shadow.
 - **Scroll edge effects, not hard dividers.** Fade a gradient mask where
   content meets floating chrome.
 - **Materialize, don't just fade.** Animate blur radius and scale together on
