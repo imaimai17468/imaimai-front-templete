@@ -248,11 +248,9 @@ and abrupt brightness jumps.
 
 ## 15. Typography — optical sizing, tracking, leading
 
-- **Tracking is size-specific.** Large display text wants *negative* tracking;
-  small text wants slightly *positive* tracking. Tighten headings, leave body
-  near `0`.
+- **Tracking and hierarchy.** Both are settled in `.claude/rules/design.md`
+  (Typographic Rules, Typographic Pitfalls).
 - **Leading tracks size inversely.** Tight on large headings, looser on body.
-- **Build hierarchy from weight + size + leading as a set,** not size alone.
 - **Respect the user's text-size setting.** Scale layout with `rem`/`em`.
 
 ```css

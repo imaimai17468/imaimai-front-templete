@@ -110,8 +110,9 @@ neutral, so it belongs under a display face rather than carrying one.
 - Limit to 2 typefaces max (body + code).
 - Keep body text line length under ~75 characters.
 - Never center-align multi-line paragraphs.
-- Maintain a clear typographic hierarchy. Where two text elements look the
-  same weight and size, one of them is wrong.
+- Build the hierarchy from weight, size, and leading together rather than from
+  size alone. Where two text elements look the same weight and size, one of them
+  is wrong.
 - Set monospace where the content is data: a timestamp, a code, a price, a
   table. Captions, labels, and running copy take the body family.
 - Give the small text roles different treatments. Where the eyebrow, the button
