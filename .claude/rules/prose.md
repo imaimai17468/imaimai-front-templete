@@ -48,7 +48,7 @@ Four document-side forms survive, and only at a boundary such as an opening or a
 - A request to the reader, such as a scope caveat.
 - Opening and closing the frame of an example.
 
-Cutting a document-side sentence down to a crisp declarative does not save it, because it then reads like a considered remark, which is the most common way this rule gets evaded, so settle what the sentence is about before judging how it sounds.
+Cutting a document-side sentence down to a crisp declarative does not save it, because it then reads like a considered remark, and that cut is the most common way this rule gets evaded. Settle what the sentence is about before judging how it sounds.
 
 ## Sentence shape
 
