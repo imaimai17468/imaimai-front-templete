@@ -3,7 +3,7 @@
  *
  * The guard carries three decisions that are easy to break and impossible to
  * notice: the protected-env-file block, the `find` gate and the unnamed-changes
- * gate over `git add` and `git commit`.
+ * gate over `git add`, `git rm` and `git commit`.
  * Each case below feeds the real hook a synthetic PreToolUse payload and asserts
  * the decision it returns. Nothing in the repository is modified and no command
  * from a case is ever executed.
@@ -29,6 +29,8 @@ const REPO = path.resolve(import.meta.dirname, "../..");
 // Joined so this file's own text is not itself a commit-shaped command.
 const COMMIT_SUB = ["com", "mit"].join("");
 const COMMIT = `git ${COMMIT_SUB}`;
+const RM_SUB = ["r", "m"].join("");
+const RM = `git ${RM_SUB}`;
 
 // `ask` is a decision the guard's find gate weighs emitting and argues against
 // where it denies instead, so a case may come to expect it; none does today.
@@ -1163,5 +1165,67 @@ group("git commit: the shapes that defeated earlier guards here", [
     command: `gh api repos/o/r/pulls/comments/1/replies -f body='Fixed. (${COMMIT} -a is denied now.)'`,
     expected: "block",
     why: "a gh api -f body is not scrubbed, so a parenthesised shape inside it is refused",
+  },
+]);
+
+// `git rm` deletes from the worktree the set `git add` stages, and its
+// operands are read as a pathspec the same way. The `git add` groups above
+// already drive the shared operand test and the prefix walk, so these cases
+// cover what `git rm` adds: the subcommand routing, the flags it has of its
+// own, and the reason it carries when nothing is named.
+group("git rm: a removal that takes the whole tree is refused", [
+  { command: `${RM} -r .`, expected: "block", why: "the working directory" },
+  {
+    command: `${RM} -r -- .`,
+    expected: "block",
+    why: "a -- separator does not make it a path",
+  },
+  {
+    command: `${RM} -rf .`,
+    expected: "block",
+    why: "the force letter in the cluster does not make it a path",
+  },
+  {
+    command: `${RM} --cached -r .`,
+    expected: "block",
+    why: "--cached takes the same set out of the index",
+  },
+  { command: `${RM} -r ./`, expected: "block", why: "bare ./" },
+  {
+    command: `git status && ${RM} -r .`,
+    expected: "block",
+    why: "chained behind another command",
+  },
+]);
+
+group("git rm: named paths stay unattended", [
+  {
+    command: `${RM} -r src/old-dir`,
+    expected: "allow",
+    why: "a bulk delete of one named directory",
+  },
+  {
+    command: `${RM} --cached src/foo.ts`,
+    expected: "allow",
+    why: "an index-only removal of a named path",
+  },
+  {
+    command: `${RM_SUB} -rf node_modules`,
+    expected: "allow",
+    why: "a shell rm opens the segment itself, so the git walk never starts",
+  },
+]);
+
+group("git rm: a pathspec the command text does not show is refused", [
+  { command: RM, expected: "block", why: "no operand at all" },
+  {
+    command: `${RM} -r`,
+    expected: "block",
+    why: "a recursive flag still names no path",
+  },
+  {
+    command: `${RM} --pathspec-from-f paths.txt`,
+    expected: "block",
+    why: "the paths sit in a file the guard cannot read, under the prefix spelling git accepts",
   },
 ]);

@@ -5,9 +5,9 @@
 #    grep, head, tail, redirections) could walk around it.
 # 2. find gate — prompt for the `find` shapes that reach past the deny list or
 #    run/delete, while leaving scoped path discovery unattended.
-# 3. unnamed-changes gate — refuse a `git add` (or its `git stage` synonym)
-#    whose operands are not explicit paths, and a `git commit` that takes
-#    changes nobody named, because either puts files in the commit that nobody
+# 3. unnamed-changes gate — refuse a `git add` (or its `git stage` synonym) or
+#    a `git rm` whose operands are not explicit paths, and a `git commit` that
+#    takes changes nobody named, because each of the three acts on files nobody
 #    chose.
 
 set -euo pipefail
@@ -299,6 +299,18 @@ fi
 # branch of its own: git answered
 # `fatal: No paths with --include/--only does not make sense.`
 #
+# `git rm` reads its operands as a pathspec too, and reaches the whole tree the
+# same way. Run as `git rm -n` against a scratch repository holding `a.txt`,
+# `sub/b.txt` and `old-dir/c.txt`, each of `-r .`, `-r -- .`, `-rf .`,
+# `--cached -r .`, `-r ./`, `-r :/`, `-r :(top)`, `-r '*'` and `'*.txt'` listed
+# all three, where `-r old-dir` listed that directory's file alone and a bare
+# `git rm` answered `fatal: No pathspec was given. Which files should I
+# remove?` (git 2.50.1, 2026-09-09). Every option `git rm -h` lists apart from
+# `--pathspec-from-file` (dry-run, quiet, cached, force, `-r`, ignore-unmatch,
+# sparse, pathspec-file-nul) changes how it removes rather than which paths, so
+# its operands decide the refusal and its walk carries no flag branch of its
+# own.
+#
 # The text is Guard 1's SCRUBBED, so a `git`/`gh` message body quoting a refused
 # shape stays prose, plus one more heredoc drop so a body written under any other
 # command is prose too. The command is then split on `;|&()` and on newlines,
@@ -321,10 +333,11 @@ fi
 # which otherwise let `g""it add -A` past with no literal `git` in its text.
 
 # Set REFUSED to the reason one operand takes more than it names, and leave it
-# alone when the operand names a path of its own. `git add` and `git commit`
-# both read their operands as a pathspec, so both call this. It assigns rather
-# than printing its answer, because a `$(...)` read-back forks a subshell per
-# operand token on a hook that runs before every Bash call.
+# alone when the operand names a path of its own. `git add`, `git rm` and
+# `git commit` all read their operands as a pathspec, so all three call this.
+# It assigns rather than printing its answer, because a `$(...)` read-back
+# forks a subshell per operand token on a hook that runs before every Bash
+# call.
 refuse_unnamed_operand() { # $1 = one operand token
   case "$1" in
     :*)
@@ -364,16 +377,27 @@ case "$CMD_PLAIN" in
   *git*) ;;
   *) exit 0 ;;
 esac
-# A refusal needs a segment whose token is `add`, `stage` or `commit`, and the
-# heredoc drop below only removes whole lines, so a command whose text holds
-# none of those three names cannot reach one. `git status`, `git log` and
+# A refusal needs a segment whose token is `add`, `stage`, `commit` or `rm`,
+# and the heredoc drop below only removes whole lines, so a command whose text
+# holds none of those four names cannot reach one. `git status`, `git log` and
 # `git push` all leave here instead of forking the awk, where
 # `git diff --staged` walks on because its flag carries `stage`. On a
 # `git status --short` payload, 60 runs of this hook took 20.4 s, 20.2 s and
-# 21.5 s in three rounds with this case, against 23.5 s, 24.3 s and 22.6 s for
-# 60 runs without it (a machine under parallel load, 2026-09-09).
+# 21.5 s in three rounds with the three-name form of this case, against 23.5 s,
+# 24.3 s and 22.6 s for 60 runs without it (a machine under parallel load,
+# 2026-09-09).
+#
+# `rm` is two letters and needs its own token boundaries, where the other three
+# do not. Over 3300 Bash commands taken from this project's session
+# transcripts, the three-name form admitted 429, a bare `*rm*` 580, and the
+# four patterns below 471; `format`, `permission`, `nrm` and `rmtree` are what
+# the extra 151 hold. The four spell "the token `rm`, at either end of the text
+# or with a separator on each side", and the class lists the characters a
+# separator is not. None of the 109 they drop holds a `git rm`, and this guard
+# decides each of those 109 the way it did before `rm` joined the case.
 case "$CMD_PLAIN" in
   *add* | *stage* | *commit*) ;;
+  rm | rm[!A-Za-z0-9_.-]* | *[!A-Za-z0-9_.-]rm | *[!A-Za-z0-9_.-]rm[!A-Za-z0-9_.-]*) ;;
   *) exit 0 ;;
 esac
 REFUSED=""
@@ -444,6 +468,10 @@ while IFS= read -r SEG; do
             SUB=$TOK
             STATE=commit
             ;;
+          rm)
+            SUB=$TOK
+            STATE=remove
+            ;;
           *) break ;;
         esac
         ;;
@@ -485,6 +513,28 @@ while IFS= read -r SEG; do
               *[pie]*) HAS_SELECTION=1 ;;
             esac
             ;;
+          *)
+            refuse_unnamed_operand "$TOK"
+            if [ -n "$REFUSED" ]; then
+              break
+            fi
+            HAS_SELECTION=1
+            ;;
+        esac
+        ;;
+      remove)
+        case "$TOK" in
+          # With a file holding `.`, both
+          # `git rm -n -r --pathspec-from-file=ps.txt` and the prefix spelling
+          # `git rm -n -r --pathspec-from-f ps.txt` listed all three tracked
+          # files of the scratch repository (git 2.50.1, 2026-09-09). The `-f*`
+          # tail matches both, because git's parse-options takes any
+          # unambiguous prefix.
+          --pathspec-f*)
+            REFUSED="\`--pathspec-from-file\` takes its pathspec from a file the command text does not show"
+            break
+            ;;
+          -*) ;;
           *)
             refuse_unnamed_operand "$TOK"
             if [ -n "$REFUSED" ]; then
@@ -555,22 +605,23 @@ while IFS= read -r SEG; do
         ;;
     esac
   done
-  # An allowed `git add` either names a path or selects hunks. This branch is
-  # what makes that the rule rather than a list of bad flags, and it is the only
-  # refusal that `--pathspec-from-file=paths.txt` and
-  # `git diff --name-only | xargs git add` reach: both take their operands from
-  # somewhere the command text does not show. A bare `git add` stages nothing by
-  # itself and prints `hint: Maybe you wanted to say 'git add .'?`
-  # (git 2.50.1), so the refusal names the right form before the hint names the
-  # wrong one. A bare `git commit` takes the set that was already staged, so the
-  # branch is `git add`'s alone.
-  case "$SUB" in
-    add | stage)
-      if [ -z "$REFUSED" ] && [ "$HAS_SELECTION" -eq 0 ]; then
-        REFUSED="it names no path to stage"
-      fi
-      ;;
-  esac
+  # An allowed `git add` either names a path or selects hunks, and an allowed
+  # `git rm` names a path. This branch is what makes that the rule rather than a
+  # list of bad flags, and it is the only refusal that
+  # `--pathspec-from-file=paths.txt` and `git diff --name-only | xargs git add`
+  # reach: both take their operands from somewhere the command text does not
+  # show. A bare `git add` stages nothing by itself and prints
+  # `hint: Maybe you wanted to say 'git add .'?`, and a bare `git rm` answers
+  # `fatal: No pathspec was given. Which files should I remove?`
+  # (git 2.50.1), so the refusal names the right form before git names the
+  # wrong one or gives up. A bare `git commit` takes the set that was already
+  # staged, so it stays out of the branch.
+  if [ -z "$REFUSED" ] && [ "$HAS_SELECTION" -eq 0 ]; then
+    case "$SUB" in
+      add | stage) REFUSED="it names no path to stage" ;;
+      rm) REFUSED="it names no path to remove" ;;
+    esac
+  fi
   # The loop body runs in this shell, so SUB survives the break and names the
   # subcommand the refusal came from.
   if [ -n "$REFUSED" ]; then
@@ -583,13 +634,16 @@ set +f
 if [ -n "$REFUSED" ]; then
   case "$SUB" in
     commit)
-      NEXT_STEP="Stage the files this commit needs (\`git add src/foo.ts src/bar.ts\`, or \`git add -p\` for part of a file), then commit that staged set with \`git commit -m\`."
+      NEXT_STEP="Stage the files this commit needs (\`git add src/foo.ts src/bar.ts\`, or \`git add -p\` for part of a file), then commit that staged set with \`git commit -m\`. \`git status --short\` lists what changed."
+      ;;
+    rm)
+      NEXT_STEP="Name the paths to delete (\`git rm src/foo.ts src/bar.ts\`, or \`git rm -r src/old-dir\` for one directory). \`git ls-files\` lists the tracked paths."
       ;;
     *)
-      NEXT_STEP="Name the files this commit needs (\`git add src/foo.ts src/bar.ts\`), and take part of a file with \`git add -p\`."
+      NEXT_STEP="Name the files this commit needs (\`git add src/foo.ts src/bar.ts\`), and take part of a file with \`git add -p\`. \`git status --short\` lists what changed."
       ;;
   esac
-  deny "PreToolUse(Bash): this \`git ${SUB}\` is refused because ${REFUSED}. ${NEXT_STEP} \`git status --short\` lists what changed."
+  deny "PreToolUse(Bash): this \`git ${SUB}\` is refused because ${REFUSED}. ${NEXT_STEP}"
   exit 0
 fi
 
