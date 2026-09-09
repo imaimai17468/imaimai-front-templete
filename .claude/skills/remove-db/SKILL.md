@@ -291,8 +291,9 @@ generic infra checklists (e.g. `.claude/skills/launch-checklist`) keep their
 generic D1 / R2 mentions.
 
 Dead markdown links to the deleted database doc need no grep, because `bun
-.claude/hooks/check-md-links.ts` fails on any link whose target is gone, and the Stop
-gate runs it over the whole repository. What it cannot see is prose that names
+.claude/hooks/check-md-links.ts` fails on any link whose target is gone, and
+AGENTS.md's *Verification before completion* says when the Stop gate runs it.
+What it cannot see is prose that names
 the file without linking it, so check that separately:
 
 ```bash
