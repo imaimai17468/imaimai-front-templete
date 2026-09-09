@@ -80,7 +80,9 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/rules/*.mdc` as a file-level symlink so Cursor sessions load the same text (never replace a symlink with a copy). Each rule's own frontmatter states its subject and its scope, and it states the scope twice because Claude Code reads `paths` and Cursor reads `globs`, so both keys change together.
 
-- **`react.md`** names the concrete `src/components/` homes in its Module Organization section, so `.tsx` placement is settled there rather than here.
+- **`design.md`** is scoped to `src/**/*.css` and `src/**/*.tsx`, so a session deciding a UI question without opening one of those files loads none of it and has to open the rule itself.
+- **`prose.md`** carries no path scope, so every session holds it whatever it is editing.
+- **`react.md`** names the concrete `src/components/` and `src/lib/` homes in its Module Organization section, so where a module goes is settled there rather than here.
 
 A principle lives in this file. A concrete of this repository, such as a path, a file name, or a command, lives in the rule whose scope covers the files it names, and the part of it a scope would hide from a session that needs it stays here. A step-by-step procedure for a named task lives in the skill that names it, and a constraint lives in the structure or the types.
 
