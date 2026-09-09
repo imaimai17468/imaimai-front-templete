@@ -337,10 +337,10 @@ Split per the Commits discipline in `AGENTS.md`:
    and `docs/DATABASE_SETUP.md`)
 3. `chore:` remove the DB / auth dependencies (package.json / bun.lock)
 4. `docs:` remove DB- and auth-related documentation. Stage every surface
-   step 6 touched: `README.md`, `docs/DEPLOYMENT.md`, `docs/FORKING.md`,
-   `.claude/settings.json`, `.env.local.example` and `wrangler.toml`.
-   AGENTS.md's Commits discipline forbids `git add -A`, so a surface missing
-   from this list is a surface left uncommitted.
+   step 6 touched, each by its explicit path as that discipline requires:
+   `README.md`, `docs/DEPLOYMENT.md`, `docs/FORKING.md`,
+   `.claude/settings.json`, `.env.local.example` and `wrangler.toml`. A surface
+   missing from this list is a surface left uncommitted.
 
 Intermediate commits are not individually buildable (e.g. commit 1 deletes the
 vitest stub that commit 2's config change stops referencing), so verify on the
