@@ -569,7 +569,11 @@ while IFS= read -r SEG; do
           # `git rm -n -r --pathspec-from-f ps.txt` listed all three tracked
           # files of the scratch repository (git 2.50.1, 2026-09-09). The `-f*`
           # tail matches both, because git's parse-options takes any
-          # unambiguous prefix.
+          # unambiguous prefix. It also matches `--pathspec-file-nul`, which
+          # this refusal does not name: git answers that flag on its own with
+          # `fatal: the option '--pathspec-file-nul' requires
+          # '--pathspec-from-file'`, so the over-match costs no working command.
+          # The `git add` and `git commit` walks carry the same pattern.
           --pathspec-f*)
             REFUSED="\`--pathspec-from-file\` takes its pathspec from a file the command text does not show"
             break
