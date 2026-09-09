@@ -1,7 +1,7 @@
 ---
 name: code-reviewer
 description: Pre-commit reviewer. Reads the uncommitted diff and runs the whole review in one context as four ordered stages: find every candidate across all lenses, dedup, refute each candidate against the real code, return the survivors with a concrete fix and acceptance check. Invoke after implementation, before committing.
-tools: Read, Bash, Skill
+tools: Read, Bash
 permissionMode: auto
 ---
 
@@ -28,6 +28,13 @@ would have survived.
   persisted state, missing boundary validation
 - **cleanup**: duplication, dead code, needless complexity, obvious performance problems,
   drift from surrounding conventions
+- **reuse**: new code that re-implements something the codebase already has; grep the
+  shared modules and the files next to the change, and name the existing helper to call
+  instead
+- **efficiency**: computation or I/O the diff repeats, independent operations run
+  sequentially, work added to startup or to a hot path
+- **altitude**: a symptom patched where the root cause sits deeper, a special case layered
+  on shared infrastructure where changing the mechanism would remove the special case
 - **rules**: read `AGENTS.md`, `.claude/rules/prose.md`, and every path-scoped file under
   `.claude/rules/` whose scope matches the diff, whichever of them is not already in your
   context. Set `rule` to the one violated. Invent no rule beyond those files, and never
@@ -37,10 +44,10 @@ Each candidate needs a location (`file:line`), a one-line title, the failure sce
 first idea for the fix, a severity of critical / major / minor, and the rule it violates
 where one applies.
 
-Coverage-first applies fully to logic, state, integrity and rules. For cleanup and style,
-calibrate: a behaviour-identical change (a rename, a constant extraction, a doc reword)
-carrying no critical or major finding should draw few or no comments, so raise one only
-when it is material.
+Coverage-first applies fully to logic, state, integrity and rules. For cleanup, reuse,
+efficiency, altitude and style, calibrate: a behaviour-identical change (a rename, a
+constant extraction, a doc reword) carrying no critical or major finding should draw few
+or no comments, so raise one only when it is material.
 
 ## Stage B: dedup
 
