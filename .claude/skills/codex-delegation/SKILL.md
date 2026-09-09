@@ -47,7 +47,7 @@ To hand back a correction, `codex exec resume --last "<what is wrong>"` from the
 
 ## What the worker does with the result
 
-Read the full diff with `git diff`, rather than the summary in the `-o` file, which is what `ticket-work` step 6 requires of anything a subagent implemented. Check `git status` and `git log` to confirm the change is uncommitted. Then run `bun run check` and `bun run test`, and carry the ticket on from step 6 as your own work: the acceptance criteria, the review, the commits, the PR.
+The `-o` file holds Codex's summary, and `ticket-work` step 6 sends the worker to the diff instead. Check `git status` and `git log` to confirm the change is uncommitted. Then run `bun run check` and `bun run test`, and carry the ticket on from step 6 as your own work: the acceptance criteria, the review, the commits, the PR.
 
 The commit takes one `Co-Authored-By:` trailer, crediting the model the worker runs as, and no second trailer for Codex. AGENTS.md names one trailer for the current model, and after the worker has read the whole diff and changed what it disagreed with, the commit is the worker's to answer for. The PR body names the delegation, where a reviewer can act on it.
 
