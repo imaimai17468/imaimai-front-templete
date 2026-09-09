@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
   agentWorktrees,
+  ancestryAfterFetch,
   ancestryKeepReason,
   branchNames,
   formatBranch,
@@ -18,6 +19,7 @@ import {
   worktreeVerdict,
 } from "./orchestrate-decisions";
 import type {
+  Ancestry,
   PullRequest,
   RateLimitsFile,
   Worktree,
@@ -948,6 +950,43 @@ describe(localVerdict, () => {
   });
 });
 
+const ancestorAnswer = (): Ancestry => ({ kind: "ancestor" });
+
+describe(ancestryAfterFetch, () => {
+  it("should answer with the comparison when the fetch refreshed the ref", () => {
+    const result = ancestryAfterFetch({ kind: "fetched" }, ancestorAnswer);
+
+    expect(result).toStrictEqual({ kind: "ancestor" });
+  });
+
+  it("should answer with the fetch failure rather than the comparison when the fetch failed", () => {
+    const result = ancestryAfterFetch(
+      { kind: "failed", reason: "fatal: unable to access origin" },
+      ancestorAnswer
+    );
+
+    expect(result).toStrictEqual({
+      kind: "unfetched",
+      reason: "fatal: unable to access origin",
+    });
+  });
+
+  it("should leave the comparison unrun when the fetch failed", () => {
+    const calls: string[] = [];
+    const counted = (): Ancestry => {
+      calls.push("compared");
+      return { kind: "ancestor" };
+    };
+
+    ancestryAfterFetch(
+      { kind: "failed", reason: "fatal: unable to access origin" },
+      counted
+    );
+
+    expect(calls).toStrictEqual([]);
+  });
+});
+
 describe(ancestryKeepReason, () => {
   it("should return undefined when the holder holds the branch commits", () => {
     const reason = ancestryKeepReason({ kind: "ancestor" }, "main");
@@ -972,6 +1011,17 @@ describe(ancestryKeepReason, () => {
     );
   });
 
+  it("should name the fetch when the ref could not be refreshed", () => {
+    const reason = ancestryKeepReason(
+      { kind: "unfetched", reason: "fatal: unable to access origin" },
+      "origin/main"
+    );
+
+    expect(reason).toBe(
+      "git could not fetch origin/main: fatal: unable to access origin"
+    );
+  });
+
   it("should name the failure when the ancestry check could not run", () => {
     const reason = ancestryKeepReason(
       { kind: "failed", reason: "fatal: not a git repository" },
@@ -985,7 +1035,7 @@ describe(ancestryKeepReason, () => {
 });
 
 describe(worktreeVerdict, () => {
-  it("should remove the worktree when its branch has no pull request and main holds its commits", () => {
+  it("should remove the worktree when its branch has no pull request and origin/main holds its commits", () => {
     const verdict = worktreeVerdict({
       kind: "no-pull-request",
       mainAncestry: { kind: "ancestor" },
@@ -994,7 +1044,7 @@ describe(worktreeVerdict, () => {
     expect(verdict).toStrictEqual({ kind: "remove" });
   });
 
-  it("should keep the worktree when its branch has no pull request and holds a commit main does not", () => {
+  it("should keep the worktree when its branch has no pull request and holds a commit origin/main does not", () => {
     const verdict = worktreeVerdict({
       kind: "no-pull-request",
       mainAncestry: { kind: "not-ancestor" },
@@ -1002,7 +1052,7 @@ describe(worktreeVerdict, () => {
 
     expect(verdict).toStrictEqual({
       kind: "keep",
-      reason: "no pull request, commits main does not hold",
+      reason: "no pull request, commits origin/main does not hold",
     });
   });
 
@@ -1015,7 +1065,7 @@ describe(worktreeVerdict, () => {
     expect(verdict).toStrictEqual({
       kind: "keep",
       reason:
-        "no pull request, git could not compare with main: fatal: bad revision",
+        "no pull request, git could not compare with origin/main: fatal: bad revision",
     });
   });
 
@@ -1033,7 +1083,7 @@ describe(worktreeVerdict, () => {
     });
   });
 
-  it("should keep the worktree naming both holders when neither the pull request nor main holds its branch commits", () => {
+  it("should keep the worktree naming both holders when neither the pull request nor origin/main holds its branch commits", () => {
     const verdict = worktreeVerdict({
       kind: "pull-request",
       mainAncestry: { kind: "not-ancestor" },
@@ -1044,11 +1094,11 @@ describe(worktreeVerdict, () => {
     expect(verdict).toStrictEqual({
       kind: "keep",
       reason:
-        "commits the pull request does not hold, and commits main does not hold",
+        "commits the pull request does not hold, and commits origin/main does not hold",
     });
   });
 
-  it("should keep the worktree when the pull request's commit is not in this repository and main holds no branch commit", () => {
+  it("should keep the worktree when the pull request's commit is not in this repository and origin/main holds no branch commit", () => {
     const verdict = worktreeVerdict({
       kind: "pull-request",
       mainAncestry: { kind: "not-ancestor" },
@@ -1059,7 +1109,7 @@ describe(worktreeVerdict, () => {
     expect(verdict).toStrictEqual({
       kind: "keep",
       reason:
-        "the pull request is at commit 4b486bc, which this repository does not have, and commits main does not hold",
+        "the pull request is at commit 4b486bc, which this repository does not have, and commits origin/main does not hold",
     });
   });
 
@@ -1077,7 +1127,7 @@ describe(worktreeVerdict, () => {
     expect(verdict).toStrictEqual({
       kind: "keep",
       reason:
-        "git could not compare with the pull request: fatal: Not a valid commit name 4b486bc, and git could not compare with main: fatal: bad revision",
+        "git could not compare with the pull request: fatal: Not a valid commit name 4b486bc, and git could not compare with origin/main: fatal: bad revision",
     });
   });
 
@@ -1103,7 +1153,7 @@ describe(worktreeVerdict, () => {
     expect(verdict).toStrictEqual({ kind: "remove" });
   });
 
-  it("should remove the worktree when main holds its branch commits and the pull request does not", () => {
+  it("should remove the worktree when origin/main holds its branch commits and the pull request does not", () => {
     const verdict = worktreeVerdict({
       kind: "pull-request",
       mainAncestry: { kind: "ancestor" },
@@ -1114,7 +1164,7 @@ describe(worktreeVerdict, () => {
     expect(verdict).toStrictEqual({ kind: "remove" });
   });
 
-  it("should remove the worktree when main holds its branch commits and the pull request's commit is not in this repository", () => {
+  it("should remove the worktree when origin/main holds its branch commits and the pull request's commit is not in this repository", () => {
     const verdict = worktreeVerdict({
       kind: "pull-request",
       mainAncestry: { kind: "ancestor" },

@@ -467,21 +467,57 @@ export const localVerdict = (isDirty: boolean): WorktreeVerdict | undefined =>
  * Where git put one commit relative to another's history. `absent` is the
  * second commit missing from the repository, which is what the commit GitHub
  * reports for a pull request is once the remote branch is deleted and nothing
- * fetched it, and `failed` is a check that did not answer either way.
+ * fetched it, `failed` is a check that did not answer either way, and
+ * `unfetched` is a ref whose refresh failed before any check ran on it.
  */
 export type Ancestry =
   | { readonly commit: string; readonly kind: "absent" }
   | { readonly kind: "ancestor" }
   | { readonly kind: "failed"; readonly reason: string }
-  | { readonly kind: "not-ancestor" };
+  | { readonly kind: "not-ancestor" }
+  | { readonly kind: "unfetched"; readonly reason: string };
+
+/** The remote `clean-worktrees` refreshes MAIN_REF from. */
+export const MAIN_REMOTE = "origin";
+
+/** The branch of MAIN_REMOTE that a finished branch's commits land on. */
+export const MAIN_BRANCH = "main";
+
+/**
+ * The ref whose history `clean-worktrees` looks for a branch's commits in. The
+ * local `main` holds what the checkout this command runs in last pulled, so a
+ * branch whose commits the remote already holds reads as unheld there until
+ * someone pulls that checkout.
+ */
+export const MAIN_REF = `${MAIN_REMOTE}/${MAIN_BRANCH}`;
+
+/** Whether the fetch refreshing MAIN_REF ran, and what git said when it did not. */
+export type MainFetch =
+  | { readonly kind: "failed"; readonly reason: string }
+  | { readonly kind: "fetched" };
+
+/**
+ * The branch's place in MAIN_REF's history, or the failed fetch in place of an
+ * answer. MAIN_REF keeps what the last fetch that reached the remote wrote
+ * there, so comparing against it after this command's own fetch failed would
+ * report the ancestry of some earlier moment as this one's.
+ */
+export const ancestryAfterFetch = (
+  mainFetch: MainFetch,
+  compare: () => Ancestry
+): Ancestry =>
+  mainFetch.kind === "fetched"
+    ? compare()
+    : { kind: "unfetched", reason: mainFetch.reason };
 
 /**
  * Why the commits of a branch keep what holds them, or undefined when `holder`
- * already holds every one of them. A commit this repository does not have and a
- * check that did not run are each their own answer, because reading either as
- * "not an ancestor" would keep the branch with a reason naming the wrong cause.
- * A squash merge leaves the branch's commits outside main's ancestry, so the
- * reason states what git answered rather than calling the branch unmerged.
+ * already holds every one of them. A commit this repository does not have, a
+ * check that did not run, and a ref this call could not refresh each get their
+ * own answer, because reading any of them as "not an ancestor" would keep the
+ * branch with a reason naming the wrong cause. A squash merge leaves the
+ * branch's commits outside the holder's ancestry, so the reason states what git
+ * answered rather than calling the branch unmerged.
  */
 export const ancestryKeepReason = (
   ancestry: Ancestry,
@@ -496,14 +532,17 @@ export const ancestryKeepReason = (
   if (ancestry.kind === "absent") {
     return `${holder} is at commit ${ancestry.commit}, which this repository does not have`;
   }
+  if (ancestry.kind === "unfetched") {
+    return `git could not fetch ${holder}: ${ancestry.reason}`;
+  }
   return `git could not compare with ${holder}: ${ancestry.reason}`;
 };
 
 /**
  * What GitHub and git report about the worktree of a branch the run named. Each
- * shape names every commit whose history the branch was looked for in: main
- * alone when GitHub reports no pull request for the branch, and main together
- * with the commit GitHub holds for it when there is one.
+ * shape names every commit whose history the branch was looked for in: MAIN_REF
+ * alone when GitHub reports no pull request for the branch, and MAIN_REF
+ * together with the commit GitHub holds for it when there is one.
  */
 export type WorktreeFacts =
   | { readonly kind: "no-pull-request"; readonly mainAncestry: Ancestry }
@@ -518,19 +557,19 @@ export type WorktreeFacts =
  * Whether the worktree of a branch this run named can go. Removing it deletes
  * the branch, so what decides is whether anything else holds the branch's
  * commits. Two commits are asked, and either one holding them clears the
- * worktree: the commit GitHub holds for the pull request, and main. Which of
- * them answers depends on the branch. A squash merge leaves the commits a
- * branch carried outside main's ancestry, so the pull request's commit is what
- * holds those, and main holds a branch that ended at a commit main already had.
- * Main is the one of the two this repository can still resolve once
- * `gh pr update-branch` has left the pull request at a merge nothing fetched.
- * Ancestry rather than equality, because the branch also differs from GitHub's
- * commit when it sits behind one a worker never pulled, and nothing of the
- * branch's own is lost then.
+ * worktree: the commit GitHub holds for the pull request, and MAIN_REF. Which
+ * of them answers depends on the branch. A squash merge leaves the commits a
+ * branch carried outside MAIN_REF's ancestry, so the pull request's commit is
+ * what holds those, and MAIN_REF holds a branch that ended at a commit MAIN_REF
+ * already had. MAIN_REF is the one of the two this repository can still resolve
+ * once `gh pr update-branch` has left the pull request at a merge nothing
+ * fetched. Ancestry rather than equality, because the branch also differs from
+ * GitHub's commit when it sits behind one a worker never pulled, and nothing of
+ * the branch's own is lost then.
  */
 export const worktreeVerdict = (facts: WorktreeFacts): WorktreeVerdict => {
   if (facts.kind === "no-pull-request") {
-    const mainReason = ancestryKeepReason(facts.mainAncestry, "main");
+    const mainReason = ancestryKeepReason(facts.mainAncestry, MAIN_REF);
     return mainReason === undefined
       ? { kind: "remove" }
       : { kind: "keep", reason: `no pull request, ${mainReason}` };
@@ -543,7 +582,7 @@ export const worktreeVerdict = (facts: WorktreeFacts): WorktreeVerdict => {
     pullRequestAncestry,
     "the pull request"
   );
-  const mainReason = ancestryKeepReason(mainAncestry, "main");
+  const mainReason = ancestryKeepReason(mainAncestry, MAIN_REF);
   return pullRequestReason === undefined || mainReason === undefined
     ? { kind: "remove" }
     : { kind: "keep", reason: `${pullRequestReason}, and ${mainReason}` };
