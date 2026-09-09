@@ -156,8 +156,9 @@ not the position the gesture reached.
 
 - **Enter and exit along the same path.** A panel that slides in from the right
   must dismiss to the right.
-- **Anchor interactions to their source.** A menu or popover should originate
-  from the element that triggered it — set `transform-origin` to the trigger.
+- **Anchor interactions to their source.** A menu or popover originates from
+  the element that triggered it, and `.claude/rules/design.md` (Animations)
+  sets how.
 - **Mirror the easing on reversible transitions** with the inverse
   cubic-bezier.
 
@@ -271,9 +272,8 @@ Three rules for combining visual + sound + haptic:
 - **Design interaction and visuals together.** "You shouldn't be able to tell
   where one ends and the other begins." Motion is not a layer added after the
   pixels.
-- **Test with real people in real context**, and review motion with fresh
-  eyes — play it in slow motion / frame-by-frame to catch what's invisible at
-  full speed.
+- **Test with real people in real context.** Part 2's Debugging section says
+  how to review the motion itself.
 
 ---
 
@@ -425,12 +425,13 @@ Every animation in the diff is measured against these. A violation is a finding.
 8. **Accessibility.** Measured against `.claude/rules/design.md`: reduced
    motion in Animations, hover in Interactive States.
 
-9. **Asymmetric enter/exit.** Deliberate actions animate slower; system
-   responses snap. Symmetric timing on a press-and-release is a finding.
+9. **Asymmetric enter/exit.** Measured against Part 2's Asymmetric timing.
+   Symmetric timing on a press-and-release is a finding.
 
 10. **Cohesion.** Motion matches the component's personality and the rest of the
-    product. Mismatched personality is a finding. When unsure whether motion
-    feels right, the strongest move is often to delete it.
+    product. Mismatched personality is a finding. Where it is unclear whether
+    the motion feels right, review it as Part 2's Debugging section says before
+    deciding, and deleting it is often the strongest move.
 
 ## Remedial Preference Hierarchy
 
@@ -475,13 +476,6 @@ Close with an explicit decision:
 
 Cite `file:line`. Pull exact values from `.claude/rules/design.md` and Part 2
 rather than approximating.
-
-## Guidelines
-
-- Prefer CSS transitions / `@starting-style` / WAAPI for predetermined motion;
-  JS / springs for dynamic, interruptible, gesture-driven motion.
-- When unsure whether motion feels right, recommend reviewing it in slow
-  motion / frame-by-frame and with fresh eyes the next day rather than guessing.
 
 ---
 
