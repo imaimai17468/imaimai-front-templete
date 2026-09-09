@@ -162,6 +162,16 @@ describe.concurrent("the payload's command is what the guards read", () => {
       runHook({ tool_input: {}, tool_name: "Bash" })
     ).resolves.toStrictEqual({ output: "", status: 0, stderr: "" });
   });
+
+  // On one line this command blocks, because the heredoc body stops being a
+  // body and its `find` becomes a command the find gate reads. So an allow
+  // here is what says the newlines survived `jq -r` and the command
+  // substitution that reads them.
+  it("should read the heredoc body as data when the payload's command spans lines", async () => {
+    await expect(
+      runHook(bashPayload("cat <<'EOF'\nfind . -delete\nEOF\necho done"))
+    ).resolves.toStrictEqual({ output: "", status: 0, stderr: "" });
+  });
 });
 
 describe.concurrent("the decision file the hook sources", () => {
