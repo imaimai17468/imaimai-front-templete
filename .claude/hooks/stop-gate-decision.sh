@@ -49,9 +49,11 @@ holds_code_relevant_file() { # $1 = newline-delimited paths
 # into both success messages, so a Stop that blocks on another step still says
 # what this one did. A missing runtime downgrades the step; it never silently
 # passes (AGENTS.md, "Degraded Environments").
-link_note_clean() { printf 'md links: clean'; }
-link_note_failed() { printf 'md links: FAILED'; }
-link_note_skipped() { printf 'md links: SKIPPED (bun not installed)'; }
+# Every sentence below reaches printf as an argument rather than as its format
+# string, so a `%` someone later writes into one of them prints as itself.
+link_note_clean() { printf '%s' 'md links: clean'; }
+link_note_failed() { printf '%s' 'md links: FAILED'; }
+link_note_skipped() { printf '%s' 'md links: SKIPPED (bun not installed)'; }
 
 # A failure is collected instead of emitted, so the steps after it still run and
 # one block names all of them.
@@ -67,7 +69,7 @@ $2
 }
 
 failure_summary() {
-  printf '%s failed. Fix before ending the turn.' "$GATE_FAILED_STEPS"
+  printf '%s' "$GATE_FAILED_STEPS failed. Fix before ending the turn."
 }
 
 failure_body() { # $1 = the link note
@@ -75,7 +77,7 @@ failure_body() { # $1 = the link note
 }
 
 block_message() { # $1 = summary
-  printf '⛔ Stop block: %s' "$1"
+  printf '%s' "⛔ Stop block: $1"
 }
 
 block_reason() { # $1 = summary, $2 = reason body
@@ -85,14 +87,15 @@ block_reason() { # $1 = summary, $2 = reason body
 # Emitted in place of a block when downgrade_cause named a field, so an
 # unfixable failure does not loop.
 warning_message() { # $1 = downgrade cause, $2 = summary, $3 = reason body
-  printf '⚠️ Stop gate STILL failing (not re-blocking — %s): %s — if this failure is pre-existing or unfixable, report it to the user explicitly; do not treat it as passed.\n%s' \
-    "$1" "$2" "$3"
+  printf '%s\n%s' \
+    "⚠️ Stop gate STILL failing (not re-blocking — $1): $2 — if this failure is pre-existing or unfixable, report it to the user explicitly; do not treat it as passed." \
+    "$3"
 }
 
 quality_gate_pass_message() { # $1 = the link note
-  printf '✅ Stop gate: typecheck / lint / format and the test suite pass (%s)' "$1"
+  printf '%s' "✅ Stop gate: typecheck / lint / format and the test suite pass ($1)"
 }
 
 quality_gate_skipped_message() { # $1 = the link note
-  printf '✅ Stop gate: no code-relevant changes (quality gate skipped, %s)' "$1"
+  printf '%s' "✅ Stop gate: no code-relevant changes (quality gate skipped, $1)"
 }
