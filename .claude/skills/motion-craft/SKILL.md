@@ -420,8 +420,9 @@ Slow where the user is deciding, fast where the system responds.
   `translateY(100%)` moves by the element's height regardless of dimensions.
 - **`scale()` scales children too** (font, icons, content).
 - **3D**: `rotateX/Y` + `transform-style: preserve-3d` for depth/orbit/flip.
-- **`clip-path: inset(t r b l)`** is a powerful animation tool: reveal-on-scroll,
-  hold-to-delete overlay, seamless tab color transitions, comparison sliders.
+- **`clip-path: inset(t r b l)`** drives a hold-to-delete overlay, a seamless
+  tab color transition, and a comparison slider. A reveal gated on scroll is
+  ruled out by `.claude/rules/design.md` (Content States).
 
 ## Gestures & drag
 
