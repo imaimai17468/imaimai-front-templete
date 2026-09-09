@@ -73,8 +73,22 @@ interface DriverRun {
   stderr: string;
 }
 
+/**
+ * How long a shard may take before it is killed.
+ *
+ * Nothing else bounds it: the batch is awaited while this file loads, and a
+ * vitest timeout covers a test rather than a module's evaluation, so a guard
+ * that hangs on one command would hold the whole file. A killed shard loses
+ * the answers it had not printed, which the batch test reads as a count.
+ * The shards run at once, so each one runs for most of the 14 s the load takes.
+ */
+const SHARD_TIMEOUT_MS = 120_000;
+
 const runShard = async (commands: readonly string[]): Promise<DriverRun> => {
-  const driver = spawn("bash", ["-c", DRIVER, "bash", DECISION]);
+  const driver = spawn("bash", ["-c", DRIVER, "bash", DECISION], {
+    killSignal: "SIGKILL",
+    timeout: SHARD_TIMEOUT_MS,
+  });
   driver.stdin.end(commands.map((command) => `${command}\0`).join(""));
   const [stdout, stderr] = await Promise.all([
     text(driver.stdout),
