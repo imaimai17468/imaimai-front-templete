@@ -21,16 +21,13 @@
  * from a case is ever executed.
  */
 
-import type { ChildProcess } from "node:child_process";
-import { spawn } from "node:child_process";
-import { once } from "node:events";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { text } from "node:stream/consumers";
-import { describe, expect, it, onTestFinished } from "vite-plus/test";
+import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 import { z } from "zod";
 import { readHookJson } from "./hook-output";
+import { runBash } from "./run-bash";
 
 const HOOK = path.resolve(import.meta.dirname, "pre-bash-guard.sh");
 
@@ -66,15 +63,6 @@ const denyOutput = (reason: string): z.infer<typeof HookOutput> => ({
   reason,
 });
 
-/** node emits `close` with the exit code and the signal that ended the child. */
-const CloseArgs = z.tuple([z.number().nullable(), z.string().nullable()]);
-
-const exitStatusOf = async (hook: ChildProcess): Promise<number | null> => {
-  const closed: unknown = await once(hook, "close");
-  const [status] = CloseArgs.parse(closed);
-  return status;
-};
-
 /**
  * What one run of the hook produced.
  *
@@ -101,13 +89,9 @@ interface Payload {
 }
 
 const runHook = async (payload: Payload, hookPath = HOOK): Promise<HookRun> => {
-  const hook = spawn("bash", [hookPath]);
-  hook.stdin.end(JSON.stringify(payload));
-  const [stdout, stderr, status] = await Promise.all([
-    text(hook.stdout),
-    text(hook.stderr),
-    exitStatusOf(hook),
-  ]);
+  const { status, stderr, stdout } = await runBash(hookPath, {
+    input: JSON.stringify(payload),
+  });
   return {
     output: stdout.trim() === "" ? "" : readHookJson(stdout, HookOutput),
     status,
@@ -179,11 +163,25 @@ describe.concurrent("the payload's command is what the guards read", () => {
 });
 
 describe.concurrent("the decision file the hook sources", () => {
+  /**
+   * The directory this suite's cases write into, removed when the suite ends.
+   * `onTestFinished` registers against whichever case is current when it runs,
+   * which under `describe.concurrent` is not reliably the case that created
+   * the directory. `beforeAll` assigns it, because vitest runs neither hook
+   * for a suite whose cases a `-t` filter all deselects.
+   */
+  let scratchRoot = "";
+
+  beforeAll(() => {
+    scratchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "pre-bash-guard-"));
+  });
+
+  afterAll(() => {
+    fs.rmSync(scratchRoot, { force: true, recursive: true });
+  });
+
   it("should refuse the command when the decision file is not beside the hook", async () => {
-    const alone = fs.mkdtempSync(path.join(os.tmpdir(), "pre-bash-guard-"));
-    onTestFinished(() => {
-      fs.rmSync(alone, { force: true, recursive: true });
-    });
+    const alone = fs.mkdtempSync(path.join(scratchRoot, "lone-"));
     const copy = path.join(alone, "pre-bash-guard.sh");
     fs.copyFileSync(HOOK, copy);
 
