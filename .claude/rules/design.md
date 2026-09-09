@@ -348,6 +348,22 @@ Animate `transform` and `opacity` only, because the compositor runs them
 without layout or paint. `padding`, `margin`, `height`, `width`, `top`, and
 `left` run all three steps on every frame.
 
+### Interruptibility
+
+A CSS transition retargets from the current value when something interrupts it,
+and `@keyframes` restarts from zero, so anything triggered rapidly takes a
+transition.
+
+`@starting-style` gives an entrance its start value without JavaScript:
+
+```css
+.toast {
+  opacity: 1; transform: translateY(0);
+  transition: opacity 400ms ease, transform 400ms ease;
+  @starting-style { opacity: 0; transform: translateY(100%); }
+}
+```
+
 ## Decoration
 
 A decoration earns its place by encoding information. Each form below arrives by

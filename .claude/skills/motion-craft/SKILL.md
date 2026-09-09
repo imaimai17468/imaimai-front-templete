@@ -314,22 +314,6 @@ Feel natural because they simulate physics; no fixed duration.
 Keep bounce subtle (0.1-0.3); reserve for drag-to-dismiss and playful
 interactions. Springs maintain velocity when interrupted.
 
-## Interruptibility
-
-CSS **transitions** can be interrupted and retargeted mid-animation;
-**keyframes** restart from zero. For anything triggered rapidly, transitions
-are smoother.
-
-Use `@starting-style` for entry without JS:
-
-```css
-.toast {
-  opacity: 1; transform: translateY(0);
-  transition: opacity 400ms ease, transform 400ms ease;
-  @starting-style { opacity: 0; transform: translateY(100%); }
-}
-```
-
 ## Asymmetric timing
 
 Slow where the user is deciding, fast where the system responds.
@@ -447,11 +431,9 @@ Every animation in the diff is measured against these. A violation is a finding.
 5. **Origin & physical correctness.** Measured against the physicality rules in
    `.claude/rules/design.md` (Animations).
 
-6. **Interruptibility.** Rapidly-triggered motion (toasts, toggles) must be
-   interruptible via CSS transitions that retarget from current state, not
-   keyframes that restart from zero. Gesture-driven motion (drag, swipe)
-   specifically requires springs or WAAPI — CSS transitions cannot receive
-   release-velocity handoff (see Part 1 section 3).
+6. **Interruptibility.** Measured against `.claude/rules/design.md`
+   (Animations) for CSS, and against Part 1 section 3 for gesture-driven
+   motion.
 
 7. **GPU-only properties.** Measured against `.claude/rules/design.md`
    (Animations).
