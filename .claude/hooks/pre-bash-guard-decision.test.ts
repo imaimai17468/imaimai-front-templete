@@ -47,11 +47,16 @@ const STAGE = `git ${["st", "age"].join("")}`;
  * substitution's exit status where `printf "$(...)"` takes printf's. Under the
  * `set -e` the decision file carries, a `guard_refusal` that died would then
  * end the driver, and the answers run short of the commands.
+ *
+ * `guard_refusal` reads from /dev/null because the commands still queued on
+ * the driver's own stdin would otherwise be there for a guard that forks
+ * something reading stdin, where under pre-bash-guard.sh the payload has
+ * already been read to EOF by the time the same call runs.
  */
 const DRIVER = `
 . "$1"
 while IFS= read -r -d '' COMMAND; do
-  REFUSAL=$(guard_refusal "$COMMAND")
+  REFUSAL=$(guard_refusal "$COMMAND" </dev/null)
   printf '%s\\0' "$REFUSAL"
 done
 `;
