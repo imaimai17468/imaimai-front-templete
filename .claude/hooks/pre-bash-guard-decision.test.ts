@@ -9,10 +9,10 @@
  * payload the hook reads and the JSON it prints. Nothing in the repository is
  * modified and no command from a case is ever executed.
  *
- * The whole table is answered before the first test runs, by SHARD_COUNT bash
- * processes that each source the decision file once and answer the commands
- * they read NUL-delimited on stdin. A case is then a synchronous comparison
- * and carries none of the driver's wall time.
+ * The whole table is answered before the first test runs, by one bash process
+ * that sources the decision file once and answers the commands it reads
+ * NUL-delimited on stdin. A case is then a synchronous comparison and carries
+ * none of the driver's wall time.
  *
  * A case in the first table asserts the whole refusal sentence, so a branch
  * that answers with another branch's reason fails there. A case in a group
@@ -21,7 +21,6 @@
  */
 
 import { spawn } from "node:child_process";
-import os from "node:os";
 import path from "node:path";
 import { text } from "node:stream/consumers";
 import { describe, expect, it } from "vite-plus/test";
@@ -62,37 +61,35 @@ done
 `;
 
 /**
- * How many driver processes share the table.
+ * How long the driver may take before it is killed.
  *
- * What a command costs is the `sed`, `awk` and `grep` the guards fork for it,
- * not the driver's own start, so one process answers the 280 commands in the
- * sum of them: 53.6 s of this file's load, against 14.4 s to 16.5 s for every
- * count from 2 to 24 (2026-09-09, macOS 16 cores under parallel load). The
- * count is the machine's cores because the flat range covers it.
+ * Nothing else bounds it: the batch is awaited while this file loads, and a
+ * vitest timeout covers a test rather than a module's evaluation, so a guard
+ * that hangs on one command would hold the whole file. A killed driver loses
+ * the answers it had not printed, which the batch test reads as a count.
  */
-const SHARD_COUNT = os.availableParallelism();
+const DRIVER_TIMEOUT_MS = 120_000;
 
-/** What one driver process answered for the slice of the table it was given. */
-interface DriverRun {
-  refusals: readonly string[];
+/** What the driver answered for the table it was given. */
+interface Batch {
+  answered: number;
+  answers: ReadonlyMap<string, string | undefined>;
   stderr: string;
 }
 
 /**
- * How long a shard may take before it is killed.
+ * Answer the whole table in one bash process.
  *
- * Nothing else bounds it: the batch is awaited while this file loads, and a
- * vitest timeout covers a test rather than a module's evaluation, so a guard
- * that hangs on one command would hold the whole file. A killed shard loses
- * the answers it had not printed, which the batch test reads as a count.
- * The shards run at once, so each one runs for most of the 14 s the load takes.
+ * `guard_refusal` answers a command out of the command alone, so a case finds
+ * its answer under the command it sent rather than at a position it has to
+ * keep track of, and two cases sending the same command read the same answer.
+ * `answered` counts what came back before the duplicates collapse, which is
+ * what the batch test at the bottom of this file compares against the table.
  */
-const SHARD_TIMEOUT_MS = 120_000;
-
-const runShard = async (commands: readonly string[]): Promise<DriverRun> => {
+const runDriver = async (commands: readonly string[]): Promise<Batch> => {
   const driver = spawn("bash", ["-c", DRIVER, "bash", DECISION], {
     killSignal: "SIGKILL",
-    timeout: SHARD_TIMEOUT_MS,
+    timeout: DRIVER_TIMEOUT_MS,
   });
   driver.stdin.end(commands.map((command) => `${command}\0`).join(""));
   const [stdout, stderr] = await Promise.all([
@@ -101,43 +98,13 @@ const runShard = async (commands: readonly string[]): Promise<DriverRun> => {
   ]);
   // The driver terminates every answer with a NUL, so the split leaves one
   // trailing empty piece that belongs to no command.
-  return { refusals: stdout.split("\0").slice(0, -1), stderr };
-};
-
-/**
- * What the shards answered between them.
- *
- * `guard_refusal` answers a command out of the command alone, so a case finds
- * its answer under the command it sent rather than at a position it has to
- * keep track of, and two cases sending the same command read the same answer.
- * `answered` counts what came back before the duplicates collapse, which is
- * what the batch test at the bottom of this file compares against the table.
- */
-interface Batch {
-  answered: number;
-  answers: ReadonlyMap<string, string | undefined>;
-  stderr: string;
-}
-
-const runDriver = async (commands: readonly string[]): Promise<Batch> => {
-  // A shard takes every SHARD_COUNT-th command rather than a run of them, so
-  // what it costs does not follow where one kind of shape sits in the table:
-  // 31 of the 68 commands whose first two words are `git` and the commit
-  // subcommand are consecutive, and a run of 18 would have fallen inside them.
-  const slices = Array.from({ length: SHARD_COUNT }, (_, shard) =>
-    commands.filter((_command, index) => index % SHARD_COUNT === shard)
-  );
-  const shards = await Promise.all(
-    slices.map(async (slice) => ({ run: await runShard(slice), slice }))
-  );
+  const refusals = stdout.split("\0").slice(0, -1);
   return {
-    answered: shards.reduce((total, { run }) => total + run.refusals.length, 0),
+    answered: refusals.length,
     answers: new Map(
-      shards.flatMap(({ run, slice }) =>
-        slice.map((command, offset) => [command, run.refusals[offset]] as const)
-      )
+      commands.map((command, index) => [command, refusals[index]] as const)
     ),
-    stderr: shards.map(({ run }) => run.stderr).join(""),
+    stderr,
   };
 };
 
