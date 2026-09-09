@@ -59,11 +59,11 @@ done
 /**
  * How many driver processes share the table.
  *
- * A command costs about 165 ms of a process's own time (35 commands in 5.7 s,
- * 2026-09-09, on a machine under parallel load), and that time is the `sed`,
- * `awk` and `grep` the guards fork per command rather than the driver's start,
- * so one process answers the whole table in the sum of them. Slicing it over
- * the machine's cores runs the slices at once.
+ * What a command costs is the `sed`, `awk` and `grep` the guards fork for it,
+ * not the driver's own start, so one process answers the 280 commands in the
+ * sum of them: 53.6 s of this file's load, against 14.4 s to 16.5 s for every
+ * count from 2 to 24 (2026-09-09, macOS 16 cores under parallel load). The
+ * count is the machine's cores because the flat range covers it.
  */
 const SHARD_COUNT = os.availableParallelism();
 
@@ -101,9 +101,12 @@ interface Batch {
 }
 
 const runDriver = async (commands: readonly string[]): Promise<Batch> => {
-  const size = Math.ceil(commands.length / SHARD_COUNT);
+  // A shard takes every SHARD_COUNT-th command rather than a run of them, so
+  // what it costs does not follow where one kind of shape sits in the table:
+  // 31 of the 68 commands whose first two words are `git` and the commit
+  // subcommand are consecutive, and a run of 18 would have fallen inside them.
   const slices = Array.from({ length: SHARD_COUNT }, (_, shard) =>
-    commands.slice(shard * size, shard * size + size)
+    commands.filter((_command, index) => index % SHARD_COUNT === shard)
   );
   const shards = await Promise.all(
     slices.map(async (slice) => ({ run: await runShard(slice), slice }))
