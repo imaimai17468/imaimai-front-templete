@@ -24,7 +24,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterAll, describe, expect, it } from "vite-plus/test";
+import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 import { z } from "zod";
 import { readHookJson } from "./hook-output";
 import { runBash } from "./run-bash";
@@ -167,11 +167,14 @@ describe.concurrent("the decision file the hook sources", () => {
    * The directory this suite's cases write into, removed when the suite ends.
    * `onTestFinished` registers against whichever case is current when it runs,
    * which under `describe.concurrent` is not reliably the case that created
-   * the directory.
+   * the directory. `beforeAll` assigns it, because vitest runs neither hook
+   * for a suite whose cases a `-t` filter all deselects.
    */
-  const scratchRoot = fs.mkdtempSync(
-    path.join(os.tmpdir(), "pre-bash-guard-cases-")
-  );
+  let scratchRoot = "";
+
+  beforeAll(() => {
+    scratchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "pre-bash-guard-"));
+  });
 
   afterAll(() => {
     fs.rmSync(scratchRoot, { force: true, recursive: true });

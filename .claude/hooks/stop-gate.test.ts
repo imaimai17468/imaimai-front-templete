@@ -27,13 +27,19 @@ const GATE = path.resolve(import.meta.dirname, "stop-gate.sh");
 const DECISION = path.resolve(import.meta.dirname, "stop-gate-decision.sh");
 
 /**
- * Everything the cases write lives under here and goes when the file ends.
- * `onTestFinished` registers against whichever case is current when it runs,
- * and under `describe.concurrent` that is not reliably the case that asked for
- * the directory. Removing each case's tree that way failed three of eight runs
- * of this file; removing one root when the file ends failed none of eight.
+ * Everything the cases write lives under `scratchRoot`, and the suite's
+ * `afterAll` removes it. `onTestFinished` registers against whichever case is
+ * current when it runs, and under `describe.concurrent` that is not reliably
+ * the case that asked for the directory. Removing each case's tree that way
+ * failed three of eight runs of this file; removing one root when the file
+ * ends failed none of eight.
+ *
+ * Both are assigned in `beforeAll` rather than here, because vitest runs
+ * neither hook for a suite whose cases a `-t` filter all deselects, which left
+ * the directories behind while `mkdtempSync` ran at collection time.
  */
-const scratchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "stop-gate-cases-"));
+let scratchRoot = "";
+let templateRoot = "";
 
 /** A directory the case owns. */
 const scratchDir = (prefix: string): string =>
@@ -56,16 +62,14 @@ const PASSING: Steps = {
 /**
  * The paths carrying the step stand-ins, which `scratchRepo` writes with the
  * bodies its caller chose. The template repository lists them in
- * `.git/info/exclude`, so
- * `git status --porcelain` and `git ls-files --others --exclude-standard`
- * report neither and one committed tree serves every set of steps.
+ * `.git/info/exclude`, so `git status --porcelain` and `git ls-files --others
+ * --exclude-standard` report neither and one committed tree serves every set
+ * of steps.
  */
 const STAND_INS = {
   links: ".claude/hooks/check-md-links.ts",
   packageJson: "package.json",
 } as const;
-
-const templateRoot = fs.mkdtempSync(path.join(scratchRoot, "template-"));
 
 const git = (root: string, ...args: string[]): void => {
   // The identity comes from the environment because a CI runner's git has
@@ -91,7 +95,9 @@ const git = (root: string, ...args: string[]): void => {
   }
 };
 
-const buildTemplateRepo = (): void => {
+const createScratchTrees = (): void => {
+  scratchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "stop-gate-cases-"));
+  templateRoot = fs.mkdtempSync(path.join(scratchRoot, "template-"));
   git(templateRoot, "init", "--quiet");
   fs.mkdirSync(path.join(templateRoot, path.dirname(STAND_INS.links)), {
     recursive: true,
@@ -221,7 +227,7 @@ describe.concurrent("stop-gate.sh", { timeout: 30_000 }, () => {
   // `git init` plus `git commit` take 275 ms together on this machine (macOS,
   // 2026-09-09) and copying the tree they leave takes 0.8 ms, so the history
   // is built once here rather than at each of `scratchRepo`'s 13 call sites.
-  beforeAll(buildTemplateRepo);
+  beforeAll(createScratchTrees);
 
   afterAll(() => {
     fs.rmSync(scratchRoot, { force: true, recursive: true });
