@@ -450,9 +450,12 @@ Stagger is decorative — never block interaction while it plays.
 
 ## Accessibility (implementation)
 
+`.claude/rules/design.md` (Interactive States) gates hover animation and bounds
+what a hover may change.
+
 ```css
 @media (hover: hover) and (pointer: fine) {
-  .element:hover { transform: scale(1.05); }
+  .card:hover .card-icon { transform: translateX(2px); }
 }
 ```
 
@@ -510,7 +513,8 @@ Every animation in the diff is measured against these. A violation is a finding.
    (Animations).
 
 8. **Accessibility.** `prefers-reduced-motion` is honored (gentler, not zero).
-   Hover animations gated behind `@media (hover: hover) and (pointer: fine)`.
+   Hover animation is measured against `.claude/rules/design.md` (Interactive
+   States).
 
 9. **Asymmetric enter/exit.** Deliberate actions animate slower; system
    responses snap. Symmetric timing on a press-and-release is a finding.

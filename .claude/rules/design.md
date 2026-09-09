@@ -208,6 +208,8 @@ focus-visible, active, and disabled. Never remove the focus indicator.
 
 A hover state changes fill, color, or an icon's position while the element keeps
 its size and place. Reserve any lift for a card, and carry it with a value shift.
+Gate a hover animation behind `@media (hover: hover) and (pointer: fine)`, which
+leaves it out on a device whose pointer cannot hover.
 
 Set `background` explicitly on every button, because the user-agent default
 differs across browsers.
