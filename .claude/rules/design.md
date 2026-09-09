@@ -207,7 +207,7 @@ defined border.
 
 ```css
 @media (prefers-reduced-transparency: reduce) {
-  .toolbar { background: white; backdrop-filter: none; }
+  .toolbar { background: var(--background); backdrop-filter: none; }
 }
 ```
 
