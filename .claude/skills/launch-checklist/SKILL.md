@@ -100,12 +100,12 @@ For each category in scope, inspect the codebase, configuration, and running app
 
 | # | Item | How to verify |
 |---|------|---------------|
-| 35 | Every page has an appropriate `<title>` tag | Check the router config and each page's head settings |
+| 35 | Every page has an appropriate `<title>` tag | Run a Lighthouse SEO audit (use the `page-audit` skill) |
 | 36 | Canonical URLs are set | Check `<link rel="canonical">`. Normalize URLs with query parameters |
 | 37 | Error pages return an appropriate status code (40x / 50x), or have `noindex` set | Check error handling and response codes |
 | 38 | Search result pages have `noindex` or a canonical URL set | Check the meta tags on search pages |
 | 39 | `noindex` is removed in production | Check the `robots` meta tag and `robots.txt` |
-| 40 | Key pages (top page, etc.) have a meta description | Check the head settings |
+| 40 | Key pages (top page, etc.) have a meta description | Run a Lighthouse SEO audit (use the `page-audit` skill) |
 | 41 | An XML sitemap is generated and registered | Check the `/sitemap.xml` route and its contents |
 
 ### OGP
@@ -136,9 +136,9 @@ For each category in scope, inspect the codebase, configuration, and running app
 
 | # | Item | How to verify |
 |---|------|---------------|
-| 56 | Images have appropriate `alt` attributes | Grep `<img>` tags and check the presence and content of `alt` |
-| 57 | Icon-only buttons / links have an `aria-label` | Check SVG icon buttons. Pattern: `<a aria-label="..."><svg aria-hidden="true"></svg></a>` |
-| 58 | Element roles are recognizable by screen readers | Run a Lighthouse a11y audit (use the `page-audit` skill) |
+| 56 | Images have appropriate `alt` attributes | Run a Lighthouse a11y audit (use the `page-audit` skill) |
+| 57 | Icon-only buttons / links have an `aria-label` | Same as above. A passing icon link reads `<a aria-label="..."><svg aria-hidden="true"></svg></a>` |
+| 58 | Element roles are recognizable by screen readers | Same as above |
 
 ### Performance
 
@@ -168,7 +168,7 @@ measurement. For real LCP / CLS / INP traces run the `page-audit` skill.
 |---|------|---------------|
 | 68 | No problem if local storage / cookies are cleared after 7 days under iOS Safari ITP | Check the auth persistence mechanism |
 | 69 | No dependency on third-party cookies | Check cookie settings and external service integrations |
-| 70 | `<html lang="...">` is set | Check the root HTML template |
+| 70 | `<html lang="...">` is set | Run a Lighthouse a11y audit (use the `page-audit` skill) |
 | 71 | A server-error detection / alerting mechanism exists | Check the error monitoring configuration |
 | 72 | 404 / 50x error pages have a link back to the top page | Check the error page components |
 | 73 | A favicon is set | Check `<link rel="icon">` |
