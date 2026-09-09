@@ -485,6 +485,16 @@ group("find: broad reach is refused", [
     expected: "block",
     why: "no root operand at all",
   },
+  {
+    command: "find\t.\t-type f",
+    expected: "block",
+    why: "tabs around the root",
+  },
+  {
+    command: "git status\nfind / -type f",
+    expected: "block",
+    why: "a find on the second line of a multi-line command",
+  },
 ]);
 
 group("find: actions that run or delete are refused, even when scoped", [
@@ -590,6 +600,21 @@ group("find: text inside a heredoc is data, not a command", [
     command: "cat <<'EOF'\nfind . -delete\nEOF\necho done",
     expected: "allow",
     why: "the body stays data when a command follows the terminator",
+  },
+  {
+    command: "cat <<EOF\nfind / -delete",
+    expected: "block",
+    why: "a body with no terminator cannot be told from the rest, so every line is read as a command",
+  },
+  {
+    command: "cat <<-EOF\nfind / -delete\n\tEOF",
+    expected: "allow",
+    why: "the <<- spelling closes at its tab-indented terminator",
+  },
+  {
+    command: "cat <<''\nfind / -delete\n\necho x",
+    expected: "block",
+    why: "an empty delimiter closes on no line, so the blank line does not end the body",
   },
 ]);
 
@@ -1125,6 +1150,11 @@ group("git add: the shapes that defeated earlier guards here", [
     command: "cat <<'EOF'\ngit add -A\nEOF",
     expected: "allow",
     why: "a heredoc body outside a git command is prose too",
+  },
+  {
+    command: "cat <<A <<B\nbodyA\nA\ngit add -A\nB\necho done",
+    expected: "allow",
+    why: "an operator line opening two heredocs ends at the second terminator, so both bodies stay data",
   },
   {
     command: `${COMMIT} -F - <<'MSG'\nbody\nMSG\ngit add -A`,
