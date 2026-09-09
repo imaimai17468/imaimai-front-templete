@@ -10,9 +10,9 @@
 #
 # Every step above runs even after an earlier one failed, and one block names
 # all of them, so no failure waits for a later Stop to be reported. That block
-# respects stop_hook_active: if this Stop was already blocked once, it
-# downgrades to a warning instead of blocking again, so a pre-existing failure
-# the agent cannot fix does not loop forever.
+# downgrades to a warning instead of blocking again when the payload says this
+# Stop already triggered a followup, so a pre-existing failure the agent cannot
+# fix does not loop forever. The warning names which field said so.
 
 set -uo pipefail
 
@@ -31,20 +31,22 @@ fi
 # triggered) instead — and it runs Claude-registered stop hooks with NO loop
 # limit (loop_limit defaults to null for third-party hooks), so without this
 # mapping a pre-existing failure would re-block forever there.
-STOP_ACTIVE=$(printf '%s' "$INPUT" | jq -r \
-  'if (.stop_hook_active == true) or ((.loop_count // 0) > 0) then "true" else "false" end' \
-  2>/dev/null || echo false)
+# The warning below quotes this value, so a Cursor turn reads `loop_count`
+# rather than a Claude field its payload never carried.
+DOWNGRADE_CAUSE=$(printf '%s' "$INPUT" | jq -r \
+  'if .stop_hook_active == true then "stop_hook_active" elif (.loop_count // 0) > 0 then "loop_count" else "" end' \
+  2>/dev/null || echo "")
 
-# Emit a block — downgraded to a warning when this Stop was already blocked
-# once (stop_hook_active), to prevent an unfixable failure from looping.
+# Emit a block, downgraded to a warning when DOWNGRADE_CAUSE is set, to prevent
+# an unfixable failure from looping.
 # The body reaches jq through a pipe rather than argv: `--arg body "$2"` made
 # execve fail with E2BIG once a step's diagnostics crossed ARG_MAX (1048576 on
 # macOS), and the exit below then ended the turn having printed nothing.
 # `printf` is a shell builtin, so the body never passes through an argv again.
 emit_block() { # $1 = summary, $2 = reason body
-  if [ "$STOP_ACTIVE" = "true" ]; then
-    printf '%s' "$2" | jq -n --arg sum "$1" --rawfile body /dev/stdin '{
-      systemMessage: ("⚠️ Stop gate STILL failing (not re-blocking — stop_hook_active): " + $sum + " — if this failure is pre-existing or unfixable, report it to the user explicitly; do not treat it as passed.\n" + $body)
+  if [ -n "$DOWNGRADE_CAUSE" ]; then
+    printf '%s' "$2" | jq -n --arg sum "$1" --arg cause "$DOWNGRADE_CAUSE" --rawfile body /dev/stdin '{
+      systemMessage: ("⚠️ Stop gate STILL failing (not re-blocking — " + $cause + "): " + $sum + " — if this failure is pre-existing or unfixable, report it to the user explicitly; do not treat it as passed.\n" + $body)
     }'
   else
     printf '%s' "$2" | jq -n --arg sum "$1" --rawfile body /dev/stdin '{

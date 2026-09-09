@@ -323,7 +323,7 @@ md links: FAILED`,
     }).toStrictEqual({
       decision: "",
       summary:
-        "⚠️ Stop gate STILL failing (not re-blocking — stop_hook_active): bun run check failed. Fix before ending the turn. — if this failure is pre-existing or unfixable, report it to the user explicitly; do not treat it as passed.",
+        "⚠️ Stop gate STILL failing (not re-blocking — loop_count): bun run check failed. Fix before ending the turn. — if this failure is pre-existing or unfixable, report it to the user explicitly; do not treat it as passed.",
     });
   });
 
