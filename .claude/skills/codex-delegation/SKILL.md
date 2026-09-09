@@ -5,7 +5,7 @@ description: Hand a ticket's mechanical implementation to the Codex CLI (`codex 
 
 # Codex delegation
 
-One Claude worker spent 96k to 338k tokens per ticket on the 2026-09-08 run. The part of a ticket a gate can accept or reject does not need this repository's judgment, so it goes to Codex, and the worker keeps the ticket.
+What a Claude worker spends on one ticket is the counter AGENTS.md's dispatch bullet measures. The part of a ticket a gate can accept or reject does not need this repository's judgment, so it goes to Codex, and the worker keeps the ticket.
 
 ## What Codex is handed
 
