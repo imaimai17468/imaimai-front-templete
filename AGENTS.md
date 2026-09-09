@@ -72,7 +72,7 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 **Generated types stay generated:** after any `wrangler.toml` change, run `bun run cf-typegen`. That command writes `worker-configuration.d.ts`, so never hand-edit it.
 
-**Verification before completion:** `knip` and `similarity-ts` judge more than your diff, so the Stop gate runs neither: CI runs `knip` on every pull request, and lefthook's pre-push runs `similarity-ts` over `src/` where that binary is on PATH, skipping the step where it is not. Neither is filtered by which files your change touched, and what either finds is yours to fix.
+**Verification before completion:** The Stop gate (`.claude/hooks/stop-gate.sh`) runs `bun run check` and `bun run test` where the turn changed a code or stylesheet file, and `bun .claude/hooks/check-md-links.ts` over the whole repository where it changed anything at all. It runs neither `knip` nor `similarity-ts`, because both judge more than your diff: CI runs `knip` on every pull request, and lefthook's pre-push runs `similarity-ts` over `src/` where that binary is on PATH, skipping the step where it is not. Neither is filtered by which files your change touched, and what either finds is yours to fix.
 
 **Never escape the type system to move on:** no `as` (except `as const`), `any`, `@ts-ignore`/`@ts-expect-error`/`@ts-nocheck`, non-null `!`, or lint-disable comments to silence an error. Fix the type (narrowing, guards, schema validation, `satisfies`). Where you genuinely cannot, dispatch a subagent with the right skill. Where that still fails, leave the PR in Draft with a comment naming the type that will not resolve and report it, and never silently cast or suppress.
 
