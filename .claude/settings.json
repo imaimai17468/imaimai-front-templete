@@ -18,7 +18,9 @@
       "Bash(gh pr merge --squash *)",
       "Bash(bun run format)",
       "Bash(git fetch *)",
-      "Bash(actionlint *)"
+      "Bash(actionlint *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr checks *)"
     ],
     "deny": [
       "Bash(rm -rf /)",
@@ -88,5 +90,6 @@
     "typescript-lsp@claude-plugins-official": true,
     "context7@claude-plugins-official": true
   },
-  "plansDirectory": "./.claude/plans"
+  "plansDirectory": "./.claude/plans",
+  "claudeMdExcludes": ["**/.claude/worktrees/**"]
 }
