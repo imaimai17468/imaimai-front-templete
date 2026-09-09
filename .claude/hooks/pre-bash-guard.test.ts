@@ -1233,6 +1233,21 @@ group("git rm: named paths stay unattended", [
   },
 ]);
 
+// `echo a \<\< MARK` prints the text `a << MARK` and runs the next line, so a
+// removal written there is a command rather than a heredoc body.
+group("an escaped << does not open a heredoc", [
+  {
+    command: `echo a \\<\\< MARK\n${RM} -r .\nMARK`,
+    expected: "block",
+    why: "a removal on the line after an escaped <<",
+  },
+  {
+    command: "echo a \\<\\< MARK\ngit add -A\nMARK",
+    expected: "block",
+    why: "a blanket stage on the line after an escaped <<",
+  },
+]);
+
 // `$'x'` is bash's ANSI-C quoting and `$"x"` its locale form; both hand git
 // the argument `'x'` hands it.
 group("a dollar sign before a quote does not hide the operand", [

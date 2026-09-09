@@ -440,6 +440,14 @@ case "$SCRUBBED" in
       scrub_message_body '"' "$GIT_MESSAGE_FLAG")
     ;;
 esac
+# The heredoc drop reads the raw text, ahead of the strips below, because the
+# backslash strip turns `echo a \<\< MARK` into a heredoc opener the shell
+# never saw: bash ran the next line of `echo a \<\< MARK` / `echo LINE2_RAN` /
+# `MARK` and printed `a << MARK` and `LINE2_RAN`, where the awk read `MARK` as
+# a delimiter and dropped both lines after it. Written as `echo "a << MARK"`
+# the two `<` are adjacent in the raw text as well, and the awk has no quote
+# state to tell that pair from an opener, so that spelling still drops them.
+WALK_PLAIN=$(printf '%s' "$WALK_PLAIN" | drop_heredoc_body)
 # `$'x'` and `$"x"` hand git the same argument `'x'` does, and the quote strip
 # below leaves their `$` behind: `git rm -r $'.'` and `git rm -r .$''` each
 # listed all three tracked files of the scratch repository, where the walk saw
@@ -458,11 +466,7 @@ WALK_PLAIN=${WALK_PLAIN//[\"\'\`]/}
 # pair into a space puts the subcommand back beside its `git`.
 WALK_PLAIN=${WALK_PLAIN//\\$'\n'/ }
 WALK_PLAIN=${WALK_PLAIN//\\/}
-# A line of the split that reads `EOF` does not end the heredoc below, because
-# bash finds that delimiter in the script text before expanding anything into
-# the body.
-CMD_TEXT=$(printf '%s' "$WALK_PLAIN" | drop_heredoc_body)
-CMD_SEGMENTS=${CMD_TEXT//[;|\&()]/$'\n'}
+CMD_SEGMENTS=${WALK_PLAIN//[;|\&()]/$'\n'}
 # A bare `*` operand has to survive word splitting as itself rather than
 # expanding to the working directory's entries.
 set -f
