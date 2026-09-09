@@ -24,7 +24,6 @@ import { z } from "zod";
 import { readHookJson } from "./hook-output";
 
 const HOOK = path.resolve(import.meta.dirname, "pre-bash-guard.sh");
-const REPO = path.resolve(import.meta.dirname, "../..");
 
 // Joined so this file's own text is not itself a commit-shaped command.
 const COMMIT_SUB = ["com", "mit"].join("");
@@ -90,9 +89,7 @@ interface HookRun {
 const hookStdout = async (
   command: string
 ): Promise<[string, string, number | null]> => {
-  const hook = spawn("bash", [HOOK], {
-    env: { ...process.env, CLAUDE_PROJECT_DIR: REPO },
-  });
+  const hook = spawn("bash", [HOOK]);
   hook.stdin.end(
     JSON.stringify({ tool_input: { command }, tool_name: "Bash" })
   );
