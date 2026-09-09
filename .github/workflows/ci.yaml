@@ -115,7 +115,7 @@ jobs:
         run: bun .claude/hooks/check-md-links.ts
 
       - name: Check the Cursor rule mirrors
-        run: bun scripts/check-cursor-rule-mirrors.ts
+        run: bun scripts/check-cursor-rule-mirrors.entry.ts
 
       # `vp check` runs format, lint and type checks in one pass, which is why
       # this workflow has no separate tsc step.

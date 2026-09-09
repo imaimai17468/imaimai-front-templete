@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { signInWithGoogle } from "@/lib/auth/actions";
+import { signInWithGoogle } from "@/lib/auth/actions.live";
 
 const LoginComponent = () => (
   <div className="absolute inset-0 flex flex-col items-center justify-center gap-8">

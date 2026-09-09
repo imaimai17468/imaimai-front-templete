@@ -2,8 +2,8 @@
 
 /**
  * ```
- * bun scripts/check-cursor-rule-mirrors.ts         # this repository
- * bun scripts/check-cursor-rule-mirrors.ts <root>  # a tree holding both directories
+ * bun scripts/check-cursor-rule-mirrors.entry.ts         # this repository
+ * bun scripts/check-cursor-rule-mirrors.entry.ts <root>  # a tree holding both directories
  * ```
  *
  * Exits non-zero when any mirror has stopped mirroring its rule, which

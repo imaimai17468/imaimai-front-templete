@@ -5,8 +5,8 @@ import {
   avatarExtensionForMime,
   avatarKeyFromUrl,
 } from "@/lib/storage/avatar-validation";
-import { deleteFromR2, uploadToR2 } from "@/lib/storage/r2";
-import { drizzleUserStore } from "./drizzle-store";
+import { deleteFromR2, uploadToR2 } from "@/lib/storage/r2.live";
+import { drizzleUserStore } from "./drizzle-store.live";
 import type { UserGatewayDeps } from "./ports";
 
 export type UpdateUserAvatarResult =
