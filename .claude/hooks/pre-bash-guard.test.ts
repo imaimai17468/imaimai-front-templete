@@ -6,7 +6,7 @@
  * pre-bash-guard-decision.test.ts drives that file's `guard_refusal` over the
  * command table without forking the hook. What is left here is the entry's
  * own: which tool names reach the guards, what happens when the decision file
- * cannot be loaded, the default a payload without a command takes, and the
+ * cannot be loaded, what the command it reads out of the payload is, and the
  * deny JSON in both dialects with the exit status and the empty stderr that
  * travel with it.
  *
@@ -157,7 +157,11 @@ describe.concurrent("the payload's tool name decides whether the guards run", ()
 });
 
 describe.concurrent("the payload's command is what the guards read", () => {
-  it("should judge the empty command when the payload carries no command at all", async () => {
+  // What the hook reads out of a payload with no command is `null` where the
+  // `// ""` default is deleted and the empty string where it stays, and the
+  // guards allow both, so this case pins the run rather than the default:
+  // the hook finishes, prints nothing and writes nothing to stderr.
+  it("should finish silently when the payload carries no command at all", async () => {
     await expect(
       runHook({ tool_input: {}, tool_name: "Bash" })
     ).resolves.toStrictEqual({ output: "", status: 0, stderr: "" });
