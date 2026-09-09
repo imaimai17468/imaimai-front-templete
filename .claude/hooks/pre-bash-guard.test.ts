@@ -3,7 +3,7 @@
  *
  * The guard carries three decisions that are easy to break and impossible to
  * notice: the protected-env-file block, the `find` gate and the unnamed-changes
- * gate over `git add` and `git commit`.
+ * gate over `git add`, `git rm` and `git commit`.
  * Each case below feeds the real hook a synthetic PreToolUse payload and asserts
  * the decision it returns. Nothing in the repository is modified and no command
  * from a case is ever executed.
@@ -29,6 +29,8 @@ const REPO = path.resolve(import.meta.dirname, "../..");
 // Joined so this file's own text is not itself a commit-shaped command.
 const COMMIT_SUB = ["com", "mit"].join("");
 const COMMIT = `git ${COMMIT_SUB}`;
+const RM_SUB = ["r", "m"].join("");
+const RM = `git ${RM_SUB}`;
 
 // `ask` is a decision the guard's find gate weighs emitting and argues against
 // where it denies instead, so a case may come to expect it; none does today.
@@ -46,6 +48,7 @@ const HookOutput = z.object({
   hookSpecificOutput: z
     .object({ permissionDecision: z.string().optional() })
     .optional(),
+  reason: z.string().optional(),
 });
 
 const asDecision = (permissionDecision: string | undefined): Decision =>
@@ -84,19 +87,35 @@ interface HookRun {
   stderr: string;
 }
 
-const runHook = async (command: string): Promise<HookRun> => {
+const hookStdout = async (
+  command: string
+): Promise<[string, string, number | null]> => {
   const hook = spawn("bash", [HOOK], {
     env: { ...process.env, CLAUDE_PROJECT_DIR: REPO },
   });
   hook.stdin.end(
     JSON.stringify({ tool_input: { command }, tool_name: "Bash" })
   );
-  const [stdout, stderr, status] = await Promise.all([
+  return await Promise.all([
     text(hook.stdout),
     text(hook.stderr),
     exitStatusOf(hook),
   ]);
+};
+
+const runHook = async (command: string): Promise<HookRun> => {
+  const [stdout, stderr, status] = await hookStdout(command);
   return { decision: readDecision(stdout), status, stderr };
+};
+
+/**
+ * The sentence a refusal hands the agent, which `runHook` drops. A case built
+ * on the decision alone cannot tell one subcommand's remediation from
+ * another's, so `git rm` could be told to run `git add`.
+ */
+const refusalOf = async (command: string): Promise<string> => {
+  const [stdout] = await hookStdout(command);
+  return readHookJson(stdout, HookOutput).reason ?? "";
 };
 
 interface Case {
@@ -108,6 +127,14 @@ interface Case {
 // A heredoc case spans lines, and a test name has to stay on one.
 const oneLine = (command: string): string => command.replaceAll("\n", "\\n");
 
+// A case waits on the other cases of its group, so its wall time tracks the
+// machine's load rather than the hook's own work. At vitest's 5 s default this
+// file failed 18 of its 202 cases in one round of three, and passed the other
+// two, on a machine under parallel load (2026-09-09). Six times that default
+// carried three rounds run beside a `bun run check`, and a hook that hangs
+// still fails.
+const HOOK_TIMEOUT_MS = 30_000;
+
 const group = (title: string, cases: readonly Case[]): void => {
   describe.concurrent(title, () => {
     it.each(
@@ -117,13 +144,17 @@ const group = (title: string, cases: readonly Case[]): void => {
         // truncates the label from the right.
         label: `${one.expected} (${one.why}) \`${oneLine(one.command)}\``,
       }))
-    )("$label", async ({ command, expected }) => {
-      await expect(runHook(command)).resolves.toStrictEqual({
-        decision: expected,
-        status: 0,
-        stderr: "",
-      });
-    });
+    )(
+      "$label",
+      async ({ command, expected }) => {
+        await expect(runHook(command)).resolves.toStrictEqual({
+          decision: expected,
+          status: 0,
+          stderr: "",
+        });
+      },
+      HOOK_TIMEOUT_MS
+    );
   });
 };
 
@@ -1153,3 +1184,216 @@ group("git commit: the shapes that defeated earlier guards here", [
     why: "a gh api -f body is not scrubbed, so a parenthesised shape inside it is refused",
   },
 ]);
+
+// `git rm` deletes from the worktree the set `git add` stages, and its
+// operands are read as a pathspec the same way. The `git add` groups above
+// already drive the shared operand test and the prefix walk, so these cases
+// cover what `git rm` adds: the subcommand routing, the flags it has of its
+// own, and the reason it carries when nothing is named.
+group("git rm: a removal that takes the whole tree is refused", [
+  { command: `${RM} -r .`, expected: "block", why: "the working directory" },
+  {
+    command: `${RM} -r -- .`,
+    expected: "block",
+    why: "a -- separator does not make it a path",
+  },
+  {
+    command: `${RM} -rf .`,
+    expected: "block",
+    why: "the force letter in the cluster does not make it a path",
+  },
+  {
+    command: `${RM} --cached -r .`,
+    expected: "block",
+    why: "--cached takes the same set out of the index",
+  },
+  { command: `${RM} -r ./`, expected: "block", why: "bare ./" },
+  {
+    command: `git status && ${RM} -r .`,
+    expected: "block",
+    why: "chained behind another command",
+  },
+]);
+
+group("git rm: named paths stay unattended", [
+  {
+    command: `${RM} -r src/old-dir`,
+    expected: "allow",
+    why: "a bulk delete of one named directory",
+  },
+  {
+    command: `${RM} --cached src/foo.ts`,
+    expected: "allow",
+    why: "an index-only removal of a named path",
+  },
+  {
+    command: `${RM_SUB} -rf node_modules`,
+    expected: "allow",
+    why: "a shell rm opens the segment itself, so the git walk never starts",
+  },
+]);
+
+// `echo a \<\< MARK` prints the text `a << MARK` and runs the next line, so a
+// removal written there is a command rather than a heredoc body.
+group("an escaped << does not open a heredoc", [
+  {
+    command: `echo a \\<\\< MARK\n${RM} -r .\nMARK`,
+    expected: "block",
+    why: "a removal on the line after an escaped <<",
+  },
+  {
+    command: "echo a \\<\\< MARK\ngit add -A\nMARK",
+    expected: "block",
+    why: "a blanket stage on the line after an escaped <<",
+  },
+]);
+
+// `$'x'` is bash's ANSI-C quoting and `$"x"` its locale form; both hand git
+// the argument `'x'` hands it.
+group("a dollar sign before a quote does not hide the operand", [
+  {
+    command: `${RM} -r $'.'`,
+    expected: "block",
+    why: "an ANSI-C quoted working directory",
+  },
+  {
+    command: `${RM} -r .$''`,
+    expected: "block",
+    why: "an empty ANSI-C quote appended to the working directory",
+  },
+  {
+    command: `${RM} -r $"."`,
+    expected: "block",
+    why: "the locale-quoted spelling of the same operand",
+  },
+  {
+    command: "git add $'-A'",
+    expected: "block",
+    why: "the same spelling around a blanket stage flag",
+  },
+  {
+    command: `${COMMIT} -m $'fix .'`,
+    expected: "block",
+    why: "an ANSI-C message body is not scrubbed, so its words stay operands",
+  },
+  {
+    command: `${RM} $'src/foo.ts'`,
+    expected: "allow",
+    why: "an ANSI-C quoted path still names its own file",
+  },
+]);
+
+// `sub/..` is the directory above `sub`, and the operand test reads the last
+// component rather than searching the whole path, so a `..` in the middle of a
+// named path keeps that path named.
+group("an operand that ends at .. reaches above what it names", [
+  {
+    command: `${RM} -r sub/..`,
+    expected: "block",
+    why: "a removal that climbs back to the repository root",
+  },
+  {
+    command: `${RM} -r sub/../`,
+    expected: "block",
+    why: "the same climb with a trailing slash",
+  },
+  {
+    command: `${RM} -r sub/../.`,
+    expected: "block",
+    why: "the same climb with a trailing dot",
+  },
+  {
+    command: "git add sub/..",
+    expected: "block",
+    why: "the same operand stages everything above sub",
+  },
+  {
+    command: "git add ../sibling/foo.ts",
+    expected: "allow",
+    why: "a .. that is not the last component still names its own file",
+  },
+  {
+    command: `${RM} -r ../sibling/old-dir`,
+    expected: "allow",
+    why: "a directory outside the working directory is still named",
+  },
+]);
+
+// The shell splices a backslash-newline pair away before it reads the command,
+// so each of these runs one `git` with its subcommand beside it.
+group("a line continuation does not split a subcommand from its git", [
+  {
+    command: `git \\\n  ${RM_SUB} -r .`,
+    expected: "block",
+    why: "a wrapped git rm still takes the whole tree",
+  },
+  {
+    command: "git \\\n  add -A",
+    expected: "block",
+    why: "a wrapped git add still stages the whole worktree",
+  },
+  {
+    command: `git \\\n  ${COMMIT_SUB} -a`,
+    expected: "block",
+    why: "a wrapped git commit still sweeps the worktree",
+  },
+  {
+    command: `${RM} \\\n  src/foo.ts`,
+    expected: "allow",
+    why: "a wrapped removal that names its path is still named",
+  },
+  {
+    command: `${COMMIT} -F - <<'MSG'\nends with a backslash \\\nMSG\ngit push`,
+    expected: "allow",
+    why: "a heredoc body line ending in a backslash still ends at its terminator",
+  },
+]);
+
+group("git rm: a pathspec the command text does not show is refused", [
+  { command: RM, expected: "block", why: "no operand at all" },
+  {
+    command: `${RM} -r`,
+    expected: "block",
+    why: "a recursive flag still names no path",
+  },
+  {
+    command: `${RM} --pathspec-from-f paths.txt`,
+    expected: "block",
+    why: "the paths sit in a file the guard cannot read, under the prefix spelling git accepts",
+  },
+]);
+
+// Every case above reads the decision, so the sentence a refusal hands the
+// agent is judged here instead: a `git rm` told to stage with `git add` would
+// pass all of them.
+describe.concurrent("the refusal names the subcommand's own next step", () => {
+  it(
+    "should name git rm and git ls-files when a git rm is refused",
+    async () => {
+      await expect(refusalOf(`${RM} -r .`)).resolves.toBe(
+        "PreToolUse(Bash): this `git rm` is refused because `.` names no file or directory of its own. Name the paths to delete (`git rm src/foo.ts src/bar.ts`, or `git rm -r src/old-dir` for one directory). `git ls-files` lists the tracked paths."
+      );
+    },
+    HOOK_TIMEOUT_MS
+  );
+
+  it(
+    "should name git add and git status when a git add is refused",
+    async () => {
+      await expect(refusalOf("git add -A")).resolves.toBe(
+        "PreToolUse(Bash): this `git add` is refused because the short option -A stages every change in the worktree instead of the paths you name. Name the files this commit needs (`git add src/foo.ts src/bar.ts`), and take part of a file with `git add -p`. `git status --short` lists what changed."
+      );
+    },
+    HOOK_TIMEOUT_MS
+  );
+
+  it(
+    "should name staging first when a git commit is refused",
+    async () => {
+      await expect(refusalOf(`${COMMIT} -a`)).resolves.toBe(
+        "PreToolUse(Bash): this `git commit` is refused because the short option -a commits every tracked change in the worktree instead of the ones you staged. Stage the files this commit needs (`git add src/foo.ts src/bar.ts`, or `git add -p` for part of a file), then commit that staged set with `git commit -m`. `git status --short` lists what changed."
+      );
+    },
+    HOOK_TIMEOUT_MS
+  );
+});
