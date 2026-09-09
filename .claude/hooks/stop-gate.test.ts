@@ -108,14 +108,12 @@ const GateOutput = z.object({
 /** What one Stop gate run reported. */
 type GateRun = z.infer<typeof GateOutput> & {
   status: number | null;
-  stderr: string;
   stdout: string;
 };
 
 /** The Stop payload the harness sends. JSON.stringify drops the absent fields. */
 interface StopPayload {
   cwd: string;
-  hook_event_name: string;
   loop_count: number | undefined;
   stop_hook_active: boolean | undefined;
 }
@@ -132,7 +130,6 @@ interface RunOptions {
 const runGate = (root: string, options: RunOptions = {}): GateRun => {
   const payload: StopPayload = {
     cwd: options.cwd ?? root,
-    hook_event_name: "Stop",
     loop_count: options.loopCount,
     stop_hook_active: options.stopHookActive,
   };
@@ -150,7 +147,6 @@ const runGate = (root: string, options: RunOptions = {}): GateRun => {
   return {
     ...readHookJson(result.stdout, GateOutput),
     status: result.status,
-    stderr: result.stderr,
     stdout: result.stdout,
   };
 };
