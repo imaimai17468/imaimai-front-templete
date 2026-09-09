@@ -10,7 +10,7 @@ const CloseArgs = z.tuple([z.number().nullable(), z.string().nullable()]);
 export interface BashRunOptions {
   cwd?: string;
   env?: NodeJS.ProcessEnv;
-  input?: string;
+  input: string;
 }
 
 /** What one bash run produced. */
@@ -32,7 +32,7 @@ export interface BashRun {
  */
 export const runBash = async (
   script: string,
-  options: BashRunOptions = {}
+  options: BashRunOptions
 ): Promise<BashRun> => {
   const child = spawn("bash", [script], {
     cwd: options.cwd,
@@ -40,7 +40,7 @@ export const runBash = async (
   });
   const stdout = text(child.stdout);
   const stderr = text(child.stderr);
-  child.stdin.end(options.input ?? "");
+  child.stdin.end(options.input);
   const closed: unknown = await once(child, "close");
   const [status] = CloseArgs.parse(closed);
   return { status, stderr: await stderr, stdout: await stdout };
