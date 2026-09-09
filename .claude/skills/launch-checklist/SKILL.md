@@ -160,7 +160,7 @@ measurement. For real LCP / CLS / INP traces run the `page-audit` skill.
 | 64 | The UI does not break at phone / tablet sizes | Check responsiveness with chrome-devtools |
 | 65 | Verified in browsers other than Chrome (Safari, Firefox) | Manual check (note in the report) |
 | 66 | No layout jitter from the scrollbar on Windows | Check the `scrollbar-gutter` setting |
-| 67 | The UI does not break when user input is long | Check rendering with long usernames, etc. |
+| 67 | The UI does not break when user input is long | Run the text-container tests in `.claude/rules/design.md` (Dynamic Content) |
 
 ### Other
 
