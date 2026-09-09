@@ -1363,6 +1363,70 @@ group("git rm: a pathspec the command text does not show is refused", [
   },
 ]);
 
+// The guard rewrites each spelling to `.` ahead of its walk, so a refusal here
+// quotes `.` rather than the spelling the command carried.
+group("an operand that expands to the working directory is refused", [
+  {
+    command: `${RM} -r "$PWD"`,
+    expected: "block",
+    why: "the variable the shell keeps the working directory in",
+  },
+  {
+    command: `${RM} -r "\${PWD}"`,
+    expected: "block",
+    why: "the braced spelling of that variable",
+  },
+  {
+    command: `${RM} -r $(pwd)`,
+    expected: "block",
+    why: "a command substitution, whose parentheses would otherwise cut the segment",
+  },
+  {
+    command: `${RM} -r \`pwd\``,
+    expected: "block",
+    why: "the backticked substitution, which the quote strip would otherwise flatten to a name",
+  },
+  {
+    command: `${RM} -r "$PWD"/.`,
+    expected: "block",
+    why: "a trailing component that still names the same directory",
+  },
+]);
+
+group("an operand that names its own path stays unattended", [
+  {
+    command: 'git add "$FILE"',
+    expected: "allow",
+    why: "an operand whose value only the shell holds",
+  },
+  {
+    command: "git add $(git diff --name-only)",
+    expected: "allow",
+    why: "a substitution the rewrite leaves whole",
+  },
+  {
+    command: 'git add "$PWD/src/foo.ts"',
+    expected: "allow",
+    why: "one file addressed from the working directory",
+  },
+]);
+
+// `${PWD:-.}` and `$(pwd -P)` print the working directory too, and the four
+// literal patterns miss them. These rows record that edge, so widening the
+// rewrite fails them instead of moving the edge in silence.
+group("a working-directory spelling the four patterns miss passes", [
+  {
+    command: `${RM} -r "\${PWD:-.}"`,
+    expected: "allow",
+    why: "an expansion carrying a default",
+  },
+  {
+    command: `${RM} -r $(pwd -P)`,
+    expected: "allow",
+    why: "a pwd carrying an option",
+  },
+]);
+
 // Every case above reads the decision, so the sentence a refusal hands the
 // agent is judged here instead: a `git rm` told to stage with `git add` would
 // pass all of them.
@@ -1372,6 +1436,16 @@ describe.concurrent("the refusal names the subcommand's own next step", () => {
     async () => {
       await expect(refusalOf(`${RM} -r .`)).resolves.toBe(
         "PreToolUse(Bash): this `git rm` is refused because `.` names no file or directory of its own. Name the paths to delete (`git rm src/foo.ts src/bar.ts`, or `git rm -r src/old-dir` for one directory). `git ls-files` lists the tracked paths."
+      );
+    },
+    HOOK_TIMEOUT_MS
+  );
+
+  it(
+    "should name the working-directory spellings when the rewrite fired",
+    async () => {
+      await expect(refusalOf(`${RM} -r "$PWD"`)).resolves.toBe(
+        "PreToolUse(Bash): this `git rm` is refused because `.` names no file or directory of its own. `$PWD` and `pwd` expand to the working directory, so this guard reads the operand you spelled with one of them as `.`. Name the paths to delete (`git rm src/foo.ts src/bar.ts`, or `git rm -r src/old-dir` for one directory). `git ls-files` lists the tracked paths."
       );
     },
     HOOK_TIMEOUT_MS
