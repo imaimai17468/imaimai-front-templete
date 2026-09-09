@@ -11,6 +11,8 @@ A dispatch names `model`, and the value follows the ticket rather than the sessi
 
 ## Worker brief
 
+AGENTS.md's Workflow section decides whether the ticket invokes `ticket-work`. A docs-only ticket does not, and takes this brief with the two `ticket-work` paragraphs it points at below.
+
 In a fresh worktree, run the setup `ticket-work`'s opening paragraph names before anything else. Create the ticket's branch, and push it with `-u`.
 
 Hold the pull request as `ticket-work` step 7 says, from the Draft opened after the first commit through `gh pr merge --squash` and the deletion of the remote branch. Writing that step's poll as `[ "$(gh pr checks …)" = pass ]` instead was refused, as AGENTS.md's Degraded Environments says of a worktree-isolated session's commands.
