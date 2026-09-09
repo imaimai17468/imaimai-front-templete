@@ -336,8 +336,9 @@ Find further curves at [easing.dev](https://easing.dev/) or
 
 ### Physicality
 
-An entrance starts at `scale(0.9)` to `scale(0.97)` with `opacity: 0`, never at
-`scale(0)`.
+Where an entrance scales, it starts between `scale(0.9)` and `scale(0.97)` with
+`opacity: 0`, never at `scale(0)`. An entrance pairs its opacity change with a
+transform rather than fading alone.
 
 A popover, dropdown, or tooltip scales from its trigger. The Radix primitives in
 `src/components/ui/` publish that point as a CSS variable, which
