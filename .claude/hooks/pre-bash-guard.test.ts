@@ -11,10 +11,10 @@
  * travel with it.
  *
  * One refusal sentence is spelled out below even though pre-bash-guard-decision.sh
- * is what words it. A deny case asserts the whole object jq built, both
- * dialects carry the sentence inside that object, and the sentence holds the
- * backticks, slashes and parentheses jq has to encode. Rewording that branch
- * of the guard therefore fails a case here too.
+ * is what words it. A deny case asserts the whole object jq built, and the
+ * sentence is what says it reached both of that object's dialects unchanged
+ * through the command substitution that read it. Rewording that branch of the
+ * guard therefore fails a case here too.
  *
  * Every case forks the hook, which forks jq of its own, so the cases of this
  * file run concurrently. Nothing in the repository is modified and no command
