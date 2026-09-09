@@ -156,6 +156,8 @@ if command -v bun >/dev/null 2>&1; then
     LINK_NOTE=$(link_note_failed)
   fi
 else
+  # A missing runtime downgrades the step; it never silently passes
+  # (AGENTS.md, "Degraded Environments").
   LINK_NOTE=$(link_note_skipped)
 fi
 

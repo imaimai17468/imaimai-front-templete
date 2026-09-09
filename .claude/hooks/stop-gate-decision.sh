@@ -45,10 +45,7 @@ holds_code_relevant_file() { # $1 = newline-delimited paths
   return 1
 }
 
-# The markdown link check's own verdict, which travels into the block body and
-# into both success messages, so a Stop that blocks on another step still says
-# what this one did. A missing runtime downgrades the step; it never silently
-# passes (AGENTS.md, "Degraded Environments").
+# The three verdicts the markdown link check can print.
 # Every sentence below reaches printf as an argument rather than as its format
 # string, so a `%` someone later writes into one of them prints as itself.
 link_note_clean() { printf '%s' 'md links: clean'; }
