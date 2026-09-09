@@ -14,7 +14,14 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it, onTestFinished } from "vite-plus/test";
+import {
+  afterAll,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  onTestFinished,
+} from "vite-plus/test";
 import { z } from "zod";
 import { readHookJson } from "./hook-output";
 
@@ -45,50 +52,72 @@ const PASSING: Steps = {
 };
 
 /**
- * A committed git repository with the three step stand-ins in place, plus the
+ * The paths carrying the step stand-ins, which every case writes with its own
+ * bodies. The template repository lists them in `.git/info/exclude`, so
+ * `git status --porcelain` and `git ls-files --others --exclude-standard`
+ * report neither and one committed tree serves every set of steps.
+ */
+const STAND_INS = {
+  links: ".claude/hooks/check-md-links.ts",
+  packageJson: "package.json",
+} as const;
+
+const templateRoot = fs.mkdtempSync(
+  path.join(os.tmpdir(), "stop-gate-template-")
+);
+
+const git = (root: string, ...args: string[]): void => {
+  // The identity comes from the environment because a CI runner's git has
+  // none, and signing is turned off because a machine whose global config
+  // signs every commit has no key for this scratch repository.
+  const result = spawnSync(
+    "git",
+    ["-c", "commit.gpgsign=false", "-c", "init.defaultBranch=main", ...args],
+    {
+      cwd: root,
+      encoding: "utf-8",
+      env: {
+        ...process.env,
+        GIT_AUTHOR_EMAIL: "gate@example.com",
+        GIT_AUTHOR_NAME: "gate",
+        GIT_COMMITTER_EMAIL: "gate@example.com",
+        GIT_COMMITTER_NAME: "gate",
+      },
+    }
+  );
+  if (result.status !== 0) {
+    throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
+  }
+};
+
+const buildTemplateRepo = (): void => {
+  git(templateRoot, "init", "--quiet");
+  fs.writeFileSync(
+    path.join(templateRoot, ".git/info/exclude"),
+    `${Object.values(STAND_INS)
+      .map((standIn) => `/${standIn}`)
+      .join("\n")}\n`
+  );
+  git(templateRoot, "commit", "--allow-empty", "--quiet", "-m", "scaffolding");
+};
+
+/**
+ * A git repository carrying one commit and the three step stand-ins, plus the
  * named files left untracked so `git status --porcelain` reports them and
  * `holds_code_relevant_file` sees them.
  */
 const scratchRepo = (steps: Steps, untracked: readonly string[]): string => {
   const root = scratchDir("stop-gate-");
+  fs.cpSync(templateRoot, root, { recursive: true });
   fs.mkdirSync(path.join(root, ".claude/hooks"), { recursive: true });
   fs.writeFileSync(
-    path.join(root, "package.json"),
+    path.join(root, STAND_INS.packageJson),
     `${JSON.stringify({
       name: "stop-gate-scratch",
       scripts: { check: steps.check, test: steps.test },
     })}\n`
   );
-  fs.writeFileSync(
-    path.join(root, ".claude/hooks/check-md-links.ts"),
-    `${steps.links}\n`
-  );
-  // The identity comes from the environment because a CI runner's git has
-  // none, and signing is turned off because a machine whose global config
-  // signs every commit has no key for this scratch repository.
-  const git = (...args: string[]): void => {
-    const result = spawnSync(
-      "git",
-      ["-c", "commit.gpgsign=false", "-c", "init.defaultBranch=main", ...args],
-      {
-        cwd: root,
-        encoding: "utf-8",
-        env: {
-          ...process.env,
-          GIT_AUTHOR_EMAIL: "gate@example.com",
-          GIT_AUTHOR_NAME: "gate",
-          GIT_COMMITTER_EMAIL: "gate@example.com",
-          GIT_COMMITTER_NAME: "gate",
-        },
-      }
-    );
-    if (result.status !== 0) {
-      throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
-    }
-  };
-  git("init", "--quiet");
-  git("add", "package.json", ".claude/hooks/check-md-links.ts");
-  git("commit", "--quiet", "-m", "scaffolding");
+  fs.writeFileSync(path.join(root, STAND_INS.links), `${steps.links}\n`);
   untracked.forEach((name) => {
     fs.writeFileSync(path.join(root, name), "x\n");
   });
@@ -181,6 +210,15 @@ const pathWithOnly = (names: readonly string[]): string => {
 };
 
 describe("stop-gate.sh", () => {
+  // `git init` plus `git commit` take 275 ms together on this machine (macOS,
+  // 2026-09-09) and copying the tree they leave takes 0.8 ms, so the history
+  // every case needs is built once here rather than fourteen times.
+  beforeAll(buildTemplateRepo);
+
+  afterAll(() => {
+    fs.rmSync(templateRoot, { force: true, recursive: true });
+  });
+
   it("should stay silent when the tree holds no change", () => {
     const root = scratchRepo(PASSING, []);
 
