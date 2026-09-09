@@ -201,6 +201,16 @@ blends at every edge. Where the blur bands, the shadow leaks past the shape, or
 the effect jumps on hover, give the element an opaque surface. Never stack one
 translucent surface on another.
 
+Under `prefers-reduced-transparency: reduce`, give the surface a frostier or
+opaque fill, and under `prefers-contrast: more`, a near-solid background with a
+defined border.
+
+```css
+@media (prefers-reduced-transparency: reduce) {
+  .toolbar { background: white; backdrop-filter: none; }
+}
+```
+
 ## Interaction & Content
 
 ### Interactive States
@@ -347,6 +357,21 @@ and the stagger never blocks interaction while it plays.
 Animate `transform` and `opacity` only, because the compositor runs them
 without layout or paint. `padding`, `margin`, `height`, `width`, `top`, and
 `left` run all three steps on every frame.
+
+### Reduced Motion
+
+`prefers-reduced-motion: reduce` asks for gentler motion rather than none.
+Replace a slide or a spring with a short cross-fade, drop the overshoot, and
+keep opacity and color.
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  .sheet { transition: opacity 200ms ease; transform: none !important; }
+}
+```
+
+Leave out a full-viewport moving background, a slow looping oscillation around
+0.2 Hz, and an abrupt brightness jump.
 
 ### Interruptibility
 

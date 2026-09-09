@@ -227,24 +227,9 @@ Three rules for combining visual + sound + haptic:
 
 ## 14. Reduced motion & accessibility
 
-Reduced motion means *gentler*, not zero. Respond to three independent signals:
-
-- **`prefers-reduced-motion: reduce`** — replace slides/springs with short
-  cross-fades. Drop elastic/overshoot. Keep opacity/color.
-- **`prefers-reduced-transparency: reduce`** — frostier/solid surfaces.
-- **`prefers-contrast: more`** — near-solid backgrounds with defined borders.
-
-Avoid full-viewport moving backgrounds, slow looping oscillations (~0.2 Hz),
-and abrupt brightness jumps.
-
-```css
-@media (prefers-reduced-motion: reduce) {
-  .sheet { transition: opacity 200ms ease; transform: none !important; }
-}
-@media (prefers-reduced-transparency: reduce) {
-  .toolbar { background: white; backdrop-filter: none; }
-}
-```
+`.claude/rules/design.md` sets what this repository does under
+`prefers-reduced-motion` (Animations), and under
+`prefers-reduced-transparency` and `prefers-contrast` (Elevation).
 
 ## 15. Typography — optical sizing, tracking, leading
 
@@ -438,9 +423,8 @@ Every animation in the diff is measured against these. A violation is a finding.
 7. **GPU-only properties.** Measured against `.claude/rules/design.md`
    (Animations).
 
-8. **Accessibility.** `prefers-reduced-motion` is honored (gentler, not zero).
-   Hover animation is measured against `.claude/rules/design.md` (Interactive
-   States).
+8. **Accessibility.** Measured against `.claude/rules/design.md`: reduced
+   motion in Animations, hover in Interactive States.
 
 9. **Asymmetric enter/exit.** Deliberate actions animate slower; system
    responses snap. Symmetric timing on a press-and-release is a finding.
