@@ -80,6 +80,18 @@ HEREDOC_OPERATOR_RE='<<-?[[:blank:]]*[^[:blank:]]'
 drop_heredoc_body() { # $1 = text; sets HEREDOC_DROPPED
   local -a LINES
   local KEPT="" BODY="" DELIM="" LINE TRIMMED OPENED=0 CLOSED=0
+  # No `<<` is no operator line, so the walk below would keep every line. It is
+  # skipped because the split copies the text it has left at each line, which
+  # costs more the longer the command is: splitting and walking one took
+  # 0.017 ms at 3 lines, 0.43 ms at 50 and 4.2 ms at 200, over 1500 rounds each
+  # (macOS, bash 5.3.9, 2026-09-09), and three of the guards' passes call this.
+  case "$1" in
+    *'<<'*) ;;
+    *)
+      HEREDOC_DROPPED=$1
+      return 0
+      ;;
+  esac
   split_lines "$1"
   for LINE in "${LINES[@]}"; do
     if [ "$OPENED" -eq 0 ]; then
