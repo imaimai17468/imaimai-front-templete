@@ -1,0 +1,718 @@
+# shellcheck shell=bash
+# The decision behind the PreToolUse(Bash) guard: given one command's text,
+# `guard_refusal` prints the sentence that refuses it, and prints nothing for a
+# command the three guards below allow. Reading the hook payload off stdin and
+# printing the refusal in each harness's dialect stay in pre-bash-guard.sh,
+# which sources this file. Nothing here forks jq, so
+# pre-bash-guard-decision.test.ts answers its case table in one bash process.
+# One set of 40 commands took 8.0 s that way against 15.6 s as 40 hook forks
+# (macOS under parallel load, 2026-09-09), and the 8.0 s is the sed, awk and
+# grep the guards below still fork per command.
+#
+# pre-bash-guard.sh sets these options too, and they are here as well so the
+# test driver runs the guards under the same ones.
+set -euo pipefail
+
+# Drop a heredoc body, keeping the operator line, the terminator's own line and
+# everything after it: text a command receives on stdin is data rather than a
+# filename or a nested command, while a command chained after the terminator is
+# a command. Dropping only when the body ran to the end of the input instead
+# read the body as commands whenever anything followed, so
+# `git commit -F - <<'MSG'` / `git add -A was refused` / `MSG` / `git push`
+# was refused for a command nobody wrote. With no terminator the body cannot be
+# told from the rest, so every line is kept. A redirect belongs to the operator
+# line, which is kept either way. Guards 1, 2 and 3 all read the result.
+drop_heredoc_body() {
+  awk '
+    BEGIN { q = sprintf("%c", 39); op = 0; term = 0 }
+    { lines[NR] = $0 }
+    op == 0 && /<<-?[ \t]*[^ \t]/ {
+      op = NR
+      d = $0
+      sub(/^.*<<-?[ \t]*/, "", d)
+      gsub(/["]/, "", d)
+      gsub(q, "", d)
+      sub(/[ \t].*$/, "", d)
+      next
+    }
+    op > 0 && term == 0 && d != "" {
+      trimmed = $0
+      sub(/^[ \t]+/, "", trimmed)
+      sub(/[ \t]+$/, "", trimmed)
+      if (trimmed == d) { term = NR }
+    }
+    END {
+      for (i = 1; i <= NR; i++) {
+        if (term > 0 && i > op && i <= term) { continue }
+        print lines[i]
+      }
+    }
+  '
+}
+
+# Delete the quoted body of an inline-text flag. The whole command is one awk
+# record, so a body spanning lines is still one match. sed cannot do this
+# portably here: its `N` loop quits WITHOUT printing when there is no next line
+# on BSD sed, which emptied every single-line command. The patterns callers
+# pass also avoid `\|` and `{1,2}` — BRE alternation is a GNU extension and awk
+# intervals are not universal — so `--?m(essage)?` carries both git spellings
+# instead. Guard 1 reads the result to tell prose from file access, Guard 3 to
+# tell a commit message from a pathspec.
+#
+# The loop below carries the parity of quote characters already emitted, and
+# deletes a body only where that parity is even, because one `gsub` over the
+# whole record cannot see quote state and matched a `-m` sitting INSIDE a
+# quoted argument. Its `[^q]*` then ran from that argument's closing quote to
+# the real message's opening quote, so `echo 'use -m' && git commit -a -m 'x'`
+# had `-m' && git commit -a -m '` deleted and reached Guard 3 as `echo 'usex'`.
+# `echo 'x -m' && git add -A && git commit -m 'y'` walked around the `git add`
+# refusal the same way. On odd parity the matched span is emitted unchanged up
+# to the quote that closes that argument, and scanning resumes after it.
+scrub_message_body() { # $1 = the quote character delimiting the body, $2 = flag pattern
+  awk -v q="$1" -v flags="$2" '
+    BEGIN { RS = "\034" }
+    {
+      pattern = flags "[= ]?" q "[^" q "]*" q
+      kept = ""
+      rest = $0
+      while (match(rest, pattern)) {
+        before = substr(rest, 1, RSTART - 1)
+        counted = before
+        if (gsub(q, q, counted) % 2 == 0) {
+          kept = kept before
+          rest = substr(rest, RSTART + RLENGTH)
+        } else {
+          from_flag = substr(rest, RSTART)
+          closes_at = index(from_flag, q)
+          kept = kept before substr(from_flag, 1, closes_at)
+          rest = substr(from_flag, closes_at + 1)
+        }
+      }
+      printf "%s", kept rest
+    }
+  '
+}
+
+# git's two spellings of the inline-message flag, as one awk ERE.
+GIT_MESSAGE_FLAG='--?m(essage)?'
+
+# --- Guard 1: .env protection (applies to parent and sidechains alike) ---
+# Scrub the committed example files, then look for a token that *starts* with
+# `.env` (optionally `.env.local` / `.env.development` / `.env.production`).
+# For `git` and `gh` commands only, the quoted bodies of the inline-text flags
+# selected below are also scrubbed first: prose about env files in a commit
+# message, a pull request body or a review body is not file access. The scrub
+# is deliberately NOT applied to other commands — a quoted message flag can be
+# repurposed as a file argument elsewhere (e.g. `sort -m ".env"`).
+#
+# GUARD_SCRUBBED carries the result to `refuse_protected_env_file` and
+# `refuse_unnamed_changes`, which both read it.
+scrub_command_text() { # $1 = the Bash tool's command text
+  local SCRUBBED FIRST_WORD TEXT_FLAG_PATTERN
+  SCRUBBED=$(printf '%s' "$1" | sed 's/\.env[.A-Za-z]*\.example//g')
+  # NR==1 with an exit: awk would otherwise print the first field of every line,
+  # and a multi-line command (a heredoc body) then matched no first word at all.
+  FIRST_WORD=$(printf '%s' "$SCRUBBED" | awk 'NR == 1 { print $1; exit }')
+  # gh takes inline text through --body, --title and --subject, and reads a file
+  # through -F/--body-file and -T/--template (gh 2.86.0). gsub runs over the
+  # whole command rather than over the leading gh alone, so the short -b/-t stay
+  # out: with `-b` in the pattern the scrub took the operand of a chained
+  # `cat -b '.env'`, which the grep below then never saw. The pattern follows the
+  # command's first word, so a gh body behind a leading command is left alone.
+  case "$FIRST_WORD" in
+    git) TEXT_FLAG_PATTERN=$GIT_MESSAGE_FLAG ;;
+    gh) TEXT_FLAG_PATTERN='--(body|title|subject)' ;;
+    *) TEXT_FLAG_PATTERN='' ;;
+  esac
+  if [ -n "$TEXT_FLAG_PATTERN" ]; then
+    # Single-quoted bodies are always inert (no expansion inside single quotes).
+    SCRUBBED=$(printf '%s' "$SCRUBBED" | scrub_message_body "'" "$TEXT_FLAG_PATTERN")
+    # Double-quoted bodies expand $(...) / ${...} / backticks, so scrub them
+    # only when the command contains no substitution opener at all. A bare `$`
+    # (e.g. "$5/mo") is inert and still scrubs; any backtick is conservatively
+    # treated as a potential pair (= execution) and blocks scrubbing.
+    # shellcheck disable=SC2016 # the openers are matched as literal text here
+    case "$SCRUBBED" in
+      *'$('*|*'${'*|*'`'*) ;;
+      *) SCRUBBED=$(printf '%s' "$SCRUBBED" | scrub_message_body '"' "$TEXT_FLAG_PATTERN") ;;
+    esac
+    # A `-F -` / `--body-file -` body arrives as a heredoc instead, by a route the
+    # flag scrub above does not cover.
+    SCRUBBED=$(printf '%s' "$SCRUBBED" | drop_heredoc_body)
+  fi
+  GUARD_SCRUBBED=$SCRUBBED
+}
+
+refuse_protected_env_file() { # reads GUARD_SCRUBBED
+  local UNESCAPED UNQUOTED
+  # `.env` is one of several spellings the shell turns into the same filename: it
+  # drops a backslash and a quote pair from a word, so `.e\nv`, `.en"v"` and
+  # `.e''nv` all reach the file (each printed `.env` on 2026-09-08). The grep gets
+  # the command text and both undecorated forms as three lines, and matching any
+  # one of them refuses the command, so no spelling this normalizes can cost a
+  # block that the raw text already earned. Replacing the text with the
+  # undecorated form instead would have cost one: `"` and `'` are members of the
+  # character classes below, and dropping them turns `cat -b'.env'` into
+  # `cat -b.env`, whose `b` those classes do not list.
+  UNESCAPED=${GUARD_SCRUBBED//\\/}
+  UNQUOTED=${UNESCAPED//[\"\']/}
+  # The set before `.env` decides which tokens count as the filename. `@` joined
+  # it because `gh api -F key=@FILE` reads the file named after the `@` (gh
+  # 2.86.0), and `curl -d @FILE` and `curl -F name=@FILE` read it too.
+  if printf '%s\n%s\n%s' "$GUARD_SCRUBBED" "$UNESCAPED" "$UNQUOTED" | grep -qE '(^|[[:space:]"'\''`=@{}:,;&|<>(/-])\.env(\.(local|development|production))?([[:space:]"'\''`{}:,;&|<>)*]|$)'; then
+    GUARD_REFUSAL="PreToolUse(Bash): this command references a protected env file (.env / .env.local / .env.development / .env.production). Reading or writing these is denied regardless of tool. Use .env.local.example for documented placeholders. To write the filename as prose, put it in a quoted body of \`git\` -m/--message or of \`gh\` --body/--title/--subject: a single-quoted body is read as prose, a double-quoted one only when the command contains no \$(, \${ or backtick."
+  fi
+}
+
+# --- Guard 2: find with broad reach, or an action that runs or deletes ---
+# `find` itself is allow-listed: path discovery is
+# routine agent work and prompting for every `find node_modules/...` bought
+# nothing. Two shapes are not routine, and this guard prompts for them instead of
+# letting the allow rule through:
+#
+#   - A broad search root. `find . -type f | xargs cat` reads every file in the
+#     repository — including the local env file, which under the standing
+#     drizzle-kit exception can hold a real D1 API token — using only allow-listed commands.
+#     Guard 1 never sees it because the command text contains no `.env` literal.
+#     So the reach has to be judged from the root, not from the action.
+#   - `-exec` / `-delete` and relatives. These reach past the `rm -rf` prefixes in
+#     `deny` and can run an arbitrary command per match.
+#
+# Over-matching is the safe direction here: an unnecessary prompt costs a
+# keystroke, a missed one costs the boundary.
+#
+# This walks tokens instead of matching one regex, because the first draft did
+# the latter and a reviewer defeated it twice: anchoring on the character after
+# `find ` meant `find "." -type f` slipped through (the quote shifts it), and
+# `find` takes MORE THAN ONE starting path, so `find src / -type f` hid a broad
+# root behind a narrow one. Quotes are stripped and every leading operand is
+# checked.
+refuse_broad_find() { # $1 = the Bash tool's command text
+  local NORM NORM_FIND FIND_SEGMENTS FIND_ASK SEG TOK SAW_FIND ROOT_COUNT
+  local IN_PREDICATES
+  # Whitespace-normalized command for Guard 2, its only reader: the segment
+  # filter below matches the literal " find ", so irregular spacing (`find  .`,
+  # tabs, newlines) must not slip past it.
+  NORM=$(printf '%s' "$1" | drop_heredoc_body | tr -s '[:space:]' ' ')
+  FIND_ASK=""
+  # A heredoc body is data, not a command — a commit message describing
+  # `find . | xargs cat` must not trip this. Guard 1 scrubs `-m` bodies for the
+  # same reason; this is the heredoc case, found when the first version of this
+  # guard refused the commit that introduced it. NORM's `drop_heredoc_body` drops
+  # the body by reading the terminator. Truncating from the first `<<` instead
+  # left `cat <<EOF` / `x` / `EOF` / `find / -type f` allowed, because everything
+  # after the terminator went with the body.
+  NORM_FIND=$(printf '%s' "$NORM" | tr -d "'\"\`")
+  FIND_SEGMENTS=${NORM_FIND//[;|&]/$'\n'}
+  while IFS= read -r SEG; do
+    [ -n "$FIND_ASK" ] && break
+    case " $SEG " in
+      *' find '*) ;;
+      *) continue ;;
+    esac
+    SAW_FIND=0
+    ROOT_COUNT=0
+    IN_PREDICATES=0
+    for TOK in $SEG; do
+      if [ "$SAW_FIND" -eq 0 ]; then
+        [ "$TOK" = find ] && SAW_FIND=1
+        continue
+      fi
+      case "$TOK" in
+        # An action that runs a command or deletes, wherever it appears.
+        -exec|-execdir|-ok|-okdir|-delete|-fprint|-fprintf|-fls)
+          FIND_ASK="it carries an action that runs a command or deletes files"
+          break
+          ;;
+        # Any other flag ends the operand list; the rest are predicate values.
+        -*) IN_PREDICATES=1 ;;
+        *)
+          [ "$IN_PREDICATES" -eq 1 ] && continue
+          ROOT_COUNT=$((ROOT_COUNT + 1))
+          case "$TOK" in
+            . | ./ | .. | ../ | /* | '~'* | '$'* | *'..'*)
+              FIND_ASK="a search root reaches the whole repository (or outside it), so it can read files the deny list protects"
+              break
+              ;;
+          esac
+          ;;
+      esac
+    done
+    # `find -name x` with no operand searches the working directory implicitly.
+    if [ -z "$FIND_ASK" ] && [ "$SAW_FIND" -eq 1 ] && [ "$ROOT_COUNT" -eq 0 ]; then
+      FIND_ASK="it names no search root, so it searches the working directory"
+    fi
+    # `printf` terminates the last segment, which `read` would otherwise drop.
+  done < <(printf '%s\n' "$FIND_SEGMENTS")
+  if [ -n "$FIND_ASK" ]; then
+    # Blocks rather than prompts. A hook's `permissionDecision: "ask"` is a valid
+    # value, but the documented precedence only settles that a *blocking* hook
+    # overrides an `allow` rule — which this file's Guard 1 proves in practice by
+    # stopping allow-listed `cat .env.local`. Whether a hook's `ask` prompts for an
+    # already-allowed command is unstated, and a guard that silently does nothing
+    # is worse than a strict one. Revisit if that behaviour is ever confirmed.
+    GUARD_REFUSAL="PreToolUse(Bash): this \`find\` is refused because ${FIND_ASK}. A find scoped to a subdirectory, without -exec/-execdir/-ok/-okdir/-delete/-fprint/-fls, runs unattended — narrow it if that is enough. If the broad form is genuinely needed, ask the user to run it."
+  fi
+}
+
+# --- Guard 3: a git add or git commit that takes changes nobody named ---
+# For `git add`, `-A`, `--all` and `--no-ignore-removal` stage every change in
+# the worktree and `-u`/`--update` every tracked one; `.`, `./`, `..`, `/` and a
+# bare `*` name no file of their own; a glob in an operand's first component
+# reaches the whole tree, so `git add '*.ts'` from the root staged every `.ts`
+# in the scratch repository; `:/` and `:(top)` each staged all of it from a
+# subdirectory; and `git stage` ran the same builtin (git 2.50.1, 2026-09-08).
+# `git add -p` keeps working: it selects hunks instead of sweeping the tree.
+#
+# `git commit` reaches that same set in one step, so it is walked too. `-a`,
+# `--all` and a cluster carrying `a` each committed both modified files of the
+# scratch repository, and so did a blanket pathspec with no flag at all
+# (`git commit -m x .`, `-- .`, `'*.txt'` and `':/'` each committed both),
+# because git reads a pathspec as `--only` when neither `--include` nor
+# `--only` is given. commit's `-u` is `--untracked-files`, a display mode that
+# staged nothing, so that letter is refused for `git add` and allowed here
+# (git 2.50.1, 2026-09-09). `--include`/`--only` with no pathspec needs no
+# branch of its own: git answered
+# `fatal: No paths with --include/--only does not make sense.`
+#
+# `git rm` reads its operands as a pathspec too, and reaches the whole tree the
+# same way. Run as `git rm -n` against a scratch repository holding `a.txt`,
+# `sub/b.txt` and `old-dir/c.txt`, each of `-r .`, `-r -- .`, `-rf .`,
+# `--cached -r .`, `-r ./`, `-r :/`, `-r :(top)`, `-r '*'` and `'*.txt'` listed
+# all three, where `-r old-dir` listed that directory's file alone and a bare
+# `git rm` answered `fatal: No pathspec was given. Which files should I
+# remove?` (git 2.50.1, 2026-09-09). Every option `git rm -h` lists apart from
+# `--pathspec-from-file` (dry-run, quiet, cached, force, `-r`, ignore-unmatch,
+# sparse, pathspec-file-nul) changes how it removes rather than which paths, so
+# its operands decide the refusal and its walk carries no flag branch of its
+# own.
+#
+# The text is Guard 1's SCRUBBED, so a `git`/`gh` message body quoting a refused
+# shape stays prose, plus one more heredoc drop so a body written under any other
+# command is prose too. The command is then split on `;|&()` and on newlines,
+# because the shapes a reviewer used against Guard 2 reach this guard as well:
+# `git add "."`, `git  add  -A`, `git status && git add -A`, and
+# `GIT_DIR=x git add .`.
+#
+# `git` has to open the segment, behind nothing but assignments and a wrapper
+# such as `env`, `sh -c` or `xargs`. That anchor is what leaves
+# `rg 'git add .' src` unattended instead of refusing a search for the text it
+# looks for. Two routes stay out of reach: a shell function or a script file,
+# which no token walk sees, and an operand whose value only the shell holds, so
+# `git add "$FILE"` and `git add $(git diff --name-only)` pass as named paths.
+# `$PWD` and `pwd` are the exception, and the rewrite below spells them `.`.
+# This binds the habit rather than a deliberate bypass.
+#
+# The shell drops a quote pair and a backslash from a word, so `g""it`, `\-A`
+# and `\*` all reach git undecorated; Guard 1 normalizes the same two
+# decorations at UNQUOTED for the same reason. Both run as parameter
+# expansions, so neither forks a `tr`, and both run before the early-outs below,
+
+# Set REFUSED to the reason one operand takes more than it names, and leave it
+# alone when the operand names a path of its own. `git add`, `git rm` and
+# `git commit` all read their operands as a pathspec, so all three call this.
+# It assigns rather than printing its answer, because a `$(...)` read-back
+# forks a subshell per operand token on a hook that runs before every Bash
+# call.
+refuse_unnamed_operand() { # $1 = one operand token
+  case "$1" in
+    :*)
+      REFUSED="an operand begins with \`:\`, so it is pathspec magic rather than a path: \`:\` is the working directory, and \`:/\` and \`:(top)\` are the repository root"
+      return
+      ;;
+  esac
+  # Strip the punctuation a path is built from. An operand left empty spells
+  # the working directory, a parent, a root or a glob, and names no file of its
+  # own.
+  if [ -z "${1//[.*?~\/]/}" ]; then
+    REFUSED="\`${1}\` names no file or directory of its own"
+    return
+  fi
+  # An operand that ends at `..` climbs back out of the directory it names:
+  # `git rm -n -r sub/..`, `sub/../` and `sub/../.` each listed all three
+  # tracked files of the scratch repository, where `sub` listed one
+  # (git 2.50.1, 2026-09-09). Trailing `/` and `/.` come off first so all three
+  # spellings meet the same test, and only where `..` is the last component,
+  # which leaves `git add ../sibling/foo.ts` naming its own file.
+  local CLIMBS_OUT=$1
+  while :; do
+    case "$CLIMBS_OUT" in
+      */) CLIMBS_OUT=${CLIMBS_OUT%/} ;;
+      */.) CLIMBS_OUT=${CLIMBS_OUT%/.} ;;
+      *) break ;;
+    esac
+  done
+  case "$CLIMBS_OUT" in
+    .. | */..)
+      REFUSED="\`${1}\` ends at \`..\`, so it reaches the directory above the one it names"
+      return
+      ;;
+  esac
+  # A glob in the first path component starts its match at the top:
+  # `git add '*.ts'` from the repository root staged every `.ts` in the tree,
+  # including the ones nobody listed, and `git commit -m x '[ab].txt'` reported
+  # both modified files of the scratch repository as changes to be committed,
+  # so `[` counts with `*` and `?`. A glob further down
+  # (`src/components/ui/*.tsx`) is bounded by the directory named ahead of it.
+  case "${1%%/*}" in
+    *[*?[]*)
+      REFUSED="the first path component of \`${1}\` is a glob (\`*\`, \`?\` or a \`[\` class), so it matches names you did not list"
+      ;;
+  esac
+}
+
+refuse_unnamed_changes() { # reads GUARD_SCRUBBED
+  local CMD_PLAIN WALK_PLAIN WALK_BEFORE_PWD PWD_NOTE CMD_SEGMENTS SEG TOK
+  local STATE SKIP_VALUE SUB HAS_SELECTION REFUSED CLUSTER BEFORE_VALUE
+  local NEXT_STEP
+  CMD_PLAIN=${GUARD_SCRUBBED//[\"\'\`]/}
+  CMD_PLAIN=${CMD_PLAIN//\\/}
+  # Only a segment a literal `git` opens can be refused, so a command whose text
+  # holds no `git` leaves before the awk fork below. This hook runs on every Bash
+  # call, and on `ls -la` over two rounds of 60 interleaved runs it took 173 ms
+  # and 184 ms with this case against 181 ms and 203 ms without it (a machine
+  # under parallel load, 2026-09-08). Nothing this function does after the
+  # early-out below can refuse a command with no `git` in its text.
+  case "$CMD_PLAIN" in
+    *git*) ;;
+    *) return 0 ;;
+  esac
+  # A refusal needs a segment whose token is `add`, `stage`, `commit` or `rm`,
+  # and the heredoc drop below only removes whole lines, so a command whose text
+  # holds none of those four names cannot reach one. `git status`, `git log` and
+  # `git push` all leave here instead of forking the awk, where
+  # `git diff --staged` walks on because its flag carries `stage`. On a
+  # `git status --short` payload, 60 runs of this hook took 20.4 s, 20.2 s and
+  # 21.5 s in three rounds with the three-name form of this case, against 23.5 s,
+  # 24.3 s and 22.6 s for 60 runs without it (a machine under parallel load,
+  # 2026-09-09).
+  #
+  # `rm` is two letters and needs its own token boundaries, where the other three
+  # do not. Over 3300 Bash commands taken from this project's session
+  # transcripts, the three-name form admitted 429, a bare `*rm*` 580, and the
+  # four patterns below 471; `format`, `permission`, `nrm` and `rmtree` are what
+  # the extra 151 hold. The four spell "the token `rm`, at either end of the text
+  # or with a separator on each side", and the class lists the characters a
+  # separator is not. None of the 109 they drop holds a `git rm`, and this guard
+  # decides each of those 109 the way it did before `rm` joined the case.
+  case "$CMD_PLAIN" in
+    *add* | *stage* | *commit*) ;;
+    rm | rm[!A-Za-z0-9_.-]* | *[!A-Za-z0-9_.-]rm | *[!A-Za-z0-9_.-]rm[!A-Za-z0-9_.-]*) ;;
+    *) return 0 ;;
+  esac
+  REFUSED=""
+  # The words of a `-m` body are the message rather than operands, and Guard 1
+  # leaves them in the text whenever the command's first word is neither `git`
+  # nor `gh`, or a double-quoted body holds `$(`, `${` or a backtick. So
+  # `git commit -m "docs: \`x\` **強調** を直した"` reached this walk with
+  # `**強調**` reading as a first-component glob, and `cd sub && git commit -m
+  # 'test: *.ts covered'` with `*.ts`. Both quote styles are scrubbed here with
+  # no such condition, because a quoted body is one argument: a flag or pathspec
+  # written outside it survives the scrub, so `-m "msg" .` and `-m "msg" -a` are
+  # still refused. An ANSI-C-quoted body is not scrubbed, so `-m $'fix .'` is
+  # refused. The `*-m*` test keeps the two awk forks off a command with no
+  # message flag at all, `--message` included, because that spelling holds `-m`.
+  WALK_PLAIN=$GUARD_SCRUBBED
+  case "$GUARD_SCRUBBED" in
+    *-m*)
+      WALK_PLAIN=$(printf '%s' "$GUARD_SCRUBBED" |
+        scrub_message_body "'" "$GIT_MESSAGE_FLAG" |
+        scrub_message_body '"' "$GIT_MESSAGE_FLAG")
+      ;;
+  esac
+  # The heredoc drop reads the raw text, ahead of the strips below, because the
+  # backslash strip turns `echo a \<\< MARK` into a heredoc opener the shell
+  # never saw: bash ran the next line of `echo a \<\< MARK` / `echo LINE2_RAN` /
+  # `MARK` and printed `a << MARK` and `LINE2_RAN`, where the awk read `MARK` as
+  # a delimiter and dropped both lines after it. Written as `echo "a << MARK"`
+  # the two `<` are adjacent in the raw text as well, and the awk has no quote
+  # state to tell that pair from an opener, so that spelling still drops them.
+  WALK_PLAIN=$(printf '%s' "$WALK_PLAIN" | drop_heredoc_body)
+  # `$'x'` and `$"x"` hand git the same argument `'x'` does, and the quote strip
+  # below leaves their `$` behind: `git rm -r $'.'` and `git rm -r .$''` each
+  # listed all three tracked files of the scratch repository, where the walk saw
+  # the operand `$.` and read it as a name (git 2.50.1, 2026-09-09). Dropping the
+  # `$` puts them back on the plain spelling. This runs after the message scrub
+  # above rather than before it, so an ANSI-C body stays outside what the scrub
+  # takes and `git commit -m $'fix .'` is still refused.
+  WALK_PLAIN=${WALK_PLAIN//\$\'/\'}
+  WALK_PLAIN=${WALK_PLAIN//\$\"/\"}
+  # `$PWD`, `${PWD}`, `$(pwd)` and a backticked `pwd` each expand to the working
+  # directory. `git rm -r` given each of those four spellings, and given
+  # `"$PWD"/.`, took all three tracked files of the scratch repository out of the
+  # index and off disk, the set `git rm -r .` took, and `--cached` left all three
+  # on disk for `"$PWD"` as it did for `.` (git 2.50.1, 2026-09-09). Rewriting
+  # them to `.` puts them through the operand tests the plain spelling already
+  # meets, and leaves `git add "$PWD/src/foo.ts"` naming its own file. This runs
+  # ahead of the quote strip below so the backticked form is still a pair, and
+  # ahead of the segment split so `$(pwd)`'s parentheses do not cut the segment
+  # in two. The four patterns are literal, so a spelling one character off prints
+  # the same directory and is left alone: this guard allowed `git rm -r` given
+  # `${PWD:-.}`, `$(pwd -P)` and `$(pwd )`, and `-n` listed all three tracked
+  # files of the scratch repository for each of them (2026-09-09).
+  WALK_BEFORE_PWD=$WALK_PLAIN
+  WALK_PLAIN=${WALK_PLAIN//\$\{PWD\}/.}
+  WALK_PLAIN=${WALK_PLAIN//\$\(pwd\)/.}
+  WALK_PLAIN=${WALK_PLAIN//\`pwd\`/.}
+  WALK_PLAIN=${WALK_PLAIN//\$PWD/.}
+  # The rewrite runs before `refuse_unnamed_operand` reads an operand, so
+  # `git rm -r "$PWD"` is refused for a `.` the command does not contain. This
+  # note joins that refusal wherever the rewrite changed the text, so the agent
+  # reads a verdict on the token it wrote.
+  PWD_NOTE=""
+  if [ "$WALK_PLAIN" != "$WALK_BEFORE_PWD" ]; then
+    PWD_NOTE=" \`\$PWD\` and \`pwd\` expand to the working directory, so this guard reads the operand you spelled with one of them as \`.\`."
+  fi
+  WALK_PLAIN=${WALK_PLAIN//[\"\'\`]/}
+  # A backslash before a newline is a line continuation the shell splices away,
+  # so `git \` on one line and `rm -r .` on the next is one command running
+  # `git rm -r .`. The blanket backslash strip below leaves the newline behind,
+  # and the segment split reads a newline as a separator, so the walk got `git`
+  # and `rm -r .` as two segments and neither is a refusable shape. Joining the
+  # pair into a space puts the subcommand back beside its `git`.
+  WALK_PLAIN=${WALK_PLAIN//\\$'\n'/ }
+  WALK_PLAIN=${WALK_PLAIN//\\/}
+  CMD_SEGMENTS=${WALK_PLAIN//[;|\&()]/$'\n'}
+  # A bare `*` operand has to survive word splitting as itself rather than
+  # expanding to the working directory's entries.
+  set -f
+  while IFS= read -r SEG; do
+    STATE=prefix
+    SKIP_VALUE=0
+    SUB=""
+    HAS_SELECTION=0
+    for TOK in $SEG; do
+      if [ "$SKIP_VALUE" -eq 1 ]; then
+        SKIP_VALUE=0
+        continue
+      fi
+      case "$STATE" in
+        prefix)
+          case "$TOK" in
+            git) STATE=subcommand ;;
+            # An assignment, a redirect, a command that runs another command, or
+            # such a command's own flag or count (`timeout 5`) stands between the
+            # start of the segment and the git it runs.
+            *=* | -* | *'>'* | *'<'* | [0-9]* | env | command | exec | eval | xargs | sh | bash | zsh | sudo | time | timeout | nohup) ;;
+            *) break ;;
+          esac
+          ;;
+        subcommand)
+          case "$TOK" in
+            # git's own options that take the following token as their value
+            # (`git --help`, git 2.50.1). Skipping the value keeps a value that
+            # happens to read like a subcommand from ending the walk.
+            -C | -c | --git-dir | --work-tree | --namespace | --exec-path | --config-env)
+              SKIP_VALUE=1
+              ;;
+            -*) ;;
+            add | stage)
+              SUB=$TOK
+              STATE=operands
+              ;;
+            commit)
+              SUB=$TOK
+              STATE=commit
+              ;;
+            rm)
+              SUB=$TOK
+              STATE=remove
+              ;;
+            *) break ;;
+          esac
+          ;;
+        operands)
+          case "$TOK" in
+            # `git add`'s long options that take the following token as their
+            # value. Without this, `git add --pathspec-from-file paths.txt`
+            # counted `paths.txt` as a named path and staged both files that file
+            # listed, where `--pathspec-from-file=paths.txt` was refused;
+            # `git add --chmod +x a.txt` took `+x` as the value and staged
+            # `a.txt`. The `-f*` tail is there because git's parse-options takes
+            # any unambiguous prefix, and `git add --pathspec-from-f paths.txt`
+            # staged both files the same way (git 2.50.1, 2026-09-09).
+            --pathspec-f* | --chmod)
+              SKIP_VALUE=1
+              ;;
+            --all | --no-ignore-removal)
+              REFUSED="\`${TOK}\` stages every change in the worktree instead of the paths you name"
+              break
+              ;;
+            --update)
+              REFUSED="\`--update\` stages every tracked change in the worktree instead of the paths you name"
+              break
+              ;;
+            --patch | --interactive | --edit) HAS_SELECTION=1 ;;
+            --*) ;;
+            -*)
+              # git clusters its short options (`git add -Av` staged the whole
+              # scratch repository), so the letters are read one by one.
+              case "${TOK#-}" in
+                *A*)
+                  REFUSED="the short option -A stages every change in the worktree instead of the paths you name"
+                  break
+                  ;;
+                *u*)
+                  REFUSED="the short option -u stages every tracked change in the worktree instead of the paths you name"
+                  break
+                  ;;
+                *[pie]*) HAS_SELECTION=1 ;;
+              esac
+              ;;
+            *)
+              refuse_unnamed_operand "$TOK"
+              if [ -n "$REFUSED" ]; then
+                break
+              fi
+              HAS_SELECTION=1
+              ;;
+          esac
+          ;;
+        remove)
+          case "$TOK" in
+            # With a file holding `.`, both
+            # `git rm -n -r --pathspec-from-file=ps.txt` and the prefix spelling
+            # `git rm -n -r --pathspec-from-f ps.txt` listed all three tracked
+            # files of the scratch repository (git 2.50.1, 2026-09-09). The `-f*`
+            # tail matches both, because git's parse-options takes any
+            # unambiguous prefix. It also matches `--pathspec-file-nul`, which
+            # this refusal does not name: git answers that flag on its own with
+            # `fatal: the option '--pathspec-file-nul' requires
+            # '--pathspec-from-file'`, so the over-match costs no working command.
+            # The `git add` and `git commit` walks carry the same pattern.
+            --pathspec-f*)
+              REFUSED="\`--pathspec-from-file\` takes its pathspec from a file the command text does not show"
+              break
+              ;;
+            -*) ;;
+            *)
+              refuse_unnamed_operand "$TOK"
+              if [ -n "$REFUSED" ]; then
+                break
+              fi
+              HAS_SELECTION=1
+              ;;
+          esac
+          ;;
+        commit)
+          case "$TOK" in
+            # commit's long options that take the following token as their value.
+            # Each was run as `git commit --dry-run <option> ZZZ` against a
+            # staged change in a scratch repository (git 2.50.1, 2026-09-09) and
+            # consumed ZZZ, where `--gpg-sign` and `--untracked-files` left it as
+            # a pathspec because their own value has to be attached. Their short
+            # spellings reach the cluster branch below, which reads the same
+            # letters. Skipping the value keeps `--message 'fix .'` from reading
+            # as a blanket pathspec.
+            --message | --file | --reedit-message | --reuse-message | --template | --fixup | --squash | --author | --date | --cleanup | --trailer)
+              SKIP_VALUE=1
+              ;;
+            # A file holding `.` reached the same sweep: `--pathspec-from-file`,
+            # `--pathspec-from-file=`, and the prefix `--pathspec-from-f` that
+            # git's parse-options also accepts, each reported both modified files
+            # of the scratch repository as changes to be committed (git 2.50.1,
+            # 2026-09-09). The `git add` walk refuses the option for the same
+            # reason, by way of its `it names no path to stage` branch.
+            --pathspec-f*)
+              REFUSED="\`--pathspec-from-file\` takes its pathspec from a file the command text does not show"
+              break
+              ;;
+            --all)
+              REFUSED="\`--all\` commits every tracked change in the worktree instead of the ones you staged"
+              break
+              ;;
+            --*) ;;
+            -*)
+              # git's parse-options takes the rest of a cluster as the value of
+              # the first value-taking letter it meets, so `a` sweeps the worktree
+              # only ahead of that letter: `git commit -ma` committed the staged
+              # file under the subject `a` and `-mall` under `all`. Which letters
+              # end the cluster is one set, and which of those then take the
+              # following token is a smaller one: `-qm x` committed under `x`,
+              # where `-uall` committed only the staged file (its `-u` is
+              # `--untracked-files`) and `-u -a -m x` and `-S -a -m x` each
+              # committed both modified files, because `-u` and `-S` take an
+              # attached value or none (git 2.50.1, 2026-09-09).
+              CLUSTER=${TOK#-}
+              BEFORE_VALUE=${CLUSTER%%[mFcCtuS]*}
+              case "$BEFORE_VALUE" in
+                *a*)
+                  REFUSED="the short option -a commits every tracked change in the worktree instead of the ones you staged"
+                  break
+                  ;;
+              esac
+              case "${CLUSTER#"$BEFORE_VALUE"}" in
+                [mFcCt]) SKIP_VALUE=1 ;;
+              esac
+              ;;
+            *)
+              refuse_unnamed_operand "$TOK"
+              if [ -n "$REFUSED" ]; then
+                break
+              fi
+              ;;
+          esac
+          ;;
+      esac
+    done
+    # An allowed `git add` either names a path or selects hunks, and an allowed
+    # `git rm` names a path. This branch is what makes that the rule rather than a
+    # list of bad flags, and it is the only refusal that
+    # `--pathspec-from-file=paths.txt` and `git diff --name-only | xargs git add`
+    # reach: both take their operands from somewhere the command text does not
+    # show. A bare `git add` stages nothing by itself and prints
+    # `hint: Maybe you wanted to say 'git add .'?`, and a bare `git rm` answers
+    # `fatal: No pathspec was given. Which files should I remove?`
+    # (git 2.50.1), so the refusal names the right form before git names the
+    # wrong one or gives up. A bare `git commit` takes the set that was already
+    # staged, so it stays out of the branch.
+    if [ -z "$REFUSED" ] && [ "$HAS_SELECTION" -eq 0 ]; then
+      case "$SUB" in
+        add | stage) REFUSED="it names no path to stage" ;;
+        rm) REFUSED="it names no path to remove" ;;
+      esac
+    fi
+    # The loop body runs in this shell, so SUB survives the break and names the
+    # subcommand the refusal came from.
+    if [ -n "$REFUSED" ]; then
+      break
+    fi
+    # `printf` terminates the last segment, which `read` would otherwise drop.
+  done < <(printf '%s\n' "$CMD_SEGMENTS")
+  set +f
+  if [ -n "$REFUSED" ]; then
+    case "$SUB" in
+      commit)
+        NEXT_STEP="Stage the files this commit needs (\`git add src/foo.ts src/bar.ts\`, or \`git add -p\` for part of a file), then commit that staged set with \`git commit -m\`. \`git status --short\` lists what changed."
+        ;;
+      rm)
+        NEXT_STEP="Name the paths to delete (\`git rm src/foo.ts src/bar.ts\`, or \`git rm -r src/old-dir\` for one directory). \`git ls-files\` lists the tracked paths."
+        ;;
+      *)
+        NEXT_STEP="Name the files this commit needs (\`git add src/foo.ts src/bar.ts\`), and take part of a file with \`git add -p\`. \`git status --short\` lists what changed."
+        ;;
+    esac
+    GUARD_REFUSAL="PreToolUse(Bash): this \`git ${SUB}\` is refused because ${REFUSED}.${PWD_NOTE} ${NEXT_STEP}"
+  fi
+}
+
+# The three guards in the order the hook applies them, each leaving
+# GUARD_REFUSAL alone where it allows the command. That name stays inside this
+# file: the answer leaves as this function's own output, which one command
+# substitution reads. Its cost is 0.59 ms against 0.04 ms for reading a global,
+# over 400 rounds each on macOS under parallel load (2026-09-09), where the
+# guards below cost 200 ms for one command. `refuse_unnamed_operand` assigns
+# rather than printing for the same comparison run per operand token instead of
+# once per command.
+guard_refusal() { # $1 = the Bash tool's command text
+  local GUARD_REFUSAL="" GUARD_SCRUBBED=""
+  scrub_command_text "$1"
+  refuse_protected_env_file
+  if [ -z "$GUARD_REFUSAL" ]; then
+    refuse_broad_find "$1"
+  fi
+  if [ -z "$GUARD_REFUSAL" ]; then
+    refuse_unnamed_changes
+  fi
+  printf '%s' "$GUARD_REFUSAL"
+}

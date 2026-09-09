@@ -17,14 +17,15 @@
 import type { ChildProcess } from "node:child_process";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { text } from "node:stream/consumers";
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, onTestFinished } from "vite-plus/test";
 import { z } from "zod";
 import { readHookJson } from "./hook-output";
 
 const HOOK = path.resolve(import.meta.dirname, "pre-bash-guard.sh");
-const REPO = path.resolve(import.meta.dirname, "../..");
 
 // Joined so this file's own text is not itself a commit-shaped command.
 const COMMIT_SUB = ["com", "mit"].join("");
@@ -88,13 +89,13 @@ interface HookRun {
 }
 
 const hookStdout = async (
-  command: string
+  command: string,
+  toolName = "Bash",
+  hookPath = HOOK
 ): Promise<[string, string, number | null]> => {
-  const hook = spawn("bash", [HOOK], {
-    env: { ...process.env, CLAUDE_PROJECT_DIR: REPO },
-  });
+  const hook = spawn("bash", [hookPath]);
   hook.stdin.end(
-    JSON.stringify({ tool_input: { command }, tool_name: "Bash" })
+    JSON.stringify({ tool_input: { command }, tool_name: toolName })
   );
   return await Promise.all([
     text(hook.stdout),
@@ -103,8 +104,16 @@ const hookStdout = async (
   ]);
 };
 
-const runHook = async (command: string): Promise<HookRun> => {
-  const [stdout, stderr, status] = await hookStdout(command);
+const runHook = async (
+  command: string,
+  toolName?: string,
+  hookPath?: string
+): Promise<HookRun> => {
+  const [stdout, stderr, status] = await hookStdout(
+    command,
+    toolName,
+    hookPath
+  );
   return { decision: readDecision(stdout), status, stderr };
 };
 
@@ -1426,6 +1435,54 @@ group("a working-directory spelling the four patterns miss passes", [
     why: "a pwd carrying an option",
   },
 ]);
+
+// The payload's tool_name decides whether the guards run at all, and every
+// case above sends "Bash". The two other routes are here, with the one where
+// the guards cannot be loaded at all.
+describe.concurrent("the payload's tool name decides whether the guards run", () => {
+  it(
+    "should refuse the same sweep it refuses for Bash when the payload names Cursor's Shell tool",
+    async () => {
+      await expect(runHook("git add -A", "Shell")).resolves.toStrictEqual({
+        decision: "block",
+        status: 0,
+        stderr: "",
+      });
+    },
+    HOOK_TIMEOUT_MS
+  );
+
+  it(
+    "should let the payload through untouched when its tool is not a terminal",
+    async () => {
+      await expect(runHook("git add -A", "Read")).resolves.toStrictEqual({
+        decision: "allow",
+        status: 0,
+        stderr: "",
+      });
+    },
+    HOOK_TIMEOUT_MS
+  );
+
+  it(
+    "should refuse the command when the decision file is not beside the hook",
+    async () => {
+      const alone = fs.mkdtempSync(path.join(os.tmpdir(), "pre-bash-guard-"));
+      onTestFinished(() => {
+        fs.rmSync(alone, { force: true, recursive: true });
+      });
+      const copy = path.join(alone, "pre-bash-guard.sh");
+      fs.copyFileSync(HOOK, copy);
+
+      await expect(runHook("git add -A", "Bash", copy)).resolves.toStrictEqual({
+        decision: "block",
+        status: 0,
+        stderr: "",
+      });
+    },
+    HOOK_TIMEOUT_MS
+  );
+});
 
 // Every case above reads the decision, so the sentence a refusal hands the
 // agent is judged here instead: a `git rm` told to stage with `git add` would
