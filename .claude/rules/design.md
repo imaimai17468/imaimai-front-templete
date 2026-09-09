@@ -358,6 +358,12 @@ Animate `transform` and `opacity` only, because the compositor runs them
 without layout or paint. `padding`, `margin`, `height`, `width`, `top`, and
 `left` run all three steps on every frame.
 
+Name each property in a `transition`, because `transition: all` also animates
+whatever else changes.
+
+Set `transform` on the element that moves. A CSS variable on the parent driving
+a child's transform recalculates the styles of every child.
+
 ### Reduced Motion
 
 `prefers-reduced-motion: reduce` asks for gentler motion rather than none.

@@ -312,8 +312,6 @@ Slow where the user is deciding, fast where the system responds.
 
 - **Animated properties.** `.claude/rules/design.md` (Animations) settles which
   properties may animate.
-- **Don't drive child transforms via a CSS variable on the parent** — it recalcs
-  styles for all children. Set `transform` directly on the element.
 - **Motion (Framer Motion) shorthands `x`/`y`/`scale` are NOT
   hardware-accelerated.** They run on the main thread via rAF and drop frames
   under load. Use the full transform string:
@@ -421,7 +419,8 @@ Every animation in the diff is measured against these. A violation is a finding.
    motion.
 
 7. **GPU-only properties.** Measured against `.claude/rules/design.md`
-   (Animations).
+   (Animations). Motion's `x`/`y`/`scale` shorthands run on the main thread, so
+   they are a finding on motion that plays while the page is busy.
 
 8. **Accessibility.** Measured against `.claude/rules/design.md`: reduced
    motion in Animations, hover in Interactive States.
@@ -432,16 +431,6 @@ Every animation in the diff is measured against these. A violation is a finding.
 10. **Cohesion.** Motion matches the component's personality and the rest of the
     product. Mismatched personality is a finding. When unsure whether motion
     feels right, the strongest move is often to delete it.
-
-## Aggressive Escalation Triggers
-
-Each of these is a finding on sight, and no standard above decides it:
-
-- `transition: all`
-- A pure-fade entrance with no initial transform
-- Motion `x`/`y`/`scale` props on motion that runs while the page is busy
-- Updating a CSS variable on a parent to drive a child transform
-- Everything-at-once entrance where a 30-80ms stagger belongs
 
 ## Remedial Preference Hierarchy
 
