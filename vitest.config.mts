@@ -20,16 +20,11 @@ export const coverageExclude = [
   `${COVERED_ROOTS}/**/*.live.ts`,
   "scripts/check-toolchain-pins.ts",
   "scripts/orchestrate.ts",
-  "src/lib/auth/auth.ts",
-  "src/lib/auth/session.ts",
-  "src/lib/drizzle/db.ts",
-  "src/lib/drizzle/schema.ts",
   // ファイル名が URL を決めるファイルルートで、`auth.$` が `/api/auth/$` を
   // 生む。改名するとその URL が変わる。
   "src/routes/api/auth.$.ts",
   "src/server/cloudflare.ts",
   "src/server/fn/profile.ts",
-  "tools/vite-plugins/wrangler-types-plugin.ts",
 ];
 
 export default defineConfig({

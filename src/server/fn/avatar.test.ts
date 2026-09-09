@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vite-plus/test";
 import type { AvatarObject } from "@/gateways/avatar";
-import type { getSession } from "@/lib/auth/session";
+import type { getSession } from "@/lib/auth/session.live";
 import { createReadAvatarForCurrentUser } from "./avatar";
 import type { AvatarReadDeps } from "./avatar";
 

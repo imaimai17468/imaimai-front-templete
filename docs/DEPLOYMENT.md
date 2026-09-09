@@ -90,7 +90,7 @@ wrangler secret delete <NAME>               # 不要になった名前を削除
 | `BETTER_AUTH_SECRET` | 自前生成 | 変更すると既存セッションが全て無効になる（再ログインが必要） |
 | `GOOGLE_CLIENT_SECRET` | Google Cloud Console | 先に新しいシークレットを発行し、登録後に旧シークレットを失効させる |
 
-`src/lib/auth/auth.ts` は `BETTER_AUTH_SECRET` / `GOOGLE_CLIENT_ID` /
+`src/lib/auth/auth.live.ts` は `BETTER_AUTH_SECRET` / `GOOGLE_CLIENT_ID` /
 `GOOGLE_CLIENT_SECRET` を認証設定へ**明示的に渡している**。
 better-auth 自身のシークレットフォールバックは `process.env` を読み、
 Workers が `process.env` を埋めるのは `nodejs_compat_populate_process_env` が有効な

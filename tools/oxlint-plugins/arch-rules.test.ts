@@ -1066,7 +1066,7 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it.each(["@/lib/auth/auth", "@/lib/auth/actions.live"])(
+  it.each(["@/lib/auth/auth.live", "@/lib/auth/actions.live"])(
     "should allow the auth adapter %s when a route imports it",
     (specifier) => {
       // Arrange
@@ -1221,6 +1221,18 @@ describe("layer-boundaries", () => {
       expect(context.report).toHaveBeenCalledOnce();
     }
   );
+
+  it("should not report when a route imports a module whose trailing segment is not a coverage suffix", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/auth/session.helpers"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
 
   it("should report when a route imports the session adapter carrying the coverage suffix via relative path", () => {
     // Arrange

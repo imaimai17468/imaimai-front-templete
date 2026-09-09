@@ -1,6 +1,6 @@
 import { avatarGateway } from "@/gateways/avatar";
 import type { AvatarObject } from "@/gateways/avatar";
-import { getSession } from "@/lib/auth/session";
+import { getSession } from "@/lib/auth/session.live";
 import { isOwnAvatarKey } from "@/lib/storage/avatar-validation";
 
 export type AvatarReadResult =

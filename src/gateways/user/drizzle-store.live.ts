@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { getDb } from "@/lib/drizzle/db";
+import { getDb } from "@/lib/drizzle/db.live";
 import { users } from "@/lib/drizzle/schema";
 import type { UserStore } from "./ports";
 
