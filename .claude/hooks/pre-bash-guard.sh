@@ -440,6 +440,15 @@ case "$SCRUBBED" in
       scrub_message_body '"' "$GIT_MESSAGE_FLAG")
     ;;
 esac
+# `$'x'` and `$"x"` hand git the same argument `'x'` does, and the quote strip
+# below leaves their `$` behind: `git rm -r $'.'` and `git rm -r .$''` each
+# listed all three tracked files of the scratch repository, where the walk saw
+# the operand `$.` and read it as a name (git 2.50.1, 2026-09-09). Dropping the
+# `$` puts them back on the plain spelling. This runs after the message scrub
+# above rather than before it, so an ANSI-C body stays outside what the scrub
+# takes and `git commit -m $'fix .'` is still refused.
+WALK_PLAIN=${WALK_PLAIN//\$\'/\'}
+WALK_PLAIN=${WALK_PLAIN//\$\"/\"}
 WALK_PLAIN=${WALK_PLAIN//[\"\'\`]/}
 # A backslash before a newline is a line continuation the shell splices away,
 # so `git \` on one line and `rm -r .` on the next is one command running

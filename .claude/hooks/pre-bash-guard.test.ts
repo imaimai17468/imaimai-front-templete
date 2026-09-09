@@ -1216,6 +1216,41 @@ group("git rm: named paths stay unattended", [
   },
 ]);
 
+// `$'x'` is bash's ANSI-C quoting and `$"x"` its locale form; both hand git
+// the argument `'x'` hands it.
+group("a dollar sign before a quote does not hide the operand", [
+  {
+    command: `${RM} -r $'.'`,
+    expected: "block",
+    why: "an ANSI-C quoted working directory",
+  },
+  {
+    command: `${RM} -r .$''`,
+    expected: "block",
+    why: "an empty ANSI-C quote appended to the working directory",
+  },
+  {
+    command: `${RM} -r $"."`,
+    expected: "block",
+    why: "the locale-quoted spelling of the same operand",
+  },
+  {
+    command: "git add $'-A'",
+    expected: "block",
+    why: "the same spelling around a blanket stage flag",
+  },
+  {
+    command: `${COMMIT} -m $'fix .'`,
+    expected: "block",
+    why: "an ANSI-C message body is not scrubbed, so its words stay operands",
+  },
+  {
+    command: `${RM} $'src/foo.ts'`,
+    expected: "allow",
+    why: "an ANSI-C quoted path still names its own file",
+  },
+]);
+
 // `sub/..` is the directory above `sub`, and the operand test reads the last
 // component rather than searching the whole path, so a `..` in the middle of a
 // named path keeps that path named.
