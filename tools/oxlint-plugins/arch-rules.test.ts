@@ -1222,6 +1222,18 @@ describe("layer-boundaries", () => {
     }
   );
 
+  it("should not report when a route imports a module whose trailing segment is not a coverage suffix", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/auth/session.helpers"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
   it("should report when a route imports the session adapter carrying the coverage suffix via relative path", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/profile.tsx");
