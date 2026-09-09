@@ -35,12 +35,16 @@ const call = (fn: string, ...args: readonly string[]): string =>
  * substitution strips them, so the answer would otherwise read as the same
  * text with the newline gone. `answers_yes` reports an exit status as a word,
  * because holds_code_relevant_file prints nothing.
+ *
+ * The `</dev/null` closes the snippet off from this stream. Without it a
+ * decision function that read stdin would eat the snippets not yet read, and
+ * every case after it would be compared against another case's answer.
  */
 const DRIVER = `
 . "$1"
 answers_yes() { if "$@"; then printf 'yes'; else printf 'no'; fi; }
 while IFS= read -r -d '' SNIPPET; do
-  ANSWER=$(eval "$SNIPPET"; printf '.')
+  ANSWER=$(eval "$SNIPPET" </dev/null; printf '.')
   printf '%s\\0' "\${ANSWER%.}"
 done
 `;
