@@ -9,9 +9,9 @@
  * scratch git repository whose `check`, `test` and link-check steps this file
  * writes, so no step of this repository's own toolchain runs.
  *
- * A gate run over a code change forks bash, three bun processes, three git
- * processes and jq, so the cases run concurrently and copy their repository
- * from one committed tree this file builds once.
+ * A gate run over a code change execs 14 processes, three of them bun, so the
+ * cases run concurrently and copy their repository from one committed tree
+ * this file builds once.
  */
 
 import { spawnSync } from "node:child_process";
@@ -54,8 +54,9 @@ const PASSING: Steps = {
 };
 
 /**
- * The paths carrying the step stand-ins, which every case writes with its own
- * bodies. The template repository lists them in `.git/info/exclude`, so
+ * The paths carrying the step stand-ins, which `scratchRepo` writes with the
+ * bodies its caller chose. The template repository lists them in
+ * `.git/info/exclude`, so
  * `git status --porcelain` and `git ls-files --others --exclude-standard`
  * report neither and one committed tree serves every set of steps.
  */
@@ -219,7 +220,7 @@ const pathWithOnly = (names: readonly string[]): string => {
 describe.concurrent("stop-gate.sh", { timeout: 30_000 }, () => {
   // `git init` plus `git commit` take 275 ms together on this machine (macOS,
   // 2026-09-09) and copying the tree they leave takes 0.8 ms, so the history
-  // every case needs is built once here rather than fourteen times.
+  // is built once here rather than at each of `scratchRepo`'s 13 call sites.
   beforeAll(buildTemplateRepo);
 
   afterAll(() => {
