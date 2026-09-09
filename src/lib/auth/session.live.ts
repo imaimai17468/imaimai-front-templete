@@ -1,5 +1,6 @@
 import { getRequest } from "@tanstack/react-start/server";
 import { getAuth } from "./auth.live";
+import { pickUser } from "./session-user";
 
 export const getSession = async () =>
   await getAuth().api.getSession({ headers: getRequest().headers });
@@ -9,7 +10,4 @@ export const getSession = async () =>
  *
  * @public
  */
-export const getUser = async () => {
-  const session = await getSession();
-  return session?.user ?? null;
-};
+export const getUser = async () => pickUser(await getSession());
