@@ -108,6 +108,14 @@ interface Case {
 // A heredoc case spans lines, and a test name has to stay on one.
 const oneLine = (command: string): string => command.replaceAll("\n", "\\n");
 
+// A case waits on the other cases of its group, so its wall time tracks the
+// machine's load rather than the hook's own work. At vitest's 5 s default this
+// file failed 18 of its 202 cases in one round of three, and passed the other
+// two, on a machine under parallel load (2026-09-09). Six times that default
+// carried three rounds run beside a `bun run check`, and a hook that hangs
+// still fails.
+const HOOK_TIMEOUT_MS = 30_000;
+
 const group = (title: string, cases: readonly Case[]): void => {
   describe.concurrent(title, () => {
     it.each(
@@ -117,13 +125,17 @@ const group = (title: string, cases: readonly Case[]): void => {
         // truncates the label from the right.
         label: `${one.expected} (${one.why}) \`${oneLine(one.command)}\``,
       }))
-    )("$label", async ({ command, expected }) => {
-      await expect(runHook(command)).resolves.toStrictEqual({
-        decision: expected,
-        status: 0,
-        stderr: "",
-      });
-    });
+    )(
+      "$label",
+      async ({ command, expected }) => {
+        await expect(runHook(command)).resolves.toStrictEqual({
+          decision: expected,
+          status: 0,
+          stderr: "",
+        });
+      },
+      HOOK_TIMEOUT_MS
+    );
   });
 };
 
