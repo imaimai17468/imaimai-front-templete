@@ -5,7 +5,7 @@ description: Hand a ticket's mechanical implementation to the Codex CLI (`codex 
 
 # Codex delegation
 
-One Claude worker spent 96k to 338k tokens per ticket on the 2026-09-08 run. The part of a ticket a gate can accept or reject does not need this repository's judgment, so it goes to Codex, and the worker keeps the ticket.
+What a Claude worker spends on one ticket is the counter AGENTS.md's dispatch bullet measures. The part of a ticket a gate can accept or reject does not need this repository's judgment, so it goes to Codex, and the worker keeps the ticket.
 
 ## What Codex is handed
 
@@ -37,9 +37,9 @@ codex exec -C "$WORKTREE" -s workspace-write -o "$TMPDIR/codex-<ticket>.md" "$PR
 
 `-s workspace-write` is the sandbox for this. `read-only` cannot edit a file, so Codex could not make the change at all, and `danger-full-access` executes model-generated commands with no filesystem boundary, so one of them reaches the main checkout and `~`, which is what running the ticket in its own worktree exists to prevent. Pass neither `--approve-for-me` nor `--dangerously-bypass-approvals-and-sandbox`: a command the sandbox refused is information the worker wants, and the second flag removes the sandbox.
 
-The prompt carries the ticket's own text, the command that accepts the work (`bun run check`, `bun run test`, or the one test file), and the constraint that Codex commits nothing and pushes nothing, leaving every change in the working tree. Add AGENTS.md's layering rule when the change crosses `routes/` → `server/fn/` → `gateways/` → `entities/`.
+The prompt carries the ticket's own text, the command that accepts the work (`bun run check`, `bun run test`, or the one test file), and the constraint that Codex commits nothing and pushes nothing, leaving every change in the working tree. Add AGENTS.md's layering rule when the change crosses the layers its Rules section names.
 
-Outbound network inside this sandbox is a separate opt-in (`sandbox_workspace_write.network_access`), so run `bun run setup` in the worktree before delegating rather than widening the sandbox for `bun install`. Where a command Codex needs is refused, the worker runs that command itself.
+Outbound network inside this sandbox is a separate opt-in (`sandbox_workspace_write.network_access`), so the `bun run setup` that `ticket-work` opens with runs in the worktree before delegating rather than the sandbox widening for `bun install`. Where a command Codex needs is refused, the worker runs that command itself.
 
 `~/.codex/config.toml` sets `model = "gpt-6-astra"` and `model_reasoning_effort = "low"`, and a run inherits both. Raise either for one run with `-m <model>` or `-c model_reasoning_effort=<level>`, because that file is the user's.
 
@@ -47,9 +47,9 @@ To hand back a correction, `codex exec resume --last "<what is wrong>"` from the
 
 ## What the worker does with the result
 
-Read the full diff with `git diff`, rather than the summary in the `-o` file, which is what `ticket-work` step 6 requires of anything a subagent implemented. Check `git status` and `git log` to confirm the change is uncommitted. Then run `bun run check` and `bun run test`, and carry the ticket on from step 6 as your own work: the acceptance criteria, the review, the commits, the PR.
+The `-o` file holds Codex's summary, and `ticket-work` step 6 sends the worker to the diff instead. Check `git status` and `git log` to confirm the change is uncommitted. Then run `bun run check` and `bun run test`, and carry the ticket on from step 6 as your own work: the acceptance criteria, the review, the commits, the PR.
 
-The commit takes one `Co-Authored-By:` trailer, crediting the model the worker runs as, and no second trailer for Codex. AGENTS.md names one trailer for the current model, and after the worker has read the whole diff and changed what it disagreed with, the commit is the worker's to answer for. The PR body names the delegation, where a reviewer can act on it.
+The commit takes no second `Co-Authored-By:` trailer for Codex, because after the worker has read the whole diff and changed what it disagreed with, the commit is the worker's to answer for. The PR body names the delegation, where a reviewer can act on it.
 
 ## What has been executed
 
@@ -61,7 +61,7 @@ The first delegation ran on 2026-09-09: five renames with their reference update
 
 Two places that run diverged from the procedure above:
 
-- The call as written, with `-C "$WORKTREE"` and the prompt in `"$PROMPT"`, was refused by `.claude/hooks/pre-bash-guard.sh`, which cannot check a command built from shell variables against a worktree-isolated agent's git. Write the worktree path and the `-o` path as literals, and pass the prompt file on stdin with a `-` argument in place of the prompt.
+- The call as written, with `-C "$WORKTREE"` and the prompt in `"$PROMPT"`, was refused by one of the Bash guards AGENTS.md's Degraded Environments names. Write the worktree path and the `-o` path as literals, and pass the prompt file on stdin with a `-` argument in place of the prompt.
 - `git mv` is refused by `workspace-write`, which leaves git's index unwritable, so Codex renamed the files on the filesystem and `git status` showed each as a deletion plus an untracked file. `git add` naming both the old and the new path restores rename detection.
 
 The second delegation ran on 2026-09-09, the next ticket of the same series: four renames to `*.live.ts` with their reference updates, and five path entries deleted from `coverageExclude`. It inherited `gpt-6-astra` at `model_reasoning_effort = "low"`, took 5m07s wall clock, exited 0, and made every edit the prompt named. `codex exec` printed `tokens used 42,237`, which is its uncached input (38,655) plus its output (3,582); that run's rollout ends at `total_token_usage.total_tokens` 996,477, the gap being 954,240 cached input tokens, and a fork of the same session recorded a further 94,603. The Claude worker holding the ticket had spent 170k by the counter AGENTS.md's dispatch bullet measures, by the time its five review agents had reported and every commit was pushed, with the design decision, the reviews, the commit split and the pull request its own work. Codex's diff needed one change on review. It renamed `src/lib/auth/session.ts` as told, and the `getUser` inside that file derives `session?.user ?? null`, two untested branches that the `.live.ts` name then exempted by claiming the logic is tested elsewhere. A rename Codex performs exactly as specified can still leave the file's new name false, and catching that is what the worker's own read of the diff is for.
@@ -80,6 +80,6 @@ Both divergences from the first run held again. `git mv` was refused, so `git st
 
 Three more appeared:
 
-- `/usr/bin/time -p codex exec …` is refused by `.claude/hooks/pre-bash-guard.sh`, which reads it as running `time` with the argument `-` and cannot check that against a worktree-isolated agent's git. Record the wall clock with a `date` call on either side instead.
+- `/usr/bin/time -p codex exec …` is refused by one of those guards as well. Record the wall clock with a `date` call on either side instead.
 - A prompt that hands Codex the target file as literal code still loses to this project's lint. Told to write `const AVATAR_REJECTION_MESSAGES: Record<AvatarSizeRejection, string> = {…}` and `describe("parseProfileUpdate", …)`, Codex shipped `satisfies Record<…>` and `describe(parseProfileUpdate, …)`, and said so in its final message rather than leaving them to be found. Restoring each to the prompt's form and running `bun run lint` returned `anti-slop(no-known-value-widening)` and `vitest(prefer-describe-function-title)`, which is how the worker checks such a claim.
 - Codex reached the size-limit branch by redefining a `File`'s `size` with `Object.defineProperty`, which the prompt had neither asked for nor forbidden. The worker replaced it with a real allocation, so the byte length the validator reads is the fixture's own. Where a prompt names a branch to cover without saying what the input must be, Codex picks the cheapest input rather than the one production would see.
