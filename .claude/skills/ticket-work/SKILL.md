@@ -1,6 +1,6 @@
 ---
 name: ticket-work
-description: The seven-step sequence for ticket-granularity work: implementing a component, fixing a non-trivial bug, refactoring a module, adding a feature. Invoke at the start of such work.
+description: "The seven-step sequence for ticket-granularity work: implementing a component, fixing a non-trivial bug, refactoring a module, adding a feature. Invoke at the start of such work."
 ---
 
 # Ticket work

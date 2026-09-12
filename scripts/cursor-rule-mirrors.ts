@@ -1,6 +1,7 @@
 /**
  * Report `.cursor/rules/*.mdc` entries that have stopped mirroring
- * `.claude/rules/*.md`.
+ * `.claude/rules/*.md`, and `.cursor/skills/` or `.cursor/agents/` trees
+ * that would duplicate what Cursor already reads from `.claude/`.
  *
  * A mirror is right when it is a symlink whose text is exactly
  * `../../.claude/rules/<its own name>.md` and whose target exists, and when
@@ -16,6 +17,8 @@ const REPO = path.resolve(import.meta.dirname, "..");
 
 const RULES = ".claude/rules";
 const MIRRORS = ".cursor/rules";
+
+const FORBIDDEN_CURSOR_DIRS = [".cursor/skills", ".cursor/agents"] as const;
 
 /** The one link text a mirror may carry. */
 const linkTextFor = (name: string): string => `../../${RULES}/${name}.md`;
@@ -111,6 +114,19 @@ export interface MirrorReport {
   readonly rules: readonly string[];
 }
 
+const duplicateCursorTreeProblems = (root: string): MirrorProblem[] =>
+  FORBIDDEN_CURSOR_DIRS.flatMap((entry) =>
+    fs.existsSync(path.join(root, entry))
+      ? [
+          {
+            detail:
+              "exists; Cursor reads the matching tree under .claude/ directly, so remove it",
+            entry,
+          },
+        ]
+      : []
+  );
+
 /** Judges every name either directory holds, so both directions are decided. */
 export const mirrorReport = (root: string): MirrorReport => {
   const ruleEntries = readEntries(path.join(root, RULES));
@@ -142,6 +158,7 @@ export const mirrorReport = (root: string): MirrorReport => {
     });
   return {
     problems: [
+      ...duplicateCursorTreeProblems(root),
       ...emptyRules,
       ...directoryProblems(RULES, ruleEntries),
       ...directoryProblems(MIRRORS, mirrorEntries),

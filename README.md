@@ -99,6 +99,7 @@ src/
 - **`.claude/rules/`**：規約の分冊。path scope を持つものは対象ファイルを編集するときだけ、持たないものは毎セッション読み込まれます
 - **`.claude/skills/`**：名前のついた作業の手順。チケット粒度の作業は `ticket-work` が持ち、AGENTS.md はそれを指します
 - **`.claude/hooks/`**：規約を機械的に強制する側。SessionStart で依存の欠落を報告し、Bash 実行前にガードを掛け、Stop ではコードが変わった turn だけ `bun run check`（format / lint / 型検査）と `bun run test` を回します。markdown のリンク切れ検査は変更があれば毎回走ります。ツリー全体を判定する検査は Stop に置かず、knip は CI、`similarity-ts` は lefthook の pre-push が回します
+- **Cursor**：`.cursor/rules/` は `.claude/rules/` の symlink。skills と agents は `.claude/` をそのまま読む（`.cursor/skills/` や `.cursor/agents/` は置かない）
 
 コミット前のレビューは `code-reviewer` エージェントが担い、PR ブランチへのコミットと push はエージェントが AGENTS.md の規律に従って自分で行います。`main` へは PR 経由でだけ入ります。
 
