@@ -88,6 +88,7 @@
     "wrangler": "4.110.0"
   },
   "overrides": {
+    "browserslist": "4.28.9",
     "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0",
     "vitest": "4.1.11"
   },
