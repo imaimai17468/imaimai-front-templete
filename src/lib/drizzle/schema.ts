@@ -1,4 +1,9 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  integer,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 // Better Auth 必須テーブル
 export const users = sqliteTable("users", {
@@ -32,30 +37,40 @@ export const sessions = sqliteTable("sessions", {
     .references(() => users.id, { onDelete: "cascade" }),
 });
 
-export const accounts = sqliteTable("accounts", {
-  accessToken: text("access_token"),
-  accessTokenExpiresAt: integer("access_token_expires_at", {
-    mode: "timestamp",
-  }),
-  accountId: text("account_id").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  id: text("id").primaryKey(),
-  idToken: text("id_token"),
-  providerId: text("provider_id").notNull(),
-  refreshToken: text("refresh_token"),
-  refreshTokenExpiresAt: integer("refresh_token_expires_at", {
-    mode: "timestamp",
-  }),
-  scope: text("scope"),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-});
+export const accounts = sqliteTable(
+  "accounts",
+  {
+    accessToken: text("access_token"),
+    accessTokenExpiresAt: integer("access_token_expires_at", {
+      mode: "timestamp",
+    }),
+    accountId: text("account_id").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    id: text("id").primaryKey(),
+    idToken: text("id_token"),
+    issuer: text("issuer").notNull(),
+    providerId: text("provider_id").notNull(),
+    refreshToken: text("refresh_token"),
+    refreshTokenExpiresAt: integer("refresh_token_expires_at", {
+      mode: "timestamp",
+    }),
+    scope: text("scope"),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    uniqueIndex("accounts_issuer_account_id_uidx").on(
+      table.issuer,
+      table.accountId
+    ),
+  ]
+);
 
 export const verifications = sqliteTable("verifications", {
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
