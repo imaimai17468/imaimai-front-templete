@@ -74,7 +74,7 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 ## Rules
 
-Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/rules/*.mdc` as a file-level symlink so Cursor sessions load the same text (never replace a symlink with a copy). Each rule's own frontmatter states its subject and its scope, and it states the scope twice because Claude Code reads `paths` and Cursor reads `globs`, so both keys change together.
+Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/rules/*.mdc` as a file-level symlink so Cursor sessions load the same text (never replace a symlink with a copy). Skills and agents live only under `.claude/skills/` and `.claude/agents/`; Cursor reads those paths directly, so do not add `.cursor/skills/` or `.cursor/agents/`. Each rule's own frontmatter states its subject and its scope, and it states the scope twice because Claude Code reads `paths` and Cursor reads `globs`, so both keys change together.
 
 - **`design.md`** is scoped to `src/**/*.css` and `src/**/*.tsx`, so a session deciding a UI question without opening one of those files loads none of it and has to open the rule itself.
 - **`prose.md`** carries no path scope, so every session holds it whatever it is editing.

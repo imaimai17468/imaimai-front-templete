@@ -264,4 +264,17 @@ describe("check-cursor-rule-mirrors", () => {
   it("should exit zero when this repository's own mirrors are in sync", () => {
     expect(main([])).toBe(0);
   });
+
+  it("should report a problem when .cursor/skills duplicates .claude/skills", () => {
+    const root = mirroredTree();
+    fs.mkdirSync(path.join(root, ".cursor/skills"), { recursive: true });
+
+    expect(mirrorReport(root).problems).toStrictEqual([
+      {
+        detail:
+          "exists; Cursor reads the matching tree under .claude/ directly, so remove it",
+        entry: ".cursor/skills",
+      },
+    ]);
+  });
 });
