@@ -1,6 +1,6 @@
 ---
 name: dispatch-run
-description: The two standing parts of a dispatch run: the brief every worker follows to carry its ticket to a merged pull request, and what the dispatching session does while they work (watch the run's pull requests with `scripts/orchestrate.ts watch-prs`, act on the line the watch exits with, clean the run's worktrees once every pull request is closed). A dispatching session names this skill in each worker prompt and invokes it itself right after dispatching one worker per ticket; a worker invokes it when its prompt names it.
+description: "The two standing parts of a dispatch run: the brief every worker follows to carry its ticket to a merged pull request, and what the dispatching session does while they work (watch the run's pull requests with `scripts/orchestrate.ts watch-prs`, act on the line the watch exits with, clean the run's worktrees once every pull request is closed). A dispatching session names this skill in each worker prompt and invokes it itself right after dispatching one worker per ticket; a worker invokes it when its prompt names it."
 ---
 
 # Dispatch run
