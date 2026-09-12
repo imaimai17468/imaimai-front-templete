@@ -1,5 +1,5 @@
 ---
-description: How a sentence is built in comments, instruction documents, commit messages, and replies, in English and Japanese: plain words, what a sentence is allowed to be about, precision, format, and the generated-text patterns to keep out
+description: "How a sentence is built in comments, instruction documents, commit messages, and replies, in English and Japanese: plain words, what a sentence is allowed to be about, precision, format, and the generated-text patterns to keep out"
 alwaysApply: true
 ---
 
