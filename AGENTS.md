@@ -14,6 +14,8 @@ Ticket-granularity work follows the `ticket-work` skill: implementing a componen
 
 **Parallel tickets each get their own worktree.** Start a session with `claude --worktree <name>`, or give a subagent `isolation: worktree`. Either way Claude Code creates the worktree under `.claude/worktrees/` on its own branch and copies the gitignored files listed in `.worktreeinclude` into it. `ticket-work`'s opening paragraph says what it still lacks and which commands put those there.
 
+**Browser tools.** In an interactive Claude Code session, confirm a rendered change and debug a page with Claude in Chrome. Use Chrome DevTools MCP when the skill in play names `lighthouse_audit`, `performance_start_trace`, `performance_analyze_insight`, a heap-snapshot tool, `emulate`, or an isolated cookie context. A dispatched worker uses Chrome DevTools MCP. A Cursor session uses Cursor's browser. Follow this order even when the plugin's generic `chrome-devtools` skill matches.
+
 ## Degraded Environments
 
 Not every session has the full toolchain, and a remote container may lack MCP servers or local binaries. A missing tool downgrades a step. It never waives that step, and it never blocks unrelated work. Report a step the session could not run as "not run", never as "passed", and name it when reporting completion.
