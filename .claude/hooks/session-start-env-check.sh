@@ -20,43 +20,67 @@ if command -v jq >/dev/null 2>&1 && [ -n "$INPUT" ]; then
   [ -n "$CWD" ] && [ -d "$CWD" ] && TREE="$CWD"
 fi
 
-MISSING=()
+STRICT=0
+if [ "${1:-}" = "--strict" ]; then
+  STRICT=1
+fi
 
-command -v jq >/dev/null 2>&1 || MISSING+=("jq (ALL guard hooks parse their input with jq — the gates are effectively OFF)")
-command -v bun >/dev/null 2>&1 || MISSING+=("bun (the Stop quality gate, its markdown dead-link check, and lefthook's pre-commit/pre-push checks cannot run)")
+GATE=()
+SETUP=()
+
+command -v jq >/dev/null 2>&1 || GATE+=("jq (ALL guard hooks parse their input with jq — the gates are effectively OFF)")
+command -v bun >/dev/null 2>&1 || GATE+=("bun (the Stop quality gate, its markdown dead-link check, and lefthook's pre-commit/pre-push checks cannot run)")
 # PATH only, matching the condition lefthook's similarity stage skips on: a
 # binary the hook cannot invoke is absent as far as the gate is concerned, so
 # accepting ~/.cargo/bin here would report a skipped check as present.
-command -v similarity-ts >/dev/null 2>&1 || MISSING+=("similarity-ts not on PATH (lefthook pre-push skips duplicate-type/function detection; install: cargo install similarity-ts, and put ~/.cargo/bin on PATH)")
+command -v similarity-ts >/dev/null 2>&1 || GATE+=("similarity-ts not on PATH (lefthook pre-push skips duplicate-type/function detection; install: cargo install similarity-ts, and put ~/.cargo/bin on PATH)")
 # `mise`, not `actionlint` or `shellcheck`: lefthook runs both static checks
 # through `mise exec --` and skips each on a missing mise, so mise is the
 # condition that decides whether they run. mise.toml pins the versions it
 # resolves.
-command -v mise >/dev/null 2>&1 || MISSING+=("mise not on PATH (lefthook pre-push skips the GitHub Actions workflow check and the shellcheck run; install: https://mise.jdx.dev/, then mise install)")
+if command -v mise >/dev/null 2>&1; then
+  if ! ( cd "$TREE" 2>/dev/null && mise exec -- actionlint --version >/dev/null 2>&1 ); then
+    GATE+=("mise tools not ready — actionlint unavailable via mise exec (fix: mise install; if paranoid mode: mise trust mise.toml)")
+  fi
+else
+  GATE+=("mise not on PATH (lefthook pre-push skips the GitHub Actions workflow check and the shellcheck run; install: https://mise.jdx.dev/, then mise install)")
+fi
 # The installed hooks, not the binary: `bun run setup` writes them through
 # `lefthook install`, and a tree whose hooks are absent runs no pre-commit check
 # while every binary above is present. Resolved through git because in a linked
 # worktree `.git` is a file and the hooks live in the main checkout's
 # .git/hooks. `--git-path` answers relative to the checkout when the hooks are
 # inside it, so the test runs there.
-( cd "$TREE" 2>/dev/null && [ -f "$(git rev-parse --git-path hooks/pre-commit 2>/dev/null)" ] ) || MISSING+=("lefthook hooks not installed — pre-commit/pre-push run nothing (fix: bun run setup)")
+( cd "$TREE" 2>/dev/null && [ -f "$(git rev-parse --git-path hooks/pre-commit 2>/dev/null)" ] ) || GATE+=("lefthook hooks not installed — pre-commit/pre-push run nothing (fix: bun run setup)")
 # A fresh worktree has no node_modules until someone installs; the Stop gate,
 # the link check and lefthook all fail without it.
-[ -d "$TREE/node_modules" ] || MISSING+=("node_modules absent — fresh checkout or worktree (fix: bun run setup)")
+[ -d "$TREE/node_modules" ] || GATE+=("node_modules absent — fresh checkout or worktree (fix: bun run setup)")
 # A capability probe, not a version compare: what old node lacks is
 # `module.registerHooks`, which @cloudflare/vite-plugin imports at module top
 # level, so loading vite.config.ts fails wherever it is loaded. Observed on
 # node 22.14: `bun run build` exits 1, while knip prints "Error loading
 # vite.config.ts" and still exits 0 — CI's knip step loses its vite-config
 # analysis with no failing exit code to show for it.
-node -e 'if (typeof require("node:module").registerHooks !== "function") process.exit(1)' >/dev/null 2>&1 || MISSING+=("node with module.registerHooks — see engines in package.json (vite build fails; knip still exits 0 but cannot analyze vite.config.ts)")
+node -e 'if (typeof require("node:module").registerHooks !== "function") process.exit(1)' >/dev/null 2>&1 || GATE+=("node with module.registerHooks — see engines in package.json (vite build fails; knip still exits 0 but cannot analyze vite.config.ts)")
 
-if [ "${#MISSING[@]}" -gt 0 ]; then
-  echo "[env-check] This session runs DEGRADED — missing gate dependencies:"
-  printf '  - %s\n' "${MISSING[@]}"
-  echo "[env-check] Per AGENTS.md 'Degraded Environments': state the degrade to the user once, and do not treat skipped checks as passed."
+[ -f "$TREE/.env.local" ] || SETUP+=(".env.local absent (fix: cp .env.local.example .env.local — worktrees copy it only when the main checkout already has one)")
+[ -f "$TREE/src/routeTree.gen.ts" ] || SETUP+=("src/routeTree.gen.ts absent (fix: bun run setup, or bun run generate-routes)")
+[ -f "$TREE/worker-configuration.d.ts" ] || SETUP+=("worker-configuration.d.ts absent (fix: bun run setup, or bun run cf-typegen)")
+[ -d "$TREE/.wrangler/state" ] || SETUP+=("local D1 not initialized — .wrangler/state absent (fix: bun run db:push:local before first bun run dev)")
+
+ISSUES=$(( ${#GATE[@]} + ${#SETUP[@]} ))
+if [ "$ISSUES" -gt 0 ]; then
+  if [ "${#GATE[@]}" -gt 0 ]; then
+    echo "[env-check] This session runs DEGRADED — missing gate dependencies:"
+    printf '  - %s\n' "${GATE[@]}"
+    echo "[env-check] Per AGENTS.md 'Degraded Environments': state the degrade to the user once, and do not treat skipped checks as passed."
+  fi
+  if [ "${#SETUP[@]}" -gt 0 ]; then
+    echo "[env-check] Checkout setup incomplete:"
+    printf '  - %s\n' "${SETUP[@]}"
+  fi
 else
-  echo "[env-check] Gate dependencies present (jq, bun, similarity-ts, mise, node with module.registerHooks, lefthook hooks installed, node_modules)."
+  echo "[env-check] Gate dependencies and checkout setup look complete."
 fi
 
 # SessionStart is the only hook event that receives `model`, and it is optional;
@@ -71,4 +95,7 @@ else
   echo "[env-check] Session model not reported by the harness."
 fi
 
+if [ "$STRICT" = 1 ] && [ "$ISSUES" -gt 0 ]; then
+  exit 1
+fi
 exit 0

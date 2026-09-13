@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "setup": "bash scripts/setup.sh",
+    "setup:check": "bash .claude/hooks/session-start-env-check.sh --strict",
     "prepare": "lefthook install",
     "generate-routes": "tsr generate",
     "dev": "portless run vp dev",
