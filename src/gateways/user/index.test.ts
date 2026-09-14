@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import type { ErrorReport } from "@/lib/report-error";
 import { createUserGateway } from ".";
 import type { AvatarStorage, UserGatewayDeps, UserStore } from "./ports";
 
@@ -8,15 +9,11 @@ const NEW_URL = `/api/avatars?key=${encodeURIComponent(NEW_KEY)}`;
 const OLD_KEY = "user-1/avatar.jpg";
 const OLD_URL = `/api/avatars?key=${encodeURIComponent(OLD_KEY)}`;
 
-interface CapturedReport {
-  event: string;
-  message: string;
-  name: string | null;
-}
+type CapturedReport = Pick<ErrorReport, "event" | "message" | "name">;
 
 const captureErrorReports = (): CapturedReport[] => {
   const reported: CapturedReport[] = [];
-  vi.spyOn(console, "error").mockImplementation((payload: CapturedReport) => {
+  vi.spyOn(console, "error").mockImplementation((payload: ErrorReport) => {
     reported.push({
       event: payload.event,
       message: payload.message,

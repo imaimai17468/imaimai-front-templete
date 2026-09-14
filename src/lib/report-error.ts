@@ -1,4 +1,4 @@
-interface ErrorReport {
+export interface ErrorReport {
   readonly event: string;
   readonly message: string;
   readonly name: string | null;
