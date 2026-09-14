@@ -42,7 +42,13 @@ export default defineConfig({
       // knip cannot follow a specifier written as a string here, so it lists
       // the package under ignoreDependencies in knip.json.
       { name: "react-doctor", specifier: "oxlint-plugin-react-doctor" },
+      { name: "tailwindcss", specifier: "oxlint-tailwindcss" },
     ],
+    settings: {
+      tailwindcss: {
+        entryPoint: "src/styles.css",
+      },
+    },
     categories: {
       correctness: "error",
       suspicious: "error",
@@ -125,6 +131,16 @@ export default defineConfig({
       "style-rules/no-loops": "error",
       "style-rules/no-tailwind-arbitrary": "error",
       "style-rules/no-tailwind-opacity": "error",
+      "tailwindcss/no-conflicting-classes": "error",
+      "tailwindcss/no-deprecated-classes": "error",
+      "tailwindcss/no-duplicate-classes": "error",
+      "tailwindcss/no-unknown-classes": "error",
+      "tailwindcss/enforce-canonical": "error",
+      "tailwindcss/no-unnecessary-arbitrary-value": "error",
+      "tailwindcss/enforce-sort-order": "error",
+      "tailwindcss/consistent-variant-order": "error",
+      "tailwindcss/enforce-consistent-important-position": "error",
+      "tailwindcss/no-unnecessary-whitespace": "error",
       "arch-rules/layer-boundaries": "error",
       "arch-rules/no-size-props": "error",
       "arch-rules/one-component-per-file": "error",
@@ -212,7 +228,7 @@ export default defineConfig({
         },
       },
       {
-        // shadcn CLI output. These are the rules the CLI's own formatting trips,
+        // shadcn CLI output. These are the rules the CLI's own files trip,
         // so leaving them on means rewriting every generated file by hand after
         // each `shadcn add`.
         files: ["src/components/ui/**"],
@@ -226,6 +242,16 @@ export default defineConfig({
           "unicorn/no-negated-condition": "off",
           "no-use-before-define": "off",
           "no-eq-null": "off",
+          "tailwindcss/no-conflicting-classes": "off",
+          "tailwindcss/no-deprecated-classes": "off",
+          "tailwindcss/no-duplicate-classes": "off",
+          "tailwindcss/no-unknown-classes": "off",
+          "tailwindcss/enforce-canonical": "off",
+          "tailwindcss/no-unnecessary-arbitrary-value": "off",
+          "tailwindcss/enforce-sort-order": "off",
+          "tailwindcss/consistent-variant-order": "off",
+          "tailwindcss/enforce-consistent-important-position": "off",
+          "tailwindcss/no-unnecessary-whitespace": "off",
         },
       },
       {

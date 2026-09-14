@@ -36,7 +36,7 @@ const RootComponent = () => {
             <div className="flex min-h-dvh flex-col gap-16">
               <Header user={user} />
               <div className="flex w-full flex-1 justify-center px-6 md:px-4">
-                <div className="container w-full">
+                <div className="container">
                   <Outlet />
                 </div>
               </div>

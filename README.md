@@ -46,6 +46,7 @@ bun run dev
 - **[TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)**：Type checker (Go-native `tsc`)
 - **[Vite+](https://viteplus.dev/)**：Vite / Vitest / oxlint / oxfmt を束ねる CLI。設定は `vite.config.ts` の `lint` / `fmt` ブロックに集約される
 - **[oxlint](https://oxc.rs/docs/guide/usage/linter)**：Linter (`vite.config.ts` の `lint` ブロック)
+- **[oxlint-tailwindcss](https://oxlint-tailwindcss.pages.dev/)**：Tailwind CSS のクラス名検査 (`vite.config.ts` の `lint` ブロック)
 - **自作 oxlint プラグイン** (`tools/oxlint-plugins/`)：`vite.config.ts` の `lint.jsPlugins` から読み込まれる。層契約・コンポーネント命名・1ファイル1コンポーネント・テストの形（1テスト1 expect など）を機械的に強制するので、規約は文書だけでなくここにもある
 - **自作 vite プラグイン** (`tools/vite-plugins/`)：`vite.config.ts` から読み込まれる。`wrangler.toml` の変更を検知して `bun run cf-typegen` を走らせ、dev 起動時は `worker-configuration.d.ts` が `wrangler.toml` より古いときだけ生成する
 - **[react-doctor](https://github.com/millionco/react-doctor)**：React 向け追加ルール (`oxlint.react-doctor.ts`)
@@ -120,4 +121,5 @@ bunx shadcn@latest add [component-name]
 - [Cloudflare R2](https://developers.cloudflare.com/r2/)
 - [@cloudflare/vite-plugin](https://developers.cloudflare.com/workers/vite-plugin/)
 - [oxc (oxlint/oxfmt)](https://oxc.rs/)
+- [oxlint-tailwindcss](https://oxlint-tailwindcss.pages.dev/)
 - [Vitest](https://vitest.dev/)
