@@ -74,6 +74,7 @@
     "oxfmt": "0.64.0",
     "oxlint": "1.79.0",
     "oxlint-plugin-react-doctor": "0.9.12",
+    "oxlint-tailwindcss": "1.10.2",
     "oxlint-tsgolint": "7.0.2001",
     "portless": "0.15.6",
     "react-doctor": "0.9.12",

@@ -14,10 +14,12 @@ describe(cn, () => {
   });
 
   it("should drop falsy values when inputs come from conditional expressions", () => {
-    expect(cn("base", false, undefined, "")).toBe("base");
+    expect(cn("underline", false, undefined, "")).toBe("underline");
   });
 
   it("should flatten nested inputs when arrays and objects are mixed", () => {
-    expect(cn(["a", { b: true, c: false }])).toBe("a b");
+    expect(cn(["contents", { italic: true, overline: false }])).toBe(
+      "contents italic"
+    );
   });
 });
