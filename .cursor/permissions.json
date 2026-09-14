@@ -1,6 +1,7 @@
 // Cursor IDE agent permissions (JSONC).
 // Derived from .claude/settings.json's `permissions`
-// (not a literal 1:1 copy of its current allow array — see the bun note below).
+// (not a literal 1:1 copy of its current allow array: where this list is
+// narrower, the group comment below says why).
 // Allow entries are security decisions: Cursor has no deterministic deny list,
 // so anything risky is left OFF this allowlist and falls through to approval.
 // terminalAllowlist entries are case-sensitive prefixes (`cmd:args` applies a
@@ -33,13 +34,19 @@
     "mkdir",
     "touch",
     "ffmpeg",
-    // git (read + staging; `git branch` is omitted because a prefix entry
-    // would also auto-approve `git branch -D`, which the deny list refuses)
+    // git (read, fetch, staging). `git branch` is omitted because a prefix
+    // entry would also auto-approve `git branch -D`, which the deny list
+    // refuses. `git fetch` takes the `cmd:args` form for the same reason:
+    // `git fetch --upload-pack=<command> <local path>` runs that command on
+    // this machine, and `git fetch origin +refs/heads/x:refs/heads/x`
+    // force-updates a local branch that is not checked out.
     "git status",
     "git log",
     "git diff",
     "git show",
     "git blame",
+    "git:fetch",
+    "git:fetch origin",
     "git add",
     "git stash",
     // gh (read-only views; `gh api` is deliberately absent — it can mutate
@@ -47,6 +54,7 @@
     "gh pr view",
     "gh pr list",
     "gh pr diff",
+    "gh pr checks",
     "gh run view",
     // bun package management
     "bun install",
@@ -70,7 +78,11 @@
     // wrangler (read-only / codegen)
     "wrangler types",
     "wrangler d1 list",
-    "wrangler tail"
+    "wrangler tail",
+    // actionlint, pinned to one argument form: a prefix entry would also
+    // auto-approve `-shellcheck <path>` and `-pyflakes <path>`, which run the
+    // named command, and `-init-config`, which writes .github/actionlint.yaml
+    "mise:exec -- actionlint"
   ],
   "autoRun": {
     // Steering hints for the Auto-review classifier — NOT enforcement.
