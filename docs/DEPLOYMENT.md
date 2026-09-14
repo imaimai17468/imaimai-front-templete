@@ -27,6 +27,22 @@ wrangler deployments list   # 直近のデプロイ一覧
 wrangler versions list      # 直近のバージョン一覧（Version ID を取得する）
 ```
 
+## ログ
+
+`wrangler.toml` の `[observability] enabled = true` が、デプロイ済み Worker の
+invocation log、`console.*`、未捕捉例外を Workers Logs に書く。Cloudflare
+ダッシュボードの Observability タブ、`wrangler tail`、プロジェクト MCP
+`cloudflare-observability` のいずれかから読む。
+
+- Cursor: `.cursor/mcp.json`。初回は Cloudflare の OAuth。ツールは
+  `query_worker_observability`、`observability_keys`、`observability_values`
+- Claude Code: 同じ URL を `.mcp.json` に `type: http` で置いてある。初回は
+  セッションでプロジェクト MCP を承認する
+
+Workers Logs に入るのはデプロイ済み Worker だけである。`bun run dev` では同じ
+`console.error` が開発サーバのターミナルに出る。クライアントへ返す失敗メッセージ
+は固定文のままで、スタックはログ側にだけ残る。
+
 ## ロールバック
 
 ```bash

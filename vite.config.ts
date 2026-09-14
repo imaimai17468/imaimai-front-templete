@@ -197,6 +197,16 @@ export default defineConfig({
         },
       },
       {
+        // A catch clause's value is unknown by the language. This module is
+        // the boundary that turns it into a structured Workers Logs object,
+        // and console.error is the sink that object is written to.
+        files: ["src/lib/report-error.ts"],
+        rules: {
+          "anti-slop/no-unknown-parameters": "off",
+          "no-console": "off",
+        },
+      },
+      {
         files: ["src/test-setup.ts"],
         rules: {
           // vitest.config.mts sets no `globals`, so this import is what
