@@ -27,6 +27,7 @@ fi
 
 GATE=()
 SETUP=()
+CREATED=()
 
 command -v jq >/dev/null 2>&1 || GATE+=("jq (ALL guard hooks parse their input with jq — the gates are effectively OFF)")
 command -v bun >/dev/null 2>&1 || GATE+=("bun (the Stop quality gate, its markdown dead-link check, and lefthook's pre-commit/pre-push checks cannot run)")
@@ -63,10 +64,25 @@ fi
 # analysis with no failing exit code to show for it.
 node -e 'if (typeof require("node:module").registerHooks !== "function") process.exit(1)' >/dev/null 2>&1 || GATE+=("node with module.registerHooks — see engines in package.json (vite build fails; knip still exits 0 but cannot analyze vite.config.ts)")
 
-[ -f "$TREE/.env.local" ] || SETUP+=(".env.local absent (fix: cp .env.local.example .env.local — worktrees copy it only when the main checkout already has one)")
+# Gitignored, so a fresh checkout has none, and a worktree gets one only where
+# the main checkout already had one. `-L` sits beside `-e` because `-e` follows
+# a symlink: a dangling one reads as absent, and the copy would then write
+# through it to a path outside the tree. The copy runs from inside the tree so
+# `cp` names the two files the way the entries below name theirs.
+if [ -e "$TREE/.env.local" ] || [ -L "$TREE/.env.local" ]; then
+  [ -f "$TREE/.env.local" ] || SETUP+=(".env.local exists and is not a regular file (fix: remove that path, and the next session copies .env.local.example in its place)")
+elif CP_ERROR="$( ( cd "$TREE" && cp .env.local.example .env.local ) 2>&1 )"; then
+  CREATED+=("Created .env.local from .env.local.example, whose values are placeholders (edit them before pointing the tree at a real service).")
+else
+  SETUP+=(".env.local absent, and copying .env.local.example to it failed (fix: restore .env.local.example, or make the checkout writable). cp said: ${CP_ERROR:-cp exited non-zero and printed nothing}")
+fi
 [ -f "$TREE/src/routeTree.gen.ts" ] || SETUP+=("src/routeTree.gen.ts absent (fix: bun run setup, or bun run generate-routes)")
 [ -f "$TREE/worker-configuration.d.ts" ] || SETUP+=("worker-configuration.d.ts absent (fix: bun run setup, or bun run cf-typegen)")
 [ -d "$TREE/.wrangler/state" ] || SETUP+=("local D1 not initialized — .wrangler/state absent (fix: bun run db:push:local before first bun run dev)")
+
+if [ "${#CREATED[@]}" -gt 0 ]; then
+  printf '[env-check] %s\n' "${CREATED[@]}"
+fi
 
 ISSUES=$(( ${#GATE[@]} + ${#SETUP[@]} ))
 if [ "$ISSUES" -gt 0 ]; then
