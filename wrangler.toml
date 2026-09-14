@@ -6,6 +6,10 @@ main = "./src/ssr.tsx"
 compatibility_date = "2026-07-15"
 compatibility_flags = ["nodejs_compat"]
 
+# Workers Logs: invocation records, console.*, uncaught exceptions.
+[observability]
+enabled = true
+
 [[d1_databases]]
 binding = "DB"
 database_name = "local-db"
