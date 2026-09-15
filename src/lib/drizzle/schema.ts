@@ -51,6 +51,9 @@ export const accounts = sqliteTable(
     id: text("id").primaryKey(),
     idToken: text("id_token"),
     issuer: text("issuer").notNull(),
+    // better-auth が providerId "credential" の行に書くパスワードハッシュ。
+    // その資格情報サインインが有効なのは dev ビルドだけ。
+    password: text("password"),
     providerId: text("provider_id").notNull(),
     refreshToken: text("refresh_token"),
     refreshTokenExpiresAt: integer("refresh_token_expires_at", {

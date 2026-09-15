@@ -15,6 +15,13 @@
       "when": 1789200392807,
       "tag": "0001_melted_magneto",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789438171120,
+      "tag": "0002_dazzling_callisto",
+      "breakpoints": true
     }
   ]
 }
