@@ -26,7 +26,7 @@ tsc / knip / vitest toolchain.
 ## 1. Delete source code
 
 ```bash
-rm -rf src/lib/auth src/lib/drizzle src/lib/storage
+rm -rf src/lib/auth src/lib/cloudflare src/lib/drizzle src/lib/storage
 rm -rf src/entities src/gateways src/server
 rm -rf src/routes/api
 rm -f src/routes/login.tsx src/routes/profile.tsx src/routes/auth.auth-code-error.tsx
@@ -41,10 +41,9 @@ rm -f src/test/cloudflare-workers-stub.ts
 
 Two things above are easy to misread as deployment removals, and neither is one:
 
-- `src/server/` contains `cloudflare.live.ts`, whose only job is
-  `import { env } from "cloudflare:workers"` to hand out the D1 / R2 / secret
-  bindings. With no bindings left it has no callers. The Worker itself does not
-  need it.
+- `src/lib/cloudflare/env.live.ts` has one job: `import { env } from
+  "cloudflare:workers"` to hand out the D1 / R2 / secret bindings. With no
+  bindings left it has no callers. The Worker itself does not need it.
 - `src/test/cloudflare-workers-stub.ts` exists *only* to satisfy the vitest
   alias for that import (step 3). It goes with it.
 
@@ -116,7 +115,7 @@ the Worker, and it stays.
 
 ### `vitest.config.mts`: drop the `cloudflare:workers` alias
 
-The alias only existed to stub that import for `src/server/cloudflare.live.ts`, which
+The alias only existed to stub that import for `src/lib/cloudflare/env.live.ts`, which
 step 1 deleted. Remove the `alias` block and the now-unused `node:path` import.
 
 Keep the `coverage` block. It is the per-file 100% branch gate that AGENTS.md's
@@ -148,7 +147,7 @@ either file breaks the lint config for the whole fork.
 ### `knip.json`
 
 - Remove `"src/server/fn/**/*.ts"` from `entry`.
-- Remove `"src/server/cloudflare.live.ts"` from `ignore`.
+- Remove `"src/lib/cloudflare/env.live.ts"` from `ignore`.
 
 ## 4. Config files
 

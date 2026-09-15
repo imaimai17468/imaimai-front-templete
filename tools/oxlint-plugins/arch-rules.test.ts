@@ -1034,7 +1034,7 @@ describe("layer-boundaries", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ImportDeclaration?.(importNode("@/server/cloudflare"));
+    visitors.ImportDeclaration?.(importNode("@/lib/cloudflare/env"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -1084,7 +1084,7 @@ describe("layer-boundaries", () => {
   it.each([
     "@/gateways/avatar",
     "@/lib/auth/session",
-    "@/server/cloudflare",
+    "@/lib/cloudflare/env",
     "cloudflare:workers",
     "@tanstack/react-start/server",
   ])("should report when a route dynamically imports %s", (specifier) => {
@@ -1262,7 +1262,7 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it.each(["@/lib/auth/session.live", "@/server/cloudflare.live"])(
+  it.each(["@/lib/auth/session.live", "@/lib/cloudflare/env.live"])(
     "should report when a route imports %s, a banned module carrying the coverage suffix",
     (specifier) => {
       // Arrange

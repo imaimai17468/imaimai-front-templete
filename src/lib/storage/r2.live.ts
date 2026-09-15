@@ -1,4 +1,4 @@
-import { getCloudflareEnv } from "@/server/cloudflare.live";
+import { getCloudflareEnv } from "@/lib/cloudflare/env.live";
 
 export const uploadToR2 = async (
   key: string,

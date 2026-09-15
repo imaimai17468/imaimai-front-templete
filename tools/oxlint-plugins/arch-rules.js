@@ -364,7 +364,7 @@ const LAYER_BANS = [
       {
         message:
           "Routes must not access Cloudflare persistence bindings directly — delegate through src/server/fn to a gateway.",
-        target: "src/server/cloudflare",
+        target: "src/lib/cloudflare",
       },
     ],
     externalBans: [

@@ -1,5 +1,5 @@
 import { Context, Effect, Layer } from "effect";
-import { getCloudflareEnv } from "@/server/cloudflare.live";
+import { getCloudflareEnv } from "@/lib/cloudflare/env.live";
 
 export interface AvatarObject {
   body: R2ObjectBody["body"];
