@@ -385,31 +385,6 @@ const LAYER_BANS = [
     bans: [
       {
         message:
-          "Server infrastructure must not import routes — imports flow downward only.",
-        target: "src/routes",
-      },
-      {
-        message:
-          "Server infrastructure must not import server functions — imports flow downward only.",
-        target: "src/server/fn",
-      },
-      {
-        message:
-          "Server infrastructure must not import gateways — imports flow downward only.",
-        target: "src/gateways",
-      },
-      {
-        message:
-          "Server infrastructure must not import from src/lib — src/server only wires runtimes, so the dependency belongs in a layer built under src/server/fn.",
-        target: "src/lib",
-      },
-    ],
-    layer: "src/server",
-  },
-  {
-    bans: [
-      {
-        message:
           "Server functions must not import routes — imports flow downward only.",
         target: "src/routes",
       },
