@@ -125,7 +125,7 @@ Hono のミドルウェアに置くとその経路が認可を飛ばす。実装
 | サーバ処理の全量（テスト除く） | 約 100 行 |
 | HTTP エンドポイント | 2 本 |
 | `src/` パスをハードコードしている設定 | `vitest.config.mts` / `knip.json` / `tsconfig.json` / `wrangler.toml` / `components.json` / `vite.config.ts` |
-| `tools/oxlint-plugins/arch-rules.js` のパス依存 | `"src/` を含む行が 54 |
+| `tools/oxlint-plugins/arch-rules.js` のパス依存 | `"src/` を含む行が 22 |
 
 **エンドポイントの移設コストは本数に比例しない。** ハンドラのロジックが
 `Request → Response` の純関数として切られていれば、Hono へ寄せるのは殻の差し替えで
