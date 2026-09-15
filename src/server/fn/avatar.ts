@@ -3,7 +3,7 @@ import { AvatarGateway } from "@/gateways/avatar";
 import type { AvatarObject } from "@/gateways/avatar";
 import { CurrentSession } from "@/lib/auth/current-session.live";
 import { isOwnAvatarKey } from "@/lib/storage/avatar-validation";
-import { makeRunHandler } from "@/server/runtime.live";
+import { makeRunHandler } from "./runtime.live";
 
 export class AvatarUnauthorized extends Schema.TaggedError<AvatarUnauthorized>()(
   "AvatarUnauthorized",

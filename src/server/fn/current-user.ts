@@ -3,7 +3,7 @@ import type { UserWithEmail } from "@/entities/user";
 import { UserGateway } from "@/gateways/user";
 import type { UserPersistenceError } from "@/gateways/user";
 import { CurrentSession } from "@/lib/auth/current-session.live";
-import { makeRunHandler } from "@/server/runtime.live";
+import { makeRunHandler } from "./runtime.live";
 
 /**
  * The authorization boundary between a caller and the user's own profile row.

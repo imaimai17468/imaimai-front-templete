@@ -8,8 +8,8 @@ import type {
   UserNameUpdateFailed,
   UserPersistenceError,
 } from "@/gateways/user";
-import { makeRunHandler } from "@/server/runtime.live";
 import { CurrentUserReader } from "./current-user";
+import { makeRunHandler } from "./runtime.live";
 
 export class NotAuthenticated extends Schema.TaggedError<NotAuthenticated>()(
   "NotAuthenticated",
