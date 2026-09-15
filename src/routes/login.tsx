@@ -10,7 +10,7 @@ const LoginComponent = () => (
       <Button
         type="button"
         variant="outline"
-        className="cursor-pointer"
+        className="min-h-11 cursor-pointer"
         onClick={() => {
           void signInWithGoogle();
         }}
