@@ -198,10 +198,10 @@ effort: standard — 4 raised, 1 merged, 1 refuted, 1 abstained, 1 returned
 A refutation gets one line in the `Refuted` section, carrying the `file:line` Stage C
 re-read and what killed it. The parent acts on nothing there. An abstention gets one line
 in `Abstained`, carrying its `file:line`, its reason, the window it did re-read or
-`nothing re-read`, and what you would have needed. A
-pass that produced none of either drops that section rather than printing it empty, because
-the header's count already reports the zero. The per-finding labels are the opposite case
-and still each get their line, since no count covers them.
+`nothing re-read`, and what you would have needed. A pass that produced none of either drops
+that section rather than printing it empty, because the header's count already reports the
+zero. The per-finding labels are the opposite case and still each get their line, since no
+count covers them.
 
 `Checked` states how far the pass swept, so the parent can tell a lens that came back clean
 from one that never ran. Name every lens Stage A lists: the ones you swept over the whole
