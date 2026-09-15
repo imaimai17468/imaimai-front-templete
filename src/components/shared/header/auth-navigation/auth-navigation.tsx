@@ -14,7 +14,7 @@ export const AuthNavigation = ({ user }: AuthNavigationProps) => {
   }
 
   return (
-    <Button asChild size="sm" className="min-h-11 text-sm">
+    <Button asChild size="sm" className="min-h-11">
       <Link to="/login">Sign In</Link>
     </Button>
   );

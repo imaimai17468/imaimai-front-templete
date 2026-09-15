@@ -440,3 +440,9 @@ unchanged. Decide that first, then build the sections from it.
 - Build on the primitives in `src/components/ui/` and restyle what you take.
   Taking a prebuilt block's behavior costs nothing, and taking its styling
   costs the identity.
+- Restyle a primitive by changing its variants in `src/components/ui/`, not by
+  passing appearance classes at the call site. A call site passes the classes
+  that place the element, such as its width or its position in a grid or flex
+  parent. Color, typography, spacing, shape, effects, and motion belong to the
+  primitive, so a screen that needs a new treatment gets a new variant that
+  every other screen can then take.

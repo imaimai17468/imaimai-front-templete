@@ -34,18 +34,18 @@ export const UserMenu = ({ user }: UserMenuProps) => {
           type="button"
           className="cursor-pointer rounded-full focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
         >
-          <Avatar className="size-8">
+          <Avatar>
             <AvatarImage src={avatarUrl ?? undefined} alt={name} />
             <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56" sideOffset={16}>
-        <DropdownMenuLabel className="font-normal">
+        <DropdownMenuLabel>
           <div className="flex flex-col gap-1">
             <p className="text-sm leading-none font-medium">{name}</p>
             {email && (
-              <p className="text-xs leading-none text-muted-foreground">
+              <p className="text-xs leading-none font-normal text-muted-foreground">
                 {email}
               </p>
             )}
@@ -60,7 +60,8 @@ export const UserMenu = ({ user }: UserMenuProps) => {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          className="cursor-pointer text-destructive focus:text-destructive"
+          variant="destructive"
+          className="cursor-pointer"
           onClick={() => {
             void handleSignOut();
           }}

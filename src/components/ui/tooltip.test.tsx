@@ -11,12 +11,12 @@ type ProviderOptions = {
   delayDuration?: number;
 };
 
-const renderTooltip = (provider: ProviderOptions = {}, className?: string) =>
+const renderTooltip = (provider: ProviderOptions = {}) =>
   render(
     <TooltipProvider {...provider}>
       <Tooltip>
         <TooltipTrigger>保存</TooltipTrigger>
-        <TooltipContent className={className}>下書きを保存する</TooltipContent>
+        <TooltipContent>下書きを保存する</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
@@ -85,7 +85,16 @@ describe(Tooltip, () => {
 
   it("should keep the caller's class when className conflicts with a content class", () => {
     vi.useFakeTimers();
-    renderTooltip({}, "rounded-none");
+    render(
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>保存</TooltipTrigger>
+          <TooltipContent className="rounded-none">
+            下書きを保存する
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
 
     hoverTriggerAndAdvance(0);
 
