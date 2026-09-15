@@ -75,6 +75,18 @@ re-read into `verification` for **every** verdict, refutations included. That is
 a judgement passed without opening the code visible in your output, and Stage D's `Refuted`
 section is where the killed ones stay visible.
 
+**Re-derive by reading.** Open the code the candidate rests on, the tests that cover it, and
+`git log` or `git show` for the lines in question. A candidate whose defect reading leaves
+credible, with only the trace incomplete, is PLAUSIBLE, and the parent carries it from
+there. Where reading leaves the defect itself in doubt, the verdict is REFUTED.
+
+Running the whole test suite, writing a reproduction script under the scratchpad, and
+polling a command until its output appears each cost minutes, and the parent runs them after
+it has your report. Where one test file the diff changed answers a candidate, run
+`bun run test <path> --coverage.enabled=false`: `bun run test` alone carries `--coverage`
+and this repository's per-file 100% branch threshold, so a filtered run prints a threshold
+error for every file the filter never loaded and exits 1 on a passing test.
+
 Every surviving finding carries two more fields, because the parent applies what you return
 and commits, and nothing downstream judges the remedy.
 
@@ -140,9 +152,9 @@ in the header when it limits the whole pass, such as a suite you never ran.
 
 ## Effort
 
-**standard** (default): Stage C uses one reproduction lens. **high**: three lenses per
-finding (correctness, reproduction, scope), and a finding survives only if a majority does
-not refute it.
+**standard** (default): Stage C walks the failure through the code once. **high**: three
+lenses per finding (correctness, failure walk, scope), and a finding survives only if a
+majority does not refute it.
 
 **You have no web tool**, so you cannot check how an external tool behaves, such as a CLI
 flag, a config key, or a framework API. When the diff rests on such a claim and the
