@@ -68,14 +68,6 @@ export const readCurrentUser: Effect.Effect<
 
 const runCurrentUserHandler = makeRunHandler(CurrentUserReader.layer);
 
-/**
- * Reads the caller's own profile row and hands back a Promise.
- *
- * `CurrentUserReader.layer` names `CurrentSession.layer`, which reaches the
- * request-scoped session API, and a class static is not shaken out of a
- * client chunk. A browser-reachable module that imports this one therefore
- * fails the build's client import check, which is why the server function
- * wrapping this reaches it through `createServerOnlyFn`.
- */
+/** Reads the caller's own profile row and hands back a Promise. */
 export const runCurrentUser = async (): Promise<UserWithEmail | null> =>
   await runCurrentUserHandler(readCurrentUser);

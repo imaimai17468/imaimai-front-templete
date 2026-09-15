@@ -176,15 +176,7 @@ export const uploadAvatarResult: (
 
 const runProfileHandler = makeRunHandler(ProfileWriter.layer);
 
-/**
- * Writes the caller's own profile row and hands back a Promise.
- *
- * `ProfileWriter.layer` names `CurrentUserReader.layer` and `UserGateway.layer`,
- * which reach the session API, D1 and R2, and a class static is not shaken out
- * of a client chunk. A browser-reachable module that imports this one therefore
- * fails the build's client import check, which is why the server functions
- * wrapping these reach them through `createServerOnlyFn`.
- */
+/** Writes the caller's name onto their own profile row. */
 export const runUpdateProfile = async (
   data: UpdateUser
 ): Promise<UpdateProfileResult> =>
