@@ -100,7 +100,6 @@ and where none of them names what stopped you, the verdict is REFUTED:
   nothing does.
 - `out-of-reach`: settling it needs a caller, a schema, or a generated file you could not
   locate or open in this repository.
-- `budget`: you stopped before re-deriving it.
 
 The parent applies no fix from an abstention. It exists so a candidate you never settled
 stays out of the `Refuted` section, where the parent reads a line as disproved.
@@ -128,8 +127,10 @@ this repository, 2026-09-15, and every later response pays those bytes again, so
 whole-file `Read` for a file you need end to end.
 
 A candidate whose defect reading leaves credible, with only the trace incomplete, is
-PLAUSIBLE, and the parent carries it from there. Where reading leaves the defect itself in
-doubt, the verdict is REFUTED.
+PLAUSIBLE, and the parent carries it from there. A candidate that only a test run, a
+reproduction script, or a polled command settles is PLAUSIBLE too, with that command named
+in `fix`, so the parent knows which one closes it. Where reading leaves the defect itself
+in doubt, the verdict is REFUTED.
 
 Running the whole test suite, writing a reproduction script under the scratchpad, and
 polling a command until its output appears each cost minutes, and the parent runs them after
