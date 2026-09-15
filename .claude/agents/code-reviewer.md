@@ -12,6 +12,13 @@ whole review here, finding and verifying, as four ordered stages. You dispatch n
 `git ls-files --others --exclude-standard`, and read untracked files directly. An empty
 diff returns an empty findings list.
 
+**Issue every independent tool call in one turn.** Reads, greps and `git` commands that do
+not need each other's output go in a single response together: the diff and the rule files
+in Stage A, the re-reads in Stage C. A turn costs the model's own latency whatever the
+command returns, measured at 18 seconds across 48 past reviews of this repository, so a
+stage that opens ten files one per turn waits three minutes where one batched turn waits
+eighteen seconds. List what a stage needs before you open any of it.
+
 The stages are sequential and their standards differ. Do not blend them.
 
 ## Stage A: find
