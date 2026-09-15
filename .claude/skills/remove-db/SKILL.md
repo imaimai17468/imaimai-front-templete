@@ -189,6 +189,12 @@ rm -f .env.local .env.local.example
 `worker-configuration.d.ts` is **kept**, and so is the `# cloudflare` block in
 `.gitignore` that lists it.
 
+`scripts/setup.sh` ends by copying the env example file onto the local one.
+Delete that whole `if` block from the script, and from `scripts/setup.test.ts`
+delete every case and step constant naming either file. Left in place, the copy
+has no source, so `bun run setup` prints `[setup] failed at: cp` and exits 1 on
+every run from here on.
+
 After deleting the env files, the only secrets path left is
 `wrangler secret put`, which is where production secrets belong anyway.
 `docs/DEPLOYMENT.md` stays and still describes it.
@@ -222,7 +228,7 @@ paths.
 
 No list of individual lines follows, for the reason AGENTS.md's Instruction
 documents rule gives. Step 7's greps catch only references that contain a
-matching literal, and `README.md`'s quickstart copies the env example file this
+matching literal, and `README.md`'s quickstart names the env example file this
 procedure deletes without naming any of the terms.
 
 Surfaces to go through: `README.md`, `docs/DEPLOYMENT.md`, `docs/FORKING.md`,
@@ -335,7 +341,7 @@ Split per the Commits discipline in `AGENTS.md`:
    `Header` / `__root` edits)
 2. `chore:` remove the D1 / R2 / Drizzle configuration (wrangler.toml bindings,
    drizzle.config.ts, vitest alias, knip, the local-DB scripts, the env files,
-   and `docs/DATABASE_SETUP.md`)
+   `scripts/setup.sh` and `scripts/setup.test.ts`, and `docs/DATABASE_SETUP.md`)
 3. `chore:` remove the DB / auth dependencies (package.json / bun.lock)
 4. `docs:` remove DB- and auth-related documentation. Stage every surface
    step 6 touched, each by its explicit path as that discipline requires:
