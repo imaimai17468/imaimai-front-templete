@@ -13,9 +13,10 @@ import { drizzleUserStore } from "./drizzle-store.live";
 /**
  * A D1 row read or write, or an R2 object write, that did not complete.
  *
- * One type covers both services because every caller in this module treats
- * them the same way: it writes the cause to Workers Logs and takes the branch
- * that reports a failed avatar or profile write.
+ * One type covers both services because nothing below discriminates them. The
+ * avatar and name paths send it through `orNull` or `succeeded`, which log the
+ * cause and branch on the result, and `fetchCurrentUser` leaves it in the error
+ * channel for its caller to discharge.
  */
 export class UserPersistenceError extends Schema.TaggedError<UserPersistenceError>()(
   "UserPersistenceError",
