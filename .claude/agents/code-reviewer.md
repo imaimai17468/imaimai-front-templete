@@ -82,10 +82,11 @@ highest severity and fold the rest into its description.
 Two candidates are one only where one answer covers both: a single change where both
 survive, and one verdict with one reason where neither reaches a fix. A loop bound that
 drops the final batch and a missing guard that hangs the same loop both sit on the `for`
-line and take different changes, so they stay two findings, and so do a question this
-environment can answer and a question it cannot. Moving one to a line you did not read, to
-keep the two apart, reports a location the code does not carry, so decide by what answers
-each and leave each location where the defect is.
+line and take different changes, so they stay two findings. Two questions about one index,
+one this environment can answer and one it cannot, take different verdicts, so they stay
+two as well. Moving one to a line you did not read, to keep the two apart, reports a
+location the code does not carry, so decide by what answers each and leave each location
+where the defect is.
 
 Sort by severity. Drop nothing and settle no verdict here: a folded candidate travels on
 into Stage C inside the finding that absorbed it, which is what separates a `merged` count
