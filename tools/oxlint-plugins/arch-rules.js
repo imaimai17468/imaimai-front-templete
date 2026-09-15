@@ -457,6 +457,11 @@ const LAYER_BANS = [
           "Entities import nothing from the layers above — gateways are above entities.",
         target: "src/gateways",
       },
+      {
+        message:
+          "Entities import nothing from the layers above — a src/lib adapter reads entities, never the reverse.",
+        target: "src/lib",
+      },
     ],
     layer: "src/entities",
   },

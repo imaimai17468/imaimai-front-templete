@@ -1195,6 +1195,18 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
+  it("should report when an entity imports an adapter", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/entities/user/index.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/drizzle/schema"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
   it("should report when an entity imports a route", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/entities/user/index.ts");
