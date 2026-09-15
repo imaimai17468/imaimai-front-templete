@@ -85,10 +85,21 @@ re-read into `verification` for **every** verdict, refutations included. That is
 a judgement passed without opening the code visible in your output, and Stage D's `Refuted`
 section is where the killed ones stay visible.
 
-**Re-derive by reading.** Open the code the candidate rests on, the tests that cover it, and
-`git log` or `git show` for the lines in question. A candidate whose defect reading leaves
-credible, with only the trace incomplete, is PLAUSIBLE, and the parent carries it from
-there. Where reading leaves the defect itself in doubt, the verdict is REFUTED.
+**Re-derive by reading.** Open every candidate's lines in one call, a window around each
+`file:line` Stage B handed you rather than the whole file, and the tests and `git log` that
+bear on them in the same call:
+
+```sh
+for w in src/lib/foo.ts:30:60 src/lib/bar.ts:5:25; do f=${w%%:*}; r=${w#*:}; echo "== $w"; sed -n "${r%:*},${r#*:}p" "$f"; done
+```
+
+A whole-file open ran 2.3 times the bytes of a window, median across 48 reviews of this
+repository, 2026-09-15, and every later response pays those bytes again, so reserve `Read`
+for a file you need end to end.
+
+A candidate whose defect reading leaves credible, with only the trace incomplete, is
+PLAUSIBLE, and the parent carries it from there. Where reading leaves the defect itself in
+doubt, the verdict is REFUTED.
 
 Running the whole test suite, writing a reproduction script under the scratchpad, and
 polling a command until its output appears each cost minutes, and the parent runs them after
