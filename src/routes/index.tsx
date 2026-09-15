@@ -16,9 +16,7 @@ const TREE = `src/
 │   ├── profile.tsx         # Profile page (auth guard via beforeLoad)
 │   ├── auth.auth-code-error.tsx  # OAuth failure landing page
 │   └── api/                # API routes (auth catch-all, avatars)
-├── server/
-│   ├── runtime.live.ts     # Effect ManagedRuntime wiring for server functions
-│   └── fn/                 # Server functions (createServerFn)
+├── server/fn/              # Server functions (createServerFn) and their ManagedRuntime wiring
 ├── gateways/               # D1 / R2 persistence
 ├── entities/               # Domain types and schemas
 ├── components/
