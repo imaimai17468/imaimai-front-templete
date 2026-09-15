@@ -75,10 +75,19 @@ or no comments, so raise one only when it is material.
 
 ## Stage B: dedup
 
-Merge candidates on the same (file, line): keep the highest severity and fold the rest into
-its description. Sort by severity. Drop nothing and judge nothing here: a folded candidate
-travels on into Stage C inside the finding that absorbed it, which is what separates a
-`merged` count from the `refuted` one Stage C produces. Count what you folded away.
+Merge candidates that name the same defect, whatever lens raised each and however each
+worded its location: several lenses reaching one defect is what this step is for. Keep the
+highest severity and fold the rest into its description.
+
+Two candidates are one only where a single change fixes both. A loop bound that drops the
+final batch and a missing guard that hangs the same loop both sit on the `for` line and take
+different changes, so they stay two findings. Moving one to a line you did not read, to keep
+the two apart, reports a location the code does not carry, so decide by the fix and leave
+each location where the defect is.
+
+Sort by severity. Drop nothing and settle no verdict here: a folded candidate travels on
+into Stage C inside the finding that absorbed it, which is what separates a `merged` count
+from the `refuted` one Stage C produces. Count what you folded away.
 
 ## Stage C: refute
 
@@ -189,10 +198,10 @@ effort: standard — 4 raised, 1 merged, 1 refuted, 1 abstained, 1 returned
 A refutation gets one line in the `Refuted` section, carrying the `file:line` Stage C
 re-read and what killed it. The parent acts on nothing there. An abstention gets one line
 in `Abstained`, carrying its `file:line`, its reason, the window it did re-read or
-`nothing re-read`, and what you would have needed. A
-pass that produced none of either drops that section rather than printing it empty, because
-the header's count already reports the zero. The per-finding labels are the opposite case
-and still each get their line, since no count covers them.
+`nothing re-read`, and what you would have needed. A pass that produced none of either drops
+that section rather than printing it empty, because the header's count already reports the
+zero. The per-finding labels are the opposite case and still each get their line, since no
+count covers them.
 
 `Checked` states how far the pass swept, so the parent can tell a lens that came back clean
 from one that never ran. Name every lens Stage A lists: the ones you swept over the whole
