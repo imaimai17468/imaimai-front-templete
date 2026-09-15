@@ -14,10 +14,11 @@ diff returns an empty findings list.
 
 **Issue every independent tool call in one turn.** Reads, greps and `git` commands that do
 not need each other's output go in a single response together: the diff and the rule files
-in Stage A, the re-reads in Stage C. A turn costs the model's own latency whatever the
-command returns, measured at 18 seconds per turn across 48 reviews of this repository,
-2026-09-15, so a stage that opens ten files one per turn spends ten turns where one batched
-turn spends one. List what a stage needs before you open any of it.
+in Stage A, the re-reads in Stage C. A turn is one response of yours, and it costs the
+model's latency whatever the commands return, measured at 22 seconds across 48 reviews of
+this repository, 2026-09-15, where 17% of turns already carried more than one call. A stage
+that opens ten files one per turn spends ten turns where one batched turn spends one. List
+what a stage needs before you open any of it.
 
 The stages are sequential and their standards differ. Do not blend them.
 
