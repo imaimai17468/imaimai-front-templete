@@ -1,9 +1,8 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { Camera, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import type { z } from "zod";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import type { UserWithEmail } from "@/entities/user";
+import type { UpdateUser, UserWithEmail } from "@/entities/user";
 import { UpdateUserSchema } from "@/entities/user";
 import {
   avatarSizeRejection,
@@ -28,8 +27,6 @@ import { updateProfileFn, uploadAvatarFn } from "@/server/fn/profile";
 interface ProfileFormProps {
   user: UserWithEmail;
 }
-
-type FormData = z.infer<typeof UpdateUserSchema>;
 
 export const ProfileForm = ({ user }: ProfileFormProps) => {
   const [isPending, startTransition] = useTransition();
@@ -48,11 +45,11 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
     [previewUrl]
   );
 
-  const form = useForm<FormData>({
+  const form = useForm<UpdateUser>({
     defaultValues: {
       name: user.name ?? "",
     },
-    resolver: zodResolver(UpdateUserSchema),
+    resolver: standardSchemaResolver(UpdateUserSchema),
   });
 
   const handleAvatarClick = () => {
@@ -95,7 +92,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
     setPreviewUrl(nextPreviewUrl);
   };
 
-  const onSubmit = (data: FormData) => {
+  const onSubmit = (data: UpdateUser) => {
     startTransition(async () => {
       if (pendingFile) {
         const avatarData = new globalThis.FormData();

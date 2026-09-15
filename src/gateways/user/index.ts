@@ -11,6 +11,13 @@ import { deleteFromR2, uploadToR2 } from "@/lib/storage/r2.live";
 import { drizzleUserStore } from "./drizzle-store.live";
 
 /**
+ * Turns a row's `DateTime.Utc` instants into the ISO-8601 strings of
+ * `UserWithEmail` and throws when a field fails its check, such as an email the
+ * session carried that is not an address.
+ */
+const encodeUserWithEmail = Schema.encodeSync(UserWithEmailSchema);
+
+/**
  * A D1 row read or write, or an R2 object write, that did not complete.
  *
  * One type covers both services because nothing below discriminates them. The
@@ -241,13 +248,13 @@ export class UserGateway extends Context.Service<
           if (profile === null) {
             return null;
           }
-          return UserWithEmailSchema.parse({
+          return encodeUserWithEmail({
             avatarUrl: profile.image,
-            createdAt: DateTime.formatIso(profile.createdAt),
+            createdAt: profile.createdAt,
             email,
             id: profile.id,
             name: profile.name,
-            updatedAt: DateTime.formatIso(profile.updatedAt),
+            updatedAt: profile.updatedAt,
           });
         }
       );

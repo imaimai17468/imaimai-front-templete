@@ -1,4 +1,5 @@
 import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
+import { Schema } from "effect";
 import { UpdateUserSchema } from "@/entities/user";
 import type { UpdateUser } from "@/entities/user";
 import {
@@ -8,11 +9,13 @@ import {
 import type { AvatarSizeRejection } from "@/lib/storage/avatar-validation";
 import { runUpdateProfile, runUploadAvatar } from "./profile-writer";
 
+const decodeUpdateUser = Schema.decodeUnknownSync(UpdateUserSchema);
+
 export const parseProfileUpdate = (data: unknown): UpdateUser => {
   if (!(data instanceof FormData)) {
     throw new Error("Expected FormData");
   }
-  return UpdateUserSchema.parse({ name: data.get("name") });
+  return decodeUpdateUser({ name: data.get("name") });
 };
 
 const AVATAR_REJECTION_MESSAGES = {
