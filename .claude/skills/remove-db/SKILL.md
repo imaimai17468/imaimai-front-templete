@@ -95,13 +95,11 @@ export const Header = () => (
 
 ### `src/routes/index.tsx`
 
-The sample home page hardcodes the stack and setup commands. Remove the
-`Better Auth` and `Drizzle ORM` entries from the `STACK` array, and drop the
-`cp .env.local.example .env.local` line from the "Get started" code snippet (the
-env example file is deleted in step 4). Note: the step 7 residual grep will
-**not** catch these, because `"Better Auth"` has a space and `"Drizzle ORM"` is
-capitalized, so neither matches the `better-auth` / `drizzle` (lowercase,
-case-sensitive) patterns. Fix them here explicitly.
+The sample home page hardcodes the stack. Remove the `Better Auth` and
+`Drizzle ORM` entries from the `STACK` array. Note: the step 7 residual grep
+will **not** catch these, because `"Better Auth"` has a space and
+`"Drizzle ORM"` is capitalized, so neither matches the `better-auth` /
+`drizzle` (lowercase, case-sensitive) patterns. Fix them here explicitly.
 
 ### Residual auth references
 
