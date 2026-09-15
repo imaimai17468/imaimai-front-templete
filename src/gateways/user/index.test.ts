@@ -328,17 +328,21 @@ describe("user gateway", () => {
     it("should stamp the row with the clock's instant when the name update resolves", async () => {
       const { runOrFailure, updateName } = makeFakes();
 
-      await runOrFailure((gateway) =>
+      const result = await runOrFailure((gateway) =>
         gateway.updateUser("user-1", { name: "New Name" })
       );
 
-      expect(
-        updateName.mock.calls.map(([userId, name, updatedAt]) => [
+      expect({
+        result,
+        updateCalls: updateName.mock.calls.map(([userId, name, updatedAt]) => [
           userId,
           name,
           DateTime.formatIso(updatedAt),
-        ])
-      ).toStrictEqual([["user-1", "New Name", TEST_CLOCK_INSTANT]]);
+        ]),
+      }).toStrictEqual({
+        result: undefined,
+        updateCalls: [["user-1", "New Name", TEST_CLOCK_INSTANT]],
+      });
     });
 
     it("should report a failure when the name update fails", async () => {
