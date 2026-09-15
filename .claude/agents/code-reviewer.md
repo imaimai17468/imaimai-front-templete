@@ -90,13 +90,17 @@ re-read into `verification` for **every** verdict, refutations included. That is
 a judgement passed without opening the code visible in your output, and Stage D's `Refuted`
 section is where the killed ones stay visible.
 
-**Re-derive by reading.** Open every candidate's lines in one call, a window around each
-`file:line` Stage B handed you rather than the whole file, and the tests and `git log` that
-bear on them in the same call:
+**Re-derive by reading.** Open every candidate's lines in one call, widening each
+`file:line` Stage B handed you into a `file:start:end` window rather than opening the whole
+file, and take the tests and `git log` that bear on them in the same call:
 
 ```sh
-for w in src/lib/foo.ts:30:60 src/lib/bar.ts:5:25; do f=${w%%:*}; r=${w#*:}; echo "== $w"; sed -n "${r%:*},${r#*:}p" "$f"; done
+for w in src/lib/foo.ts:30:60 src/lib/bar.ts:5:25; do f=${w%%:*}; r=${w#*:}; s=${r%:*}; e=${r#*:}; echo "== $f:$s-$e"; awk -v s="$s" -v e="$e" 'NR>=s&&NR<=e{printf "%5d  %s\n", NR, $0}' "$f"; done
 ```
+
+The three fields and the numbering both matter. A two-field `file:line` leaves `start` and
+`end` equal, printing one line while reading as a window, and `verification` and every Stage
+D heading quote a line number that the printed text has to carry.
 
 A whole-file open ran 2.3 times the bytes of a window, median across 48 reviews of this
 repository, 2026-09-15, and every later response pays those bytes again, so reserve `Read`
