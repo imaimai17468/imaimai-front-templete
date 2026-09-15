@@ -110,7 +110,9 @@ REFUTED:
   nothing does.
 - `out-of-reach`: settling it needs a caller, a schema, or a generated file you could not
   locate or open in this repository.
-- `unrunnable`: only running something decides it, and you cannot run it here.
+- `unrunnable`: only running something decides it, and this environment cannot produce that
+  answer, such as data or a service it does not hold. A run you could start yourself is not
+  this reason.
 
 The parent applies no fix from an abstention. It exists so a candidate you never settled
 stays out of the `Refuted` section, where the parent reads a line as disproved.
