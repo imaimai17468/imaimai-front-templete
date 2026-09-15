@@ -385,6 +385,41 @@ const LAYER_BANS = [
     bans: [
       {
         message:
+          "Server infrastructure must not import routes — imports flow downward only.",
+        target: "src/routes",
+      },
+      {
+        message:
+          "Server infrastructure must not import server functions — imports flow downward only.",
+        target: "src/server/fn",
+      },
+      {
+        message:
+          "Server infrastructure must not import gateways — imports flow downward only.",
+        target: "src/gateways",
+      },
+      {
+        message:
+          "Server infrastructure must not import the auth adapter — src/lib/auth reads the bindings src/server hands out.",
+        target: "src/lib/auth",
+      },
+      {
+        message:
+          "Server infrastructure must not import persistence — src/lib/drizzle reads the bindings src/server hands out.",
+        target: "src/lib/drizzle",
+      },
+      {
+        message:
+          "Server infrastructure must not import object storage — src/lib/storage reads the bindings src/server hands out.",
+        target: "src/lib/storage",
+      },
+    ],
+    layer: "src/server",
+  },
+  {
+    bans: [
+      {
+        message:
           "Server functions must not import routes — imports flow downward only.",
         target: "src/routes",
       },

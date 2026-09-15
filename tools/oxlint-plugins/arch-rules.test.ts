@@ -1195,6 +1195,61 @@ describe("layer-boundaries", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
+  it.each([
+    "@/server/fn/avatar",
+    "@/gateways/avatar",
+    "@/routes/profile",
+    "@/lib/auth/auth.live",
+    "@/lib/drizzle/db.live",
+    "@/lib/storage/r2.live",
+  ])("should report when server infrastructure imports %s", (specifier) => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/server/runtime.live.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode(specifier));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when server infrastructure imports a server function via relative path", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/server/runtime.live.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("./fn/avatar"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when server infrastructure imports an entity", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/server/runtime.live.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/entities/user"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a server function imports a sibling server function", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/server/fn/user.live.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/server/fn/avatar"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
   it("should report when a route imports a gateway via relative path", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/profile.tsx");
