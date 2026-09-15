@@ -35,16 +35,18 @@ export const ProfilePage = ({ user }: ProfilePageProps) => (
           <CardTitle>Account Information</CardTitle>
           <CardDescription>Basic account information</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Email Address</p>
-            <p className="font-medium">{user.email}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Registration Date</p>
-            <p className="font-medium">
-              {new Date(user.createdAt).toLocaleDateString("ja-JP")}
-            </p>
+        <CardContent>
+          <div className="flex flex-col gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Email Address</p>
+              <p className="font-medium">{user.email}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Registration Date</p>
+              <p className="font-medium">
+                {new Date(user.createdAt).toLocaleDateString("ja-JP")}
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>

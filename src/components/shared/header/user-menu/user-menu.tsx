@@ -41,11 +41,11 @@ export const UserMenu = ({ user }: UserMenuProps) => {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56" sideOffset={16}>
-        <DropdownMenuLabel className="font-normal">
+        <DropdownMenuLabel>
           <div className="flex flex-col gap-1">
             <p className="text-sm leading-none font-medium">{name}</p>
             {email && (
-              <p className="text-xs leading-none text-muted-foreground">
+              <p className="text-xs leading-none font-normal text-muted-foreground">
                 {email}
               </p>
             )}
@@ -60,7 +60,8 @@ export const UserMenu = ({ user }: UserMenuProps) => {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          className="cursor-pointer text-destructive focus:text-destructive"
+          variant="destructive"
+          className="cursor-pointer"
           onClick={() => {
             void handleSignOut();
           }}

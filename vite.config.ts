@@ -41,6 +41,7 @@ export default defineConfig({
       "./tools/oxlint-plugins/arch-rules.js",
       { name: "react-doctor", specifier: "oxlint-plugin-react-doctor" },
       { name: "tailwindcss", specifier: "oxlint-tailwindcss" },
+      { name: "shadcn", specifier: "@shadcn/lint" },
     ],
     settings: {
       tailwindcss: {
@@ -139,6 +140,9 @@ export default defineConfig({
       "tailwindcss/consistent-variant-order": "error",
       "tailwindcss/enforce-consistent-important-position": "error",
       "tailwindcss/no-unnecessary-whitespace": "error",
+      "shadcn/no-restyle": ["error", { allow: ["layout"] }],
+      "shadcn/no-inline-styles": "error",
+      "shadcn/require-static-classes": "error",
       "arch-rules/layer-boundaries": "error",
       "arch-rules/no-size-props": "error",
       "arch-rules/one-component-per-file": "error",
@@ -260,6 +264,7 @@ export default defineConfig({
           "tailwindcss/consistent-variant-order": "off",
           "tailwindcss/enforce-consistent-important-position": "off",
           "tailwindcss/no-unnecessary-whitespace": "off",
+          "shadcn/no-restyle": "off",
         },
       },
       {
