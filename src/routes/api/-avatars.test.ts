@@ -1,11 +1,24 @@
+import { Effect, Layer } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
-import type { AvatarReadResult } from "@/server/fn/avatar";
-import { createGetAvatarResponse } from "./avatars";
-import type { AvatarReader } from "./avatars";
+import {
+  AvatarInvalidKey,
+  AvatarNotFound,
+  AvatarReader,
+  AvatarUnauthorized,
+} from "@/server/fn/avatar";
+import { getAvatarResponse } from "./avatars";
 
 const makeFakes = () => {
-  const readAvatar = vi.fn<AvatarReader>();
-  return { getAvatarResponse: createGetAvatarResponse(readAvatar), readAvatar };
+  const read = vi.fn<AvatarReader["Service"]["read"]>();
+  return {
+    read,
+    respond: async (request: Request) =>
+      await Effect.runPromise(
+        getAvatarResponse(request).pipe(
+          Effect.provide(Layer.succeed(AvatarReader, AvatarReader.of({ read })))
+        )
+      ),
+  };
 };
 
 const request = () =>
@@ -20,19 +33,23 @@ const avatarBody = () =>
   });
 
 const errorCases = [
-  [{ kind: "unauthorized" }, 401, "Unauthorized"],
-  [{ kind: "invalid-key" }, 400, "Invalid key"],
-  [{ kind: "not-found" }, 404, "Not found"],
-] satisfies [AvatarReadResult, number, string][];
+  [new AvatarUnauthorized(), 401, "Unauthorized"],
+  [new AvatarInvalidKey(), 400, "Invalid key"],
+  [new AvatarNotFound(), 404, "Not found"],
+] satisfies [
+  AvatarInvalidKey | AvatarNotFound | AvatarUnauthorized,
+  number,
+  string,
+][];
 
-describe("getAvatarResponse", () => {
+describe(getAvatarResponse, () => {
   it.each(errorCases)(
     "should return the expected JSON error when authorization rejects the request",
-    async (result, status, error) => {
-      const { getAvatarResponse, readAvatar } = makeFakes();
-      readAvatar.mockResolvedValue(result);
+    async (failure, status, error) => {
+      const { read, respond } = makeFakes();
+      read.mockReturnValue(Effect.fail(failure));
 
-      const response = await getAvatarResponse(request());
+      const response = await respond(request());
 
       expect({
         status: response.status,
@@ -50,16 +67,10 @@ describe("getAvatarResponse", () => {
   ])(
     "should return hardened headers with %s when the avatar exists",
     async (_label, contentType, expectedContentType) => {
-      const { getAvatarResponse, readAvatar } = makeFakes();
-      readAvatar.mockResolvedValue({
-        kind: "found",
-        avatar: {
-          body: avatarBody(),
-          contentType,
-        },
-      });
+      const { read, respond } = makeFakes();
+      read.mockReturnValue(Effect.succeed({ body: avatarBody(), contentType }));
 
-      const response = await getAvatarResponse(request());
+      const response = await respond(request());
 
       expect({
         status: response.status,
@@ -79,11 +90,20 @@ describe("getAvatarResponse", () => {
     }
   );
 
-  it("should propagate the error when the authorization boundary fails", async () => {
-    const { getAvatarResponse, readAvatar } = makeFakes();
-    readAvatar.mockRejectedValue(new Error("avatar read failed"));
+  it("should pass the query string's key to the authorization boundary when the request carries one", async () => {
+    const { read, respond } = makeFakes();
+    read.mockReturnValue(Effect.fail(new AvatarNotFound()));
 
-    const result = getAvatarResponse(request());
+    await respond(request());
+
+    expect(read.mock.calls).toStrictEqual([["user-1/avatar.png"]]);
+  });
+
+  it("should propagate the defect when the authorization boundary fails", async () => {
+    const { read, respond } = makeFakes();
+    read.mockReturnValue(Effect.die(new Error("avatar read failed")));
+
+    const result = respond(request());
 
     await expect(result).rejects.toThrow("avatar read failed");
   });

@@ -52,6 +52,8 @@ Your training data goes stale. Outdated guidance is worse than no guidance.
 
 **Not needed when:** the project already pins the version and shows the usage you need (read the project instead), it is a well-known CLI in standard usage (`git commit`, `cargo test`), the pattern is internal (read the codebase), or the concept has no versioned API.
 
+**Effect ships its own guidance, and it outranks a search.** Before writing any Effect code, read `node_modules/effect/AGENTS.md` completely and follow the links it names. For an API or a concept that guide leaves out, search `node_modules/effect/src`, which is the pinned version's own source. That guide tells you to avoid other copies of Effect's documentation, and this project runs a v4 release candidate that most of them predate.
+
 **Don't present uncertain knowledge as fact.** Verify a term, a translation, a convention, or a recommendation before writing it down. Plausible-sounding but invented information reads as authoritative and propagates through docs and code. Where you cannot verify, say so plainly. This applies to formal skill execution, casual conversation, follow-up questions, and subagent prompts alike, with no exception for "I'm pretty sure."
 
 ## Code Practices

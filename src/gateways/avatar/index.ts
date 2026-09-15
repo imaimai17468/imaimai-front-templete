@@ -1,3 +1,4 @@
+import { Context, Effect, Layer } from "effect";
 import { getCloudflareEnv } from "@/server/cloudflare.live";
 
 export interface AvatarObject {
@@ -8,35 +9,58 @@ export interface AvatarObject {
 /**
  * The read side of the avatar bucket.
  *
- * The gateway is written against this rather than against an R2 binding, so a
- * test supplies a fake without a Cloudflare environment.
+ * The gateway is written against this service rather than against an R2
+ * binding, so a test provides a fake layer without a Cloudflare environment.
  */
-export interface AvatarBucket {
-  get: (key: string) => Promise<{
-    body: R2ObjectBody["body"];
-    httpMetadata?: { contentType?: string | undefined } | undefined;
-  } | null>;
+export class AvatarBucket extends Context.Service<
+  AvatarBucket,
+  {
+    readonly get: (key: string) => Effect.Effect<{
+      body: R2ObjectBody["body"];
+      httpMetadata?: { contentType?: string | undefined } | undefined;
+    } | null>;
+  }
+>()("app/gateways/avatar/AvatarBucket") {
+  static readonly layer = Layer.succeed(
+    AvatarBucket,
+    AvatarBucket.of({
+      get: (key) =>
+        Effect.promise(
+          async () => await getCloudflareEnv().AVATARS_BUCKET.get(key)
+        ),
+    })
+  );
 }
 
-export interface AvatarGatewayDeps {
-  bucket: AvatarBucket;
+export class AvatarGateway extends Context.Service<
+  AvatarGateway,
+  {
+    readonly fetchAvatar: (key: string) => Effect.Effect<AvatarObject | null>;
+  }
+>()("app/gateways/avatar/AvatarGateway") {
+  static readonly layerNoDeps = Layer.effect(
+    AvatarGateway,
+    Effect.gen(function* buildAvatarGateway() {
+      const bucket = yield* AvatarBucket;
+
+      const fetchAvatar = Effect.fn("AvatarGateway.fetchAvatar")(
+        function* fetchAvatar(key: string) {
+          const object = yield* bucket.get(key);
+          if (object === null) {
+            return null;
+          }
+          return {
+            body: object.body,
+            contentType: object.httpMetadata?.contentType ?? null,
+          };
+        }
+      );
+
+      return AvatarGateway.of({ fetchAvatar });
+    })
+  );
+
+  static readonly layer = AvatarGateway.layerNoDeps.pipe(
+    Layer.provide(AvatarBucket.layer)
+  );
 }
-
-export const createAvatarGateway = ({ bucket }: AvatarGatewayDeps) => ({
-  fetchAvatar: async (key: string): Promise<AvatarObject | null> => {
-    const object = await bucket.get(key);
-    if (object === null) {
-      return null;
-    }
-    return {
-      body: object.body,
-      contentType: object.httpMetadata?.contentType ?? null,
-    };
-  },
-});
-
-export const avatarGateway = createAvatarGateway({
-  bucket: {
-    get: async (key) => await getCloudflareEnv().AVATARS_BUCKET.get(key),
-  },
-});

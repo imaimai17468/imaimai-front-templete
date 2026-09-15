@@ -1,16 +1,38 @@
+import { Effect, Layer } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
+import { AvatarGateway } from "@/gateways/avatar";
 import type { AvatarObject } from "@/gateways/avatar";
+import { CurrentSession } from "@/lib/auth/current-session.live";
 import type { getSession } from "@/lib/auth/session.live";
-import { createReadAvatarForCurrentUser } from "./avatar";
-import type { AvatarReadDeps } from "./avatar";
+import {
+  AvatarInvalidKey,
+  AvatarNotFound,
+  AvatarReader,
+  AvatarUnauthorized,
+} from "./avatar";
 
-const makeFakes = () => {
-  const fetchAvatar = vi.fn<AvatarReadDeps["fetchAvatar"]>();
-  const readSession = vi.fn<AvatarReadDeps["readSession"]>();
+const makeFakes = (read: CurrentSession["Service"]["read"]) => {
+  const fetchAvatar = vi.fn<AvatarGateway["Service"]["fetchAvatar"]>();
+  const layer = AvatarReader.layerNoDeps.pipe(
+    Layer.provide(
+      Layer.merge(
+        Layer.succeed(AvatarGateway, AvatarGateway.of({ fetchAvatar })),
+        Layer.succeed(CurrentSession, CurrentSession.of({ read }))
+      )
+    )
+  );
   return {
     fetchAvatar,
-    readAvatar: createReadAvatarForCurrentUser({ fetchAvatar, readSession }),
-    readSession,
+    readAvatarOrFailure: async (key: string | null) =>
+      await Effect.runPromise(
+        Effect.gen(function* callRead() {
+          const reader = yield* AvatarReader;
+          return yield* reader.read(key);
+        }).pipe(
+          Effect.provide(layer),
+          Effect.catch((error) => Effect.succeed(error))
+        )
+      ),
   };
 };
 
@@ -37,16 +59,17 @@ const sessionFor = (userId: string) =>
     },
   }) satisfies NonNullable<Awaited<ReturnType<typeof getSession>>>;
 
-describe("readAvatarForCurrentUser", () => {
+describe("AvatarReader.read", () => {
   it("should reject without reading persistence when the request is anonymous", async () => {
-    const { fetchAvatar, readAvatar, readSession } = makeFakes();
-    readSession.mockResolvedValue(null);
+    const { fetchAvatar, readAvatarOrFailure } = makeFakes(
+      Effect.succeed(null)
+    );
 
-    const result = await readAvatar("user-1/avatar.png");
+    const result = await readAvatarOrFailure("user-1/avatar.png");
 
     expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
       fetchCalls: [],
-      result: { kind: "unauthorized" },
+      result: new AvatarUnauthorized(),
     });
   });
 
@@ -57,63 +80,68 @@ describe("readAvatarForCurrentUser", () => {
   ])(
     "should reject without reading persistence when %s",
     async (_label, key) => {
-      const { fetchAvatar, readAvatar, readSession } = makeFakes();
-      readSession.mockResolvedValue(sessionFor("user-1"));
+      const { fetchAvatar, readAvatarOrFailure } = makeFakes(
+        Effect.succeed(sessionFor("user-1"))
+      );
 
-      const result = await readAvatar(key);
+      const result = await readAvatarOrFailure(key);
 
       expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
         fetchCalls: [],
-        result: { kind: "invalid-key" },
+        result: new AvatarInvalidKey(),
       });
     }
   );
 
-  it("should return not-found when the owned object is absent", async () => {
-    const { fetchAvatar, readAvatar, readSession } = makeFakes();
-    readSession.mockResolvedValue(sessionFor("user-1"));
-    fetchAvatar.mockResolvedValue(null);
+  it("should fail with not-found when the owned object is absent", async () => {
+    const { fetchAvatar, readAvatarOrFailure } = makeFakes(
+      Effect.succeed(sessionFor("user-1"))
+    );
+    fetchAvatar.mockReturnValue(Effect.succeed(null));
 
-    const result = await readAvatar("user-1/avatar.png");
+    const result = await readAvatarOrFailure("user-1/avatar.png");
 
     expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
       fetchCalls: [["user-1/avatar.png"]],
-      result: { kind: "not-found" },
+      result: new AvatarNotFound(),
     });
   });
 
   it("should return the gateway object when the owned object exists", async () => {
-    const { fetchAvatar, readAvatar, readSession } = makeFakes();
+    const { fetchAvatar, readAvatarOrFailure } = makeFakes(
+      Effect.succeed(sessionFor("user-1"))
+    );
     const avatar = {
       body: new ReadableStream<Uint8Array>(),
       contentType: "image/png",
     } satisfies AvatarObject;
-    readSession.mockResolvedValue(sessionFor("user-1"));
-    fetchAvatar.mockResolvedValue(avatar);
+    fetchAvatar.mockReturnValue(Effect.succeed(avatar));
 
-    const result = await readAvatar("user-1/avatar.png");
+    const result = await readAvatarOrFailure("user-1/avatar.png");
 
     expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
       fetchCalls: [["user-1/avatar.png"]],
-      result: { avatar, kind: "found" },
+      result: avatar,
     });
   });
 
-  it("should propagate the error when session resolution fails", async () => {
-    const { readAvatar, readSession } = makeFakes();
-    readSession.mockRejectedValue(new Error("session failed"));
+  it("should propagate the defect when session resolution fails", async () => {
+    const { readAvatarOrFailure } = makeFakes(
+      Effect.die(new Error("session failed"))
+    );
 
-    const result = readAvatar("user-1/avatar.png");
+    const result = readAvatarOrFailure("user-1/avatar.png");
 
     await expect(result).rejects.toThrow("session failed");
   });
 
-  it("should propagate the error when persistence fails", async () => {
-    const { fetchAvatar, readAvatar, readSession } = makeFakes();
-    readSession.mockResolvedValue(sessionFor("user-1"));
-    fetchAvatar.mockRejectedValue(new Error("R2 failed"));
+  it("should propagate the defect when persistence fails", async () => {
+    const { fetchAvatar, readAvatarOrFailure } = makeFakes(
+      Effect.succeed(sessionFor("user-1"))
+    );
+    fetchAvatar.mockReturnValue(Effect.die(new Error("R2 failed")));
 
-    const result = readAvatar("user-1/avatar.png");
+    const result = readAvatarOrFailure("user-1/avatar.png");
 
     await expect(result).rejects.toThrow("R2 failed");
   });
