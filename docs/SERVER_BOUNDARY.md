@@ -12,7 +12,7 @@ Cloudflare Worker
     ├ routes/           TanStack Router。api/ は 2 本（auth catch-all, avatars）
     ├ server/fn/        認可境界。createServerFn
     ├ gateways/         D1 / R2
-    ├ entities/         zod スキーマ
+    ├ entities/         Effect Schema
     └ lib/              drizzle / auth / storage
 ```
 
