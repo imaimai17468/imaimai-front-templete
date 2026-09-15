@@ -85,9 +85,9 @@ different changes, so they stay two findings. Moving one to a line you did not r
 the two apart, reports a location the code does not carry, so decide by the fix and leave
 each location where the defect is.
 
-Sort by severity. Drop nothing and judge nothing here: a folded candidate travels on into
-Stage C inside the finding that absorbed it, which is what separates a `merged` count from
-the `refuted` one Stage C produces. Count what you folded away.
+Sort by severity. Drop nothing and settle no verdict here: a folded candidate travels on
+into Stage C inside the finding that absorbed it, which is what separates a `merged` count
+from the `refuted` one Stage C produces. Count what you folded away.
 
 ## Stage C: refute
 
