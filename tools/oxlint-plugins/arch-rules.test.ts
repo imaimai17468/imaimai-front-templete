@@ -1236,8 +1236,7 @@ describe("layer-boundaries", () => {
     "@/gateways/avatar",
     "@/routes/profile",
     "@/lib/auth/auth.live",
-    "@/lib/drizzle/db.live",
-    "@/lib/storage/r2.live",
+    "@/lib/cloudflare/env.live",
   ])("should report when server infrastructure imports %s", (specifier) => {
     // Arrange
     const context = makeLayerContext("/repo/src/server/runtime.live.ts");
