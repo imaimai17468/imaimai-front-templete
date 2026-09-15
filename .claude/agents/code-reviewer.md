@@ -102,9 +102,9 @@ The three fields and the numbering both matter. A two-field `file:line` leaves `
 `end` equal, printing one line while reading as a window, and `verification` and every Stage
 D heading quote a line number that the printed text has to carry.
 
-A whole-file open ran 2.3 times the bytes of a window, median across 48 reviews of this
-repository, 2026-09-15, and every later response pays those bytes again, so reserve `Read`
-for a file you need end to end.
+The median whole-file open ran 4.8 kB and the median window 2.1 kB, across 48 reviews of
+this repository, 2026-09-15, and every later response pays those bytes again, so reserve a
+whole-file `Read` for a file you need end to end.
 
 A candidate whose defect reading leaves credible, with only the trace incomplete, is
 PLAUSIBLE, and the parent carries it from there. Where reading leaves the defect itself in
