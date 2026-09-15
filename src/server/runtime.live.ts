@@ -2,11 +2,9 @@ import type { Effect } from "effect";
 import { Layer, ManagedRuntime } from "effect";
 import { AvatarReader } from "@/server/fn/avatar";
 
-// Shared by every runtime built here. `CurrentSession.layer` sits under both
-// `AvatarReader.layer` and `CurrentUserReader.layer`, and `UserGateway.layer`
-// under both `CurrentUserReader.layer` and `ProfileWriter.layer`; one map
-// across the runtimes builds each of those once and hands the later runtime
-// that instance, where a map per runtime builds it again.
+// Passed to every runtime `makeRunHandler` builds, so a layer two of them
+// reach is built once and the later runtime takes that instance. A map per
+// runtime builds it again.
 const appMemoMap = Layer.makeMemoMapUnsafe();
 
 /**
