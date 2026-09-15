@@ -43,6 +43,10 @@ const buildAuth = () => {
         verification: schema.verifications,
       },
     }),
+    // 本番ビルドでは Vite が `import.meta.env.DEV` を false に畳むので、
+    // /api/auth/sign-in/email は EMAIL_PASSWORD_DISABLED を、
+    // /api/auth/sign-up/email は EMAIL_PASSWORD_SIGN_UP_DISABLED を返す。
+    emailAndPassword: { autoSignIn: true, enabled: import.meta.env.DEV },
     secret: authSecret,
     session: {
       expiresIn: 60 * 60 * 24 * 7,

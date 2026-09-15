@@ -101,6 +101,14 @@ R2 バケットは非公開のまま使用します。アバターは認証と�
 
 ## 4. OAuth認証を設定
 
+### 開発用ログイン
+
+`bun run dev` で立てた開発ビルドでは `/login` に「Sign in as Dev User」ボタンが出ます。押すと `src/lib/auth/dev-users.ts` が持つ資格情報でサインインし、ローカル D1 にそのユーザーが居なければ作ってから入ります。`.wrangler/state` を消しても次のクリックで作り直されます。Google の認証情報を登録しなくても認証済みの画面を触れるので、下の Google 設定はデプロイ先を用意する段で行えば足ります。
+
+このボタンとメール・パスワード認証は本番ビルドに残りません。Vite が `import.meta.env.DEV` を `false` に畳むので、デプロイされた Worker の `/api/auth/sign-in/email` は `EMAIL_PASSWORD_DISABLED` を返します。
+
+メール・パスワードが使う `accounts.password` 列は drizzle スキーマに入っているので、既にある D1 にはマイグレーションを当ててから使ってください。ローカルなら最初のクリックの前に `bun run db:push:local`、デプロイ先なら手順5の remote 適用です。drizzle は全列を名指しで SELECT するため、列が無い D1 では Google ログインの account 参照も落ちます。当てる前に押してしまい `User already exists.` が出続ける場合は、下の[ローカルデータのリセット](#ローカルデータのリセット)で作りかけの行ごと消してください。
+
 ### Google
 
 1. [Google Cloud Console](https://console.cloud.google.com/) > **APIとサービス** > **認証情報**

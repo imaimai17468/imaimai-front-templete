@@ -8,7 +8,7 @@ TanStack Start + TypeScript + Tailwind CSS + shadcn/ui を使用したモダン�
 - **Language**: TypeScript 7 (native compiler)
 - **Styling**: Tailwind CSS v4
 - **UI Components**: shadcn/ui (Radix UI primitives)
-- **Authentication**: Better Auth (Google OAuth)
+- **Authentication**: Better Auth (Google OAuth。dev ビルドに限り、固定ユーザーでワンクリックログインできる)
 - **Database**: Cloudflare D1 (SQLite) + Drizzle ORM
 - **Storage**: Cloudflare R2
 - **Hosting**: Cloudflare Workers (@cloudflare/vite-plugin)
