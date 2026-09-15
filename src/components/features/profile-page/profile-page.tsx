@@ -14,10 +14,10 @@ interface ProfilePageProps {
 }
 
 export const ProfilePage = ({ user }: ProfilePageProps) => (
-  <div className="container mx-auto flex min-h-dvh max-w-2xl flex-col items-center justify-center">
-    <h1 className="mb-8 text-3xl">Profile</h1>
+  <div className="container mx-auto flex min-h-dvh max-w-2xl flex-col items-center justify-center gap-8">
+    <h1 className="text-3xl">Profile</h1>
 
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
           <CardTitle>Basic Information</CardTitle>
