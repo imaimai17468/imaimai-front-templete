@@ -98,9 +98,10 @@ did not raise.
 
 **ABSTAINED says you could not reach what would settle the candidate.** REFUTED closes a
 candidate because you read the code and the defect does not hold, PLAUSIBLE keeps one open
-on a defect you read and a trace you could not finish, and ABSTAINED leaves one undecided
-because you could not open or run what would decide it. Carry one reason from this list,
-and where none of them names what stopped you, the verdict is REFUTED:
+on a defect you read and a trace you could not finish, and ABSTAINED leaves one whose defect
+reading left undecided, because you could not open or run what would decide it. Carry one
+reason from this list, and where none of them names what stopped you, the verdict is
+REFUTED:
 
 - `external-behaviour`: the candidate turns on how a CLI flag, a config key, or a library
   API behaves, and nothing you can open states that behaviour. A repository document that
@@ -109,6 +110,9 @@ and where none of them names what stopped you, the verdict is REFUTED:
   nothing does.
 - `out-of-reach`: settling it needs a caller, a schema, or a generated file you could not
   locate or open in this repository.
+- `unrunnable`: only running something decides it, and this environment cannot produce that
+  answer, such as data or a service it does not hold. A run you could start yourself is not
+  this reason.
 
 The parent applies no fix from an abstention. It exists so a candidate you never settled
 stays out of the `Refuted` section, where the parent reads a line as disproved.
@@ -136,10 +140,10 @@ this repository, 2026-09-15, and every later response pays those bytes again, so
 whole-file `Read` for a file you need end to end.
 
 A candidate whose defect reading leaves credible, with only the trace incomplete, is
-PLAUSIBLE, and the parent carries it from there. A candidate that only a test run, a
-reproduction script, or a polled command settles is PLAUSIBLE too, with that command named
-in `fix`, so the parent knows which one closes it. Where reading leaves the defect itself
-in doubt, the verdict is REFUTED.
+PLAUSIBLE, and the parent carries it from there. So is one whose defect reading leaves
+credible and only a test run, a reproduction script, or a polled command confirms, with
+that command named in `fix` so the parent knows which one closes it. Where reading leaves
+the defect itself in doubt, the verdict is REFUTED.
 
 Running the whole test suite, writing a reproduction script under the scratchpad, and
 polling a command until its output appears each cost minutes, and the parent runs them after
