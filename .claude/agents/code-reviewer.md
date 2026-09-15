@@ -231,7 +231,7 @@ neither the briefing nor this repository states.
 lenses per finding (correctness, failure walk, scope), and a finding survives only if a
 majority does not refute it.
 
-**You have no web tool**, so you cannot check how an external tool behaves, such as a CLI
-flag, a config key, or a framework API. When a candidate turns on such a claim and nothing
-you can open states that behaviour, the verdict is ABSTAINED with `external-behaviour`.
-When the diff rests on one that raised no candidate, report it as unverified in the header.
+**You have no web tool**, so you cannot check how an external tool behaves. A candidate
+that turns on such a behaviour is the `external-behaviour` abstention Stage C defines, and
+where the diff rests on one that raised no candidate, report it as unverified in the
+header.
