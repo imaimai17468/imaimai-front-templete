@@ -1,5 +1,5 @@
 import { Context, Effect, Layer } from "effect";
-import { getCloudflareEnv } from "@/lib/cloudflare/env.live";
+import { r2AvatarBucket } from "@/lib/storage/avatar-bucket.live";
 
 export interface AvatarObject {
   body: R2ObjectBody["body"];
@@ -9,8 +9,9 @@ export interface AvatarObject {
 /**
  * The read side of the avatar bucket.
  *
- * The gateway is written against this service rather than against an R2
- * binding, so a test provides a fake layer without a Cloudflare environment.
+ * The gateway is written against this service rather than against
+ * `r2AvatarBucket`, so a test provides a fake layer without a Cloudflare
+ * environment.
  */
 export class AvatarBucket extends Context.Service<
   AvatarBucket,
@@ -24,10 +25,7 @@ export class AvatarBucket extends Context.Service<
   static readonly layer = Layer.succeed(
     AvatarBucket,
     AvatarBucket.of({
-      get: (key) =>
-        Effect.promise(
-          async () => await getCloudflareEnv().AVATARS_BUCKET.get(key)
-        ),
+      get: (key) => Effect.promise(async () => await r2AvatarBucket.get(key)),
     })
   );
 }

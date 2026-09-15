@@ -2,12 +2,12 @@ import { Context, DateTime, Effect, Layer, Schema } from "effect";
 import { UserWithEmailSchema } from "@/entities/user";
 import type { UpdateUser, UserWithEmail } from "@/entities/user";
 import { reportError } from "@/lib/report-error";
+import { r2AvatarBucket } from "@/lib/storage/avatar-bucket.live";
+import { avatarKeyFromUrl, avatarUrlForKey } from "@/lib/storage/avatar-url";
 import {
   avatarContentMatchesMime,
   avatarExtensionForMime,
-  avatarKeyFromUrl,
 } from "@/lib/storage/avatar-validation";
-import { deleteFromR2, uploadToR2 } from "@/lib/storage/r2.live";
 import { drizzleUserStore } from "./drizzle-store.live";
 
 /**
@@ -104,8 +104,10 @@ export class UserStore extends Context.Service<
 /**
  * The write side of the avatar bucket.
  *
- * The gateway is written against this service rather than against an R2
- * binding, so a test provides a fake layer without a Cloudflare environment.
+ * The gateway is written against this service rather than against
+ * `r2AvatarBucket`, so a test provides a fake layer without a Cloudflare
+ * environment. `upload` reports only whether the object was written, because
+ * the URL that addresses it is derived from the key by `avatarUrlForKey`.
  */
 export class AvatarStorage extends Context.Service<
   AvatarStorage,
@@ -114,7 +116,7 @@ export class AvatarStorage extends Context.Service<
       key: string,
       file: File | ArrayBuffer,
       contentType: string
-    ) => Effect.Effect<string, UserPersistenceError>;
+    ) => Effect.Effect<void, UserPersistenceError>;
     readonly remove: (key: string) => Effect.Effect<void, UserPersistenceError>;
   }
 >()("app/gateways/user/AvatarStorage") {
@@ -123,10 +125,12 @@ export class AvatarStorage extends Context.Service<
     AvatarStorage.of({
       remove: (key) =>
         persistenceEffect(async () => {
-          await deleteFromR2(key);
+          await r2AvatarBucket.delete(key);
         }),
       upload: (key, file, contentType) =>
-        persistenceEffect(async () => await uploadToR2(key, file, contentType)),
+        persistenceEffect(async () => {
+          await r2AvatarBucket.put(key, file, contentType);
+        }),
     })
   );
 }
@@ -303,13 +307,14 @@ export class UserGateway extends Context.Service<
           const keyId = yield* keyIds.next;
           const key = `${userId}/avatars/${keyId}.${fileExt}`;
 
-          const publicUrl = yield* orNull(
+          const uploaded = yield* succeeded(
             "user.upload",
             storage.upload(key, file, file.type)
           );
-          if (publicUrl === null) {
+          if (!uploaded) {
             return yield* new AvatarUploadFailed({ orphanedKey: null });
           }
+          const publicUrl = avatarUrlForKey(key);
 
           const updatedAt = yield* DateTime.now;
           const rowsTouched = yield* orNull(

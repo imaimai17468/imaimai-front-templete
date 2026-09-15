@@ -2,6 +2,7 @@ import { DateTime, Effect, Layer } from "effect";
 import { TestClock } from "effect/testing";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import type { ErrorReport } from "@/lib/report-error";
+import { avatarUrlForKey } from "@/lib/storage/avatar-url";
 import {
   AvatarKeyIds,
   AvatarStorage,
@@ -15,9 +16,9 @@ import {
 
 const AVATAR_UUID = "123e4567-e89b-42d3-a456-426614174000";
 const NEW_KEY = `user-1/avatars/${AVATAR_UUID}.png`;
-const NEW_URL = `/api/avatars?key=${encodeURIComponent(NEW_KEY)}`;
+const NEW_URL = avatarUrlForKey(NEW_KEY);
 const OLD_KEY = "user-1/avatar.jpg";
-const OLD_URL = `/api/avatars?key=${encodeURIComponent(OLD_KEY)}`;
+const OLD_URL = avatarUrlForKey(OLD_KEY);
 const TEST_CLOCK_INSTANT = "1970-01-01T00:00:00.000Z";
 
 type CapturedReport = Pick<ErrorReport, "event" | "message" | "name">;
@@ -49,7 +50,7 @@ const makeFakes = () => {
   setAvatarUrl.mockReturnValue(Effect.succeed(1));
   updateName.mockReturnValue(Effect.void);
   remove.mockReturnValue(Effect.void);
-  upload.mockReturnValue(Effect.succeed(NEW_URL));
+  upload.mockReturnValue(Effect.void);
 
   const layer = UserGateway.layerNoDeps.pipe(
     Layer.provide(

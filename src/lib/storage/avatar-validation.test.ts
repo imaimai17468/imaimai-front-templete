@@ -2,7 +2,6 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   avatarContentMatchesMime,
   avatarExtensionForMime,
-  avatarKeyFromUrl,
   avatarSizeRejection,
   isOwnAvatarKey,
   isValidAvatarKey,
@@ -164,31 +163,5 @@ describe(avatarContentMatchesMime, () => {
     await expect(
       avatarContentMatchesMime(imageFile(mimeType, bytes))
     ).resolves.toBeFalsy();
-  });
-});
-
-describe(avatarKeyFromUrl, () => {
-  it.each([
-    ["legacy key", "/api/avatars?key=user-1%2Favatar.png", "user-1/avatar.png"],
-    [
-      "versioned key",
-      "/api/avatars?key=user-1%2Favatars%2F123e4567-e89b-42d3-a456-426614174000.webp",
-      "user-1/avatars/123e4567-e89b-42d3-a456-426614174000.webp",
-    ],
-  ])(
-    "should return the owned %s when the URL is internal",
-    (_label, avatarUrl, expected) => {
-      expect(avatarKeyFromUrl(avatarUrl, "user-1")).toBe(expected);
-    }
-  );
-
-  it.each([
-    ["external URL", "https://images.example.com/avatar.png"],
-    ["wrong route", "/images/avatar.png?key=user-1%2Favatar.png"],
-    ["foreign key", "/api/avatars?key=user-2%2Favatar.png"],
-    ["missing key", "/api/avatars"],
-    ["malformed key", "/api/avatars?key=..%2Favatar.png"],
-  ])("should return null when the URL contains an %s", (_label, avatarUrl) => {
-    expect(avatarKeyFromUrl(avatarUrl, "user-1")).toBeNull();
   });
 });
