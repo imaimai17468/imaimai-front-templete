@@ -23,6 +23,11 @@ answer after the first non-zero exit. One call returns one result to one respons
 and a response costs the model's latency whatever the commands return, measured at 22
 seconds across 48 reviews of this repository, 2026-09-15.
 
+A worktree-isolated session meets a guard that refuses a chain it cannot show stays inside
+that worktree. Where a chain comes back refused, send those commands one per call and carry
+on, rather than rewording the chain until it passes: auto mode pauses you after three
+refusals in a row.
+
 The saving is the response you do not spend, so it holds only while the commands are ones
 you were going to run anyway. Widening a read to fill a call costs more than it saves: every
 later response re-reads what a call returned, so ten unneeded kilobytes are paid fifteen
