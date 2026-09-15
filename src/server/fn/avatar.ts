@@ -3,6 +3,7 @@ import { AvatarGateway } from "@/gateways/avatar";
 import type { AvatarObject } from "@/gateways/avatar";
 import { CurrentSession } from "@/lib/auth/current-session.live";
 import { isOwnAvatarKey } from "@/lib/storage/avatar-validation";
+import { makeRunHandler } from "@/server/runtime.live";
 
 export class AvatarUnauthorized extends Schema.TaggedError<AvatarUnauthorized>()(
   "AvatarUnauthorized",
@@ -69,3 +70,5 @@ export class AvatarReader extends Context.Service<
     Layer.provide(CurrentSession.layer)
   );
 }
+
+export const runAvatarHandler = makeRunHandler(AvatarReader.layer);

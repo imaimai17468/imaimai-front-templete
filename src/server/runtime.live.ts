@@ -1,6 +1,5 @@
 import type { Effect } from "effect";
 import { Layer, ManagedRuntime } from "effect";
-import { AvatarReader } from "@/server/fn/avatar";
 
 // Passed to every runtime `makeRunHandler` builds, so a layer two of them
 // reach is built once and the later runtime takes that instance. A map per
@@ -20,5 +19,3 @@ export const makeRunHandler = <R>(layer: Layer.Layer<R>) => {
   return async <A>(handler: Effect.Effect<A, never, R>): Promise<A> =>
     await runtime.runPromise(handler);
 };
-
-export const runHandler = makeRunHandler(AvatarReader.layer);
