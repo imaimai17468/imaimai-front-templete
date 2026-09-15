@@ -20,11 +20,11 @@
         "react-hook-form": "7.85.0",
         "sonner": "2.0.8",
         "tailwind-merge": "3.6.0",
-        "zod": "4.4.3",
       },
       "devDependencies": {
         "@cloudflare/vite-plugin": "1.54.2",
         "@shadcn/lint": "0.1.0",
+        "@standard-schema/spec": "1.1.0",
         "@tailwindcss/vite": "4.3.2",
         "@tanstack/devtools-vite": "0.8.5",
         "@tanstack/react-devtools": "0.10.12",
