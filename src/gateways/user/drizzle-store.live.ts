@@ -22,7 +22,15 @@ export const drizzleUserStore = {
     return rows[0] ?? null;
   },
 
-  findProfile: async (userId: string) => {
+  findProfile: async (
+    userId: string
+  ): Promise<{
+    id: string;
+    name: string | null;
+    image: string | null;
+    createdAt: DateTime.Utc;
+    updatedAt: DateTime.Utc;
+  } | null> => {
     const rows = await getDb()
       .select()
       .from(users)
