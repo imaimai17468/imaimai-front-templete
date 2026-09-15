@@ -171,8 +171,8 @@ effort: standard — 4 raised, 1 merged, 1 refuted, 1 abstained, 1 returned
 - **Acceptance:** <the command or the observable that shows it landed>
 
 ## Abstained
-- src/lib/baz.ts:71 — `knip --fix` may delete the re-export · external-behaviour · neither
-  the briefing nor any file here states what that flag removes
+- src/lib/baz.ts:71 — `knip --fix` may delete the re-export · external-behaviour · re-read
+  src/lib/baz.ts:64-78 · neither the briefing nor any file here states what that flag removes
 
 ## Refuted
 - src/lib/bar.ts:12 — the second write can land twice · re-read src/lib/bar.ts:8-20, the
@@ -188,7 +188,8 @@ effort: standard — 4 raised, 1 merged, 1 refuted, 1 abstained, 1 returned
 
 A refutation gets one line in the `Refuted` section, carrying the `file:line` Stage C
 re-read and what killed it. The parent acts on nothing there. An abstention gets one line
-in `Abstained`, carrying its `file:line`, its reason, and what you would have needed. A
+in `Abstained`, carrying its `file:line`, its reason, the window it did re-read or
+`nothing re-read`, and what you would have needed. A
 pass that produced none of either drops that section rather than printing it empty, because
 the header's count already reports the zero. The per-finding labels are the opposite case
 and still each get their line, since no count covers them.
