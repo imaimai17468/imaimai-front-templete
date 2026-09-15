@@ -98,9 +98,10 @@ did not raise.
 
 **ABSTAINED says you could not reach what would settle the candidate.** REFUTED closes a
 candidate because you read the code and the defect does not hold, PLAUSIBLE keeps one open
-on a defect you read and a trace you could not finish, and ABSTAINED leaves one undecided
-because you could not open or run what would decide it. Carry one reason from this list,
-and where none of them names what stopped you, the verdict is REFUTED:
+on a defect you read and a trace you could not finish, and ABSTAINED leaves one whose defect
+reading left undecided, because you could not open or run what would decide it. Carry one
+reason from this list, and where none of them names what stopped you, the verdict is
+REFUTED:
 
 - `external-behaviour`: the candidate turns on how a CLI flag, a config key, or a library
   API behaves, and nothing you can open states that behaviour. A repository document that
