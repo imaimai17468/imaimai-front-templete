@@ -75,10 +75,19 @@ or no comments, so raise one only when it is material.
 
 ## Stage B: dedup
 
-Merge candidates on the same (file, line): keep the highest severity and fold the rest into
-its description. Sort by severity. Drop nothing and judge nothing here: a folded candidate
-travels on into Stage C inside the finding that absorbed it, which is what separates a
-`merged` count from the `refuted` one Stage C produces. Count what you folded away.
+Merge candidates that name the same defect, whatever lens raised each and however each
+worded its location: several lenses reaching one defect is what this step is for. Keep the
+highest severity and fold the rest into its description.
+
+Two candidates are one only where a single change fixes both. A loop bound that drops the
+final batch and a missing guard that hangs the same loop both sit on the `for` line and take
+different changes, so they stay two findings. Moving one to a line you did not read, to keep
+the two apart, reports a location the code does not carry, so decide by the fix and leave
+each location where the defect is.
+
+Sort by severity. Drop nothing and judge nothing here: a folded candidate travels on into
+Stage C inside the finding that absorbed it, which is what separates a `merged` count from
+the `refuted` one Stage C produces. Count what you folded away.
 
 ## Stage C: refute
 
