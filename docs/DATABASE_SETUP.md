@@ -37,11 +37,7 @@ bucket_name = "<手順1で指定したバケット名>"
 
 ## 3. 環境変数を設定
 
-```bash
-cp .env.local.example .env.local
-```
-
-`.env.local` を編集：
+`bun run setup` が用意する `.env.local` を編集：
 
 ```env
 # Better Auth

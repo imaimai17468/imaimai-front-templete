@@ -5,10 +5,7 @@ const SETUP = `git clone https://github.com/imaimai17468/imaimai-front-templete.
 cd imaimai-front-templete
 mise install                 # Node / Bun / actionlint / shellcheck を mise.toml の版で用意
 cargo install similarity-ts  # Stop gate の重複検出（Rust 製）
-bun install
-bun run generate-routes
-bun run cf-typegen
-cp .env.local.example .env.local
+bun run setup                # 依存・git hooks・生成ファイル・.env.local をまとめて用意
 bun run dev`;
 
 const TREE = `src/

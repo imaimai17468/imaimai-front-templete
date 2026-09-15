@@ -24,10 +24,11 @@ git clone <your-repo-url>
 cd <your-repo-name>
 mise install                 # Node / Bun / actionlint / shellcheck を mise.toml の版で用意
 cargo install similarity-ts  # lefthook の pre-push が回す重複検出（Rust 製）
-cp .env.local.example .env.local
-bun run setup                # 依存・git hooks・生成ファイルをまとめて用意
+bun run setup                # 依存・git hooks・生成ファイル・.env.local をまとめて用意
 bun run dev
 ```
+
+`bun run setup` は `.env.local` が無ければ `.env.local.example` からコピーします（既にあれば触りません）。入るのは仮の値なので、実サービスに繋ぐ前に編集してください。
 
 `src/routeTree.gen.ts` は `bun run dev` と `bun run build` が生成し、ルートファイルの追加や削除に追従します。`worker-configuration.d.ts` は `bun run dev` が生成し、`wrangler.toml` の編集にも追従します（build は生成しません）。dev を起動せずに `bun run check` や `bun run test` を走らせるときだけ、先に `bun run generate-routes` と `bun run cf-typegen` を叩いてください。
 
