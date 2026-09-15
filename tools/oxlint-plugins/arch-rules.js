@@ -339,9 +339,10 @@ const componentFileNaming = {
   },
 };
 
-// Layer contract: routes → server/fn → gateways → entities,
-// imports flow downward only. Only the bans that contract states are encoded here —
-// side categories (components, lib outside drizzle) stay unrestricted.
+// Each entry names, for the files under its `layer` prefix, the import targets
+// that break the layering, and each ban carries the reason it states.
+// LAYER_BANS_MOST_SPECIFIC_FIRST below picks the entry whose prefix matches a
+// file most specifically, so the order written here carries no behaviour.
 const LAYER_BANS = [
   {
     bans: [
@@ -379,6 +380,41 @@ const LAYER_BANS = [
       },
     ],
     layer: "src/routes",
+  },
+  {
+    bans: [
+      {
+        message:
+          "Server infrastructure must not import routes — imports flow downward only.",
+        target: "src/routes",
+      },
+      {
+        message:
+          "Server infrastructure must not import server functions — imports flow downward only.",
+        target: "src/server/fn",
+      },
+      {
+        message:
+          "Server infrastructure must not import gateways — imports flow downward only.",
+        target: "src/gateways",
+      },
+      {
+        message:
+          "Server infrastructure must not import the auth adapter — src/lib/auth reads the bindings src/server hands out.",
+        target: "src/lib/auth",
+      },
+      {
+        message:
+          "Server infrastructure must not import persistence — src/lib/drizzle reads the bindings src/server hands out.",
+        target: "src/lib/drizzle",
+      },
+      {
+        message:
+          "Server infrastructure must not import object storage — src/lib/storage reads the bindings src/server hands out.",
+        target: "src/lib/storage",
+      },
+    ],
+    layer: "src/server",
   },
   {
     bans: [
@@ -436,6 +472,10 @@ const LAYER_BANS = [
   },
 ];
 
+const LAYER_BANS_MOST_SPECIFIC_FIRST = LAYER_BANS.toSorted(
+  (a, b) => b.layer.length - a.layer.length
+);
+
 const SRC_MARKER = "/src/";
 
 // `session.live` と `session` は同じレイヤ位置のモジュールを指すので、ban の
@@ -468,7 +508,7 @@ const layerBoundaries = {
     const srcPath = filename.slice(srcIndex + 1);
     const fileSrcDir = srcPath.slice(0, srcPath.lastIndexOf("/"));
 
-    const layerEntry = LAYER_BANS.find((entry) =>
+    const layerEntry = LAYER_BANS_MOST_SPECIFIC_FIRST.find((entry) =>
       srcPath.startsWith(`${entry.layer}/`)
     );
     if (!layerEntry) {
