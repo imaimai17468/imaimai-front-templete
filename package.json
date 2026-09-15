@@ -23,6 +23,7 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv",
     "cf-typegen:check": "wrangler types --check --env-interface CloudflareEnv",
     "test": "vp test --run --coverage",
+    "smoke": "vp build && bun scripts/smoke.entry.ts",
     "knip": "knip",
     "doctor": "react-doctor",
     "db:generate": "drizzle-kit generate",

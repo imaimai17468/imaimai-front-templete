@@ -18,6 +18,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # The smoke step starts a server and waits on it. Its own timers bound the
+    # boot and each request; this bounds whatever they cannot.
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -136,5 +139,7 @@ jobs:
       - name: Run Tests
         run: bun run test
 
-      - name: Build Project
-        run: bun run build
+      # Builds, then boots the built Worker under workerd and requests two
+      # routes.
+      - name: Build the app and request its routes (smoke)
+        run: bun run smoke
