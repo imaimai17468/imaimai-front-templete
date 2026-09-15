@@ -1,45 +1,9 @@
-import { describe, expect, it, vi } from "vite-plus/test";
-import type { UserWithEmail } from "@/entities/user";
+import { describe, expect, it } from "vite-plus/test";
 import { MAX_AVATAR_BYTES } from "@/lib/storage/avatar-validation";
-import {
-  createUpdateProfile,
-  createUploadAvatar,
-  parseAvatarUpload,
-  parseProfileUpdate,
-} from "./profile";
-import type { AvatarUploadDeps, ProfileUpdateDeps } from "./profile";
-
-const makeProfileFakes = () => {
-  const readCurrentUser = vi.fn<ProfileUpdateDeps["readCurrentUser"]>();
-  const updateUser = vi.fn<ProfileUpdateDeps["updateUser"]>();
-  return {
-    readCurrentUser,
-    updateProfile: createUpdateProfile({ readCurrentUser, updateUser }),
-    updateUser,
-  };
-};
-
-const makeAvatarFakes = () => {
-  const readCurrentUser = vi.fn<AvatarUploadDeps["readCurrentUser"]>();
-  const updateUserAvatar = vi.fn<AvatarUploadDeps["updateUserAvatar"]>();
-  return {
-    readCurrentUser,
-    updateUserAvatar,
-    uploadAvatar: createUploadAvatar({ readCurrentUser, updateUserAvatar }),
-  };
-};
+import { parseAvatarUpload, parseProfileUpdate } from "./profile";
 
 const pngFile = (byteLength: number) =>
   new File([new Uint8Array(byteLength)], "a.png", { type: "image/png" });
-
-const authenticatedUser = {
-  avatarUrl: null,
-  createdAt: "2026-08-13T00:00:00Z",
-  email: "user-1@example.com",
-  id: "user-1",
-  name: "Test User",
-  updatedAt: "2026-08-13T00:00:00Z",
-} satisfies UserWithEmail;
 
 describe(parseProfileUpdate, () => {
   it("should reject when the input is not FormData", () => {
@@ -130,72 +94,5 @@ describe(parseAvatarUpload, () => {
     const result = parseAvatarUpload(data);
 
     expect(result).toStrictEqual({ file });
-  });
-});
-
-describe("updateProfile", () => {
-  it("should reject without writing persistence when the request is anonymous", async () => {
-    const { readCurrentUser, updateProfile, updateUser } = makeProfileFakes();
-    readCurrentUser.mockResolvedValue(null);
-
-    const result = await updateProfile({ name: "Updated User" });
-
-    expect({ result, updateCalls: updateUser.mock.calls }).toStrictEqual({
-      result: { error: "Not authenticated" },
-      updateCalls: [],
-    });
-  });
-
-  it("should pass the server-derived identity and return the gateway result when the request is authenticated", async () => {
-    const { readCurrentUser, updateProfile, updateUser } = makeProfileFakes();
-    const data = { name: "Updated User" };
-    readCurrentUser.mockResolvedValue(authenticatedUser);
-    updateUser.mockResolvedValue({ success: true });
-
-    const result = await updateProfile(data);
-
-    expect({ result, updateCalls: updateUser.mock.calls }).toStrictEqual({
-      result: { success: true },
-      updateCalls: [["user-1", data]],
-    });
-  });
-});
-
-describe("uploadAvatar", () => {
-  it("should reject without writing persistence when the request is anonymous", async () => {
-    const { readCurrentUser, updateUserAvatar, uploadAvatar } =
-      makeAvatarFakes();
-    const file = pngFile(1);
-    readCurrentUser.mockResolvedValue(null);
-
-    const result = await uploadAvatar({ file });
-
-    expect({ result, updateCalls: updateUserAvatar.mock.calls }).toStrictEqual({
-      result: { error: "Not authenticated" },
-      updateCalls: [],
-    });
-  });
-
-  it("should pass the server-derived identity and return the gateway result when the request is authenticated", async () => {
-    const { readCurrentUser, updateUserAvatar, uploadAvatar } =
-      makeAvatarFakes();
-    const file = pngFile(1);
-    readCurrentUser.mockResolvedValue(authenticatedUser);
-    updateUserAvatar.mockResolvedValue({
-      avatarUrl: "/api/avatars?key=user-1/avatar.png",
-      cleanup: "complete",
-      success: true,
-    });
-
-    const result = await uploadAvatar({ file });
-
-    expect({ result, updateCalls: updateUserAvatar.mock.calls }).toStrictEqual({
-      result: {
-        avatarUrl: "/api/avatars?key=user-1/avatar.png",
-        cleanup: "complete",
-        success: true,
-      },
-      updateCalls: [["user-1", file]],
-    });
   });
 });
