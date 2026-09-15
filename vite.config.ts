@@ -39,8 +39,6 @@ export default defineConfig({
     jsPlugins: [
       "./tools/oxlint-plugins/style-rules.js",
       "./tools/oxlint-plugins/arch-rules.js",
-      // knip cannot follow a specifier written as a string here, so it lists
-      // the package under ignoreDependencies in knip.json.
       { name: "react-doctor", specifier: "oxlint-plugin-react-doctor" },
       { name: "tailwindcss", specifier: "oxlint-tailwindcss" },
     ],
