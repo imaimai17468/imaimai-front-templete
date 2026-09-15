@@ -276,6 +276,19 @@ export default defineConfig({
         rules: { "anti-slop/no-unknown-parameters": "off" },
       },
       {
+        // Effect declares a service and each failure it raises as a class, so
+        // one module here holds a `Context.Service` plus a `Schema.TaggedError`
+        // per failure. `throw-new-error` reads the
+        // `Schema.TaggedError<T>()("Tag", {})` call such a class extends as an
+        // Error construction missing `new`, and its fix inserts `new` into the
+        // `extends` clause, which then does not compile.
+        files: ["src/gateways/**", "src/server/fn/**"],
+        rules: {
+          "max-classes-per-file": "off",
+          "unicorn/throw-new-error": "off",
+        },
+      },
+      {
         files: ["src/components/shared/code-block/code-block.tsx"],
         rules: {
           "jsx-a11y/no-noninteractive-tabindex": [

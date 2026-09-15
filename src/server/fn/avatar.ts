@@ -1,43 +1,71 @@
-import { avatarGateway } from "@/gateways/avatar";
+import { Context, Effect, Layer, Schema } from "effect";
+import { AvatarGateway } from "@/gateways/avatar";
 import type { AvatarObject } from "@/gateways/avatar";
-import { getSession } from "@/lib/auth/session.live";
+import { CurrentSession } from "@/lib/auth/current-session.live";
 import { isOwnAvatarKey } from "@/lib/storage/avatar-validation";
 
-export type AvatarReadResult =
-  | { kind: "unauthorized" }
-  | { kind: "invalid-key" }
-  | { kind: "not-found" }
-  | { kind: "found"; avatar: AvatarObject };
+export class AvatarUnauthorized extends Schema.TaggedError<AvatarUnauthorized>()(
+  "AvatarUnauthorized",
+  {}
+) {}
+
+export class AvatarInvalidKey extends Schema.TaggedError<AvatarInvalidKey>()(
+  "AvatarInvalidKey",
+  {}
+) {}
+
+export class AvatarNotFound extends Schema.TaggedError<AvatarNotFound>()(
+  "AvatarNotFound",
+  {}
+) {}
 
 /**
- * The identity source and the avatar read this authorization check needs.
+ * The authorization boundary between an HTTP handler and the avatar bucket.
  *
- * Injected so a test drives the check without a session cookie or an R2
- * binding, and so the check itself stays the only thing under test.
+ * Its dependencies are services rather than arguments, so a test provides a
+ * layer instead of a session cookie and an R2 binding, and so the check itself
+ * stays the only thing under test.
  */
-export interface AvatarReadDeps {
-  readSession: () => Promise<Awaited<ReturnType<typeof getSession>>>;
-  fetchAvatar: (key: string) => Promise<AvatarObject | null>;
+export class AvatarReader extends Context.Service<
+  AvatarReader,
+  {
+    readonly read: (
+      key: string | null
+    ) => Effect.Effect<
+      AvatarObject,
+      AvatarInvalidKey | AvatarNotFound | AvatarUnauthorized
+    >;
+  }
+>()("app/server/fn/AvatarReader") {
+  static readonly layerNoDeps = Layer.effect(
+    AvatarReader,
+    Effect.gen(function* buildAvatarReader() {
+      const currentSession = yield* CurrentSession;
+      const gateway = yield* AvatarGateway;
+
+      const read = Effect.fn("AvatarReader.read")(function* read(
+        key: string | null
+      ) {
+        const session = yield* currentSession.read;
+        if (!session?.user) {
+          return yield* new AvatarUnauthorized();
+        }
+        if (key === null || !isOwnAvatarKey(key, session.user.id)) {
+          return yield* new AvatarInvalidKey();
+        }
+        const avatar = yield* gateway.fetchAvatar(key);
+        if (avatar === null) {
+          return yield* new AvatarNotFound();
+        }
+        return avatar;
+      });
+
+      return AvatarReader.of({ read });
+    })
+  );
+
+  static readonly layer = AvatarReader.layerNoDeps.pipe(
+    Layer.provide(AvatarGateway.layer),
+    Layer.provide(CurrentSession.layer)
+  );
 }
-
-export const createReadAvatarForCurrentUser =
-  ({ fetchAvatar, readSession }: AvatarReadDeps) =>
-  async (key: string | null): Promise<AvatarReadResult> => {
-    const session = await readSession();
-    if (!session?.user) {
-      return { kind: "unauthorized" };
-    }
-    if (key === null || !isOwnAvatarKey(key, session.user.id)) {
-      return { kind: "invalid-key" };
-    }
-    const avatar = await fetchAvatar(key);
-    if (avatar === null) {
-      return { kind: "not-found" };
-    }
-    return { avatar, kind: "found" };
-  };
-
-export const readAvatarForCurrentUser = createReadAvatarForCurrentUser({
-  fetchAvatar: async (key) => await avatarGateway.fetchAvatar(key),
-  readSession: getSession,
-});
