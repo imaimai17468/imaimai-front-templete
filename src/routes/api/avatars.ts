@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Effect } from "effect";
-import { AvatarReader } from "@/server/fn/avatar";
-import { runHandler } from "@/server/runtime.live";
+import { AvatarReader, runAvatarHandler } from "@/server/fn/avatar";
 
 const jsonError = (status: number, error: string): Response =>
   Response.json({ error }, { status });
@@ -40,7 +39,8 @@ export const getAvatarResponse: (
 export const Route = createFileRoute("/api/avatars")({
   server: {
     handlers: {
-      GET: async ({ request }) => await runHandler(getAvatarResponse(request)),
+      GET: async ({ request }) =>
+        await runAvatarHandler(getAvatarResponse(request)),
     },
   },
 });
