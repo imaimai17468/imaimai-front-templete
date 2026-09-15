@@ -364,7 +364,7 @@ const LAYER_BANS = [
       {
         message:
           "Routes must not access Cloudflare persistence bindings directly — delegate through src/server/fn to a gateway.",
-        target: "src/server/cloudflare",
+        target: "src/lib/cloudflare",
       },
     ],
     externalBans: [
@@ -400,18 +400,8 @@ const LAYER_BANS = [
       },
       {
         message:
-          "Server infrastructure must not import the auth adapter — src/lib/auth reads the bindings src/server hands out.",
-        target: "src/lib/auth",
-      },
-      {
-        message:
-          "Server infrastructure must not import persistence — src/lib/drizzle reads the bindings src/server hands out.",
-        target: "src/lib/drizzle",
-      },
-      {
-        message:
-          "Server infrastructure must not import object storage — src/lib/storage reads the bindings src/server hands out.",
-        target: "src/lib/storage",
+          "Server infrastructure must not import from src/lib — src/server only wires runtimes, so the dependency belongs in a layer built under src/server/fn.",
+        target: "src/lib",
       },
     ],
     layer: "src/server",
@@ -435,8 +425,8 @@ const LAYER_BANS = [
       },
       {
         message:
-          "Gateways must not import server functions — imports flow downward only.",
-        target: "src/server/fn",
+          "Gateways must not import from src/server — a server function calls a gateway, never the reverse.",
+        target: "src/server",
       },
       {
         message: "Gateways never import components.",
@@ -459,16 +449,45 @@ const LAYER_BANS = [
       },
       {
         message:
-          "Entities import nothing from the layers above — server functions are above entities.",
-        target: "src/server/fn",
+          "Entities import nothing from the layers above — src/server is above entities.",
+        target: "src/server",
       },
       {
         message:
           "Entities import nothing from the layers above — gateways are above entities.",
         target: "src/gateways",
       },
+      {
+        message:
+          "Entities import nothing from the layers above — a src/lib adapter reads entities, never the reverse.",
+        target: "src/lib",
+      },
     ],
     layer: "src/entities",
+  },
+  {
+    bans: [
+      {
+        message:
+          "Adapters must not import routes — src/lib is read by the layers above it.",
+        target: "src/routes",
+      },
+      {
+        message:
+          "Adapters must not import from src/server — a server function reaches src/lib, never the reverse.",
+        target: "src/server",
+      },
+      {
+        message:
+          "Adapters must not import gateways — a gateway reaches src/lib, never the reverse.",
+        target: "src/gateways",
+      },
+      {
+        message: "Adapters never import components.",
+        target: "src/components",
+      },
+    ],
+    layer: "src/lib",
   },
 ];
 

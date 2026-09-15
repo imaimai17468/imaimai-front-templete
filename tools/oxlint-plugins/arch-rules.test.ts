@@ -1034,7 +1034,7 @@ describe("layer-boundaries", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ImportDeclaration?.(importNode("@/server/cloudflare"));
+    visitors.ImportDeclaration?.(importNode("@/lib/cloudflare/env"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -1084,7 +1084,7 @@ describe("layer-boundaries", () => {
   it.each([
     "@/gateways/avatar",
     "@/lib/auth/session",
-    "@/server/cloudflare",
+    "@/lib/cloudflare/env",
     "cloudflare:workers",
     "@tanstack/react-start/server",
   ])("should report when a route dynamically imports %s", (specifier) => {
@@ -1135,6 +1135,30 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
+  it("should report when a gateway imports server infrastructure", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/gateways/avatar/index.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/server/runtime.live"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when a gateway imports the Cloudflare env adapter", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/gateways/avatar/index.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/cloudflare/env.live"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
   it("should not report when a gateway imports an entity", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/gateways/user/index.ts");
@@ -1154,6 +1178,30 @@ describe("layer-boundaries", () => {
 
     // Act
     visitors.ImportDeclaration?.(importNode("@/gateways"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when an entity imports server infrastructure", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/entities/user/index.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/server/runtime.live"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when an entity imports an adapter", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/entities/user/index.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/drizzle/schema"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -1200,8 +1248,7 @@ describe("layer-boundaries", () => {
     "@/gateways/avatar",
     "@/routes/profile",
     "@/lib/auth/auth.live",
-    "@/lib/drizzle/db.live",
-    "@/lib/storage/r2.live",
+    "@/lib/cloudflare/env.live",
   ])("should report when server infrastructure imports %s", (specifier) => {
     // Arrange
     const context = makeLayerContext("/repo/src/server/runtime.live.ts");
@@ -1250,6 +1297,51 @@ describe("layer-boundaries", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
+  it.each([
+    "@/server/runtime.live",
+    "@/server/fn/avatar",
+    "@/routes/profile",
+    "@/gateways/user",
+    "@/components/ui/button",
+  ])("should report when an adapter imports %s", (specifier) => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/lib/storage/r2.live.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode(specifier));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when an adapter imports server infrastructure via relative path", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/lib/storage/r2.live.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("../../server/runtime.live"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it.each(["@/lib/drizzle/db.live", "@/entities/user"])(
+    "should not report when an adapter imports %s",
+    (specifier) => {
+      // Arrange
+      const context = makeLayerContext("/repo/src/lib/storage/r2.live.ts");
+      const visitors = rule.create(context);
+
+      // Act
+      visitors.ImportDeclaration?.(importNode(specifier));
+
+      // Assert
+      expect(context.report).not.toHaveBeenCalled();
+    }
+  );
+
   it("should report when a route imports a gateway via relative path", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/profile.tsx");
@@ -1262,7 +1354,7 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it.each(["@/lib/auth/session.live", "@/server/cloudflare.live"])(
+  it.each(["@/lib/auth/session.live", "@/lib/cloudflare/env.live"])(
     "should report when a route imports %s, a banned module carrying the coverage suffix",
     (specifier) => {
       // Arrange

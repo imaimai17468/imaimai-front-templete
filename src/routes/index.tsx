@@ -17,7 +17,7 @@ const TREE = `src/
 │   ├── auth.auth-code-error.tsx  # OAuth failure landing page
 │   └── api/                # API routes (auth catch-all, avatars)
 ├── server/
-│   ├── cloudflare.live.ts  # CloudflareEnv helper (cloudflare:workers)
+│   ├── runtime.live.ts     # Effect ManagedRuntime wiring for server functions
 │   └── fn/                 # Server functions (createServerFn)
 ├── gateways/               # D1 / R2 persistence
 ├── entities/               # Domain types and schemas
@@ -27,6 +27,7 @@ const TREE = `src/
 │   └── features/           # Feature-specific components
 ├── lib/
 │   ├── auth/               # Better Auth 設定
+│   ├── cloudflare/         # CloudflareEnv helper (cloudflare:workers)
 │   ├── drizzle/            # Drizzle ORM スキーマ
 │   ├── storage/            # R2 ストレージ
 │   └── utils.ts
