@@ -148,7 +148,8 @@ check it. A `Fix` line states force rather than a measurement, so the exemption 
 gives a directive covers it.
 
 State a gap where the claim it limits is: inside the finding whose label rests on it, and
-in the header when it limits the whole pass, such as a suite you never ran.
+in the header when it limits the whole pass, such as an external tool's behaviour the
+briefing quoted no source for.
 
 ## Effort
 
