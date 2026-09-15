@@ -144,16 +144,3 @@ export const isValidAvatarKey = (key: string): boolean =>
  */
 export const isOwnAvatarKey = (key: string, userId: string): boolean =>
   parseAvatarKey(key)?.ownerId === userId;
-
-export const avatarKeyFromUrl = (
-  avatarUrl: string,
-  userId: string
-): string | null => {
-  if (!avatarUrl.startsWith("/api/avatars?")) {
-    return null;
-  }
-  const key = new URL(avatarUrl, "https://avatar.internal").searchParams.get(
-    "key"
-  );
-  return key !== null && isOwnAvatarKey(key, userId) ? key : null;
-};
