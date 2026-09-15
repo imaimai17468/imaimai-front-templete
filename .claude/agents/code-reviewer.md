@@ -140,10 +140,10 @@ this repository, 2026-09-15, and every later response pays those bytes again, so
 whole-file `Read` for a file you need end to end.
 
 A candidate whose defect reading leaves credible, with only the trace incomplete, is
-PLAUSIBLE, and the parent carries it from there. So is one that reading leaves credible and
-only a test run, a reproduction script, or a polled command confirms, with that command
-named in `fix` so the parent knows which one closes it. Where reading leaves the defect
-itself in doubt, the verdict is REFUTED.
+PLAUSIBLE, and the parent carries it from there. So is one whose defect reading leaves
+credible and only a test run, a reproduction script, or a polled command confirms, with
+that command named in `fix` so the parent knows which one closes it. Where reading leaves
+the defect itself in doubt, the verdict is REFUTED.
 
 Running the whole test suite, writing a reproduction script under the scratchpad, and
 polling a command until its output appears each cost minutes, and the parent runs them after
