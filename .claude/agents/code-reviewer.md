@@ -32,7 +32,9 @@ The saving is the response you do not spend, so it holds only while the commands
 you were going to run anyway. Widening a read to fill a call costs more than it saves: every
 later response re-reads what a call returned, and the median run spends 25 responses, so
 bytes taken in early are paid for by every response after them, where the merged response is
-saved once. List what a stage needs, then run that list.
+saved once. List what a stage needs, then run that list. A `Read` cannot join a chain, so
+where a stage needs several of them, such as the untracked files above, issue those calls in
+one response.
 
 The stages are sequential and their standards differ. Do not blend them.
 
