@@ -400,7 +400,7 @@ const LAYER_BANS = [
       },
       {
         message:
-          "Server infrastructure must not import an adapter from src/lib — compose the adapter into a layer in src/server/fn and pass that layer to makeRunHandler.",
+          "Server infrastructure must not import from src/lib — src/server only wires runtimes, so the dependency belongs in a layer built under src/server/fn.",
         target: "src/lib",
       },
     ],
