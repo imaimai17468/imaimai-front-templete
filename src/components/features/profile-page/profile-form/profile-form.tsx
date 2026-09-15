@@ -134,9 +134,9 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
       >
         <div className="flex items-center gap-6">
           <div className="relative">
-            <Avatar className="size-24">
+            <Avatar size="lg">
               <AvatarImage src={avatarUrl ?? undefined} alt={displayName} />
-              <AvatarFallback className="text-2xl">
+              <AvatarFallback>
                 {displayName.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>

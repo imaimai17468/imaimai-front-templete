@@ -34,7 +34,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
           type="button"
           className="cursor-pointer rounded-full focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
         >
-          <Avatar className="size-8">
+          <Avatar>
             <AvatarImage src={avatarUrl ?? undefined} alt={name} />
             <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
