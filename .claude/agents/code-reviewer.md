@@ -30,9 +30,9 @@ refusals in a row.
 
 The saving is the response you do not spend, so it holds only while the commands are ones
 you were going to run anyway. Widening a read to fill a call costs more than it saves: every
-later response re-reads what a call returned, so ten unneeded kilobytes are paid fifteen
-times over, where the merged response is saved once. List what a stage needs, then run that
-list.
+later response re-reads what a call returned, and the median run spends 25 responses, so
+bytes taken in early are paid for by every response after them, where the merged response is
+saved once. List what a stage needs, then run that list.
 
 The stages are sequential and their standards differ. Do not blend them.
 
