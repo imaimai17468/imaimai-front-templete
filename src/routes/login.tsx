@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { DevSignInPanel } from "@/components/features/login-page/dev-sign-in-panel";
 import { Button } from "@/components/ui/button";
 import { signInWithGoogle } from "@/lib/auth/actions.live";
 
@@ -17,6 +18,7 @@ const LoginComponent = () => (
         Sign in With Google
       </Button>
     </div>
+    {import.meta.env.DEV && <DevSignInPanel />}
   </div>
 );
 
