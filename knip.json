@@ -3,6 +3,7 @@
   "entry": [
     "src/routes/**/*.{ts,tsx}",
     "src/server/fn/**/*.ts",
+    "!src/server/fn/runtime.live.ts",
     "scripts/**/*.{ts,js,sh}",
     "src/components/ui/**/*.{ts,tsx}",
     "src/lib/utils.ts"
