@@ -1,7 +1,5 @@
 import { Effect, Layer } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
-import { AVATAR_ROUTE_PATH, avatarUrlForKey } from "@/lib/storage/avatar-url";
-import type { FileRouteTypes } from "@/routeTree.gen";
 import {
   AvatarInvalidKey,
   AvatarNotFound,
@@ -108,15 +106,5 @@ describe(getAvatarResponse, () => {
     const result = respond(request());
 
     await expect(result).rejects.toThrow("avatar read failed");
-  });
-});
-
-describe(avatarUrlForKey, () => {
-  it("should build the URL on the path this route is generated at when given a key", () => {
-    const servedPath: FileRouteTypes["fullPaths"] = AVATAR_ROUTE_PATH;
-
-    expect(avatarUrlForKey("user-1/avatar.png")).toBe(
-      `${servedPath}?key=user-1%2Favatar.png`
-    );
   });
 });

@@ -2,12 +2,12 @@ import { Context, DateTime, Effect, Layer, Schema } from "effect";
 import { UserWithEmailSchema } from "@/entities/user";
 import type { UpdateUser, UserWithEmail } from "@/entities/user";
 import { reportError } from "@/lib/report-error";
-import { r2AvatarBucket } from "@/lib/storage/avatar-bucket.live";
-import { avatarKeyFromUrl, avatarUrlForKey } from "@/lib/storage/avatar-url";
 import {
   avatarContentMatchesMime,
   avatarExtensionForMime,
 } from "@/lib/storage/avatar-validation";
+import { r2AvatarBucket } from "../avatar-bucket.live";
+import { avatarKeyFromUrl, avatarUrlForKey } from "./avatar-url";
 import { drizzleUserStore } from "./drizzle-store.live";
 
 /**

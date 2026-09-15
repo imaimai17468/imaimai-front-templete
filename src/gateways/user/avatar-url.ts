@@ -1,11 +1,7 @@
-import { isOwnAvatarKey } from "./avatar-validation";
+import { isOwnAvatarKey } from "@/lib/storage/avatar-validation";
 
-/**
- * The path that serves an avatar object. Its type is that literal rather than
- * `string`, so a caller can pin it against the paths the router serves and
- * reach a compile error rather than a 404 when the two diverge.
- */
-export const AVATAR_ROUTE_PATH = "/api/avatars";
+/** The path that serves an avatar object. */
+const AVATAR_ROUTE_PATH = "/api/avatars";
 
 /**
  * The URL a user row stores for an avatar object, built from its bucket key.

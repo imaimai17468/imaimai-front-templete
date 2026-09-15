@@ -1,5 +1,5 @@
 import { Context, Effect, Layer } from "effect";
-import { r2AvatarBucket } from "@/lib/storage/avatar-bucket.live";
+import { r2AvatarBucket } from "../avatar-bucket.live";
 
 export interface AvatarObject {
   body: R2ObjectBody["body"];

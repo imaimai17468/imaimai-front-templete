@@ -2,7 +2,6 @@ import { DateTime, Effect, Layer } from "effect";
 import { TestClock } from "effect/testing";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import type { ErrorReport } from "@/lib/report-error";
-import { avatarUrlForKey } from "@/lib/storage/avatar-url";
 import {
   AvatarKeyIds,
   AvatarStorage,
@@ -13,6 +12,7 @@ import {
   UserPersistenceError,
   UserStore,
 } from ".";
+import { avatarUrlForKey } from "./avatar-url";
 
 const AVATAR_UUID = "123e4567-e89b-42d3-a456-426614174000";
 const NEW_KEY = `user-1/avatars/${AVATAR_UUID}.png`;
