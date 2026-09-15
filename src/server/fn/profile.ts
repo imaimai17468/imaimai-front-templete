@@ -1,14 +1,12 @@
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
 import { UpdateUserSchema } from "@/entities/user";
-import type { UpdateUser, UserWithEmail } from "@/entities/user";
-import { userGateway } from "@/gateways/user";
-import type { UpdateUserAvatarResult } from "@/gateways/user";
+import type { UpdateUser } from "@/entities/user";
 import {
   avatarSizeRejection,
   MAX_AVATAR_BYTES,
 } from "@/lib/storage/avatar-validation";
 import type { AvatarSizeRejection } from "@/lib/storage/avatar-validation";
-import { getCurrentUser } from "@/server/fn/user";
+import { runUpdateProfile, runUploadAvatar } from "./profile-writer";
 
 export const parseProfileUpdate = (data: unknown): UpdateUser => {
   if (!(data instanceof FormData)) {
@@ -39,67 +37,8 @@ export const parseAvatarUpload = (data: unknown) => {
   return { file };
 };
 
-type ReadCurrentUser = () => Promise<UserWithEmail | null>;
-
-/**
- * The identity source and the profile write this server function needs.
- *
- * Injected so a test drives the authorization path without a session cookie or
- * a D1 binding.
- */
-export interface ProfileUpdateDeps {
-  readCurrentUser: ReadCurrentUser;
-  updateUser: (
-    userId: string,
-    data: UpdateUser
-  ) => Promise<{ success: boolean; error?: string }>;
-}
-
-export const createUpdateProfile =
-  ({ readCurrentUser, updateUser }: ProfileUpdateDeps) =>
-  async (data: UpdateUser) => {
-    const user = await readCurrentUser();
-    if (!user) {
-      return { error: "Not authenticated" } as const;
-    }
-    return await updateUser(user.id, data);
-  };
-
-/**
- * The identity source and the avatar write this server function needs.
- *
- * Injected so a test drives the authorization path without a session cookie or
- * an R2 binding.
- */
-export interface AvatarUploadDeps {
-  readCurrentUser: ReadCurrentUser;
-  updateUserAvatar: (
-    userId: string,
-    file: File
-  ) => Promise<UpdateUserAvatarResult>;
-}
-
-export const createUploadAvatar =
-  ({ readCurrentUser, updateUserAvatar }: AvatarUploadDeps) =>
-  async ({ file }: { file: File }) => {
-    const user = await readCurrentUser();
-    if (!user) {
-      return { error: "Not authenticated" } as const;
-    }
-    return await updateUserAvatar(user.id, file);
-  };
-
-const updateProfile = createUpdateProfile({
-  readCurrentUser: getCurrentUser,
-  updateUser: async (userId, data) =>
-    await userGateway.updateUser(userId, data),
-});
-
-const uploadAvatar = createUploadAvatar({
-  readCurrentUser: getCurrentUser,
-  updateUserAvatar: async (userId, file) =>
-    await userGateway.updateUserAvatar(userId, file),
-});
+const updateProfile = createServerOnlyFn(runUpdateProfile);
+const uploadAvatar = createServerOnlyFn(runUploadAvatar);
 
 export const updateProfileFn = createServerFn({ method: "POST" })
   .validator(parseProfileUpdate)
@@ -107,4 +46,4 @@ export const updateProfileFn = createServerFn({ method: "POST" })
 
 export const uploadAvatarFn = createServerFn({ method: "POST" })
   .validator(parseAvatarUpload)
-  .handler(async ({ data }) => await uploadAvatar(data));
+  .handler(async ({ data }) => await uploadAvatar(data.file));

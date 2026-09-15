@@ -1,3 +1,4 @@
+import { Context, DateTime, Effect, Layer, Schema } from "effect";
 import { UserWithEmailSchema } from "@/entities/user";
 import type { UpdateUser, UserWithEmail } from "@/entities/user";
 import { reportError } from "@/lib/report-error";
@@ -8,170 +9,344 @@ import {
 } from "@/lib/storage/avatar-validation";
 import { deleteFromR2, uploadToR2 } from "@/lib/storage/r2.live";
 import { drizzleUserStore } from "./drizzle-store.live";
-import type { UserGatewayDeps } from "./ports";
-
-export type UpdateUserAvatarResult =
-  | {
-      success: true;
-      avatarUrl: string;
-      cleanup: "complete" | "pending";
-    }
-  | {
-      success: false;
-      error: string;
-      orphanedKey?: string;
-    };
 
 /**
- * The value `read` resolved to, or null when it rejected.
+ * A D1 row read or write, or an R2 object write, that did not complete.
+ *
+ * One type covers both services because every caller in this module treats
+ * them the same way: it writes the cause to Workers Logs and takes the branch
+ * that reports a failed avatar or profile write.
+ */
+export class UserPersistenceError extends Schema.TaggedError<UserPersistenceError>()(
+  "UserPersistenceError",
+  { cause: Schema.Defect() }
+) {}
+
+const persistenceEffect = <A>(
+  run: () => Promise<A>
+): Effect.Effect<A, UserPersistenceError> =>
+  Effect.tryPromise({
+    catch: (cause) => new UserPersistenceError({ cause }),
+    try: async () => await run(),
+  });
+
+interface UserProfileRow {
+  readonly id: string;
+  readonly name: string | null;
+  readonly image: string | null;
+  readonly createdAt: DateTime.Utc;
+  readonly updatedAt: DateTime.Utc;
+}
+
+/**
+ * The user rows the gateway reads and writes.
+ *
+ * The gateway is written against this service rather than against a Drizzle
+ * handle, so a test provides a fake layer without a D1 binding.
+ */
+export class UserStore extends Context.Service<
+  UserStore,
+  {
+    readonly findProfile: (
+      userId: string
+    ) => Effect.Effect<UserProfileRow | null, UserPersistenceError>;
+    readonly findAvatarUrl: (
+      userId: string
+    ) => Effect.Effect<
+      { avatarUrl: string | null } | null,
+      UserPersistenceError
+    >;
+    readonly updateName: (
+      userId: string,
+      name: string | null,
+      updatedAt: DateTime.Utc
+    ) => Effect.Effect<void, UserPersistenceError>;
+    /** Number of rows the update touched, so the caller can reject a miss. */
+    readonly setAvatarUrl: (
+      userId: string,
+      avatarUrl: string,
+      updatedAt: DateTime.Utc
+    ) => Effect.Effect<number, UserPersistenceError>;
+  }
+>()("app/gateways/user/UserStore") {
+  static readonly layer = Layer.succeed(
+    UserStore,
+    UserStore.of({
+      findAvatarUrl: (userId) =>
+        persistenceEffect(
+          async () => await drizzleUserStore.findAvatarUrl(userId)
+        ),
+      findProfile: (userId) =>
+        persistenceEffect(
+          async () => await drizzleUserStore.findProfile(userId)
+        ),
+      setAvatarUrl: (userId, avatarUrl, updatedAt) =>
+        persistenceEffect(
+          async () =>
+            await drizzleUserStore.setAvatarUrl(userId, avatarUrl, updatedAt)
+        ),
+      updateName: (userId, name, updatedAt) =>
+        persistenceEffect(async () => {
+          await drizzleUserStore.updateName(userId, name, updatedAt);
+        }),
+    })
+  );
+}
+
+/**
+ * The write side of the avatar bucket.
+ *
+ * The gateway is written against this service rather than against an R2
+ * binding, so a test provides a fake layer without a Cloudflare environment.
+ */
+export class AvatarStorage extends Context.Service<
+  AvatarStorage,
+  {
+    readonly upload: (
+      key: string,
+      file: File | ArrayBuffer,
+      contentType: string
+    ) => Effect.Effect<string, UserPersistenceError>;
+    readonly remove: (key: string) => Effect.Effect<void, UserPersistenceError>;
+  }
+>()("app/gateways/user/AvatarStorage") {
+  static readonly layer = Layer.succeed(
+    AvatarStorage,
+    AvatarStorage.of({
+      remove: (key) =>
+        persistenceEffect(async () => {
+          await deleteFromR2(key);
+        }),
+      upload: (key, file, contentType) =>
+        persistenceEffect(async () => await uploadToR2(key, file, contentType)),
+    })
+  );
+}
+
+/**
+ * The identifier that makes a new avatar key unique.
+ *
+ * A service rather than a direct `crypto.randomUUID()` call so a test fixes the
+ * key the gateway writes.
+ */
+export class AvatarKeyIds extends Context.Service<
+  AvatarKeyIds,
+  { readonly next: Effect.Effect<string> }
+>()("app/gateways/user/AvatarKeyIds") {
+  static readonly layer = Layer.succeed(
+    AvatarKeyIds,
+    AvatarKeyIds.of({ next: Effect.sync(() => crypto.randomUUID()) })
+  );
+}
+
+export class UserNameUpdateFailed extends Schema.TaggedError<UserNameUpdateFailed>()(
+  "UserNameUpdateFailed",
+  {}
+) {}
+
+export class AvatarTypeUnsupported extends Schema.TaggedError<AvatarTypeUnsupported>()(
+  "AvatarTypeUnsupported",
+  {}
+) {}
+
+/**
+ * `orphanedKey` names the object left in the bucket when even the rollback
+ * delete failed, which is the only state a caller cannot reconstruct from the
+ * row. It is `null` on every other upload failure.
+ */
+export class AvatarUploadFailed extends Schema.TaggedError<AvatarUploadFailed>()(
+  "AvatarUploadFailed",
+  { orphanedKey: Schema.NullOr(Schema.String) }
+) {}
+
+export interface AvatarUpdated {
+  readonly avatarUrl: string;
+  readonly cleanup: "complete" | "pending";
+}
+
+/**
+ * The value the read produced, or null once the cause has been written to
+ * Workers Logs under `event`.
  *
  * Every failure on the avatar path collapses into one user-facing result, so a
- * rejected read and an absent row reach the caller the same way. That includes
- * a missing D1 or R2 binding, which surfaces as an upload failure rather than
+ * failed read and an absent row reach the caller the same way. That includes a
+ * missing D1 or R2 binding, which surfaces as an upload failure rather than
  * propagating.
  */
-const orNull = async <T>(
+const orNull = <A>(
   event: string,
-  read: () => Promise<T>
-): Promise<T | null> => {
-  try {
-    return await read();
-  } catch (error) {
-    reportError(event, error);
-    return null;
-  }
-};
+  effect: Effect.Effect<A, UserPersistenceError>
+): Effect.Effect<A | null> =>
+  effect.pipe(
+    Effect.catchTags({
+      UserPersistenceError: (error) =>
+        Effect.sync(() => {
+          reportError(event, error.cause);
+          return null;
+        }),
+    })
+  );
 
 /**
- * Whether `act` resolved. A rejection is the caller's branch rather than an
+ * Whether the write succeeded, once a failure's cause has been written to
+ * Workers Logs under `event`. A failure is the caller's branch rather than an
  * error, because the avatar path reports a failed delete as a distinct result.
  */
-const succeeded = async (
+const succeeded = (
   event: string,
-  act: () => Promise<void>
-): Promise<boolean> => {
-  try {
-    await act();
-    return true;
-  } catch (error) {
-    reportError(event, error);
-    return false;
+  effect: Effect.Effect<unknown, UserPersistenceError>
+): Effect.Effect<boolean> =>
+  effect.pipe(
+    Effect.as(true),
+    Effect.catchTags({
+      UserPersistenceError: (error) =>
+        Effect.sync(() => {
+          reportError(event, error.cause);
+          return false;
+        }),
+    })
+  );
+
+export class UserGateway extends Context.Service<
+  UserGateway,
+  {
+    readonly fetchCurrentUser: (
+      userId: string,
+      email: string
+    ) => Effect.Effect<UserWithEmail | null, UserPersistenceError>;
+    readonly updateUser: (
+      userId: string,
+      data: UpdateUser
+    ) => Effect.Effect<void, UserNameUpdateFailed>;
+    readonly updateUserAvatar: (
+      userId: string,
+      file: File
+    ) => Effect.Effect<
+      AvatarUpdated,
+      AvatarTypeUnsupported | AvatarUploadFailed
+    >;
   }
-};
+>()("app/gateways/user/UserGateway") {
+  static readonly layerNoDeps = Layer.effect(
+    UserGateway,
+    Effect.gen(function* buildUserGateway() {
+      const keyIds = yield* AvatarKeyIds;
+      const storage = yield* AvatarStorage;
+      const store = yield* UserStore;
 
-export const createUserGateway = ({
-  newId,
-  storage,
-  store,
-}: UserGatewayDeps) => {
-  const fetchCurrentUser = async (
-    userId: string,
-    email: string
-  ): Promise<UserWithEmail | null> => {
-    const profile = await store.findProfile(userId);
-    if (profile === null) {
-      return null;
-    }
-    return UserWithEmailSchema.parse({
-      avatarUrl: profile.image,
-      createdAt: profile.createdAt.toISOString(),
-      email,
-      id: profile.id,
-      name: profile.name,
-      updatedAt: profile.updatedAt.toISOString(),
-    });
-  };
+      const fetchCurrentUser = Effect.fn("UserGateway.fetchCurrentUser")(
+        function* fetchCurrentUser(userId: string, email: string) {
+          const profile = yield* store.findProfile(userId);
+          if (profile === null) {
+            return null;
+          }
+          return UserWithEmailSchema.parse({
+            avatarUrl: profile.image,
+            createdAt: DateTime.formatIso(profile.createdAt),
+            email,
+            id: profile.id,
+            name: profile.name,
+            updatedAt: DateTime.formatIso(profile.updatedAt),
+          });
+        }
+      );
 
-  const updateUser = async (
-    userId: string,
-    data: UpdateUser
-  ): Promise<{ success: boolean; error?: string }> => {
-    try {
-      await store.updateName(userId, data.name);
-      return { success: true };
-    } catch (error) {
-      reportError("user.updateName", error);
-      return { error: "Failed to update profile", success: false };
-    }
-  };
+      const updateUser = Effect.fn("UserGateway.updateUser")(
+        function* updateUser(userId: string, data: UpdateUser) {
+          const updatedAt = yield* DateTime.now;
+          const written = yield* succeeded(
+            "user.updateName",
+            store.updateName(userId, data.name, updatedAt)
+          );
+          return yield* written
+            ? Effect.void
+            : Effect.fail(new UserNameUpdateFailed());
+        }
+      );
 
-  // The previous avatar is deleted only after the row points at the new one, so
-  // a failure between the two leaves an unreferenced object rather than a row
-  // referencing a deleted one. `orphanedKey` names the object left behind when
-  // even the rollback delete fails, which is the only state a caller cannot
-  // reconstruct from the row.
-  const updateUserAvatar = async (
-    userId: string,
-    file: File
-  ): Promise<UpdateUserAvatarResult> => {
-    const fileExt = avatarExtensionForMime(file.type);
-    if (fileExt === null || !(await avatarContentMatchesMime(file))) {
-      return { error: "Unsupported image type", success: false };
-    }
+      // The previous avatar is removed only after `setAvatarUrl` has reported
+      // one touched row, so a failure between the two leaves an unreferenced
+      // object rather than a row referencing a deleted one.
+      const updateUserAvatar = Effect.fn("UserGateway.updateUserAvatar")(
+        function* updateUserAvatar(userId: string, file: File) {
+          const fileExt = avatarExtensionForMime(file.type);
+          if (fileExt === null) {
+            return yield* new AvatarTypeUnsupported();
+          }
+          const contentMatches = yield* Effect.promise(
+            async () => await avatarContentMatchesMime(file)
+          );
+          if (!contentMatches) {
+            return yield* new AvatarTypeUnsupported();
+          }
 
-    const current = await orNull(
-      "user.findAvatarUrl",
-      async () => await store.findAvatarUrl(userId)
-    );
-    if (current === null) {
-      return { error: "Failed to upload avatar", success: false };
-    }
+          const current = yield* orNull(
+            "user.findAvatarUrl",
+            store.findAvatarUrl(userId)
+          );
+          if (current === null) {
+            return yield* new AvatarUploadFailed({ orphanedKey: null });
+          }
 
-    const previousKey =
-      current.avatarUrl === null
-        ? null
-        : avatarKeyFromUrl(current.avatarUrl, userId);
-    const key = `${userId}/avatars/${newId()}.${fileExt}`;
+          const previousKey =
+            current.avatarUrl === null
+              ? null
+              : avatarKeyFromUrl(current.avatarUrl, userId);
+          const keyId = yield* keyIds.next;
+          const key = `${userId}/avatars/${keyId}.${fileExt}`;
 
-    const publicUrl = await orNull(
-      "user.upload",
-      async () => await storage.upload(key, file, file.type)
-    );
-    if (publicUrl === null) {
-      return { error: "Failed to upload avatar", success: false };
-    }
+          const publicUrl = yield* orNull(
+            "user.upload",
+            storage.upload(key, file, file.type)
+          );
+          if (publicUrl === null) {
+            return yield* new AvatarUploadFailed({ orphanedKey: null });
+          }
 
-    const rowsTouched = await orNull(
-      "user.setAvatarUrl",
-      async () => await store.setAvatarUrl(userId, publicUrl)
-    );
-    if (rowsTouched !== 1) {
-      if (rowsTouched !== null) {
-        reportError(
-          "user.setAvatarUrl",
-          new Error(`expected 1 row, got ${String(rowsTouched)}`)
-        );
-      }
-      const rolledBack = await succeeded("user.rollbackUpload", async () => {
-        await storage.remove(key);
-      });
-      return rolledBack
-        ? { error: "Failed to upload avatar", success: false }
-        : {
-            error: "Failed to upload avatar",
-            orphanedKey: key,
-            success: false,
-          };
-    }
+          const updatedAt = yield* DateTime.now;
+          const rowsTouched = yield* orNull(
+            "user.setAvatarUrl",
+            store.setAvatarUrl(userId, publicUrl, updatedAt)
+          );
+          if (rowsTouched !== 1) {
+            if (rowsTouched !== null) {
+              yield* Effect.sync(() => {
+                reportError(
+                  "user.setAvatarUrl",
+                  new Error(`expected 1 row, got ${String(rowsTouched)}`)
+                );
+              });
+            }
+            const rolledBack = yield* succeeded(
+              "user.rollbackUpload",
+              storage.remove(key)
+            );
+            return yield* new AvatarUploadFailed({
+              orphanedKey: rolledBack ? null : key,
+            });
+          }
 
-    if (previousKey === null) {
-      return { avatarUrl: publicUrl, cleanup: "complete", success: true };
-    }
-    const removedPrevious = await succeeded("user.removePrevious", async () => {
-      await storage.remove(previousKey);
-    });
-    return {
-      avatarUrl: publicUrl,
-      cleanup: removedPrevious ? "complete" : "pending",
-      success: true,
-    };
-  };
+          if (previousKey === null) {
+            return { avatarUrl: publicUrl, cleanup: "complete" } as const;
+          }
+          const removedPrevious = yield* succeeded(
+            "user.removePrevious",
+            storage.remove(previousKey)
+          );
+          return {
+            avatarUrl: publicUrl,
+            cleanup: removedPrevious ? "complete" : "pending",
+          } as const;
+        }
+      );
 
-  return { fetchCurrentUser, updateUser, updateUserAvatar };
-};
+      return UserGateway.of({ fetchCurrentUser, updateUser, updateUserAvatar });
+    })
+  );
 
-export const userGateway = createUserGateway({
-  newId: () => crypto.randomUUID(),
-  storage: { remove: deleteFromR2, upload: uploadToR2 },
-  store: drizzleUserStore,
-});
+  static readonly layer = UserGateway.layerNoDeps.pipe(
+    Layer.provide(AvatarKeyIds.layer),
+    Layer.provide(AvatarStorage.layer),
+    Layer.provide(UserStore.layer)
+  );
+}

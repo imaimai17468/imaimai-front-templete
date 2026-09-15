@@ -101,8 +101,8 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
         const avatarData = new globalThis.FormData();
         avatarData.append("avatar", pendingFile);
         const avatarResult = await uploadAvatarFn({ data: avatarData });
-        if ("error" in avatarResult) {
-          toast.error(avatarResult.error);
+        if (avatarResult.status === "failed") {
+          toast.error(avatarResult.message);
           return;
         }
         setPendingFile(null);
@@ -112,8 +112,8 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
       formData.append("name", data.name);
 
       const result = await updateProfileFn({ data: formData });
-      if ("error" in result) {
-        toast.error(result.error);
+      if (result.status === "failed") {
+        toast.error(result.message);
       } else {
         toast.success("Profile updated successfully");
       }
