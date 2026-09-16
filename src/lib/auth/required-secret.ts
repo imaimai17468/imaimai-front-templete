@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Option, Schema } from "effect";
 
 export type AuthSecretName =
   | "BETTER_AUTH_SECRET"
@@ -6,8 +6,8 @@ export type AuthSecretName =
   | "GOOGLE_CLIENT_SECRET";
 
 const configuredSecret = (name: AuthSecretName) => {
-  // The same text on both: the annotation answers a value that is not a
-  // string, the check answers an empty one.
+  // The same text on both: the annotation answers an absent secret, which
+  // reaches the schema as a non-string, and the check answers an empty one.
   const missing = {
     message: `${name} is not set. Register it with \`wrangler secret put ${name}\` for a deployed Worker, or set it in .env.local for local development.`,
   };
@@ -16,5 +16,8 @@ const configuredSecret = (name: AuthSecretName) => {
 
 export const requireAuthSecret = (
   name: AuthSecretName,
-  value: string | undefined
-): string => Schema.decodeUnknownSync(configuredSecret(name))(value);
+  value: Option.Option<string>
+): string =>
+  Schema.decodeUnknownSync(configuredSecret(name))(
+    Option.getOrUndefined(value)
+  );
