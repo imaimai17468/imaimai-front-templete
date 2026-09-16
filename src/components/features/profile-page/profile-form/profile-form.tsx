@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import type { UpdateUser, UserWithEmail } from "@/entities/user";
-import { UpdateUserSchema } from "@/entities/user";
+import { displayName, UpdateUserSchema } from "@/entities/user";
 import { updateProfileFn, uploadAvatarFn } from "@/gateways/user/profile";
 import {
   avatarSizeRejection,
@@ -117,8 +117,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
     });
   };
 
-  const displayName =
-    user.name === null || user.name === "" ? "User" : user.name;
+  const name = displayName(user.name);
   const avatarUrl = previewUrl ?? user.avatarUrl;
 
   return (
@@ -132,10 +131,8 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
         <div className="flex items-center gap-6">
           <div className="relative">
             <Avatar size="lg">
-              <AvatarImage src={avatarUrl ?? undefined} alt={displayName} />
-              <AvatarFallback>
-                {displayName.charAt(0).toUpperCase()}
-              </AvatarFallback>
+              <AvatarImage src={avatarUrl ?? undefined} alt={name} />
+              <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <button
               type="button"

@@ -1,4 +1,4 @@
-import { Context, DateTime, Effect, Layer, Schema } from "effect";
+import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
 import { UserWithEmailSchema } from "@/entities/user";
 import type { UpdateUser, UserWithEmail } from "@/entities/user";
 import { avatarUrlForKey } from "@/lib/avatar-url";
@@ -262,10 +262,10 @@ export class UserGateway extends Context.Service<
             return null;
           }
           return encodeUserWithEmail({
-            avatarUrl:
-              profile.avatarKey === null
-                ? profile.image
-                : avatarUrlForKey(profile.avatarKey),
+            avatarUrl: Option.fromNullOr(profile.avatarKey).pipe(
+              Option.map(avatarUrlForKey),
+              Option.getOrElse(() => profile.image)
+            ),
             createdAt: profile.createdAt,
             email,
             id: profile.id,
@@ -282,9 +282,10 @@ export class UserGateway extends Context.Service<
             "user.updateName",
             store.updateName(userId, data.name, updatedAt)
           );
-          return yield* written
-            ? Effect.void
-            : Effect.fail(new UserNameUpdateFailed());
+          if (written) {
+            return yield* Effect.void;
+          }
+          return yield* new UserNameUpdateFailed();
         }
       );
 
