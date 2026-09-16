@@ -105,6 +105,8 @@ R2 バケットは非公開のまま使用します。アバターは認証と�
 
 `/login` には「Sign in With Google」ボタンが 1 つだけ並びます。`bun run dev` で立てた開発ビルドでは、このボタンが Google へ飛ばずに `src/lib/auth/dev-users.ts` が持つ資格情報でサインインし、ローカル D1 にそのユーザーが居なければ作ってから入ります。`.wrangler/state` を消しても次のクリックで作り直されます。Google の認証情報を登録しなくても認証済みの画面を触れるので、下の Google 設定はデプロイ先を用意する段で行えば足ります。
 
+開発ビルドから Google 側を試すときは `VITE_GOOGLE_SIGN_IN=1 PORTLESS=0 bun run dev` で起動します。同じボタンがそのまま Google へ飛びます。
+
 この差し替えとメール・パスワード認証は本番ビルドでは働きません。Vite が `import.meta.env.DEV` を `false` に畳むので、デプロイされた Worker の `/api/auth/sign-in/email` は `EMAIL_PASSWORD_DISABLED` を返します。
 
 メール・パスワードが使う `accounts.password` 列は drizzle スキーマに入っているので、既にある D1 にはマイグレーションを当ててから使ってください。ローカルなら最初のクリックの前に `bun run db:push:local`、デプロイ先なら手順5の remote 適用です。drizzle は全列を名指しで SELECT するため、列が無い D1 では Google ログインの account 参照も落ちます。当てる前に押してしまい `User already exists.` が出続ける場合は、下の[ローカルデータのリセット](#ローカルデータのリセット)で作りかけの行ごと消してください。
@@ -171,7 +173,7 @@ Cloudflare Workers ランタイムをエミュレートして実行します。�
 | コマンド | ポート | DB/ストレージ | HMR | 用途 |
 |---------|--------|-------------|-----|------|
 | `bun run dev` | portless が割り当て（`https://my-app.localhost`） | ローカルD1/R2 | ○ | 日常的な開発 |
-| `PORTLESS=0 bun run dev` | 5173 | ローカルD1/R2 | ○ | Google ログインの確認 |
+| `VITE_GOOGLE_SIGN_IN=1 PORTLESS=0 bun run dev` | 5173 | ローカルD1/R2 | ○ | Google ログインの確認 |
 | `bun run preview` | 4173 | ローカルD1/R2 | × | デプロイ前確認 |
 
 ### ローカルデータのリセット

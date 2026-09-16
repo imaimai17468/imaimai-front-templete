@@ -26,11 +26,11 @@ const signInAsDevUser: SignIn = () =>
   devSignIn(DEV_USER).then(devSignInOutcome);
 
 /**
- * Vite replaces `import.meta.env.DEV` with a literal, so this call folds at
- * build time and a production build never runs the dev arm.
+ * Vite replaces both `import.meta.env` reads with literals, so this call folds
+ * at build time and a production build never runs the dev arm.
  */
 const selectSignIn = (): SignIn => {
-  if (import.meta.env.DEV) {
+  if (import.meta.env.DEV && import.meta.env.VITE_GOOGLE_SIGN_IN !== "1") {
     return signInAsDevUser;
   }
   return signInWithGoogle;
