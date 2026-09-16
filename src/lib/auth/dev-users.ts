@@ -4,6 +4,8 @@ export interface DevUser {
   password: string;
 }
 
-export const DEV_USERS: readonly DevUser[] = [
-  { email: "dev@example.com", name: "Dev User", password: "dev-password" },
-];
+export const DEV_USER: DevUser = {
+  email: "dev@example.com",
+  name: "Dev User",
+  password: "dev-password",
+};
