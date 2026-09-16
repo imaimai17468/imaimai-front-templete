@@ -7,9 +7,9 @@ import {
   Outlet,
 } from "@tanstack/react-router";
 import type { AnyRoute } from "@tanstack/react-router";
-import { render } from "@testing-library/react";
 import type { RenderOptions } from "@testing-library/react";
 import type { ReactElement } from "react";
+import { render } from "./render";
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
