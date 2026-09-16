@@ -51,7 +51,7 @@ bun run dev
 - **[@shadcn/lint](https://github.com/shadcn-ui/lint)**：デザインシステムの検査 (`vite.config.ts` の `lint` ブロック)。呼び出し側が `className` でコンポーネントの見た目を上書きすると落ちる。配置に使う layout 系クラスだけが通り、見た目を変えたいときは `src/components/ui/` 側の variant を使う
 - **自作 oxlint プラグイン** (`tools/oxlint-plugins/`)：`vite.config.ts` の `lint.jsPlugins` から読み込まれる。層契約・コンポーネント命名・1ファイル1コンポーネント・テストの形（1テスト1 expect など）を機械的に強制するので、規約は文書だけでなくここにもある
 - **自作 vite プラグイン** (`tools/vite-plugins/`)：`vite.config.ts` から読み込まれる。`wrangler.toml` の変更を検知して `bun run cf-typegen` を走らせ、dev 起動時は `worker-configuration.d.ts` が `wrangler.toml` より古いときだけ生成する
-- **[oxlint-plugin-effect](https://github.com/cevr/effect-oxlint)**：Effect 向け追加ルール (`oxlint.effect.ts`、`vite.config.ts` の `lint.overrides` から `src/**` にかかる)。`presets.recommended` の全ルールを列挙して有効にしてある。満たせないパスがあるときは、そのパスを名指しした `vite.config.ts` の override ブロックで外し、理由をその隣に書く
+- **[oxlint-plugin-effect](https://github.com/cevr/effect-oxlint)**：Effect 向け追加ルール (`oxlint.effect.ts`、`vite.config.ts` の `lint.overrides` から `src/**` にかかる)。満たせないパスがあるときは、そのパスを名指しした `vite.config.ts` の override ブロックで外し、理由をその隣に書く
 - **[react-doctor](https://github.com/millionco/react-doctor)**：React 向け追加ルール (`oxlint.react-doctor.ts`)
 - **[oxfmt](https://oxc.rs/docs/guide/usage/formatter)**：Formatter (`vite.config.ts` の `fmt` ブロック)
 - **[portless](https://github.com/vercel-labs/portless)**：dev サーバに名前付き HTTPS URL を割り当てる proxy。`bun run dev` が経由する

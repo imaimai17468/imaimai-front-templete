@@ -43,7 +43,6 @@ export const errorReport = (event: string, cause: unknown): ErrorReport => {
   };
 };
 
-/** Writes the encoded report to the console, as an Effect the caller sequences. */
 export const reportError = (
   event: string,
   cause: unknown

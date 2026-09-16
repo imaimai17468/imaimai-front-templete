@@ -91,8 +91,6 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
           );
           return;
         }
-        // A new rejection reason fails `satisfies never` here rather than
-        // passing silently.
         default: {
           reason satisfies never;
           return;

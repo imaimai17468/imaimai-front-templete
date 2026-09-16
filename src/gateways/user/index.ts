@@ -190,11 +190,6 @@ export interface AvatarUpdated {
 /**
  * The value the effect produced, or `None` once the cause has been written to
  * Workers Logs under `event`.
- *
- * Every failure on the avatar path collapses into one user-facing result, so a
- * failed read and an absent row reach the caller the same way. That includes a
- * missing D1 or R2 binding, which surfaces as an upload failure rather than
- * propagating.
  */
 const orNone = <A>(
   event: string,
@@ -282,12 +277,11 @@ export class UserGateway extends Context.Service<
             "user.updateName",
             store.updateName(userId, Option.some(data.name), updatedAt)
           );
-          // Both arms return a value because `consistent-return` refuses a
-          // function that mixes a bare `return` with one that carries a value.
-          if (written) {
-            return yield* Effect.void;
-          }
-          return yield* new UserNameUpdateFailed();
+          return yield* Match.value(written).pipe(
+            Match.when(true, () => Effect.void),
+            Match.when(false, () => Effect.fail(new UserNameUpdateFailed())),
+            Match.exhaustive
+          );
         }
       );
 
@@ -346,8 +340,6 @@ export class UserGateway extends Context.Service<
               "user.rollbackUpload",
               storage.remove(key)
             );
-            // The bucket now holds an object no row points at, and its key is
-            // reconstructible from nothing the caller has.
             yield* Match.value(rolledBack).pipe(
               Match.when(true, () => Effect.void),
               Match.when(false, () =>

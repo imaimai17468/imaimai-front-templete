@@ -27,9 +27,6 @@ export const ModeToggle = () => {
     () => false
   );
 
-  // system モード廃止前に localStorage へ保存された "system" など、切り替えの
-  // 対象外になった永続値を light に戻す（放置すると <html> に不正クラスが
-  // 残る）。useEffect はクライアントでのみ走るので mounted ガードは不要。
   useEffect(() => {
     if (needsThemeNormalization(Option.fromUndefinedOr(theme))) {
       setTheme("light");
