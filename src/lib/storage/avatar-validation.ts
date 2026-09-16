@@ -27,11 +27,8 @@ const hasSignature = (
 ): boolean =>
   signature.every((expected, index) => bytes[offset + index] === expected);
 
-export const avatarContentMatchesMime = async (
-  file: File
-): Promise<boolean> => {
-  const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
-  switch (file.type) {
+const matchesSignature = (mimeType: string, bytes: Uint8Array): boolean => {
+  switch (mimeType) {
     case "image/png": {
       return hasSignature(bytes, PNG_SIGNATURE);
     }
@@ -55,6 +52,12 @@ export const avatarContentMatchesMime = async (
     }
   }
 };
+
+export const avatarContentMatchesMime = (file: File): Promise<boolean> =>
+  file
+    .slice(0, 12)
+    .arrayBuffer()
+    .then((buffer) => matchesSignature(file.type, new Uint8Array(buffer)));
 
 // Read-side extension tolerance. The write path always normalizes to the
 // canonical lowercase extensions above, but avatar objects written before

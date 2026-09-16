@@ -1,4 +1,4 @@
-import { Option } from "effect";
+import { Effect, Option, Schema } from "effect";
 import type { DevUser } from "./dev-users";
 
 type AuthFailureMessage = string;
@@ -13,31 +13,49 @@ export interface DevSignInDeps {
   signUp: (user: DevUser) => Promise<AuthFailureMessage | null>;
 }
 
+/** A rejection from the auth client, which carries no `failed` message of its own. */
+class DevSignInThrew extends Schema.TaggedError<DevSignInThrew>()(
+  "DevSignInThrew",
+  { cause: Schema.Defect() }
+) {}
+
 const isError = (cause: unknown): cause is Error => cause instanceof Error;
 
 const RECOVERY =
   "Run bun run db:push:local. If that does not help, reset the local D1.";
 
+const attempt = (run: () => Promise<AuthFailureMessage | null>) =>
+  Effect.tryPromise({
+    catch: (cause) => new DevSignInThrew({ cause }),
+    try: run,
+  });
+
 export const createDevSignIn =
   ({ signIn, signUp }: DevSignInDeps) =>
-  async (user: DevUser): Promise<DevSignInResult> => {
-    try {
-      const signInFailure = await signIn(user);
-      if (signInFailure === null) {
-        return { kind: "signed-in" };
-      }
-      const signUpFailure = await signUp(user);
-      if (signUpFailure !== null) {
-        return { kind: "failed", message: `${signUpFailure} ${RECOVERY}` };
-      }
-      return { kind: "created" };
-    } catch (error) {
-      return {
-        kind: "failed",
-        message: Option.liftPredicate(error, isError).pipe(
-          Option.map((thrown) => thrown.message),
-          Option.getOrElse(() => RECOVERY)
-        ),
-      };
-    }
-  };
+  (user: DevUser): Promise<DevSignInResult> =>
+    Effect.runPromise(
+      Effect.gen(function* attemptDevSignIn() {
+        const signInFailure = yield* attempt(() => signIn(user));
+        if (signInFailure === null) {
+          return { kind: "signed-in" } satisfies DevSignInResult;
+        }
+        const signUpFailure = yield* attempt(() => signUp(user));
+        if (signUpFailure !== null) {
+          return {
+            kind: "failed",
+            message: `${signUpFailure} ${RECOVERY}`,
+          } satisfies DevSignInResult;
+        }
+        return { kind: "created" } satisfies DevSignInResult;
+      }).pipe(
+        Effect.catchTag("DevSignInThrew", (error) =>
+          Effect.succeed({
+            kind: "failed",
+            message: Option.liftPredicate(error.cause, isError).pipe(
+              Option.map((thrown) => thrown.message),
+              Option.getOrElse(() => RECOVERY)
+            ),
+          } satisfies DevSignInResult)
+        )
+      )
+    );

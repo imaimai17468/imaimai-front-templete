@@ -24,8 +24,8 @@ const makeFakes = (read: CurrentSession["Service"]["read"]) => {
   );
   return {
     fetchAvatar,
-    readAvatarOrFailure: async (key: string | null) =>
-      await Effect.runPromise(
+    readAvatarOrFailure: (key: string | null) =>
+      Effect.runPromise(
         Effect.gen(function* callRead() {
           const reader = yield* AvatarReader;
           return yield* reader.read(key);
@@ -61,16 +61,16 @@ const sessionFor = (userId: string) =>
   }) satisfies NonNullable<Awaited<ReturnType<typeof getSession>>>;
 
 describe("AvatarReader.read", () => {
-  it("should reject without reading persistence when the request is anonymous", async () => {
+  it("should reject without reading persistence when the request is anonymous", () => {
     const { fetchAvatar, readAvatarOrFailure } = makeFakes(
       Effect.succeed(null)
     );
 
-    const result = await readAvatarOrFailure("user-1/avatar.png");
-
-    expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
-      fetchCalls: [],
-      result: new AvatarUnauthorized(),
+    return readAvatarOrFailure("user-1/avatar.png").then((result) => {
+      expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
+        fetchCalls: [],
+        result: new AvatarUnauthorized(),
+      });
     });
   });
 
@@ -78,37 +78,34 @@ describe("AvatarReader.read", () => {
     ["the key is missing", null],
     ["the key belongs to another user", "user-2/avatar.png"],
     ["the key is malformed", "../user-1/avatar.png"],
-  ])(
-    "should reject without reading persistence when %s",
-    async (_label, key) => {
-      const { fetchAvatar, readAvatarOrFailure } = makeFakes(
-        Effect.succeed(sessionFor("user-1"))
-      );
+  ])("should reject without reading persistence when %s", (_label, key) => {
+    const { fetchAvatar, readAvatarOrFailure } = makeFakes(
+      Effect.succeed(sessionFor("user-1"))
+    );
 
-      const result = await readAvatarOrFailure(key);
-
+    return readAvatarOrFailure(key).then((result) => {
       expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
         fetchCalls: [],
         result: new AvatarInvalidKey(),
       });
-    }
-  );
+    });
+  });
 
-  it("should fail with not-found when the owned object is absent", async () => {
+  it("should fail with not-found when the owned object is absent", () => {
     const { fetchAvatar, readAvatarOrFailure } = makeFakes(
       Effect.succeed(sessionFor("user-1"))
     );
     fetchAvatar.mockReturnValue(Effect.succeed(null));
 
-    const result = await readAvatarOrFailure("user-1/avatar.png");
-
-    expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
-      fetchCalls: [["user-1/avatar.png"]],
-      result: new AvatarNotFound(),
+    return readAvatarOrFailure("user-1/avatar.png").then((result) => {
+      expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
+        fetchCalls: [["user-1/avatar.png"]],
+        result: new AvatarNotFound(),
+      });
     });
   });
 
-  it("should return the gateway object when the owned object exists", async () => {
+  it("should return the gateway object when the owned object exists", () => {
     const { fetchAvatar, readAvatarOrFailure } = makeFakes(
       Effect.succeed(sessionFor("user-1"))
     );
@@ -118,25 +115,25 @@ describe("AvatarReader.read", () => {
     } satisfies AvatarObject;
     fetchAvatar.mockReturnValue(Effect.succeed(avatar));
 
-    const result = await readAvatarOrFailure("user-1/avatar.png");
-
-    expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
-      fetchCalls: [["user-1/avatar.png"]],
-      result: avatar,
+    return readAvatarOrFailure("user-1/avatar.png").then((result) => {
+      expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
+        fetchCalls: [["user-1/avatar.png"]],
+        result: avatar,
+      });
     });
   });
 
-  it("should propagate the defect when session resolution fails", async () => {
+  it("should propagate the defect when session resolution fails", () => {
     const { readAvatarOrFailure } = makeFakes(
       Effect.die(new Error("session failed"))
     );
 
     const result = readAvatarOrFailure("user-1/avatar.png");
 
-    await expect(result).rejects.toThrow("session failed");
+    return expect(result).rejects.toThrow("session failed");
   });
 
-  it("should propagate the defect when persistence fails", async () => {
+  it("should propagate the defect when persistence fails", () => {
     const { fetchAvatar, readAvatarOrFailure } = makeFakes(
       Effect.succeed(sessionFor("user-1"))
     );
@@ -144,6 +141,6 @@ describe("AvatarReader.read", () => {
 
     const result = readAvatarOrFailure("user-1/avatar.png");
 
-    await expect(result).rejects.toThrow("R2 failed");
+    return expect(result).rejects.toThrow("R2 failed");
   });
 });

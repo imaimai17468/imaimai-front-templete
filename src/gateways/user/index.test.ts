@@ -70,10 +70,10 @@ const makeFakes = () => {
     )
   );
 
-  const runOrFailure = async <A, E>(
+  const runOrFailure = <A, E>(
     call: (gateway: UserGateway["Service"]) => Effect.Effect<A, E>
   ): Promise<A | E> =>
-    await Effect.runPromise(
+    Effect.runPromise(
       Effect.gen(function* callGateway() {
         const gateway = yield* UserGateway;
         return yield* call(gateway);
@@ -109,289 +109,291 @@ describe("user gateway", () => {
         "the bytes do not match the MIME type",
         imageFile("image/png", [0xff, 0xd8, 0xff]),
       ],
-    ])("should avoid every mutation when %s", async (_label, file) => {
+    ])("should avoid every mutation when %s", (_label, file) => {
       const { remove, runOrFailure, setAvatarKey, upload } = makeFakes();
 
-      const result = await runOrFailure((gateway) =>
+      return runOrFailure((gateway) =>
         gateway.updateUserAvatar("user-1", file)
-      );
-
-      expect({
-        removeCalls: remove.mock.calls,
-        result,
-        updateCalls: setAvatarKey.mock.calls,
-        uploadCalls: upload.mock.calls,
-      }).toStrictEqual({
-        removeCalls: [],
-        result: new AvatarTypeUnsupported(),
-        updateCalls: [],
-        uploadCalls: [],
+      ).then((result) => {
+        expect({
+          removeCalls: remove.mock.calls,
+          result,
+          updateCalls: setAvatarKey.mock.calls,
+          uploadCalls: upload.mock.calls,
+        }).toStrictEqual({
+          removeCalls: [],
+          result: new AvatarTypeUnsupported(),
+          updateCalls: [],
+          uploadCalls: [],
+        });
       });
     });
 
-    it("should persist a unique key and remove the prior object when every step succeeds", async () => {
+    it("should persist a unique key and remove the prior object when every step succeeds", () => {
       const { remove, runOrFailure, setAvatarKey, upload } = makeFakes();
 
-      const result = await runOrFailure((gateway) =>
+      return runOrFailure((gateway) =>
         gateway.updateUserAvatar("user-1", validPng())
-      );
-
-      expect({
-        removeCalls: remove.mock.calls,
-        result,
-        updateCalls: setAvatarKey.mock.calls.map(
-          ([userId, avatarKey, updatedAt]) => [
-            userId,
-            avatarKey,
-            DateTime.formatIso(updatedAt),
-          ]
-        ),
-        uploadKey: upload.mock.calls[0]?.[0],
-      }).toStrictEqual({
-        removeCalls: [[OLD_KEY]],
-        result: { avatarUrl: NEW_URL, cleanup: "complete" },
-        updateCalls: [["user-1", NEW_KEY, TEST_CLOCK_INSTANT]],
-        uploadKey: NEW_KEY,
+      ).then((result) => {
+        expect({
+          removeCalls: remove.mock.calls,
+          result,
+          updateCalls: setAvatarKey.mock.calls.map(
+            ([userId, avatarKey, updatedAt]) => [
+              userId,
+              avatarKey,
+              DateTime.formatIso(updatedAt),
+            ]
+          ),
+          uploadKey: upload.mock.calls[0]?.[0],
+        }).toStrictEqual({
+          removeCalls: [[OLD_KEY]],
+          result: { avatarUrl: NEW_URL, cleanup: "complete" },
+          updateCalls: [["user-1", NEW_KEY, TEST_CLOCK_INSTANT]],
+          uploadKey: NEW_KEY,
+        });
       });
     });
 
-    it("should report a failure when the current row is absent", async () => {
+    it("should report a failure when the current row is absent", () => {
       const { findAvatarKey, runOrFailure, upload } = makeFakes();
       findAvatarKey.mockReturnValue(Effect.succeed(null));
 
-      const result = await runOrFailure((gateway) =>
+      return runOrFailure((gateway) =>
         gateway.updateUserAvatar("user-1", validPng())
-      );
-
-      expect({ result, uploadCalls: upload.mock.calls }).toStrictEqual({
-        result: new AvatarUploadFailed({ orphanedKey: null }),
-        uploadCalls: [],
+      ).then((result) => {
+        expect({ result, uploadCalls: upload.mock.calls }).toStrictEqual({
+          result: new AvatarUploadFailed({ orphanedKey: null }),
+          uploadCalls: [],
+        });
       });
     });
 
-    it("should report a failure when reading the current row fails", async () => {
+    it("should report a failure when reading the current row fails", () => {
       const { findAvatarKey, runOrFailure, upload } = makeFakes();
       findAvatarKey.mockReturnValue(persistenceFailure("D1 failed"));
       const reported = captureErrorReports();
 
-      const result = await runOrFailure((gateway) =>
+      return runOrFailure((gateway) =>
         gateway.updateUserAvatar("user-1", validPng())
-      );
-
-      expect({
-        reported,
-        result,
-        uploadCalls: upload.mock.calls,
-      }).toStrictEqual({
-        reported: [
-          {
-            event: "user.findAvatarKey",
-            message: "D1 failed",
-            name: "DriverFailed",
-          },
-        ],
-        result: new AvatarUploadFailed({ orphanedKey: null }),
-        uploadCalls: [],
+      ).then((result) => {
+        expect({
+          reported,
+          result,
+          uploadCalls: upload.mock.calls,
+        }).toStrictEqual({
+          reported: [
+            {
+              event: "user.findAvatarKey",
+              message: "D1 failed",
+              name: "DriverFailed",
+            },
+          ],
+          result: new AvatarUploadFailed({ orphanedKey: null }),
+          uploadCalls: [],
+        });
       });
     });
 
-    it("should report a failure when the upload fails", async () => {
+    it("should report a failure when the upload fails", () => {
       const { remove, runOrFailure, upload } = makeFakes();
       upload.mockReturnValue(persistenceFailure("R2 put failed"));
       const reported = captureErrorReports();
 
-      const result = await runOrFailure((gateway) =>
+      return runOrFailure((gateway) =>
         gateway.updateUserAvatar("user-1", validPng())
-      );
-
-      expect({
-        removeCalls: remove.mock.calls,
-        reported,
-        result,
-      }).toStrictEqual({
-        removeCalls: [],
-        reported: [
-          {
-            event: "user.upload",
-            message: "R2 put failed",
-            name: "DriverFailed",
-          },
-        ],
-        result: new AvatarUploadFailed({ orphanedKey: null }),
+      ).then((result) => {
+        expect({
+          removeCalls: remove.mock.calls,
+          reported,
+          result,
+        }).toStrictEqual({
+          removeCalls: [],
+          reported: [
+            {
+              event: "user.upload",
+              message: "R2 put failed",
+              name: "DriverFailed",
+            },
+          ],
+          result: new AvatarUploadFailed({ orphanedKey: null }),
+        });
       });
     });
 
-    it("should remove the new object and preserve the old one when the update fails", async () => {
+    it("should remove the new object and preserve the old one when the update fails", () => {
       const { remove, runOrFailure, setAvatarKey } = makeFakes();
       setAvatarKey.mockReturnValue(persistenceFailure("D1 failed"));
       const reported = captureErrorReports();
 
-      const result = await runOrFailure((gateway) =>
+      return runOrFailure((gateway) =>
         gateway.updateUserAvatar("user-1", validPng())
-      );
-
-      expect({
-        removeCalls: remove.mock.calls,
-        reported,
-        result,
-      }).toStrictEqual({
-        removeCalls: [[NEW_KEY]],
-        reported: [
-          {
-            event: "user.setAvatarKey",
-            message: "D1 failed",
-            name: "DriverFailed",
-          },
-        ],
-        result: new AvatarUploadFailed({ orphanedKey: null }),
+      ).then((result) => {
+        expect({
+          removeCalls: remove.mock.calls,
+          reported,
+          result,
+        }).toStrictEqual({
+          removeCalls: [[NEW_KEY]],
+          reported: [
+            {
+              event: "user.setAvatarKey",
+              message: "D1 failed",
+              name: "DriverFailed",
+            },
+          ],
+          result: new AvatarUploadFailed({ orphanedKey: null }),
+        });
       });
     });
 
-    it("should roll back the new object when the update touches zero rows", async () => {
+    it("should roll back the new object when the update touches zero rows", () => {
       const { remove, runOrFailure, setAvatarKey } = makeFakes();
       setAvatarKey.mockReturnValue(Effect.succeed(0));
       const reported = captureErrorReports();
 
-      const result = await runOrFailure((gateway) =>
+      return runOrFailure((gateway) =>
         gateway.updateUserAvatar("user-1", validPng())
-      );
-
-      expect({
-        removeCalls: remove.mock.calls,
-        reported,
-        result,
-      }).toStrictEqual({
-        removeCalls: [[NEW_KEY]],
-        reported: [
-          {
-            event: "user.setAvatarKey",
-            message: "expected 1 row, got 0",
-            name: "UnexpectedRowCount",
-          },
-        ],
-        result: new AvatarUploadFailed({ orphanedKey: null }),
+      ).then((result) => {
+        expect({
+          removeCalls: remove.mock.calls,
+          reported,
+          result,
+        }).toStrictEqual({
+          removeCalls: [[NEW_KEY]],
+          reported: [
+            {
+              event: "user.setAvatarKey",
+              message: "expected 1 row, got 0",
+              name: "UnexpectedRowCount",
+            },
+          ],
+          result: new AvatarUploadFailed({ orphanedKey: null }),
+        });
       });
     });
 
-    it("should report the orphaned key when rollback deletion fails", async () => {
+    it("should report the orphaned key when rollback deletion fails", () => {
       const { remove, runOrFailure, setAvatarKey } = makeFakes();
       setAvatarKey.mockReturnValue(persistenceFailure("D1 failed"));
       remove.mockReturnValue(persistenceFailure("R2 delete failed"));
       const reported = captureErrorReports();
 
-      const result = await runOrFailure((gateway) =>
+      return runOrFailure((gateway) =>
         gateway.updateUserAvatar("user-1", validPng())
-      );
-
-      expect({ reported, result }).toStrictEqual({
-        reported: [
-          {
-            event: "user.setAvatarKey",
-            message: "D1 failed",
-            name: "DriverFailed",
-          },
-          {
-            event: "user.rollbackUpload",
-            message: "R2 delete failed",
-            name: "DriverFailed",
-          },
-        ],
-        result: new AvatarUploadFailed({ orphanedKey: NEW_KEY }),
+      ).then((result) => {
+        expect({ reported, result }).toStrictEqual({
+          reported: [
+            {
+              event: "user.setAvatarKey",
+              message: "D1 failed",
+              name: "DriverFailed",
+            },
+            {
+              event: "user.rollbackUpload",
+              message: "R2 delete failed",
+              name: "DriverFailed",
+            },
+          ],
+          result: new AvatarUploadFailed({ orphanedKey: NEW_KEY }),
+        });
       });
     });
 
-    it("should return pending cleanup without failing the new avatar when old deletion fails", async () => {
+    it("should return pending cleanup without failing the new avatar when old deletion fails", () => {
       const { remove, runOrFailure } = makeFakes();
       remove.mockReturnValue(persistenceFailure("R2 delete failed"));
       const reported = captureErrorReports();
 
-      const result = await runOrFailure((gateway) =>
+      return runOrFailure((gateway) =>
         gateway.updateUserAvatar("user-1", validPng())
-      );
-
-      expect({ reported, result }).toStrictEqual({
-        reported: [
-          {
-            event: "user.removePrevious",
-            message: "R2 delete failed",
-            name: "DriverFailed",
-          },
-        ],
-        result: { avatarUrl: NEW_URL, cleanup: "pending" },
+      ).then((result) => {
+        expect({ reported, result }).toStrictEqual({
+          reported: [
+            {
+              event: "user.removePrevious",
+              message: "R2 delete failed",
+              name: "DriverFailed",
+            },
+          ],
+          result: { avatarUrl: NEW_URL, cleanup: "pending" },
+        });
       });
     });
 
-    it("should skip cleanup when the row holds no prior avatar", async () => {
+    it("should skip cleanup when the row holds no prior avatar", () => {
       const { findAvatarKey, remove, runOrFailure } = makeFakes();
       findAvatarKey.mockReturnValue(Effect.succeed({ avatarKey: null }));
 
-      const result = await runOrFailure((gateway) =>
+      return runOrFailure((gateway) =>
         gateway.updateUserAvatar("user-1", validPng())
-      );
-
-      expect({ removeCalls: remove.mock.calls, result }).toStrictEqual({
-        removeCalls: [],
-        result: { avatarUrl: NEW_URL, cleanup: "complete" },
+      ).then((result) => {
+        expect({ removeCalls: remove.mock.calls, result }).toStrictEqual({
+          removeCalls: [],
+          result: { avatarUrl: NEW_URL, cleanup: "complete" },
+        });
       });
     });
   });
 
   describe("updateUser", () => {
-    it("should stamp the row with the clock's instant when the name update resolves", async () => {
+    it("should stamp the row with the clock's instant when the name update resolves", () => {
       const { runOrFailure, updateName } = makeFakes();
 
-      const result = await runOrFailure((gateway) =>
+      return runOrFailure((gateway) =>
         gateway.updateUser("user-1", { name: "New Name" })
-      );
-
-      expect({
-        result,
-        updateCalls: updateName.mock.calls.map(([userId, name, updatedAt]) => [
-          userId,
-          name,
-          DateTime.formatIso(updatedAt),
-        ]),
-      }).toStrictEqual({
-        result: undefined,
-        updateCalls: [["user-1", "New Name", TEST_CLOCK_INSTANT]],
+      ).then((result) => {
+        expect({
+          result,
+          updateCalls: updateName.mock.calls.map(
+            ([userId, name, updatedAt]) => [
+              userId,
+              name,
+              DateTime.formatIso(updatedAt),
+            ]
+          ),
+        }).toStrictEqual({
+          result: undefined,
+          updateCalls: [["user-1", "New Name", TEST_CLOCK_INSTANT]],
+        });
       });
     });
 
-    it("should report a failure when the name update fails", async () => {
+    it("should report a failure when the name update fails", () => {
       const { runOrFailure, updateName } = makeFakes();
       updateName.mockReturnValue(persistenceFailure("D1 failed"));
       const reported = captureErrorReports();
 
-      const result = await runOrFailure((gateway) =>
+      return runOrFailure((gateway) =>
         gateway.updateUser("user-1", { name: "New Name" })
-      );
-
-      expect({ reported, result }).toStrictEqual({
-        reported: [
-          {
-            event: "user.updateName",
-            message: "D1 failed",
-            name: "DriverFailed",
-          },
-        ],
-        result: new UserNameUpdateFailed(),
+      ).then((result) => {
+        expect({ reported, result }).toStrictEqual({
+          reported: [
+            {
+              event: "user.updateName",
+              message: "D1 failed",
+              name: "DriverFailed",
+            },
+          ],
+          result: new UserNameUpdateFailed(),
+        });
       });
     });
   });
 
   describe("fetchCurrentUser", () => {
-    it("should return null when no profile row exists", async () => {
+    it("should return null when no profile row exists", () => {
       const { findProfile, runOrFailure } = makeFakes();
       findProfile.mockReturnValue(Effect.succeed(null));
 
-      const result = await runOrFailure((gateway) =>
+      return runOrFailure((gateway) =>
         gateway.fetchCurrentUser("user-1", "user@example.com")
-      );
-
-      expect(result).toBeNull();
+      ).then((result) => {
+        expect(result).toBeNull();
+      });
     });
 
-    it("should return the parsed user when a profile row exists", async () => {
+    it("should return the parsed user when a profile row exists", () => {
       const { findProfile, runOrFailure } = makeFakes();
       findProfile.mockReturnValue(
         Effect.succeed({
@@ -404,21 +406,21 @@ describe("user gateway", () => {
         })
       );
 
-      const result = await runOrFailure((gateway) =>
+      return runOrFailure((gateway) =>
         gateway.fetchCurrentUser("user-1", "user@example.com")
-      );
-
-      expect(result).toStrictEqual({
-        avatarUrl: null,
-        createdAt: "2026-01-01T00:00:00.000Z",
-        email: "user@example.com",
-        id: "user-1",
-        name: "Name",
-        updatedAt: "2026-01-02T00:00:00.000Z",
+      ).then((result) => {
+        expect(result).toStrictEqual({
+          avatarUrl: null,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          email: "user@example.com",
+          id: "user-1",
+          name: "Name",
+          updatedAt: "2026-01-02T00:00:00.000Z",
+        });
       });
     });
 
-    it("should serve the uploaded avatar when the row holds a key", async () => {
+    it("should serve the uploaded avatar when the row holds a key", () => {
       const { findProfile, runOrFailure } = makeFakes();
       findProfile.mockReturnValue(
         Effect.succeed({
@@ -431,21 +433,21 @@ describe("user gateway", () => {
         })
       );
 
-      const result = await runOrFailure((gateway) =>
+      return runOrFailure((gateway) =>
         gateway.fetchCurrentUser("user-1", "user@example.com")
-      );
-
-      expect(result).toStrictEqual({
-        avatarUrl: avatarUrlForKey(OLD_KEY),
-        createdAt: "2026-01-01T00:00:00.000Z",
-        email: "user@example.com",
-        id: "user-1",
-        name: "Name",
-        updatedAt: "2026-01-02T00:00:00.000Z",
+      ).then((result) => {
+        expect(result).toStrictEqual({
+          avatarUrl: avatarUrlForKey(OLD_KEY),
+          createdAt: "2026-01-01T00:00:00.000Z",
+          email: "user@example.com",
+          id: "user-1",
+          name: "Name",
+          updatedAt: "2026-01-02T00:00:00.000Z",
+        });
       });
     });
 
-    it("should fall back to the provider's image when the row holds no key", async () => {
+    it("should fall back to the provider's image when the row holds no key", () => {
       const { findProfile, runOrFailure } = makeFakes();
       findProfile.mockReturnValue(
         Effect.succeed({
@@ -458,32 +460,32 @@ describe("user gateway", () => {
         })
       );
 
-      const result = await runOrFailure((gateway) =>
+      return runOrFailure((gateway) =>
         gateway.fetchCurrentUser("user-1", "user@example.com")
-      );
-
-      expect(result).toStrictEqual({
-        avatarUrl: "https://images.example.com/from-google.png",
-        createdAt: "2026-01-01T00:00:00.000Z",
-        email: "user@example.com",
-        id: "user-1",
-        name: "Name",
-        updatedAt: "2026-01-02T00:00:00.000Z",
+      ).then((result) => {
+        expect(result).toStrictEqual({
+          avatarUrl: "https://images.example.com/from-google.png",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          email: "user@example.com",
+          id: "user-1",
+          name: "Name",
+          updatedAt: "2026-01-02T00:00:00.000Z",
+        });
       });
     });
 
-    it("should surface the persistence failure when the profile read fails", async () => {
+    it("should surface the persistence failure when the profile read fails", () => {
       const { findProfile, runOrFailure } = makeFakes();
       const cause = new DriverFailed({ message: "D1 failed" });
       findProfile.mockReturnValue(
         Effect.fail(new UserPersistenceError({ cause }))
       );
 
-      const result = await runOrFailure((gateway) =>
+      return runOrFailure((gateway) =>
         gateway.fetchCurrentUser("user-1", "user@example.com")
-      );
-
-      expect(result).toStrictEqual(new UserPersistenceError({ cause }));
+      ).then((result) => {
+        expect(result).toStrictEqual(new UserPersistenceError({ cause }));
+      });
     });
   });
 });

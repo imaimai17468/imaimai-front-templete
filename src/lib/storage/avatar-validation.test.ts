@@ -136,11 +136,10 @@ describe(avatarContentMatchesMime, () => {
     ["GIF89a", "image/gif", [0x47, 0x49, 0x46, 0x38, 0x39, 0x61]],
   ])(
     "should accept %s bytes when the MIME type matches",
-    async (_label, mimeType, bytes) => {
-      await expect(
+    (_label, mimeType, bytes) =>
+      expect(
         avatarContentMatchesMime(imageFile(mimeType, bytes))
-      ).resolves.toBeTruthy();
-    }
+      ).resolves.toBeTruthy()
   );
 
   it.each([
@@ -152,9 +151,9 @@ describe(avatarContentMatchesMime, () => {
     ],
     ["GIF MIME with a truncated header", "image/gif", [0x47, 0x49, 0x46]],
     ["unsupported MIME", "image/svg+xml", [0x3c, 0x73, 0x76, 0x67]],
-  ])("should reject content when %s", async (_label, mimeType, bytes) => {
-    await expect(
+  ])("should reject content when %s", (_label, mimeType, bytes) =>
+    expect(
       avatarContentMatchesMime(imageFile(mimeType, bytes))
-    ).resolves.toBeFalsy();
-  });
+    ).resolves.toBeFalsy()
+  );
 });

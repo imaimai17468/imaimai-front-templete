@@ -17,11 +17,11 @@ import {
 import { Input } from "@/components/ui/input";
 import type { UpdateUser, UserWithEmail } from "@/entities/user";
 import { displayName, UpdateUserSchema } from "@/entities/user";
-import { updateProfileFn, uploadAvatarFn } from "@/gateways/user/profile";
 import {
   avatarSizeRejection,
   MAX_AVATAR_BYTES,
 } from "@/lib/storage/avatar-validation";
+import { submitProfile } from "./submit-profile.live";
 
 // similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
 interface ProfileFormProps {
@@ -105,28 +105,18 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
   };
 
   const onSubmit = (data: UpdateUser) => {
-    startTransition(async () => {
-      if (pendingFile) {
-        const avatarData = new globalThis.FormData();
-        avatarData.append("avatar", pendingFile);
-        const avatarResult = await uploadAvatarFn({ data: avatarData });
-        if (avatarResult.status === "failed") {
-          toast.error(avatarResult.message);
+    startTransition(() =>
+      submitProfile(data, pendingFile).then(({ avatarUploaded, outcome }) => {
+        if (avatarUploaded) {
+          setPendingFile(null);
+        }
+        if (outcome.status === "failed") {
+          toast.error(outcome.message);
           return;
         }
-        setPendingFile(null);
-      }
-
-      const formData = new globalThis.FormData();
-      formData.append("name", data.name);
-
-      const result = await updateProfileFn({ data: formData });
-      if (result.status === "failed") {
-        toast.error(result.message);
-      } else {
         toast.success("Profile updated successfully");
-      }
-    });
+      })
+    );
   };
 
   const name = displayName(user.name);

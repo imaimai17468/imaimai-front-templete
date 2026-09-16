@@ -18,10 +18,10 @@ interface UserMenuProps {
   user: UserWithEmail;
 }
 
-const handleSignOut = async (): Promise<void> => {
-  await signOut();
-  window.location.reload();
-};
+const handleSignOut = (): Promise<void> =>
+  signOut().then(() => {
+    window.location.reload();
+  });
 
 export const UserMenu = ({ user }: UserMenuProps) => {
   const { avatarUrl } = user;

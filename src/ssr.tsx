@@ -6,7 +6,7 @@ import {
 const handler = createStartHandler(defaultStreamHandler);
 
 export default {
-  async fetch(request: Request) {
-    return await handler(request);
+  fetch(request: Request) {
+    return handler(request);
   },
 } satisfies ExportedHandler<CloudflareEnv>;

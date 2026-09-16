@@ -50,10 +50,10 @@ const persistenceEffect = <A>(
 ): Effect.Effect<A, UserPersistenceError> =>
   Effect.tryPromise({
     catch: (cause) => new UserPersistenceError({ cause }),
-    try: async () => await run(),
+    try: run,
   });
 
-interface UserProfileRow {
+export interface UserProfileRow {
   readonly id: string;
   readonly name: string | null;
   /** Better Auth's column, holding whatever the social provider supplied. */
@@ -99,22 +99,17 @@ export class UserStore extends Context.Service<
     UserStore,
     UserStore.of({
       findAvatarKey: (userId) =>
-        persistenceEffect(
-          async () => await drizzleUserStore.findAvatarKey(userId)
-        ),
+        persistenceEffect(() => drizzleUserStore.findAvatarKey(userId)),
       findProfile: (userId) =>
-        persistenceEffect(
-          async () => await drizzleUserStore.findProfile(userId)
-        ),
+        persistenceEffect(() => drizzleUserStore.findProfile(userId)),
       setAvatarKey: (userId, avatarKey, updatedAt) =>
-        persistenceEffect(
-          async () =>
-            await drizzleUserStore.setAvatarKey(userId, avatarKey, updatedAt)
+        persistenceEffect(() =>
+          drizzleUserStore.setAvatarKey(userId, avatarKey, updatedAt)
         ),
       updateName: (userId, name, updatedAt) =>
-        persistenceEffect(async () => {
-          await drizzleUserStore.updateName(userId, name, updatedAt);
-        }),
+        persistenceEffect(() =>
+          drizzleUserStore.updateName(userId, name, updatedAt)
+        ).pipe(Effect.asVoid),
     })
   );
 }
@@ -141,14 +136,11 @@ export class AvatarStorage extends Context.Service<
   static readonly layer = Layer.succeed(
     AvatarStorage,
     AvatarStorage.of({
-      remove: (key) =>
-        persistenceEffect(async () => {
-          await r2AvatarBucket.delete(key);
-        }),
+      remove: (key) => persistenceEffect(() => r2AvatarBucket.delete(key)),
       upload: (key, file, contentType) =>
-        persistenceEffect(async () => {
-          await r2AvatarBucket.put(key, file, contentType);
-        }),
+        persistenceEffect(() =>
+          r2AvatarBucket.put(key, file, contentType)
+        ).pipe(Effect.asVoid),
     })
   );
 }
@@ -303,8 +295,8 @@ export class UserGateway extends Context.Service<
           if (fileExt === null) {
             return yield* new AvatarTypeUnsupported();
           }
-          const contentMatches = yield* Effect.promise(
-            async () => await avatarContentMatchesMime(file)
+          const contentMatches = yield* Effect.promise(() =>
+            avatarContentMatchesMime(file)
           );
           if (!contentMatches) {
             return yield* new AvatarTypeUnsupported();

@@ -14,6 +14,6 @@ export class CurrentSession extends Context.Service<
 >()("app/lib/auth/CurrentSession") {
   static readonly layer = Layer.succeed(
     CurrentSession,
-    CurrentSession.of({ read: Effect.promise(async () => await getSession()) })
+    CurrentSession.of({ read: Effect.promise(() => getSession()) })
   );
 }

@@ -11,6 +11,12 @@ import {
 // exercised on both outcomes of each check — boundary values of the length
 // constraints and the exact user-facing messages included.
 
+// The Standard Schema contract lets `validate` answer with the result or with
+// a Promise of it, and this resolves both arms the way react-hook-form's
+// resolver does.
+const validateUpdateUser = (input: { readonly name: string }) =>
+  globalThis.Promise.resolve(UpdateUserSchema["~standard"].validate(input));
+
 const decodeUser = Schema.decodeUnknownResult(UserSchema);
 const decodeUserWithEmail = Schema.decodeUnknownResult(UserWithEmailSchema);
 const decodeUpdateAvatar = Schema.decodeUnknownResult(UpdateAvatarSchema);
@@ -18,39 +24,36 @@ const decodeUpdateAvatar = Schema.decodeUnknownResult(UpdateAvatarSchema);
 // The form reaches this schema through its Standard Schema view, so these
 // tests read the result back the way react-hook-form's resolver does.
 describe("UpdateUserSchema Standard Schema validation", () => {
-  it("should accept the name when it has the minimum length of 1", async () => {
-    const result = await UpdateUserSchema["~standard"].validate({ name: "a" });
+  it("should accept the name when it has the minimum length of 1", () =>
+    validateUpdateUser({ name: "a" }).then((result) => {
+      expect(result).toStrictEqual({ value: { name: "a" } });
+    }));
 
-    expect(result).toStrictEqual({ value: { name: "a" } });
-  });
-
-  it("should accept the name when it has the maximum length of 50", async () => {
+  it("should accept the name when it has the maximum length of 50", () => {
     const name = "a".repeat(50);
 
-    const result = await UpdateUserSchema["~standard"].validate({ name });
-
-    expect(result).toStrictEqual({ value: { name } });
-  });
-
-  it("should return the required message when the name is empty", async () => {
-    const result = await UpdateUserSchema["~standard"].validate({ name: "" });
-
-    expect(result).toStrictEqual({
-      issues: [{ message: "Name is required", path: ["name"] }],
+    return validateUpdateUser({ name }).then((result) => {
+      expect(result).toStrictEqual({ value: { name } });
     });
   });
 
-  it("should return the length message when the name has 51 characters", async () => {
-    const result = await UpdateUserSchema["~standard"].validate({
+  it("should return the required message when the name is empty", () =>
+    validateUpdateUser({ name: "" }).then((result) => {
+      expect(result).toStrictEqual({
+        issues: [{ message: "Name is required", path: ["name"] }],
+      });
+    }));
+
+  it("should return the length message when the name has 51 characters", () =>
+    validateUpdateUser({
       name: "a".repeat(51),
-    });
-
-    expect(result).toStrictEqual({
-      issues: [
-        { message: "Name must be 50 characters or less", path: ["name"] },
-      ],
-    });
-  });
+    }).then((result) => {
+      expect(result).toStrictEqual({
+        issues: [
+          { message: "Name must be 50 characters or less", path: ["name"] },
+        ],
+      });
+    }));
 });
 
 const base = {

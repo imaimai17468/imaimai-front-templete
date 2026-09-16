@@ -9,15 +9,16 @@ import type { DevUser } from "@/lib/auth/dev-users";
 export const DevSignInPanel = () => {
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
-  const handleSignIn = async (user: DevUser): Promise<void> => {
+  const handleSignIn = (user: DevUser): Promise<void> => {
     setPendingEmail(user.email);
-    const result = await devSignIn(user);
-    if (result.kind === "failed") {
-      setPendingEmail(null);
-      toast.error(result.message);
-      return;
-    }
-    window.location.assign("/");
+    return devSignIn(user).then((result) => {
+      if (result.kind === "failed") {
+        setPendingEmail(null);
+        toast.error(result.message);
+        return;
+      }
+      window.location.assign("/");
+    });
   };
 
   return (

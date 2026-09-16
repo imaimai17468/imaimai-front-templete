@@ -69,5 +69,5 @@ export const readCurrentUser: Effect.Effect<
 const runCurrentUserHandler = makeRunHandler(CurrentUserReader.layer);
 
 /** Reads the caller's own profile row and hands back a Promise. */
-export const runCurrentUser = async (): Promise<UserWithEmail | null> =>
-  await runCurrentUserHandler(readCurrentUser);
+export const runCurrentUser = (): Promise<UserWithEmail | null> =>
+  runCurrentUserHandler(readCurrentUser);
