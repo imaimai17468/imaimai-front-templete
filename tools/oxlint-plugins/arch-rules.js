@@ -348,34 +348,29 @@ const LAYER_BANS = [
     bans: [
       {
         message:
-          "Routes must not import gateways directly — go through a server function in src/server/fn.",
-        target: "src/gateways",
-      },
-      {
-        message:
           "Routes must not touch persistence — src/lib/drizzle is owned by gateways.",
         target: "src/lib/drizzle",
       },
       {
         message:
-          "Routes must not resolve request authentication — delegate to src/server/fn.",
+          "Routes must not resolve request authentication — delegate to a gateway.",
         target: "src/lib/auth/session",
       },
       {
         message:
-          "Routes must not access Cloudflare persistence bindings directly — delegate through src/server/fn to a gateway.",
+          "Routes must not access Cloudflare persistence bindings directly — delegate to a gateway.",
         target: "src/lib/cloudflare",
       },
     ],
     externalBans: [
       {
         message:
-          "Routes must not access Cloudflare bindings directly — delegate through src/server/fn to a gateway.",
+          "Routes must not access Cloudflare bindings directly — delegate to a gateway.",
         source: "cloudflare:workers",
       },
       {
         message:
-          "Routes must not resolve request context directly — delegate to src/server/fn.",
+          "Routes must not resolve request context directly — delegate to a gateway.",
         source: "@tanstack/react-start/server",
       },
     ],
@@ -385,32 +380,12 @@ const LAYER_BANS = [
     bans: [
       {
         message:
-          "Server functions must not import routes — imports flow downward only.",
-        target: "src/routes",
-      },
-    ],
-    layer: "src/server/fn",
-  },
-  {
-    bans: [
-      {
-        message:
           "Gateways must not import routes — imports flow downward only.",
         target: "src/routes",
       },
       {
-        message:
-          "Gateways must not import from src/server — a server function calls a gateway, never the reverse.",
-        target: "src/server",
-      },
-      {
         message: "Gateways never import components.",
         target: "src/components",
-      },
-      {
-        message:
-          "Gateways must not resolve request authentication — derive identity in src/server/fn and pass it downward.",
-        target: "src/lib/auth",
       },
     ],
     layer: "src/gateways",
@@ -421,11 +396,6 @@ const LAYER_BANS = [
         message:
           "Entities import nothing from the layers above — routes are above entities.",
         target: "src/routes",
-      },
-      {
-        message:
-          "Entities import nothing from the layers above — src/server is above entities.",
-        target: "src/server",
       },
       {
         message:
@@ -446,11 +416,6 @@ const LAYER_BANS = [
         message:
           "Adapters must not import routes — src/lib is read by the layers above it.",
         target: "src/routes",
-      },
-      {
-        message:
-          "Adapters must not import from src/server — a server function reaches src/lib, never the reverse.",
-        target: "src/server",
       },
       {
         message:

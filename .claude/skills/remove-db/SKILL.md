@@ -27,7 +27,7 @@ tsc / knip / vitest toolchain.
 
 ```bash
 rm -rf src/lib/auth src/lib/cloudflare src/lib/drizzle src/lib/storage
-rm -rf src/entities src/gateways src/server
+rm -rf src/entities src/gateways
 rm -rf src/routes/api
 rm -f src/routes/login.tsx src/routes/profile.tsx src/routes/auth.auth-code-error.tsx
 rm -rf src/components/features/profile-page
@@ -146,7 +146,6 @@ either file breaks the lint config for the whole fork.
 
 ### `knip.json`
 
-- Remove `"src/server/fn/**/*.ts"` from `entry`.
 - Remove `"src/lib/cloudflare/env.live.ts"` from `ignore`.
 
 ## 4. Config files

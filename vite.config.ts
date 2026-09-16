@@ -274,7 +274,7 @@ export default defineConfig({
         // parameter is `unknown` by contract and the parse runs inside. Typing it
         // as FormData would make the `instanceof` guard read as redundant while
         // still being the only thing rejecting a malformed payload.
-        files: ["src/server/fn/profile.ts"],
+        files: ["src/gateways/user/profile.ts"],
         rules: { "anti-slop/no-unknown-parameters": "off" },
       },
       {
@@ -284,7 +284,7 @@ export default defineConfig({
         // `Schema.TaggedError<T>()("Tag", {})` call such a class extends as an
         // Error construction missing `new`, and its fix inserts `new` into the
         // `extends` clause, which then does not compile.
-        files: ["src/gateways/**", "src/server/fn/**"],
+        files: ["src/gateways/**"],
         rules: {
           "max-classes-per-file": "off",
           "unicorn/throw-new-error": "off",

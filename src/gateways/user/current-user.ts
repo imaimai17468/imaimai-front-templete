@@ -1,9 +1,9 @@
 import { Context, Effect, Layer } from "effect";
 import type { UserWithEmail } from "@/entities/user";
-import { UserGateway } from "@/gateways/user";
-import type { UserPersistenceError } from "@/gateways/user";
 import { CurrentSession } from "@/lib/auth/current-session.live";
-import { makeRunHandler } from "./runtime.live";
+import { UserGateway } from ".";
+import type { UserPersistenceError } from ".";
+import { makeRunHandler } from "../runtime.live";
 
 /**
  * The authorization boundary between a caller and the user's own profile row.
@@ -17,7 +17,7 @@ export class CurrentUserReader extends Context.Service<
   {
     readonly read: Effect.Effect<UserWithEmail | null, UserPersistenceError>;
   }
->()("app/server/fn/CurrentUserReader") {
+>()("app/gateways/user/CurrentUserReader") {
   static readonly layerNoDeps = Layer.effect(
     CurrentUserReader,
     Effect.gen(function* buildCurrentUserReader() {

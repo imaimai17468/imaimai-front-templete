@@ -1,9 +1,9 @@
 import { Context, Effect, Layer, Schema } from "effect";
-import { AvatarGateway } from "@/gateways/avatar";
-import type { AvatarObject } from "@/gateways/avatar";
 import { CurrentSession } from "@/lib/auth/current-session.live";
 import { isOwnAvatarKey } from "@/lib/storage/avatar-validation";
-import { makeRunHandler } from "./runtime.live";
+import { AvatarGateway } from ".";
+import type { AvatarObject } from ".";
+import { makeRunHandler } from "../runtime.live";
 
 export class AvatarUnauthorized extends Schema.TaggedError<AvatarUnauthorized>()(
   "AvatarUnauthorized",
@@ -37,7 +37,7 @@ export class AvatarReader extends Context.Service<
       AvatarInvalidKey | AvatarNotFound | AvatarUnauthorized
     >;
   }
->()("app/server/fn/AvatarReader") {
+>()("app/gateways/avatar/AvatarReader") {
   static readonly layerNoDeps = Layer.effect(
     AvatarReader,
     Effect.gen(function* buildAvatarReader() {

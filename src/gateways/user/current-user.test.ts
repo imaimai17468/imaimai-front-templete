@@ -1,11 +1,11 @@
 import { Effect, Layer } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
-import { UserGateway, UserPersistenceError } from "@/gateways/user";
 import { CurrentSession } from "@/lib/auth/current-session.live";
 import type { getSession } from "@/lib/auth/session.live";
+import { UserGateway, UserPersistenceError } from ".";
 import { CurrentUserReader, readCurrentUser } from "./current-user";
 
-// similarity-ignore: avatar.test.ts の makeFakes とは別のサービス（AvatarReader vs
+// similarity-ignore: avatar/reader.test.ts の makeFakes とは別のサービス（AvatarReader vs
 // CurrentUserReader）の Layer を組む。CurrentSession を差し替える形が一致しているだけで、
 // 共通化すると片方のサービスの依存が変わるたびにもう片方のテストが動く。
 const makeFakes = (read: CurrentSession["Service"]["read"]) => {

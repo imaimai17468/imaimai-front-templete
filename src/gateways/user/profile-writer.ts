@@ -1,15 +1,15 @@
 import { Context, Effect, Layer, Schema } from "effect";
 import type { UpdateUser } from "@/entities/user";
-import { UserGateway } from "@/gateways/user";
+import { UserGateway } from ".";
 import type {
   AvatarTypeUnsupported,
   AvatarUpdated,
   AvatarUploadFailed,
   UserNameUpdateFailed,
   UserPersistenceError,
-} from "@/gateways/user";
+} from ".";
+import { makeRunHandler } from "../runtime.live";
 import { CurrentUserReader } from "./current-user";
-import { makeRunHandler } from "./runtime.live";
 
 export class NotAuthenticated extends Schema.TaggedError<NotAuthenticated>()(
   "NotAuthenticated",
@@ -43,7 +43,7 @@ export class ProfileWriter extends Context.Service<
       | UserPersistenceError
     >;
   }
->()("app/server/fn/ProfileWriter") {
+>()("app/gateways/user/ProfileWriter") {
   static readonly layerNoDeps = Layer.effect(
     ProfileWriter,
     Effect.gen(function* buildProfileWriter() {

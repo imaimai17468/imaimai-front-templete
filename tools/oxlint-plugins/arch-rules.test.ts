@@ -980,7 +980,7 @@ describe("single-expect", () => {
 describe("layer-boundaries", () => {
   const rule = plugin.rules["layer-boundaries"];
 
-  it("should report when a route imports a gateway via alias", () => {
+  it("should not report when a route imports a gateway via alias", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/profile.tsx");
     const visitors = rule.create(context);
@@ -989,7 +989,7 @@ describe("layer-boundaries", () => {
     visitors.ImportDeclaration?.(importNode("@/gateways/user"));
 
     // Assert
-    expect(context.report).toHaveBeenCalledOnce();
+    expect(context.report).not.toHaveBeenCalled();
   });
 
   it("should report when a route imports drizzle infrastructure via alias", () => {
@@ -1002,18 +1002,6 @@ describe("layer-boundaries", () => {
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should not report when a route imports a server function", () => {
-    // Arrange
-    const context = makeLayerContext("/repo/src/routes/profile.tsx");
-    const visitors = rule.create(context);
-
-    // Act
-    visitors.ImportDeclaration?.(importNode("@/server/fn/user"));
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
   });
 
   it("should report when a route imports the session adapter", () => {
@@ -1082,7 +1070,6 @@ describe("layer-boundaries", () => {
   );
 
   it.each([
-    "@/gateways/avatar",
     "@/lib/auth/session",
     "@/lib/cloudflare/env",
     "cloudflare:workers",
@@ -1094,6 +1081,18 @@ describe("layer-boundaries", () => {
 
     // Act
     visitors.ImportExpression?.(importNode(specifier));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a gateway imports a route", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/gateways/user/user.live.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/routes/profile"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -1111,19 +1110,7 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it("should report when a gateway imports a server function", () => {
-    // Arrange
-    const context = makeLayerContext("/repo/src/gateways/user/index.ts");
-    const visitors = rule.create(context);
-
-    // Act
-    visitors.ImportDeclaration?.(importNode("@/server/fn/profile"));
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should report when a gateway imports the session adapter", () => {
+  it("should not report when a gateway imports the session adapter", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/gateways/user/index.ts");
     const visitors = rule.create(context);
@@ -1132,7 +1119,7 @@ describe("layer-boundaries", () => {
     visitors.ImportDeclaration?.(importNode("@/lib/auth/session"));
 
     // Assert
-    expect(context.report).toHaveBeenCalledOnce();
+    expect(context.report).not.toHaveBeenCalled();
   });
 
   it("should not report when a gateway imports the Cloudflare env adapter", () => {
@@ -1171,18 +1158,6 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it("should report when an entity imports a module under src/server", () => {
-    // Arrange
-    const context = makeLayerContext("/repo/src/entities/user/index.ts");
-    const visitors = rule.create(context);
-
-    // Act
-    visitors.ImportDeclaration?.(importNode("@/server/fn/runtime.live"));
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
   it("should report when an entity imports an adapter", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/entities/user/index.ts");
@@ -1207,66 +1182,40 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it("should report when a server function imports a route", () => {
+  it("should not report when a gateway imports a sibling gateway", () => {
     // Arrange
-    const context = makeLayerContext("/repo/src/server/fn/user.ts");
+    const context = makeLayerContext("/repo/src/gateways/user/user.live.ts");
     const visitors = rule.create(context);
 
     // Act
-    visitors.ImportDeclaration?.(importNode("@/routes/profile"));
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should not report when a server function imports a gateway", () => {
-    // Arrange
-    const context = makeLayerContext("/repo/src/server/fn/user.ts");
-    const visitors = rule.create(context);
-
-    // Act
-    visitors.ImportDeclaration?.(importNode("@/gateways/user"));
+    visitors.ImportDeclaration?.(importNode("@/gateways/avatar/reader"));
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it("should not report when a server function imports a sibling server function", () => {
-    // Arrange
-    const context = makeLayerContext("/repo/src/server/fn/user.live.ts");
-    const visitors = rule.create(context);
+  it.each(["@/routes/profile", "@/gateways/user", "@/components/ui/button"])(
+    "should report when an adapter imports %s",
+    (specifier) => {
+      // Arrange
+      const context = makeLayerContext("/repo/src/lib/storage/r2.live.ts");
+      const visitors = rule.create(context);
 
-    // Act
-    visitors.ImportDeclaration?.(importNode("@/server/fn/avatar"));
+      // Act
+      visitors.ImportDeclaration?.(importNode(specifier));
 
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
+      // Assert
+      expect(context.report).toHaveBeenCalledOnce();
+    }
+  );
 
-  it.each([
-    "@/server/fn/avatar",
-    "@/routes/profile",
-    "@/gateways/user",
-    "@/components/ui/button",
-  ])("should report when an adapter imports %s", (specifier) => {
+  it("should report when an adapter imports a module under src/gateways via relative path", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/lib/storage/r2.live.ts");
     const visitors = rule.create(context);
 
     // Act
-    visitors.ImportDeclaration?.(importNode(specifier));
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should report when an adapter imports a module under src/server via relative path", () => {
-    // Arrange
-    const context = makeLayerContext("/repo/src/lib/storage/r2.live.ts");
-    const visitors = rule.create(context);
-
-    // Act
-    visitors.ImportDeclaration?.(importNode("../../server/fn/runtime.live"));
+    visitors.ImportDeclaration?.(importNode("../../gateways/runtime.live"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -1287,13 +1236,13 @@ describe("layer-boundaries", () => {
     }
   );
 
-  it("should report when a route imports a gateway via relative path", () => {
+  it("should report when a route imports drizzle infrastructure via relative path", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/profile.tsx");
     const visitors = rule.create(context);
 
     // Act
-    visitors.ImportDeclaration?.(importNode("../gateways/user"));
+    visitors.ImportDeclaration?.(importNode("../lib/drizzle/db"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -1415,7 +1364,7 @@ describe("layer-boundaries", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ExportNamedDeclaration?.(importNode("@/gateways/user"));
+    visitors.ExportNamedDeclaration?.(importNode("@/lib/drizzle/db"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -1427,7 +1376,7 @@ describe("layer-boundaries", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ExportAllDeclaration?.(importNode("@/gateways/user"));
+    visitors.ExportAllDeclaration?.(importNode("@/lib/drizzle/db"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
