@@ -83,6 +83,17 @@
             "statusMessage": "Bash guard: env-file protection + find gate + unnamed-changes gate..."
           }
         ]
+      },
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/effect-guidance-reminder.sh",
+            "timeout": 15,
+            "statusMessage": "Effect guidance: point the first edit of an Effect file at the pinned guide..."
+          }
+        ]
       }
     ]
   },
