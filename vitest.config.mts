@@ -43,7 +43,9 @@ export default defineConfig({
     isolate: false,
     // Restores every spy before each test, which is what a per-file
     // `afterEach(() => vi.restoreAllMocks())` did in the two suites that had
-    // one, and now covers the suites that did not.
+    // one, and now covers the suites that did not. Timers are not included:
+    // `tooltip.test.tsx` pairs each `vi.useFakeTimers()` with its own
+    // `onTestFinished`.
     restoreMocks: true,
     exclude: [...defaultExclude, ".claude/worktrees/**"],
     setupFiles: ["./src/test-setup.ts"],

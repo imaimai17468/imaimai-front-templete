@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vite-plus/test";
+import { describe, expect, it, onTestFinished, vi } from "vite-plus/test";
 import {
   Tooltip,
   TooltipContent,
@@ -30,6 +30,15 @@ const hoverTriggerAndAdvance = (ms: number) => {
   });
 };
 
+// Paired here rather than in an `afterEach`: fake timers survive the file with
+// `isolate: false`, and `restoreMocks` does not touch them.
+const useFakeTimersForThisTest = () => {
+  vi.useFakeTimers();
+  onTestFinished(() => {
+    vi.useRealTimers();
+  });
+};
+
 describe(Tooltip, () => {
   it("should render the trigger alone when the pointer has not entered it", () => {
     renderTooltip();
@@ -48,7 +57,7 @@ describe(Tooltip, () => {
   });
 
   it("should open the content on the tick the pointer enters when delayDuration is omitted", () => {
-    vi.useFakeTimers();
+    useFakeTimersForThisTest();
     renderTooltip();
 
     hoverTriggerAndAdvance(0);
@@ -62,7 +71,7 @@ describe(Tooltip, () => {
   });
 
   it("should leave the content closed when less than the provider's delayDuration has elapsed", () => {
-    vi.useFakeTimers();
+    useFakeTimersForThisTest();
     renderTooltip({ delayDuration: 700 });
 
     hoverTriggerAndAdvance(699);
@@ -71,7 +80,7 @@ describe(Tooltip, () => {
   });
 
   it("should open the content when the provider's delayDuration has elapsed", () => {
-    vi.useFakeTimers();
+    useFakeTimersForThisTest();
     renderTooltip({ delayDuration: 700 });
 
     hoverTriggerAndAdvance(700);
@@ -80,7 +89,7 @@ describe(Tooltip, () => {
   });
 
   it("should keep the caller's class when className conflicts with a content class", () => {
-    vi.useFakeTimers();
+    useFakeTimersForThisTest();
     render(
       <TooltipProvider>
         <Tooltip>
