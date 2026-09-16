@@ -12,7 +12,9 @@ export const getAvatarResponse: (
 )(
   function* readRequestedAvatar(request: Request) {
     const reader = yield* AvatarReader;
-    return yield* reader.read(new URL(request.url).searchParams.get("key"));
+    return yield* reader.read(
+      Option.fromNullOr(new URL(request.url).searchParams.get("key"))
+    );
   },
   Effect.map(
     (avatar) =>

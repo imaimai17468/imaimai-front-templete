@@ -109,7 +109,18 @@ describe(getAvatarResponse, () => {
     read.mockReturnValue(Effect.fail(new AvatarNotFound()));
 
     return respond(request()).then(() => {
-      expect(read.mock.calls).toStrictEqual([["user-1/avatar.png"]]);
+      expect(read.mock.calls).toStrictEqual([
+        [Option.some("user-1/avatar.png")],
+      ]);
+    });
+  });
+
+  it("should pass an absent key to the authorization boundary when the request carries no key", () => {
+    const { read, respond } = makeFakes();
+    read.mockReturnValue(Effect.fail(new AvatarInvalidKey()));
+
+    return respond(new Request("https://example.com/api/avatars")).then(() => {
+      expect(read.mock.calls).toStrictEqual([[Option.none()]]);
     });
   });
 
