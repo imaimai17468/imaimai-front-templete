@@ -30,7 +30,7 @@ const encodeUserWithEmail = Schema.encodeSync(UserWithEmailSchema);
  * A D1 row read or write, or an R2 object write, that did not complete.
  *
  * One type covers both services because nothing below discriminates them. The
- * avatar and name paths send it through `orNull` or `succeeded`, which log the
+ * avatar and name paths send it through `orNone` or `succeeded`, which log the
  * cause and branch on the result, and `fetchCurrentUser` leaves it in the error
  * channel for its caller to discharge.
  */
@@ -187,7 +187,7 @@ export interface AvatarUpdated {
 }
 
 /**
- * The value the read produced, or null once the cause has been written to
+ * The value the effect produced, or `None` once the cause has been written to
  * Workers Logs under `event`.
  *
  * Every failure on the avatar path collapses into one user-facing result, so a
@@ -195,14 +195,15 @@ export interface AvatarUpdated {
  * missing D1 or R2 binding, which surfaces as an upload failure rather than
  * propagating.
  */
-const orNull = <A>(
+const orNone = <A>(
   event: string,
   effect: Effect.Effect<A, UserPersistenceError>
-): Effect.Effect<A | null> =>
+): Effect.Effect<Option.Option<A>> =>
   effect.pipe(
+    Effect.asSome,
     Effect.catchTags({
       UserPersistenceError: (error) =>
-        reportError(event, error.cause).pipe(Effect.as(null)),
+        reportError(event, error.cause).pipe(Effect.as(Option.none<A>())),
     })
   );
 
@@ -306,9 +307,10 @@ export class UserGateway extends Context.Service<
             return yield* new AvatarTypeUnsupported();
           }
 
-          const current = Option.fromNullOr(
-            yield* orNull("user.findAvatarKey", store.findAvatarKey(userId))
-          ).pipe(Option.flatten);
+          const current = yield* orNone(
+            "user.findAvatarKey",
+            store.findAvatarKey(userId)
+          ).pipe(Effect.map(Option.flatten));
           if (Option.isNone(current)) {
             return yield* new AvatarUploadFailed({ orphanedKey: null });
           }
@@ -327,16 +329,16 @@ export class UserGateway extends Context.Service<
           const publicUrl = avatarUrlForKey(key);
 
           const updatedAt = yield* DateTime.now;
-          const rowsTouched = yield* orNull(
+          const rowsTouched = yield* orNone(
             "user.setAvatarKey",
             store.setAvatarKey(userId, key, updatedAt)
           );
-          if (rowsTouched !== 1) {
-            if (rowsTouched !== null) {
+          if (!Option.contains(rowsTouched, 1)) {
+            if (Option.isSome(rowsTouched)) {
               yield* reportError(
                 "user.setAvatarKey",
                 new UnexpectedRowCount({
-                  message: `expected 1 row, got ${String(rowsTouched)}`,
+                  message: `expected 1 row, got ${String(rowsTouched.value)}`,
                 })
               );
             }
