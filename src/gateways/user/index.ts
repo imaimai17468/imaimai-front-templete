@@ -292,7 +292,7 @@ export class UserGateway extends Context.Service<
       const updateUserAvatar = Effect.fn("UserGateway.updateUserAvatar")(
         function* updateUserAvatar(userId: string, file: File) {
           const fileExt = avatarExtensionForMime(file.type);
-          if (fileExt === null) {
+          if (Option.isNone(fileExt)) {
             return yield* new AvatarTypeUnsupported();
           }
           const contentMatches = yield* Effect.promise(() =>
@@ -312,7 +312,7 @@ export class UserGateway extends Context.Service<
 
           const previousKey = current.avatarKey;
           const keyId = yield* keyIds.next;
-          const key = `${userId}/avatars/${keyId}.${fileExt}`;
+          const key = `${userId}/avatars/${keyId}.${fileExt.value}`;
 
           const uploaded = yield* succeeded(
             "user.upload",
