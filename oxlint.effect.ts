@@ -46,7 +46,7 @@ export const effectRules = {
   "effect/noShapeInSymbolNames": "error",
   "effect/noSilentCatchAll": "error",
   "effect/noTernary": "off",
-  "effect/noTestLifecycleHooks": "off",
+  "effect/noTestLifecycleHooks": "error",
   "effect/noThrowStatement": "off",
   "effect/noTryCatch": "error",
   "effect/noUnboundedConcurrency": "error",

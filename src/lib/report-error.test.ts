@@ -1,11 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { errorLogPayload, reportError } from "./report-error";
 
 describe("report-error", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   describe(errorLogPayload, () => {
     it("should copy name, message, and stack when the value is an Error", () => {
       const error = new Error("D1 failed");

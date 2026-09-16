@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 import {
   Tooltip,
   TooltipContent,
@@ -31,10 +31,6 @@ const hoverTriggerAndAdvance = (ms: number) => {
 };
 
 describe(Tooltip, () => {
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
   it("should render the trigger alone when the pointer has not entered it", () => {
     renderTooltip();
 

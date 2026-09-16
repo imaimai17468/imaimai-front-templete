@@ -39,7 +39,12 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "jsdom",
+    globals: true,
     isolate: false,
+    // Restores every spy before each test, which is what a per-file
+    // `afterEach(() => vi.restoreAllMocks())` did in the two suites that had
+    // one, and now covers the suites that did not.
+    restoreMocks: true,
     exclude: [...defaultExclude, ".claude/worktrees/**"],
     setupFiles: ["./src/test-setup.ts"],
     coverage: {

@@ -1,6 +1,6 @@
 import { DateTime, Effect, Layer } from "effect";
 import { TestClock } from "effect/testing";
-import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { avatarUrlForKey } from "@/lib/avatar-url";
 import type { ErrorReport } from "@/lib/report-error";
 import {
@@ -99,10 +99,6 @@ const validPng = () =>
   imageFile("image/png", [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 describe("user gateway", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   describe("updateUserAvatar", () => {
     it.each([
       ["the MIME type is unsupported", imageFile("image/svg+xml", [0x3c])],
