@@ -1016,6 +1016,18 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
+  it("should report when a route imports the current-session service", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/profile.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/auth/current-session.live"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
   it("should report when a route imports Cloudflare bindings directly", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/api/avatars.ts");

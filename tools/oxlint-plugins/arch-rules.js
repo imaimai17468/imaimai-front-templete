@@ -358,6 +358,11 @@ const LAYER_BANS = [
       },
       {
         message:
+          "Routes must not resolve request authentication — delegate to a gateway.",
+        target: "src/lib/auth/current-session",
+      },
+      {
+        message:
           "Routes must not access Cloudflare persistence bindings directly — delegate to a gateway.",
         target: "src/lib/cloudflare",
       },
