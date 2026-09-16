@@ -15,21 +15,21 @@ export interface ThemeCycle {
   next: Theme;
 }
 
-const isTheme = (value: string | undefined): value is Theme =>
-  value !== undefined && value in NEXT;
+const isTheme = (value: string): value is Theme => value in NEXT;
 
 export const resolveThemeCycle = (
-  rawTheme: string | undefined,
+  rawTheme: Option.Option<string>,
   mounted: boolean
 ): ThemeCycle => {
-  const current = Option.liftPredicate(rawTheme, isTheme).pipe(
+  const current = rawTheme.pipe(
+    Option.filter(isTheme),
     Option.filter(() => mounted),
     Option.getOrElse((): Theme => "light")
   );
   return { current, next: NEXT[current] };
 };
 
-// NEXT の外の永続値（旧ドロップダウンの "system" 等）を検出する。
-// undefined（未解決 / 未保存）は対象外。
-export const needsThemeNormalization = (theme: string | undefined): boolean =>
-  theme !== undefined && !isTheme(theme);
+// 旧ドロップダウンの "system" など、NEXT の外の永続値を検出する。
+export const needsThemeNormalization = (
+  theme: Option.Option<string>
+): boolean => Option.exists(theme, (value) => !isTheme(value));
