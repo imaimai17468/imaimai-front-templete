@@ -72,11 +72,11 @@ export type UpdateAvatar = typeof UpdateAvatarSchema.Encoded;
 /**
  * The name to show for a user.
  *
- * A row carries `null` before the first profile save, and the form accepts a
+ * A row carries no name before the first profile save, and the form accepts a
  * blank submission as a clear, so both reach here and both fall back.
  */
-export const displayName = (name: string | null): string =>
-  Option.fromNullOr(name).pipe(
+export const displayName = (name: Option.Option<string>): string =>
+  name.pipe(
     Option.filter((value) => value !== ""),
     Option.getOrElse(() => "User")
   );
