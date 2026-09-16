@@ -1,12 +1,10 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { getCloudflareEnv } from "@/lib/cloudflare/env.live";
 import { getDb } from "@/lib/drizzle/db.live";
 import * as schema from "@/lib/drizzle/schema";
-import { requireAuthSecret } from "./required-secret";
+import { readAuthSecret } from "./secret.live";
 
 const buildAuth = () => {
-  const env = getCloudflareEnv();
   // better-auth resolves BETTER_AUTH_SECRET from `globalThis.process.env`,
   // which workerd populates from text bindings only while
   // `nodejs_compat_populate_process_env` is on — default for
@@ -20,18 +18,9 @@ const buildAuth = () => {
   // absent from the populated `process.env` and the guard is false in every
   // environment. Without this throw, a missing secret silently signs sessions
   // with a published constant.
-  const authSecret = requireAuthSecret(
-    "BETTER_AUTH_SECRET",
-    env.BETTER_AUTH_SECRET
-  );
-  const googleClientId = requireAuthSecret(
-    "GOOGLE_CLIENT_ID",
-    env.GOOGLE_CLIENT_ID
-  );
-  const googleClientSecret = requireAuthSecret(
-    "GOOGLE_CLIENT_SECRET",
-    env.GOOGLE_CLIENT_SECRET
-  );
+  const authSecret = readAuthSecret("BETTER_AUTH_SECRET");
+  const googleClientId = readAuthSecret("GOOGLE_CLIENT_ID");
+  const googleClientSecret = readAuthSecret("GOOGLE_CLIENT_SECRET");
 
   return betterAuth({
     database: drizzleAdapter(getDb(), {
