@@ -1,6 +1,7 @@
 import { DateTime, Effect, Layer } from "effect";
 import { TestClock } from "effect/testing";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { avatarUrlForKey } from "@/lib/avatar-url";
 import type { ErrorReport } from "@/lib/report-error";
 import {
   AvatarKeyIds,
@@ -12,13 +13,11 @@ import {
   UserPersistenceError,
   UserStore,
 } from ".";
-import { avatarUrlForKey } from "./avatar-url";
 
 const AVATAR_UUID = "123e4567-e89b-42d3-a456-426614174000";
 const NEW_KEY = `user-1/avatars/${AVATAR_UUID}.png`;
 const NEW_URL = avatarUrlForKey(NEW_KEY);
 const OLD_KEY = "user-1/avatar.jpg";
-const OLD_URL = avatarUrlForKey(OLD_KEY);
 const TEST_CLOCK_INSTANT = "1970-01-01T00:00:00.000Z";
 
 type CapturedReport = Pick<ErrorReport, "event" | "message" | "name">;
@@ -39,15 +38,15 @@ const persistenceFailure = (message: string) =>
   Effect.fail(new UserPersistenceError({ cause: new Error(message) }));
 
 const makeFakes = () => {
-  const findAvatarUrl = vi.fn<UserStore["Service"]["findAvatarUrl"]>();
+  const findAvatarKey = vi.fn<UserStore["Service"]["findAvatarKey"]>();
   const findProfile = vi.fn<UserStore["Service"]["findProfile"]>();
-  const setAvatarUrl = vi.fn<UserStore["Service"]["setAvatarUrl"]>();
+  const setAvatarKey = vi.fn<UserStore["Service"]["setAvatarKey"]>();
   const updateName = vi.fn<UserStore["Service"]["updateName"]>();
   const remove = vi.fn<AvatarStorage["Service"]["remove"]>();
   const upload = vi.fn<AvatarStorage["Service"]["upload"]>();
 
-  findAvatarUrl.mockReturnValue(Effect.succeed({ avatarUrl: OLD_URL }));
-  setAvatarUrl.mockReturnValue(Effect.succeed(1));
+  findAvatarKey.mockReturnValue(Effect.succeed({ avatarKey: OLD_KEY }));
+  setAvatarKey.mockReturnValue(Effect.succeed(1));
   updateName.mockReturnValue(Effect.void);
   remove.mockReturnValue(Effect.void);
   upload.mockReturnValue(Effect.void);
@@ -62,7 +61,7 @@ const makeFakes = () => {
         Layer.succeed(AvatarStorage, AvatarStorage.of({ remove, upload })),
         Layer.succeed(
           UserStore,
-          UserStore.of({ findAvatarUrl, findProfile, setAvatarUrl, updateName })
+          UserStore.of({ findAvatarKey, findProfile, setAvatarKey, updateName })
         )
       )
     )
@@ -83,11 +82,11 @@ const makeFakes = () => {
     );
 
   return {
-    findAvatarUrl,
+    findAvatarKey,
     findProfile,
     remove,
     runOrFailure,
-    setAvatarUrl,
+    setAvatarKey,
     updateName,
     upload,
   };
@@ -112,7 +111,7 @@ describe("user gateway", () => {
         imageFile("image/png", [0xff, 0xd8, 0xff]),
       ],
     ])("should avoid every mutation when %s", async (_label, file) => {
-      const { remove, runOrFailure, setAvatarUrl, upload } = makeFakes();
+      const { remove, runOrFailure, setAvatarKey, upload } = makeFakes();
 
       const result = await runOrFailure((gateway) =>
         gateway.updateUserAvatar("user-1", file)
@@ -121,7 +120,7 @@ describe("user gateway", () => {
       expect({
         removeCalls: remove.mock.calls,
         result,
-        updateCalls: setAvatarUrl.mock.calls,
+        updateCalls: setAvatarKey.mock.calls,
         uploadCalls: upload.mock.calls,
       }).toStrictEqual({
         removeCalls: [],
@@ -132,7 +131,7 @@ describe("user gateway", () => {
     });
 
     it("should persist a unique key and remove the prior object when every step succeeds", async () => {
-      const { remove, runOrFailure, setAvatarUrl, upload } = makeFakes();
+      const { remove, runOrFailure, setAvatarKey, upload } = makeFakes();
 
       const result = await runOrFailure((gateway) =>
         gateway.updateUserAvatar("user-1", validPng())
@@ -141,10 +140,10 @@ describe("user gateway", () => {
       expect({
         removeCalls: remove.mock.calls,
         result,
-        updateCalls: setAvatarUrl.mock.calls.map(
-          ([userId, avatarUrl, updatedAt]) => [
+        updateCalls: setAvatarKey.mock.calls.map(
+          ([userId, avatarKey, updatedAt]) => [
             userId,
-            avatarUrl,
+            avatarKey,
             DateTime.formatIso(updatedAt),
           ]
         ),
@@ -152,14 +151,14 @@ describe("user gateway", () => {
       }).toStrictEqual({
         removeCalls: [[OLD_KEY]],
         result: { avatarUrl: NEW_URL, cleanup: "complete" },
-        updateCalls: [["user-1", NEW_URL, TEST_CLOCK_INSTANT]],
+        updateCalls: [["user-1", NEW_KEY, TEST_CLOCK_INSTANT]],
         uploadKey: NEW_KEY,
       });
     });
 
     it("should report a failure when the current row is absent", async () => {
-      const { findAvatarUrl, runOrFailure, upload } = makeFakes();
-      findAvatarUrl.mockReturnValue(Effect.succeed(null));
+      const { findAvatarKey, runOrFailure, upload } = makeFakes();
+      findAvatarKey.mockReturnValue(Effect.succeed(null));
 
       const result = await runOrFailure((gateway) =>
         gateway.updateUserAvatar("user-1", validPng())
@@ -172,8 +171,8 @@ describe("user gateway", () => {
     });
 
     it("should report a failure when reading the current row fails", async () => {
-      const { findAvatarUrl, runOrFailure, upload } = makeFakes();
-      findAvatarUrl.mockReturnValue(persistenceFailure("D1 failed"));
+      const { findAvatarKey, runOrFailure, upload } = makeFakes();
+      findAvatarKey.mockReturnValue(persistenceFailure("D1 failed"));
       const reported = captureErrorReports();
 
       const result = await runOrFailure((gateway) =>
@@ -186,7 +185,7 @@ describe("user gateway", () => {
         uploadCalls: upload.mock.calls,
       }).toStrictEqual({
         reported: [
-          { event: "user.findAvatarUrl", message: "D1 failed", name: "Error" },
+          { event: "user.findAvatarKey", message: "D1 failed", name: "Error" },
         ],
         result: new AvatarUploadFailed({ orphanedKey: null }),
         uploadCalls: [],
@@ -216,8 +215,8 @@ describe("user gateway", () => {
     });
 
     it("should remove the new object and preserve the old one when the update fails", async () => {
-      const { remove, runOrFailure, setAvatarUrl } = makeFakes();
-      setAvatarUrl.mockReturnValue(persistenceFailure("D1 failed"));
+      const { remove, runOrFailure, setAvatarKey } = makeFakes();
+      setAvatarKey.mockReturnValue(persistenceFailure("D1 failed"));
       const reported = captureErrorReports();
 
       const result = await runOrFailure((gateway) =>
@@ -231,15 +230,15 @@ describe("user gateway", () => {
       }).toStrictEqual({
         removeCalls: [[NEW_KEY]],
         reported: [
-          { event: "user.setAvatarUrl", message: "D1 failed", name: "Error" },
+          { event: "user.setAvatarKey", message: "D1 failed", name: "Error" },
         ],
         result: new AvatarUploadFailed({ orphanedKey: null }),
       });
     });
 
     it("should roll back the new object when the update touches zero rows", async () => {
-      const { remove, runOrFailure, setAvatarUrl } = makeFakes();
-      setAvatarUrl.mockReturnValue(Effect.succeed(0));
+      const { remove, runOrFailure, setAvatarKey } = makeFakes();
+      setAvatarKey.mockReturnValue(Effect.succeed(0));
       const reported = captureErrorReports();
 
       const result = await runOrFailure((gateway) =>
@@ -254,7 +253,7 @@ describe("user gateway", () => {
         removeCalls: [[NEW_KEY]],
         reported: [
           {
-            event: "user.setAvatarUrl",
+            event: "user.setAvatarKey",
             message: "expected 1 row, got 0",
             name: "Error",
           },
@@ -264,8 +263,8 @@ describe("user gateway", () => {
     });
 
     it("should report the orphaned key when rollback deletion fails", async () => {
-      const { remove, runOrFailure, setAvatarUrl } = makeFakes();
-      setAvatarUrl.mockReturnValue(persistenceFailure("D1 failed"));
+      const { remove, runOrFailure, setAvatarKey } = makeFakes();
+      setAvatarKey.mockReturnValue(persistenceFailure("D1 failed"));
       remove.mockReturnValue(persistenceFailure("R2 delete failed"));
       const reported = captureErrorReports();
 
@@ -275,7 +274,7 @@ describe("user gateway", () => {
 
       expect({ reported, result }).toStrictEqual({
         reported: [
-          { event: "user.setAvatarUrl", message: "D1 failed", name: "Error" },
+          { event: "user.setAvatarKey", message: "D1 failed", name: "Error" },
           {
             event: "user.rollbackUpload",
             message: "R2 delete failed",
@@ -307,12 +306,9 @@ describe("user gateway", () => {
       });
     });
 
-    it.each([
-      ["the row holds no prior avatar", null],
-      ["the prior image is external", "https://images.example.com/avatar.png"],
-    ])("should skip cleanup when %s", async (_label, avatarUrl) => {
-      const { findAvatarUrl, remove, runOrFailure } = makeFakes();
-      findAvatarUrl.mockReturnValue(Effect.succeed({ avatarUrl }));
+    it("should skip cleanup when the row holds no prior avatar", async () => {
+      const { findAvatarKey, remove, runOrFailure } = makeFakes();
+      findAvatarKey.mockReturnValue(Effect.succeed({ avatarKey: null }));
 
       const result = await runOrFailure((gateway) =>
         gateway.updateUserAvatar("user-1", validPng())
@@ -380,6 +376,7 @@ describe("user gateway", () => {
       const { findProfile, runOrFailure } = makeFakes();
       findProfile.mockReturnValue(
         Effect.succeed({
+          avatarKey: null,
           createdAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
           id: "user-1",
           image: null,
@@ -394,6 +391,60 @@ describe("user gateway", () => {
 
       expect(result).toStrictEqual({
         avatarUrl: null,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        email: "user@example.com",
+        id: "user-1",
+        name: "Name",
+        updatedAt: "2026-01-02T00:00:00.000Z",
+      });
+    });
+
+    it("should serve the uploaded avatar when the row holds a key", async () => {
+      const { findProfile, runOrFailure } = makeFakes();
+      findProfile.mockReturnValue(
+        Effect.succeed({
+          avatarKey: OLD_KEY,
+          createdAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
+          id: "user-1",
+          image: "https://images.example.com/from-google.png",
+          name: "Name",
+          updatedAt: DateTime.makeUnsafe("2026-01-02T00:00:00.000Z"),
+        })
+      );
+
+      const result = await runOrFailure((gateway) =>
+        gateway.fetchCurrentUser("user-1", "user@example.com")
+      );
+
+      expect(result).toStrictEqual({
+        avatarUrl: avatarUrlForKey(OLD_KEY),
+        createdAt: "2026-01-01T00:00:00.000Z",
+        email: "user@example.com",
+        id: "user-1",
+        name: "Name",
+        updatedAt: "2026-01-02T00:00:00.000Z",
+      });
+    });
+
+    it("should fall back to the provider's image when the row holds no key", async () => {
+      const { findProfile, runOrFailure } = makeFakes();
+      findProfile.mockReturnValue(
+        Effect.succeed({
+          avatarKey: null,
+          createdAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
+          id: "user-1",
+          image: "https://images.example.com/from-google.png",
+          name: "Name",
+          updatedAt: DateTime.makeUnsafe("2026-01-02T00:00:00.000Z"),
+        })
+      );
+
+      const result = await runOrFailure((gateway) =>
+        gateway.fetchCurrentUser("user-1", "user@example.com")
+      );
+
+      expect(result).toStrictEqual({
+        avatarUrl: "https://images.example.com/from-google.png",
         createdAt: "2026-01-01T00:00:00.000Z",
         email: "user@example.com",
         id: "user-1",

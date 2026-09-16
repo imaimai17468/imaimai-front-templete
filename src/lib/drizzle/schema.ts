@@ -7,6 +7,10 @@ import {
 
 // Better Auth 必須テーブル
 export const users = sqliteTable("users", {
+  // The bucket key of an avatar this app uploaded. `image` stays Better Auth's
+  // column and holds whatever the social provider supplied, so the two never
+  // overwrite each other and the served path is not frozen into a stored URL.
+  avatarKey: text("avatar_key"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

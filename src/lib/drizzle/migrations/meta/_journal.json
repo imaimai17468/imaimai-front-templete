@@ -22,6 +22,13 @@
       "when": 1789438171120,
       "tag": "0002_dazzling_callisto",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1789517098931,
+      "tag": "0003_left_genesis",
+      "breakpoints": true
     }
   ]
 }
