@@ -89,7 +89,7 @@ describe("AvatarReader.read", () => {
     );
     const avatar = {
       body: new ReadableStream<Uint8Array>(),
-      contentType: "image/png",
+      contentType: Option.some("image/png"),
     } satisfies AvatarObject;
     fetchAvatar.mockReturnValue(Effect.succeed(avatar));
 

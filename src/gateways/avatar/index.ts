@@ -1,9 +1,9 @@
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer, Option } from "effect";
 import { r2AvatarBucket } from "../avatar-bucket.live";
 
 export interface AvatarObject {
   body: R2ObjectBody["body"];
-  contentType: string | null;
+  contentType: Option.Option<string>;
 }
 
 /**
@@ -49,7 +49,9 @@ export class AvatarGateway extends Context.Service<
           }
           return {
             body: object.body,
-            contentType: object.httpMetadata?.contentType ?? null,
+            contentType: Option.fromUndefinedOr(
+              object.httpMetadata?.contentType
+            ),
           };
         }
       );

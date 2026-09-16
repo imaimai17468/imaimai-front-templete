@@ -1,4 +1,4 @@
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { AvatarBucket, AvatarGateway } from ".";
 
@@ -40,17 +40,20 @@ describe("fetchAvatar", () => {
     );
 
     return fetchAvatar("user-1/avatar.webp").then((result) => {
-      expect(result).toStrictEqual({ body, contentType: "image/webp" });
+      expect(result).toStrictEqual({
+        body,
+        contentType: Option.some("image/webp"),
+      });
     });
   });
 
-  it("should return a null content type when R2 has no metadata", () => {
+  it("should return an absent content type when R2 has no metadata", () => {
     const { fetchAvatar, get } = makeFakes();
     const body = new ReadableStream<Uint8Array>();
     get.mockReturnValue(Effect.succeed({ body }));
 
     return fetchAvatar("user-1/avatar.png").then((result) => {
-      expect(result).toStrictEqual({ body, contentType: null });
+      expect(result).toStrictEqual({ body, contentType: Option.none() });
     });
   });
 
