@@ -165,7 +165,7 @@ describe("user gateway", () => {
         gateway.updateUserAvatar("user-1", validPng())
       ).then((result) => {
         expect({ result, uploadCalls: upload.mock.calls }).toStrictEqual({
-          result: new AvatarUploadFailed({ orphanedKey: null }),
+          result: new AvatarUploadFailed(),
           uploadCalls: [],
         });
       });
@@ -191,7 +191,7 @@ describe("user gateway", () => {
               name: "DriverFailed",
             },
           ],
-          result: new AvatarUploadFailed({ orphanedKey: null }),
+          result: new AvatarUploadFailed(),
           uploadCalls: [],
         });
       });
@@ -218,7 +218,7 @@ describe("user gateway", () => {
               name: "DriverFailed",
             },
           ],
-          result: new AvatarUploadFailed({ orphanedKey: null }),
+          result: new AvatarUploadFailed(),
         });
       });
     });
@@ -244,7 +244,7 @@ describe("user gateway", () => {
               name: "DriverFailed",
             },
           ],
-          result: new AvatarUploadFailed({ orphanedKey: null }),
+          result: new AvatarUploadFailed(),
         });
       });
     });
@@ -270,7 +270,7 @@ describe("user gateway", () => {
               name: "UnexpectedRowCount",
             },
           ],
-          result: new AvatarUploadFailed({ orphanedKey: null }),
+          result: new AvatarUploadFailed(),
         });
       });
     });
@@ -296,8 +296,13 @@ describe("user gateway", () => {
               message: "R2 delete failed",
               name: "DriverFailed",
             },
+            {
+              event: "user.rollbackUpload",
+              message: `${NEW_KEY} was left in the bucket`,
+              name: "AvatarObjectOrphaned",
+            },
           ],
-          result: new AvatarUploadFailed({ orphanedKey: NEW_KEY }),
+          result: new AvatarUploadFailed(),
         });
       });
     });

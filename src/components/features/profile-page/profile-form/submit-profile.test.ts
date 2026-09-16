@@ -64,7 +64,6 @@ describe("submitProfile", () => {
     const { submitProfile, updateProfile, uploadAvatar } = makeFakes();
     uploadAvatar.mockResolvedValue({
       message: "Failed to upload avatar",
-      orphanedKey: null,
       status: "failed",
     });
 
