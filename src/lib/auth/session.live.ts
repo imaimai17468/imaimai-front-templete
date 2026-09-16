@@ -3,7 +3,7 @@ import { Option } from "effect";
 import { getAuth } from "./auth.live";
 import { pickUser } from "./session-user";
 
-export const getSession = () =>
+const getSession = () =>
   getAuth().api.getSession({ headers: getRequest().headers });
 
 /**

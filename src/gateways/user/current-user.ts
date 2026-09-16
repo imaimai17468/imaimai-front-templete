@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer, Option } from "effect";
 import type { UserWithEmail } from "@/entities/user";
 import { CurrentSession } from "@/lib/auth/current-session.live";
 import { UserGateway } from ".";
@@ -25,13 +25,13 @@ export class CurrentUserReader extends Context.Service<
       const gateway = yield* UserGateway;
 
       const read = Effect.gen(function* readCurrentUser() {
-        const session = yield* currentSession.read;
-        if (!session?.user) {
+        const caller = yield* currentSession.read;
+        if (Option.isNone(caller)) {
           return null;
         }
         return yield* gateway.fetchCurrentUser(
-          session.user.id,
-          session.user.email
+          caller.value.id,
+          caller.value.email
         );
       });
 

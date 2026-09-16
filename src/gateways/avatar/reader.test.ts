@@ -1,8 +1,6 @@
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { CurrentSession } from "@/lib/auth/current-session.live";
-import type { getSession } from "@/lib/auth/session.live";
-import { instant } from "@/test/instant";
 import { AvatarGateway } from ".";
 import type { AvatarObject } from ".";
 import {
@@ -37,33 +35,13 @@ const makeFakes = (read: CurrentSession["Service"]["read"]) => {
   };
 };
 
-const sessionFor = (userId: string) =>
-  ({
-    session: {
-      createdAt: instant("2026-08-13T00:00:00Z"),
-      expiresAt: instant("2026-08-20T00:00:00Z"),
-      id: "session-id",
-      ipAddress: null,
-      token: "session-token",
-      updatedAt: instant("2026-08-13T00:00:00Z"),
-      userAgent: null,
-      userId,
-    },
-    user: {
-      createdAt: instant("2026-08-13T00:00:00Z"),
-      email: `${userId}@example.com`,
-      emailVerified: true,
-      id: userId,
-      image: null,
-      name: "Test User",
-      updatedAt: instant("2026-08-13T00:00:00Z"),
-    },
-  }) satisfies NonNullable<Awaited<ReturnType<typeof getSession>>>;
+const signedInAs = (userId: string) =>
+  Option.some({ email: `${userId}@example.com`, id: userId });
 
 describe("AvatarReader.read", () => {
   it("should reject without reading persistence when the request is anonymous", () => {
     const { fetchAvatar, readAvatarOrFailure } = makeFakes(
-      Effect.succeed(null)
+      Effect.succeed(Option.none())
     );
 
     return readAvatarOrFailure("user-1/avatar.png").then((result) => {
@@ -80,7 +58,7 @@ describe("AvatarReader.read", () => {
     ["the key is malformed", "../user-1/avatar.png"],
   ])("should reject without reading persistence when %s", (_label, key) => {
     const { fetchAvatar, readAvatarOrFailure } = makeFakes(
-      Effect.succeed(sessionFor("user-1"))
+      Effect.succeed(signedInAs("user-1"))
     );
 
     return readAvatarOrFailure(key).then((result) => {
@@ -93,7 +71,7 @@ describe("AvatarReader.read", () => {
 
   it("should fail with not-found when the owned object is absent", () => {
     const { fetchAvatar, readAvatarOrFailure } = makeFakes(
-      Effect.succeed(sessionFor("user-1"))
+      Effect.succeed(signedInAs("user-1"))
     );
     fetchAvatar.mockReturnValue(Effect.succeed(null));
 
@@ -107,7 +85,7 @@ describe("AvatarReader.read", () => {
 
   it("should return the gateway object when the owned object exists", () => {
     const { fetchAvatar, readAvatarOrFailure } = makeFakes(
-      Effect.succeed(sessionFor("user-1"))
+      Effect.succeed(signedInAs("user-1"))
     );
     const avatar = {
       body: new ReadableStream<Uint8Array>(),
@@ -135,7 +113,7 @@ describe("AvatarReader.read", () => {
 
   it("should propagate the defect when persistence fails", () => {
     const { fetchAvatar, readAvatarOrFailure } = makeFakes(
-      Effect.succeed(sessionFor("user-1"))
+      Effect.succeed(signedInAs("user-1"))
     );
     fetchAvatar.mockReturnValue(Effect.die(new Error("R2 failed")));
 

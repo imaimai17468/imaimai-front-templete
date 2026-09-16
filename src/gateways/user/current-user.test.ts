@@ -1,9 +1,7 @@
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { CurrentSession } from "@/lib/auth/current-session.live";
-import type { getSession } from "@/lib/auth/session.live";
 import { DriverFailed } from "@/test/defect";
-import { instant } from "@/test/instant";
 import { UserGateway, UserPersistenceError } from ".";
 import { CurrentUserReader, readCurrentUser } from "./current-user";
 
@@ -36,32 +34,15 @@ const makeFakes = (read: CurrentSession["Service"]["read"]) => {
   };
 };
 
-const authenticatedSession = {
-  session: {
-    createdAt: instant("2026-08-13T00:00:00Z"),
-    expiresAt: instant("2026-08-20T00:00:00Z"),
-    id: "session-id",
-    ipAddress: null,
-    token: "session-token",
-    updatedAt: instant("2026-08-13T00:00:00Z"),
-    userAgent: null,
-    userId: "user-1",
-  },
-  user: {
-    createdAt: instant("2026-08-13T00:00:00Z"),
-    email: "user-1@example.com",
-    emailVerified: true,
-    id: "user-1",
-    image: null,
-    name: "Test User",
-    updatedAt: instant("2026-08-13T00:00:00Z"),
-  },
-} satisfies NonNullable<Awaited<ReturnType<typeof getSession>>>;
+const authenticatedCaller = Option.some({
+  email: "user-1@example.com",
+  id: "user-1",
+});
 
 describe("CurrentUserReader.read", () => {
   it("should return null without reading the gateway when the request is anonymous", () => {
     const { fetchCurrentUser, readCurrentUser: read } = makeFakes(
-      Effect.succeed(null)
+      Effect.succeed(Option.none())
     );
 
     return read().then((result) => {
@@ -76,7 +57,7 @@ describe("CurrentUserReader.read", () => {
 
   it("should pass the server-derived identity when the request is authenticated", () => {
     const { fetchCurrentUser, readCurrentUser: read } = makeFakes(
-      Effect.succeed(authenticatedSession)
+      Effect.succeed(authenticatedCaller)
     );
     fetchCurrentUser.mockReturnValue(Effect.succeed(null));
 
@@ -102,7 +83,7 @@ describe("CurrentUserReader.read", () => {
 
   it("should propagate the cause as a defect when the gateway read fails", () => {
     const { fetchCurrentUser, readCurrentUser: read } = makeFakes(
-      Effect.succeed(authenticatedSession)
+      Effect.succeed(authenticatedCaller)
     );
     fetchCurrentUser.mockReturnValue(
       Effect.fail(
