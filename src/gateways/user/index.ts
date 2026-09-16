@@ -1,13 +1,13 @@
 import { Context, DateTime, Effect, Layer, Schema } from "effect";
 import { UserWithEmailSchema } from "@/entities/user";
 import type { UpdateUser, UserWithEmail } from "@/entities/user";
+import { avatarUrlForKey } from "@/lib/avatar-url";
 import { reportError } from "@/lib/report-error";
 import {
   avatarContentMatchesMime,
   avatarExtensionForMime,
 } from "@/lib/storage/avatar-validation";
 import { r2AvatarBucket } from "../avatar-bucket.live";
-import { avatarKeyFromUrl, avatarUrlForKey } from "./avatar-url";
 import { drizzleUserStore } from "./drizzle-store.live";
 
 /**
@@ -41,7 +41,10 @@ const persistenceEffect = <A>(
 interface UserProfileRow {
   readonly id: string;
   readonly name: string | null;
+  /** Better Auth's column, holding whatever the social provider supplied. */
   readonly image: string | null;
+  /** The bucket key of an avatar this app uploaded, if there is one. */
+  readonly avatarKey: string | null;
   readonly createdAt: DateTime.Utc;
   readonly updatedAt: DateTime.Utc;
 }
@@ -58,10 +61,10 @@ export class UserStore extends Context.Service<
     readonly findProfile: (
       userId: string
     ) => Effect.Effect<UserProfileRow | null, UserPersistenceError>;
-    readonly findAvatarUrl: (
+    readonly findAvatarKey: (
       userId: string
     ) => Effect.Effect<
-      { avatarUrl: string | null } | null,
+      { avatarKey: string | null } | null,
       UserPersistenceError
     >;
     readonly updateName: (
@@ -70,9 +73,9 @@ export class UserStore extends Context.Service<
       updatedAt: DateTime.Utc
     ) => Effect.Effect<void, UserPersistenceError>;
     /** Number of rows the update touched, so the caller can reject a miss. */
-    readonly setAvatarUrl: (
+    readonly setAvatarKey: (
       userId: string,
-      avatarUrl: string,
+      avatarKey: string,
       updatedAt: DateTime.Utc
     ) => Effect.Effect<number, UserPersistenceError>;
   }
@@ -80,18 +83,18 @@ export class UserStore extends Context.Service<
   static readonly layer = Layer.succeed(
     UserStore,
     UserStore.of({
-      findAvatarUrl: (userId) =>
+      findAvatarKey: (userId) =>
         persistenceEffect(
-          async () => await drizzleUserStore.findAvatarUrl(userId)
+          async () => await drizzleUserStore.findAvatarKey(userId)
         ),
       findProfile: (userId) =>
         persistenceEffect(
           async () => await drizzleUserStore.findProfile(userId)
         ),
-      setAvatarUrl: (userId, avatarUrl, updatedAt) =>
+      setAvatarKey: (userId, avatarKey, updatedAt) =>
         persistenceEffect(
           async () =>
-            await drizzleUserStore.setAvatarUrl(userId, avatarUrl, updatedAt)
+            await drizzleUserStore.setAvatarKey(userId, avatarKey, updatedAt)
         ),
       updateName: (userId, name, updatedAt) =>
         persistenceEffect(async () => {
@@ -253,7 +256,10 @@ export class UserGateway extends Context.Service<
             return null;
           }
           return encodeUserWithEmail({
-            avatarUrl: profile.image,
+            avatarUrl:
+              profile.avatarKey === null
+                ? profile.image
+                : avatarUrlForKey(profile.avatarKey),
             createdAt: profile.createdAt,
             email,
             id: profile.id,
@@ -293,17 +299,14 @@ export class UserGateway extends Context.Service<
           }
 
           const current = yield* orNull(
-            "user.findAvatarUrl",
-            store.findAvatarUrl(userId)
+            "user.findAvatarKey",
+            store.findAvatarKey(userId)
           );
           if (current === null) {
             return yield* new AvatarUploadFailed({ orphanedKey: null });
           }
 
-          const previousKey =
-            current.avatarUrl === null
-              ? null
-              : avatarKeyFromUrl(current.avatarUrl, userId);
+          const previousKey = current.avatarKey;
           const keyId = yield* keyIds.next;
           const key = `${userId}/avatars/${keyId}.${fileExt}`;
 
@@ -318,14 +321,14 @@ export class UserGateway extends Context.Service<
 
           const updatedAt = yield* DateTime.now;
           const rowsTouched = yield* orNull(
-            "user.setAvatarUrl",
-            store.setAvatarUrl(userId, publicUrl, updatedAt)
+            "user.setAvatarKey",
+            store.setAvatarKey(userId, key, updatedAt)
           );
           if (rowsTouched !== 1) {
             if (rowsTouched !== null) {
               yield* Effect.sync(() => {
                 reportError(
-                  "user.setAvatarUrl",
+                  "user.setAvatarKey",
                   new Error(`expected 1 row, got ${String(rowsTouched)}`)
                 );
               });

@@ -11,11 +11,11 @@ import { users } from "@/lib/drizzle/schema";
  * the way in, so the gateway above reads the clock through Effect.
  */
 export const drizzleUserStore = {
-  findAvatarUrl: async (
+  findAvatarKey: async (
     userId: string
-  ): Promise<{ avatarUrl: string | null } | null> => {
+  ): Promise<{ avatarKey: string | null } | null> => {
     const rows = await getDb()
-      .select({ avatarUrl: users.image })
+      .select({ avatarKey: users.avatarKey })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
@@ -28,6 +28,7 @@ export const drizzleUserStore = {
     id: string;
     name: string | null;
     image: string | null;
+    avatarKey: string | null;
     createdAt: DateTime.Utc;
     updatedAt: DateTime.Utc;
   } | null> => {
@@ -41,6 +42,7 @@ export const drizzleUserStore = {
       return null;
     }
     return {
+      avatarKey: row.avatarKey,
       createdAt: DateTime.fromDateUnsafe(row.createdAt),
       id: row.id,
       image: row.image,
@@ -49,14 +51,14 @@ export const drizzleUserStore = {
     };
   },
 
-  setAvatarUrl: async (
+  setAvatarKey: async (
     userId: string,
-    avatarUrl: string,
+    avatarKey: string,
     updatedAt: DateTime.Utc
   ): Promise<number> => {
     const rows = await getDb()
       .update(users)
-      .set({ image: avatarUrl, updatedAt: DateTime.toDateUtc(updatedAt) })
+      .set({ avatarKey, updatedAt: DateTime.toDateUtc(updatedAt) })
       .where(eq(users.id, userId))
       .returning({ id: users.id });
     return rows.length;
