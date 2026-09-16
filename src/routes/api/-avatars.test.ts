@@ -1,5 +1,7 @@
 import { Effect, Layer } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
+import { AVATAR_ROUTE_PATH } from "@/lib/avatar-url";
+import type { FileRouteTypes } from "@/routeTree.gen";
 import {
   AvatarInvalidKey,
   AvatarNotFound,
@@ -7,6 +9,12 @@ import {
   AvatarUnauthorized,
 } from "@/server/fn/avatar";
 import { getAvatarResponse } from "./avatars";
+
+// The URL `avatarUrlForKey` builds is a route this app serves, and the file
+// name of the route beside this test is what decides that path. Renaming one
+// without the other fails to compile here.
+const servedPath: FileRouteTypes["fullPaths"] = AVATAR_ROUTE_PATH;
+void servedPath;
 
 const makeFakes = () => {
   const read = vi.fn<AvatarReader["Service"]["read"]>();
