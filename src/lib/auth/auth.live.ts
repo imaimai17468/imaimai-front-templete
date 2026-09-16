@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { Option } from "effect";
 import { getDb } from "@/lib/drizzle/db.live";
 import * as schema from "@/lib/drizzle/schema";
 import { readAuthSecret } from "./secret.live";
@@ -50,16 +51,16 @@ const buildAuth = () => {
   });
 };
 
-let cachedAuth: ReturnType<typeof buildAuth> | null = null;
-
-export const getAuth = (): ReturnType<typeof buildAuth> => {
-  if (cachedAuth) {
-    return cachedAuth;
-  }
-  const fresh = buildAuth();
-  cachedAuth = fresh;
-  return fresh;
+const authMemo = {
+  instance: Option.none<ReturnType<typeof buildAuth>>(),
 };
+
+export const getAuth = (): ReturnType<typeof buildAuth> =>
+  Option.getOrElse(authMemo.instance, () => {
+    const fresh = buildAuth();
+    authMemo.instance = Option.some(fresh);
+    return fresh;
+  });
 
 /**
  * Better Auth の Session 型。テンプレ用途で公開、派生実装で使う想定。
