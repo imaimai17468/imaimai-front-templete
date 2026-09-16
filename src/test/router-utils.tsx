@@ -25,7 +25,7 @@ type RenderWithRouterOptions = Omit<RenderOptions, "wrapper"> & {
   initialLocation?: string;
 };
 
-export const renderWithRouter = async (
+export const renderWithRouter = (
   ui: ReactElement,
   { initialLocation = "/", ...renderOptions }: RenderWithRouterOptions = {}
 ) => {
@@ -43,11 +43,10 @@ export const renderWithRouter = async (
 
   const router = createTestRouter([indexRoute, catchAllRoute], initialLocation);
 
-  await router.load();
-
   const Wrapper = () => <RouterProvider router={router} />;
 
-  const result = render(<Wrapper />, renderOptions);
-
-  return { ...result, router };
+  return router.load().then(() => ({
+    ...render(<Wrapper />, renderOptions),
+    router,
+  }));
 };

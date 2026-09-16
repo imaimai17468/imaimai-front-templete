@@ -13,16 +13,15 @@ type EffectRuleName = Exclude<keyof typeof recommended, "complexity">;
  * adds or renames fail to compile here, rather than arrive silently enabled or
  * leave a dead key behind.
  *
- * The two set to `"off"` are the ones `src/` reports today. `noNullish` is the
- * gateways answering `A | null` where the rule wants `Option`, and
- * `noAsyncFunction` is the Promise boundary `createServerFn` requires; turning
- * one on means fixing what it reports.
+ * The one set to `"off"` is what `src/` reports today: `noNullish` is the
+ * gateways answering `A | null` where the rule wants `Option`. Turning it on
+ * means fixing what it reports.
  */
 export const effectRules = {
   "effect/maxCognitiveComplexity": ["error", { max: 21 }],
   "effect/maxHalsteadDifficulty": ["error", { max: 79 }],
   "effect/noAs": "error",
-  "effect/noAsyncFunction": "off",
+  "effect/noAsyncFunction": "error",
   "effect/noChainedTypeAssertions": "error",
   "effect/noConditionalEmptyObjectSpread": "error",
   "effect/noDynamicImports": "error",

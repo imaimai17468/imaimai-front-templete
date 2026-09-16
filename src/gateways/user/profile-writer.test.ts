@@ -55,60 +55,56 @@ const makeFakes = (read: CurrentUserReader["Service"]["read"]) => {
   );
 
   return {
-    updateProfile: async (data: UpdateUser) =>
-      await Effect.runPromise(
-        updateProfileResult(data).pipe(Effect.provide(layer))
-      ),
+    updateProfile: (data: UpdateUser) =>
+      Effect.runPromise(updateProfileResult(data).pipe(Effect.provide(layer))),
     updateUser,
     updateUserAvatar,
-    uploadAvatar: async (file: File) =>
-      await Effect.runPromise(
-        uploadAvatarResult(file).pipe(Effect.provide(layer))
-      ),
+    uploadAvatar: (file: File) =>
+      Effect.runPromise(uploadAvatarResult(file).pipe(Effect.provide(layer))),
   };
 };
 
 describe(updateProfileResult, () => {
-  it("should reject without writing persistence when the request is anonymous", async () => {
+  it("should reject without writing persistence when the request is anonymous", () => {
     const { updateProfile, updateUser } = makeFakes(Effect.succeed(null));
 
-    const result = await updateProfile({ name: "Updated User" });
-
-    expect({ result, updateCalls: updateUser.mock.calls }).toStrictEqual({
-      result: { message: "Not authenticated", status: "failed" },
-      updateCalls: [],
+    return updateProfile({ name: "Updated User" }).then((result) => {
+      expect({ result, updateCalls: updateUser.mock.calls }).toStrictEqual({
+        result: { message: "Not authenticated", status: "failed" },
+        updateCalls: [],
+      });
     });
   });
 
-  it("should pass the server-derived identity when the request is authenticated", async () => {
+  it("should pass the server-derived identity when the request is authenticated", () => {
     const { updateProfile, updateUser } = makeFakes(
       Effect.succeed(authenticatedUser)
     );
     const data = { name: "Updated User" };
 
-    const result = await updateProfile(data);
-
-    expect({ result, updateCalls: updateUser.mock.calls }).toStrictEqual({
-      result: { status: "updated" },
-      updateCalls: [["user-1", data]],
+    return updateProfile(data).then((result) => {
+      expect({ result, updateCalls: updateUser.mock.calls }).toStrictEqual({
+        result: { status: "updated" },
+        updateCalls: [["user-1", data]],
+      });
     });
   });
 
-  it("should report the write failure when the name update fails", async () => {
+  it("should report the write failure when the name update fails", () => {
     const { updateProfile, updateUser } = makeFakes(
       Effect.succeed(authenticatedUser)
     );
     updateUser.mockReturnValue(Effect.fail(new UserNameUpdateFailed()));
 
-    const result = await updateProfile({ name: "Updated User" });
-
-    expect(result).toStrictEqual({
-      message: "Failed to update profile",
-      status: "failed",
+    return updateProfile({ name: "Updated User" }).then((result) => {
+      expect(result).toStrictEqual({
+        message: "Failed to update profile",
+        status: "failed",
+      });
     });
   });
 
-  it("should propagate the cause as a defect when the identity read fails", async () => {
+  it("should propagate the cause as a defect when the identity read fails", () => {
     const { updateProfile } = makeFakes(
       Effect.fail(
         new UserPersistenceError({
@@ -119,60 +115,66 @@ describe(updateProfileResult, () => {
 
     const result = updateProfile({ name: "Updated User" });
 
-    await expect(result).rejects.toThrow("D1 failed");
+    return expect(result).rejects.toThrow("D1 failed");
   });
 });
 
 describe(uploadAvatarResult, () => {
-  it("should reject without writing persistence when the request is anonymous", async () => {
+  it("should reject without writing persistence when the request is anonymous", () => {
     const { updateUserAvatar, uploadAvatar } = makeFakes(Effect.succeed(null));
 
-    const result = await uploadAvatar(pngFile(1));
-
-    expect({ result, updateCalls: updateUserAvatar.mock.calls }).toStrictEqual({
-      result: {
-        message: "Not authenticated",
-        orphanedKey: null,
-        status: "failed",
-      },
-      updateCalls: [],
+    return uploadAvatar(pngFile(1)).then((result) => {
+      expect({
+        result,
+        updateCalls: updateUserAvatar.mock.calls,
+      }).toStrictEqual({
+        result: {
+          message: "Not authenticated",
+          orphanedKey: null,
+          status: "failed",
+        },
+        updateCalls: [],
+      });
     });
   });
 
-  it("should pass the server-derived identity when the request is authenticated", async () => {
+  it("should pass the server-derived identity when the request is authenticated", () => {
     const { updateUserAvatar, uploadAvatar } = makeFakes(
       Effect.succeed(authenticatedUser)
     );
     const file = pngFile(1);
 
-    const result = await uploadAvatar(file);
-
-    expect({ result, updateCalls: updateUserAvatar.mock.calls }).toStrictEqual({
-      result: {
-        avatarUrl: "/api/avatars?key=new",
-        cleanup: "complete",
-        status: "uploaded",
-      },
-      updateCalls: [["user-1", file]],
+    return uploadAvatar(file).then((result) => {
+      expect({
+        result,
+        updateCalls: updateUserAvatar.mock.calls,
+      }).toStrictEqual({
+        result: {
+          avatarUrl: "/api/avatars?key=new",
+          cleanup: "complete",
+          status: "uploaded",
+        },
+        updateCalls: [["user-1", file]],
+      });
     });
   });
 
-  it("should report the rejected type when the gateway refuses the image", async () => {
+  it("should report the rejected type when the gateway refuses the image", () => {
     const { updateUserAvatar, uploadAvatar } = makeFakes(
       Effect.succeed(authenticatedUser)
     );
     updateUserAvatar.mockReturnValue(Effect.fail(new AvatarTypeUnsupported()));
 
-    const result = await uploadAvatar(pngFile(1));
-
-    expect(result).toStrictEqual({
-      message: "Unsupported image type",
-      orphanedKey: null,
-      status: "failed",
+    return uploadAvatar(pngFile(1)).then((result) => {
+      expect(result).toStrictEqual({
+        message: "Unsupported image type",
+        orphanedKey: null,
+        status: "failed",
+      });
     });
   });
 
-  it("should carry the orphaned key when the gateway leaves an object behind", async () => {
+  it("should carry the orphaned key when the gateway leaves an object behind", () => {
     const { updateUserAvatar, uploadAvatar } = makeFakes(
       Effect.succeed(authenticatedUser)
     );
@@ -182,16 +184,16 @@ describe(uploadAvatarResult, () => {
       )
     );
 
-    const result = await uploadAvatar(pngFile(1));
-
-    expect(result).toStrictEqual({
-      message: "Failed to upload avatar",
-      orphanedKey: "user-1/avatars/a.png",
-      status: "failed",
+    return uploadAvatar(pngFile(1)).then((result) => {
+      expect(result).toStrictEqual({
+        message: "Failed to upload avatar",
+        orphanedKey: "user-1/avatars/a.png",
+        status: "failed",
+      });
     });
   });
 
-  it("should propagate the cause as a defect when the identity read fails", async () => {
+  it("should propagate the cause as a defect when the identity read fails", () => {
     const { uploadAvatar } = makeFakes(
       Effect.fail(
         new UserPersistenceError({
@@ -202,6 +204,6 @@ describe(uploadAvatarResult, () => {
 
     const result = uploadAvatar(pngFile(1));
 
-    await expect(result).rejects.toThrow("D1 failed");
+    return expect(result).rejects.toThrow("D1 failed");
   });
 });

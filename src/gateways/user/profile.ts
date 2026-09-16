@@ -53,8 +53,8 @@ const uploadAvatar = createServerOnlyFn(runUploadAvatar);
 
 export const updateProfileFn = createServerFn({ method: "POST" })
   .validator(parseProfileUpdate)
-  .handler(async ({ data }) => await updateProfile(data));
+  .handler(({ data }) => updateProfile(data));
 
 export const uploadAvatarFn = createServerFn({ method: "POST" })
   .validator(parseAvatarUpload)
-  .handler(async ({ data }) => await uploadAvatar(data.file));
+  .handler(({ data }) => uploadAvatar(data.file));

@@ -59,10 +59,7 @@ const RootComponent = () => {
 };
 
 export const Route = createRootRoute({
-  loader: async () => {
-    const user = await getCurrentUserFn();
-    return { user };
-  },
+  loader: () => getCurrentUserFn().then((user) => ({ user })),
   head: () => ({
     meta: [
       { charSet: "utf-8" },

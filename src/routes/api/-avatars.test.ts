@@ -20,8 +20,8 @@ const makeFakes = () => {
   const read = vi.fn<AvatarReader["Service"]["read"]>();
   return {
     read,
-    respond: async (request: Request) =>
-      await Effect.runPromise(
+    respond: (request: Request) =>
+      Effect.runPromise(
         getAvatarResponse(request).pipe(
           Effect.provide(Layer.succeed(AvatarReader, AvatarReader.of({ read })))
         )
@@ -53,19 +53,17 @@ const errorCases = [
 describe(getAvatarResponse, () => {
   it.each(errorCases)(
     "should return the expected JSON error when authorization rejects the request",
-    async (failure, status, error) => {
+    (failure, status, error) => {
       const { read, respond } = makeFakes();
       read.mockReturnValue(Effect.fail(failure));
 
-      const response = await respond(request());
-
-      expect({
-        status: response.status,
-        body: await response.json(),
-      }).toStrictEqual({
-        status,
-        body: { error },
-      });
+      return respond(request())
+        .then((response) =>
+          response.json().then((body) => ({ body, status: response.status }))
+        )
+        .then((received) => {
+          expect(received).toStrictEqual({ body: { error }, status });
+        });
     }
   );
 
@@ -74,45 +72,51 @@ describe(getAvatarResponse, () => {
     ["the fallback type", null, "image/png"],
   ])(
     "should return hardened headers with %s when the avatar exists",
-    async (_label, contentType, expectedContentType) => {
+    (_label, contentType, expectedContentType) => {
       const { read, respond } = makeFakes();
       read.mockReturnValue(Effect.succeed({ body: avatarBody(), contentType }));
 
-      const response = await respond(request());
-
-      expect({
-        status: response.status,
-        contentType: response.headers.get("Content-Type"),
-        cacheControl: response.headers.get("Cache-Control"),
-        noSniff: response.headers.get("X-Content-Type-Options"),
-        contentSecurityPolicy: response.headers.get("Content-Security-Policy"),
-        body: await response.text(),
-      }).toStrictEqual({
-        status: 200,
-        contentType: expectedContentType,
-        cacheControl: "private, max-age=31536000, immutable",
-        noSniff: "nosniff",
-        contentSecurityPolicy: "default-src 'none'",
-        body: "avatar-body",
-      });
+      return respond(request())
+        .then((response) =>
+          response.text().then((body) => ({
+            body,
+            cacheControl: response.headers.get("Cache-Control"),
+            contentSecurityPolicy: response.headers.get(
+              "Content-Security-Policy"
+            ),
+            contentType: response.headers.get("Content-Type"),
+            noSniff: response.headers.get("X-Content-Type-Options"),
+            status: response.status,
+          }))
+        )
+        .then((received) => {
+          expect(received).toStrictEqual({
+            body: "avatar-body",
+            cacheControl: "private, max-age=31536000, immutable",
+            contentSecurityPolicy: "default-src 'none'",
+            contentType: expectedContentType,
+            noSniff: "nosniff",
+            status: 200,
+          });
+        });
     }
   );
 
-  it("should pass the query string's key to the authorization boundary when the request carries one", async () => {
+  it("should pass the query string's key to the authorization boundary when the request carries one", () => {
     const { read, respond } = makeFakes();
     read.mockReturnValue(Effect.fail(new AvatarNotFound()));
 
-    await respond(request());
-
-    expect(read.mock.calls).toStrictEqual([["user-1/avatar.png"]]);
+    return respond(request()).then(() => {
+      expect(read.mock.calls).toStrictEqual([["user-1/avatar.png"]]);
+    });
   });
 
-  it("should propagate the defect when the authorization boundary fails", async () => {
+  it("should propagate the defect when the authorization boundary fails", () => {
     const { read, respond } = makeFakes();
     read.mockReturnValue(Effect.die(new Error("avatar read failed")));
 
     const result = respond(request());
 
-    await expect(result).rejects.toThrow("avatar read failed");
+    return expect(result).rejects.toThrow("avatar read failed");
   });
 });

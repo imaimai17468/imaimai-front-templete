@@ -16,6 +16,6 @@ const appMemoMap = Layer.makeMemoMapUnsafe();
  */
 export const makeRunHandler = <R>(layer: Layer.Layer<R>) => {
   const runtime = ManagedRuntime.make(layer, { memoMap: appMemoMap });
-  return async <A>(handler: Effect.Effect<A, never, R>): Promise<A> =>
-    await runtime.runPromise(handler);
+  return <A>(handler: Effect.Effect<A, never, R>): Promise<A> =>
+    runtime.runPromise(handler);
 };

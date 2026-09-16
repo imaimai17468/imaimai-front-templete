@@ -39,8 +39,7 @@ export const getAvatarResponse: (
 export const Route = createFileRoute("/api/avatars")({
   server: {
     handlers: {
-      GET: async ({ request }) =>
-        await runAvatarHandler(getAvatarResponse(request)),
+      GET: ({ request }) => runAvatarHandler(getAvatarResponse(request)),
     },
   },
 });

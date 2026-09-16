@@ -17,12 +17,10 @@ export const Route = createFileRoute("/profile")({
   // stops the pipeline and hands its value to the caller. `runPromise` rejects
   // with that value unwrapped, and the router's `isRedirect` accepts it, so
   // the success type stays the context this route actually produces.
-  beforeLoad: async () =>
-    await Effect.runPromise(
+  beforeLoad: () =>
+    Effect.runPromise(
       Effect.gen(function* resolveProfileContext() {
-        const user = yield* Effect.promise(
-          async () => await getCurrentUserFn()
-        );
+        const user = yield* Effect.promise(() => getCurrentUserFn());
         if (user === null) {
           return yield* Effect.fail(redirect({ to: "/login" }));
         }

@@ -278,7 +278,24 @@ export default defineConfig({
         // without reporting it. The two entries below are what `src/` costs:
         // a rule firing on a module that carries no Effect.
         files: ["src/**"],
-        rules: effectRules,
+        rules: {
+          ...effectRules,
+          // These three ask for the `async`/`await` that
+          // `effect/noAsyncFunction` reports, so no function that hands a
+          // framework a Promise can satisfy both sides.
+          // `promise-function-async` wants `async` on every function whose
+          // return type is a Promise, `prefer-await-to-then` wants `await` in
+          // place of the `.then` chains that replaced it, and
+          // `prefer-await-to-callbacks` reports the error handler passed to
+          // `Effect.catch` or `Effect.catchTag` once the function around it
+          // stops being `async`. The Effect rule is the one this project
+          // keeps: work that can be sequenced goes through `Effect.promise`
+          // and `Effect.tryPromise`, and what is left passes a framework's
+          // Promise straight through.
+          "@typescript-eslint/promise-function-async": "off",
+          "promise/prefer-await-to-then": "off",
+          "promise/prefer-await-to-callbacks": "off",
+        },
       },
       {
         // The rule's own message exempts a platform adapter, and this module is
@@ -286,13 +303,6 @@ export default defineConfig({
         // reaches the same global for its seed, so no layer removes it.
         files: ["src/gateways/user/avatar-key-ids.live.ts"],
         rules: { "effect/noGlobals": "off" },
-      },
-      {
-        // `dev-sign-in.ts` imports no Effect. Its `catch` turns a thrown
-        // rejection into the `failed` arm of `DevSignInResult`, which is the
-        // shape the rule wants and cannot recognise outside Effect.
-        files: ["src/lib/auth/dev-sign-in.ts"],
-        rules: { "effect/noTryCatch": "off" },
       },
       {
         // The one dynamic import here loads react-grab in dev only, so binding
@@ -310,6 +320,7 @@ export default defineConfig({
         // `extends` clause, which then does not compile.
         files: [
           "src/gateways/**",
+          "src/lib/auth/dev-sign-in.ts",
           "src/lib/require-context.ts",
           "src/test/defect.ts",
         ],

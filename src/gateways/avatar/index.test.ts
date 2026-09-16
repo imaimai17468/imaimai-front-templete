@@ -8,8 +8,8 @@ const makeFakes = () => {
     Layer.provide(Layer.succeed(AvatarBucket, AvatarBucket.of({ get })))
   );
   return {
-    fetchAvatar: async (key: string) =>
-      await Effect.runPromise(
+    fetchAvatar: (key: string) =>
+      Effect.runPromise(
         Effect.gen(function* callFetchAvatar() {
           const gateway = yield* AvatarGateway;
           return yield* gateway.fetchAvatar(key);
@@ -20,46 +20,46 @@ const makeFakes = () => {
 };
 
 describe("fetchAvatar", () => {
-  it("should return null when R2 has no object", async () => {
+  it("should return null when R2 has no object", () => {
     const { fetchAvatar, get } = makeFakes();
     get.mockReturnValue(Effect.succeed(null));
 
-    const result = await fetchAvatar("user-1/avatar.png");
-
-    expect({ calls: get.mock.calls, result }).toStrictEqual({
-      calls: [["user-1/avatar.png"]],
-      result: null,
+    return fetchAvatar("user-1/avatar.png").then((result) => {
+      expect({ calls: get.mock.calls, result }).toStrictEqual({
+        calls: [["user-1/avatar.png"]],
+        result: null,
+      });
     });
   });
 
-  it("should return the body and stored content type when R2 has metadata", async () => {
+  it("should return the body and stored content type when R2 has metadata", () => {
     const { fetchAvatar, get } = makeFakes();
     const body = new ReadableStream<Uint8Array>();
     get.mockReturnValue(
       Effect.succeed({ body, httpMetadata: { contentType: "image/webp" } })
     );
 
-    const result = await fetchAvatar("user-1/avatar.webp");
-
-    expect(result).toStrictEqual({ body, contentType: "image/webp" });
+    return fetchAvatar("user-1/avatar.webp").then((result) => {
+      expect(result).toStrictEqual({ body, contentType: "image/webp" });
+    });
   });
 
-  it("should return a null content type when R2 has no metadata", async () => {
+  it("should return a null content type when R2 has no metadata", () => {
     const { fetchAvatar, get } = makeFakes();
     const body = new ReadableStream<Uint8Array>();
     get.mockReturnValue(Effect.succeed({ body }));
 
-    const result = await fetchAvatar("user-1/avatar.png");
-
-    expect(result).toStrictEqual({ body, contentType: null });
+    return fetchAvatar("user-1/avatar.png").then((result) => {
+      expect(result).toStrictEqual({ body, contentType: null });
+    });
   });
 
-  it("should propagate the defect when R2 fails", async () => {
+  it("should propagate the defect when R2 fails", () => {
     const { fetchAvatar, get } = makeFakes();
     get.mockReturnValue(Effect.die(new Error("R2 failed")));
 
     const result = fetchAvatar("user-1/avatar.png");
 
-    await expect(result).rejects.toThrow("R2 failed");
+    return expect(result).rejects.toThrow("R2 failed");
   });
 });

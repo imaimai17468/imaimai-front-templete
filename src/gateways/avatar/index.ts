@@ -25,7 +25,7 @@ export class AvatarBucket extends Context.Service<
   static readonly layer = Layer.succeed(
     AvatarBucket,
     AvatarBucket.of({
-      get: (key) => Effect.promise(async () => await r2AvatarBucket.get(key)),
+      get: (key) => Effect.promise(() => r2AvatarBucket.get(key)),
     })
   );
 }

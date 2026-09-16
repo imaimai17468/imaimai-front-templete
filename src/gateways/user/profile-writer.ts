@@ -177,12 +177,9 @@ export const uploadAvatarResult: (
 const runProfileHandler = makeRunHandler(ProfileWriter.layer);
 
 /** Writes the caller's name onto their own profile row. */
-export const runUpdateProfile = async (
+export const runUpdateProfile = (
   data: UpdateUser
-): Promise<UpdateProfileResult> =>
-  await runProfileHandler(updateProfileResult(data));
+): Promise<UpdateProfileResult> => runProfileHandler(updateProfileResult(data));
 
-export const runUploadAvatar = async (
-  file: File
-): Promise<UploadAvatarResult> =>
-  await runProfileHandler(uploadAvatarResult(file));
+export const runUploadAvatar = (file: File): Promise<UploadAvatarResult> =>
+  runProfileHandler(uploadAvatarResult(file));

@@ -31,8 +31,8 @@ const makeFakes = (read: CurrentSession["Service"]["read"]) => {
 
   return {
     fetchCurrentUser,
-    readCurrentUser: async () =>
-      await Effect.runPromise(readCurrentUser.pipe(Effect.provide(layer))),
+    readCurrentUser: () =>
+      Effect.runPromise(readCurrentUser.pipe(Effect.provide(layer))),
   };
 };
 
@@ -59,44 +59,48 @@ const authenticatedSession = {
 } satisfies NonNullable<Awaited<ReturnType<typeof getSession>>>;
 
 describe("CurrentUserReader.read", () => {
-  it("should return null without reading the gateway when the request is anonymous", async () => {
+  it("should return null without reading the gateway when the request is anonymous", () => {
     const { fetchCurrentUser, readCurrentUser: read } = makeFakes(
       Effect.succeed(null)
     );
 
-    const result = await read();
-
-    expect({ fetchCalls: fetchCurrentUser.mock.calls, result }).toStrictEqual({
-      fetchCalls: [],
-      result: null,
+    return read().then((result) => {
+      expect({ fetchCalls: fetchCurrentUser.mock.calls, result }).toStrictEqual(
+        {
+          fetchCalls: [],
+          result: null,
+        }
+      );
     });
   });
 
-  it("should pass the server-derived identity when the request is authenticated", async () => {
+  it("should pass the server-derived identity when the request is authenticated", () => {
     const { fetchCurrentUser, readCurrentUser: read } = makeFakes(
       Effect.succeed(authenticatedSession)
     );
     fetchCurrentUser.mockReturnValue(Effect.succeed(null));
 
-    const result = await read();
-
-    expect({ fetchCalls: fetchCurrentUser.mock.calls, result }).toStrictEqual({
-      fetchCalls: [["user-1", "user-1@example.com"]],
-      result: null,
+    return read().then((result) => {
+      expect({ fetchCalls: fetchCurrentUser.mock.calls, result }).toStrictEqual(
+        {
+          fetchCalls: [["user-1", "user-1@example.com"]],
+          result: null,
+        }
+      );
     });
   });
 
-  it("should propagate the defect when session resolution fails", async () => {
+  it("should propagate the defect when session resolution fails", () => {
     const { readCurrentUser: read } = makeFakes(
       Effect.die(new Error("session failed"))
     );
 
     const result = read();
 
-    await expect(result).rejects.toThrow("session failed");
+    return expect(result).rejects.toThrow("session failed");
   });
 
-  it("should propagate the cause as a defect when the gateway read fails", async () => {
+  it("should propagate the cause as a defect when the gateway read fails", () => {
     const { fetchCurrentUser, readCurrentUser: read } = makeFakes(
       Effect.succeed(authenticatedSession)
     );
@@ -110,6 +114,6 @@ describe("CurrentUserReader.read", () => {
 
     const result = read();
 
-    await expect(result).rejects.toThrow("D1 failed");
+    return expect(result).rejects.toThrow("D1 failed");
   });
 });

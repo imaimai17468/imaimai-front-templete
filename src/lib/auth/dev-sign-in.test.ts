@@ -20,62 +20,62 @@ const makeFakes = () => {
 };
 
 describe("devSignIn", () => {
-  it("should sign in without creating a user when the account already exists", async () => {
+  it("should sign in without creating a user when the account already exists", () => {
     const { devSignIn, signIn, signUp } = makeFakes();
     signIn.mockResolvedValue(null);
 
-    const result = await devSignIn(DEV_USER);
-
-    expect({ result, signUpCalls: signUp.mock.calls }).toStrictEqual({
-      result: { kind: "signed-in" },
-      signUpCalls: [],
+    return devSignIn(DEV_USER).then((result) => {
+      expect({ result, signUpCalls: signUp.mock.calls }).toStrictEqual({
+        result: { kind: "signed-in" },
+        signUpCalls: [],
+      });
     });
   });
 
-  it("should report the account as created when the first sign-in is rejected", async () => {
+  it("should report the account as created when the first sign-in is rejected", () => {
     const { devSignIn, signIn, signUp } = makeFakes();
     signIn.mockResolvedValue("invalid credentials");
     signUp.mockResolvedValue(null);
 
-    const result = await devSignIn(DEV_USER);
-
-    expect({ result, signInCalls: signIn.mock.calls.length }).toStrictEqual({
-      result: { kind: "created" },
-      signInCalls: 1,
+    return devSignIn(DEV_USER).then((result) => {
+      expect({ result, signInCalls: signIn.mock.calls.length }).toStrictEqual({
+        result: { kind: "created" },
+        signInCalls: 1,
+      });
     });
   });
 
-  it("should fail with the recovery step when the sign-up is rejected", async () => {
+  it("should fail with the recovery step when the sign-up is rejected", () => {
     const { devSignIn, signIn, signUp } = makeFakes();
     signIn.mockResolvedValue("invalid credentials");
     signUp.mockResolvedValue("User already exists.");
 
-    const result = await devSignIn(DEV_USER);
-
-    expect(result).toStrictEqual({
-      kind: "failed",
-      message: `User already exists. ${RECOVERY}`,
+    return devSignIn(DEV_USER).then((result) => {
+      expect(result).toStrictEqual({
+        kind: "failed",
+        message: `User already exists. ${RECOVERY}`,
+      });
     });
   });
 
-  it("should fail with the thrown message when the request never reaches the server", async () => {
+  it("should fail with the thrown message when the request never reaches the server", () => {
     const { devSignIn, signIn } = makeFakes();
     signIn.mockRejectedValue(new DriverFailed({ message: "Failed to fetch" }));
 
-    const result = await devSignIn(DEV_USER);
-
-    expect(result).toStrictEqual({
-      kind: "failed",
-      message: "Failed to fetch",
+    return devSignIn(DEV_USER).then((result) => {
+      expect(result).toStrictEqual({
+        kind: "failed",
+        message: "Failed to fetch",
+      });
     });
   });
 
-  it("should fail with the recovery step when the thrown value is not an error", async () => {
+  it("should fail with the recovery step when the thrown value is not an error", () => {
     const { devSignIn, signIn } = makeFakes();
     signIn.mockRejectedValue("offline");
 
-    const result = await devSignIn(DEV_USER);
-
-    expect(result).toStrictEqual({ kind: "failed", message: RECOVERY });
+    return devSignIn(DEV_USER).then((result) => {
+      expect(result).toStrictEqual({ kind: "failed", message: RECOVERY });
+    });
   });
 });
