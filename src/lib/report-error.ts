@@ -13,9 +13,9 @@ const ErrorReportSchema = Schema.Struct({
   stack: Schema.OptionFromNullOr(Schema.String),
 });
 
-export type ErrorReport = typeof ErrorReportSchema.Type;
+type ErrorReport = typeof ErrorReportSchema.Type;
 
-type ErrorLogRecord = typeof ErrorReportSchema.Encoded;
+export type ErrorLogRecord = typeof ErrorReportSchema.Encoded;
 
 // `JSON.stringify` renders an `Option` as `{"_id":"Option","_tag":"None"}`, so
 // the console sink takes the encoded record instead of the report itself.

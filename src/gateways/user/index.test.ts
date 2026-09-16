@@ -2,7 +2,7 @@ import { DateTime, Effect, Layer, Option } from "effect";
 import { TestClock } from "effect/testing";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { avatarUrlForKey } from "@/lib/avatar-url";
-import type { ErrorReport } from "@/lib/report-error";
+import type { ErrorLogRecord } from "@/lib/report-error";
 import { DriverFailed } from "@/test/defect";
 import {
   AvatarKeyIds,
@@ -21,11 +21,11 @@ const NEW_URL = avatarUrlForKey(NEW_KEY);
 const OLD_KEY = "user-1/avatar.jpg";
 const TEST_CLOCK_INSTANT = "1970-01-01T00:00:00.000Z";
 
-type CapturedReport = Pick<ErrorReport, "event" | "message" | "name">;
+type CapturedReport = Pick<ErrorLogRecord, "event" | "message" | "name">;
 
 const captureErrorReports = (): CapturedReport[] => {
   const reported: CapturedReport[] = [];
-  vi.spyOn(console, "error").mockImplementation((payload: ErrorReport) => {
+  vi.spyOn(console, "error").mockImplementation((payload: ErrorLogRecord) => {
     reported.push({
       event: payload.event,
       message: payload.message,
