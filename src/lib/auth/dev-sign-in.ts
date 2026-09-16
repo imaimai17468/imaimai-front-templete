@@ -9,8 +9,8 @@ export type DevSignInResult =
   | { kind: "failed"; message: string };
 
 export interface DevSignInDeps {
-  signIn: (user: DevUser) => Promise<AuthFailureMessage | null>;
-  signUp: (user: DevUser) => Promise<AuthFailureMessage | null>;
+  signIn: (user: DevUser) => Promise<Option.Option<AuthFailureMessage>>;
+  signUp: (user: DevUser) => Promise<Option.Option<AuthFailureMessage>>;
 }
 
 /** A rejection from the auth client, which carries no `failed` message of its own. */
@@ -24,7 +24,7 @@ const isError = (cause: unknown): cause is Error => cause instanceof Error;
 const RECOVERY =
   "Run bun run db:push:local. If that does not help, reset the local D1.";
 
-const attempt = (run: () => Promise<AuthFailureMessage | null>) =>
+const attempt = (run: () => Promise<Option.Option<AuthFailureMessage>>) =>
   Effect.tryPromise({
     catch: (cause) => new DevSignInThrew({ cause }),
     try: run,
@@ -36,14 +36,14 @@ export const createDevSignIn =
     Effect.runPromise(
       Effect.gen(function* attemptDevSignIn() {
         const signInFailure = yield* attempt(() => signIn(user));
-        if (signInFailure === null) {
+        if (Option.isNone(signInFailure)) {
           return { kind: "signed-in" } satisfies DevSignInResult;
         }
         const signUpFailure = yield* attempt(() => signUp(user));
-        if (signUpFailure !== null) {
+        if (Option.isSome(signUpFailure)) {
           return {
             kind: "failed",
-            message: `${signUpFailure} ${RECOVERY}`,
+            message: `${signUpFailure.value} ${RECOVERY}`,
           } satisfies DevSignInResult;
         }
         return { kind: "created" } satisfies DevSignInResult;
