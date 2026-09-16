@@ -355,16 +355,24 @@ describe("user gateway", () => {
 
       return runOrFailure((gateway) =>
         gateway.updateUser("user-1", { name: "New Name" })
-      ).then(() => {
-        expect(
-          updateName.mock.calls.map(([userId, name, updatedAt]) => [
-            userId,
-            name,
-            DateTime.formatIso(updatedAt),
-          ])
-        ).toStrictEqual([
-          ["user-1", Option.some("New Name"), TEST_CLOCK_INSTANT],
-        ]);
+      ).then((result) => {
+        expect({
+          // `runOrFailure` folds a failure into the success channel, so a None
+          // here is what says the write took its success arm.
+          result: Option.fromNullishOr(result),
+          updateCalls: updateName.mock.calls.map(
+            ([userId, name, updatedAt]) => [
+              userId,
+              name,
+              DateTime.formatIso(updatedAt),
+            ]
+          ),
+        }).toStrictEqual({
+          result: Option.none(),
+          updateCalls: [
+            ["user-1", Option.some("New Name"), TEST_CLOCK_INSTANT],
+          ],
+        });
       });
     });
 
