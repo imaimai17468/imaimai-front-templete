@@ -6,11 +6,6 @@ import { pickUser } from "./session-user";
 const getSession = () =>
   getAuth().api.getSession({ headers: getRequest().headers });
 
-/**
- * ログイン中の User を返すヘルパー。セッションが無いときは Option.none を返す。
- * テンプレ用途で公開、派生実装で使う想定。
- *
- * @public
- */
+/** ログイン中の User を返すヘルパー。セッションが無いときは Option.none を返す。 */
 export const getUser = () =>
   getSession().then((session) => pickUser(Option.fromNullishOr(session)));
