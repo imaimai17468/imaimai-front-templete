@@ -1,8 +1,8 @@
-import { DateTime, Effect, Layer } from "effect";
+import { DateTime, Effect, Layer, Option } from "effect";
 import { TestClock } from "effect/testing";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { avatarUrlForKey } from "@/lib/avatar-url";
-import type { ErrorReport } from "@/lib/report-error";
+import type { ErrorLogRecord } from "@/lib/report-error";
 import { DriverFailed } from "@/test/defect";
 import {
   AvatarKeyIds,
@@ -21,11 +21,11 @@ const NEW_URL = avatarUrlForKey(NEW_KEY);
 const OLD_KEY = "user-1/avatar.jpg";
 const TEST_CLOCK_INSTANT = "1970-01-01T00:00:00.000Z";
 
-type CapturedReport = Pick<ErrorReport, "event" | "message" | "name">;
+type CapturedReport = Pick<ErrorLogRecord, "event" | "message" | "name">;
 
 const captureErrorReports = (): CapturedReport[] => {
   const reported: CapturedReport[] = [];
-  vi.spyOn(console, "error").mockImplementation((payload: ErrorReport) => {
+  vi.spyOn(console, "error").mockImplementation((payload: ErrorLogRecord) => {
     reported.push({
       event: payload.event,
       message: payload.message,
@@ -48,7 +48,9 @@ const makeFakes = () => {
   const remove = vi.fn<AvatarStorage["Service"]["remove"]>();
   const upload = vi.fn<AvatarStorage["Service"]["upload"]>();
 
-  findAvatarKey.mockReturnValue(Effect.succeed({ avatarKey: OLD_KEY }));
+  findAvatarKey.mockReturnValue(
+    Effect.succeed(Option.some({ avatarKey: Option.some(OLD_KEY) }))
+  );
   setAvatarKey.mockReturnValue(Effect.succeed(1));
   updateName.mockReturnValue(Effect.void);
   remove.mockReturnValue(Effect.void);
@@ -157,7 +159,7 @@ describe("user gateway", () => {
 
     it("should report a failure when the current row is absent", () => {
       const { findAvatarKey, runOrFailure, upload } = makeFakes();
-      findAvatarKey.mockReturnValue(Effect.succeed(null));
+      findAvatarKey.mockReturnValue(Effect.succeed(Option.none()));
 
       return runOrFailure((gateway) =>
         gateway.updateUserAvatar("user-1", validPng())
@@ -323,7 +325,9 @@ describe("user gateway", () => {
 
     it("should skip cleanup when the row holds no prior avatar", () => {
       const { findAvatarKey, remove, runOrFailure } = makeFakes();
-      findAvatarKey.mockReturnValue(Effect.succeed({ avatarKey: null }));
+      findAvatarKey.mockReturnValue(
+        Effect.succeed(Option.some({ avatarKey: Option.none() }))
+      );
 
       return runOrFailure((gateway) =>
         gateway.updateUserAvatar("user-1", validPng())
@@ -354,7 +358,9 @@ describe("user gateway", () => {
           ),
         }).toStrictEqual({
           result: undefined,
-          updateCalls: [["user-1", "New Name", TEST_CLOCK_INSTANT]],
+          updateCalls: [
+            ["user-1", Option.some("New Name"), TEST_CLOCK_INSTANT],
+          ],
         });
       });
     });
@@ -384,7 +390,7 @@ describe("user gateway", () => {
   describe("fetchCurrentUser", () => {
     it("should return null when no profile row exists", () => {
       const { findProfile, runOrFailure } = makeFakes();
-      findProfile.mockReturnValue(Effect.succeed(null));
+      findProfile.mockReturnValue(Effect.succeed(Option.none()));
 
       return runOrFailure((gateway) =>
         gateway.fetchCurrentUser("user-1", "user@example.com")
@@ -396,14 +402,16 @@ describe("user gateway", () => {
     it("should return the parsed user when a profile row exists", () => {
       const { findProfile, runOrFailure } = makeFakes();
       findProfile.mockReturnValue(
-        Effect.succeed({
-          avatarKey: null,
-          createdAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
-          id: "user-1",
-          image: null,
-          name: "Name",
-          updatedAt: DateTime.makeUnsafe("2026-01-02T00:00:00.000Z"),
-        })
+        Effect.succeed(
+          Option.some({
+            avatarKey: Option.none(),
+            createdAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
+            id: "user-1",
+            image: Option.none(),
+            name: Option.some("Name"),
+            updatedAt: DateTime.makeUnsafe("2026-01-02T00:00:00.000Z"),
+          })
+        )
       );
 
       return runOrFailure((gateway) =>
@@ -423,14 +431,16 @@ describe("user gateway", () => {
     it("should serve the uploaded avatar when the row holds a key", () => {
       const { findProfile, runOrFailure } = makeFakes();
       findProfile.mockReturnValue(
-        Effect.succeed({
-          avatarKey: OLD_KEY,
-          createdAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
-          id: "user-1",
-          image: "https://images.example.com/from-google.png",
-          name: "Name",
-          updatedAt: DateTime.makeUnsafe("2026-01-02T00:00:00.000Z"),
-        })
+        Effect.succeed(
+          Option.some({
+            avatarKey: Option.some(OLD_KEY),
+            createdAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
+            id: "user-1",
+            image: Option.some("https://images.example.com/from-google.png"),
+            name: Option.some("Name"),
+            updatedAt: DateTime.makeUnsafe("2026-01-02T00:00:00.000Z"),
+          })
+        )
       );
 
       return runOrFailure((gateway) =>
@@ -450,14 +460,16 @@ describe("user gateway", () => {
     it("should fall back to the provider's image when the row holds no key", () => {
       const { findProfile, runOrFailure } = makeFakes();
       findProfile.mockReturnValue(
-        Effect.succeed({
-          avatarKey: null,
-          createdAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
-          id: "user-1",
-          image: "https://images.example.com/from-google.png",
-          name: "Name",
-          updatedAt: DateTime.makeUnsafe("2026-01-02T00:00:00.000Z"),
-        })
+        Effect.succeed(
+          Option.some({
+            avatarKey: Option.none(),
+            createdAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
+            id: "user-1",
+            image: Option.some("https://images.example.com/from-google.png"),
+            name: Option.some("Name"),
+            updatedAt: DateTime.makeUnsafe("2026-01-02T00:00:00.000Z"),
+          })
+        )
       );
 
       return runOrFailure((gateway) =>

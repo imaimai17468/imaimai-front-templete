@@ -55,11 +55,11 @@ const persistenceEffect = <A>(
 
 export interface UserProfileRow {
   readonly id: string;
-  readonly name: string | null;
+  readonly name: Option.Option<string>;
   /** Better Auth's column, holding whatever the social provider supplied. */
-  readonly image: string | null;
-  /** The bucket key of an avatar this app uploaded, if there is one. */
-  readonly avatarKey: string | null;
+  readonly image: Option.Option<string>;
+  /** The bucket key of an avatar this app uploaded. */
+  readonly avatarKey: Option.Option<string>;
   readonly createdAt: DateTime.Utc;
   readonly updatedAt: DateTime.Utc;
 }
@@ -75,16 +75,16 @@ export class UserStore extends Context.Service<
   {
     readonly findProfile: (
       userId: string
-    ) => Effect.Effect<UserProfileRow | null, UserPersistenceError>;
+    ) => Effect.Effect<Option.Option<UserProfileRow>, UserPersistenceError>;
     readonly findAvatarKey: (
       userId: string
     ) => Effect.Effect<
-      { avatarKey: string | null } | null,
+      Option.Option<Pick<UserProfileRow, "avatarKey">>,
       UserPersistenceError
     >;
     readonly updateName: (
       userId: string,
-      name: string | null,
+      name: Option.Option<string>,
       updatedAt: DateTime.Utc
     ) => Effect.Effect<void, UserPersistenceError>;
     /** Number of rows the update touched, so the caller can reject a miss. */
@@ -253,19 +253,21 @@ export class UserGateway extends Context.Service<
       const fetchCurrentUser = Effect.fn("UserGateway.fetchCurrentUser")(
         function* fetchCurrentUser(userId: string, email: string) {
           const profile = yield* store.findProfile(userId);
-          if (profile === null) {
+          if (Option.isNone(profile)) {
             return null;
           }
+          const row = profile.value;
           return encodeUserWithEmail({
-            avatarUrl: Option.fromNullOr(profile.avatarKey).pipe(
+            avatarUrl: row.avatarKey.pipe(
               Option.map(avatarUrlForKey),
-              Option.getOrElse(() => profile.image)
+              Option.orElse(() => row.image),
+              Option.getOrNull
             ),
-            createdAt: profile.createdAt,
+            createdAt: row.createdAt,
             email,
-            id: profile.id,
-            name: profile.name,
-            updatedAt: profile.updatedAt,
+            id: row.id,
+            name: Option.getOrNull(row.name),
+            updatedAt: row.updatedAt,
           });
         }
       );
@@ -275,7 +277,7 @@ export class UserGateway extends Context.Service<
           const updatedAt = yield* DateTime.now;
           const written = yield* succeeded(
             "user.updateName",
-            store.updateName(userId, data.name, updatedAt)
+            store.updateName(userId, Option.some(data.name), updatedAt)
           );
           // Both arms return a value because `consistent-return` refuses a
           // function that mixes a bare `return` with one that carries a value.
@@ -302,15 +304,14 @@ export class UserGateway extends Context.Service<
             return yield* new AvatarTypeUnsupported();
           }
 
-          const current = yield* orNull(
-            "user.findAvatarKey",
-            store.findAvatarKey(userId)
-          );
-          if (current === null) {
+          const current = Option.fromNullOr(
+            yield* orNull("user.findAvatarKey", store.findAvatarKey(userId))
+          ).pipe(Option.flatten);
+          if (Option.isNone(current)) {
             return yield* new AvatarUploadFailed({ orphanedKey: null });
           }
 
-          const previousKey = current.avatarKey;
+          const previousKey = current.value.avatarKey;
           const keyId = yield* keyIds.next;
           const key = `${userId}/avatars/${keyId}.${fileExt.value}`;
 
@@ -350,7 +351,7 @@ export class UserGateway extends Context.Service<
             });
           }
 
-          if (previousKey === null) {
+          if (Option.isNone(previousKey)) {
             return {
               avatarUrl: publicUrl,
               cleanup: "complete",
@@ -358,7 +359,7 @@ export class UserGateway extends Context.Service<
           }
           const removedPrevious = yield* succeeded(
             "user.removePrevious",
-            storage.remove(previousKey)
+            storage.remove(previousKey.value)
           );
           return {
             avatarUrl: publicUrl,
