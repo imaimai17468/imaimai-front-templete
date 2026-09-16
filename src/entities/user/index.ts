@@ -10,8 +10,7 @@ const isEmailAddress = Schema.isPattern(
 );
 
 /**
- * テンプレートの User エンティティ。現在のページでは派生型 UserWithEmail のみ使用しているが、
- * 派生プロジェクトで単体 User バリデーションが必要になる想定で export を維持する。
+ * A template export, for a derived project that validates a `User` on its own.
  *
  * @public
  */
@@ -24,9 +23,7 @@ export const UserSchema = Schema.Struct({
 });
 
 /**
- * `UserSchema` の符号化側。name と avatarUrl は string | null、2 つの時刻は
- * ISO-8601 文字列で、この形のまま JSON を往復する。復号側は name と
- * avatarUrl が Option<string>、時刻が DateTime.Utc になる別の型。
+ * A template export, kept beside `UserSchema`.
  *
  * @public
  */
@@ -37,12 +34,6 @@ export const UserWithEmailSchema = Schema.Struct({
   email: Schema.String.check(isEmailAddress),
 });
 
-/**
- * `UserWithEmailSchema`'s encoded side, where the two instants are ISO-8601
- * strings, `name` and `avatarUrl` are `string | null`, and the whole value
- * survives JSON. Decoding turns the instants into `DateTime.Utc` and those two
- * fields into `Option<string>`.
- */
 export type UserWithEmail = typeof UserWithEmailSchema.Encoded;
 
 export const UpdateUserSchema = Schema.toStandardSchemaV1(
@@ -57,7 +48,7 @@ export const UpdateUserSchema = Schema.toStandardSchemaV1(
 export type UpdateUser = typeof UpdateUserSchema.Type;
 
 /**
- * アバター URL 更新用スキーマ。テンプレ用途で公開、派生実装で使う想定。
+ * A template export, for a derived project that updates an avatar URL.
  *
  * @public
  */
@@ -66,7 +57,7 @@ export const UpdateAvatarSchema = Schema.Struct({
 });
 
 /**
- * UpdateAvatarSchema と対になる型。
+ * A template export, kept beside `UpdateAvatarSchema`.
  *
  * @public
  */

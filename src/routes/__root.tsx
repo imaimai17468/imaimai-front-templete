@@ -60,8 +60,6 @@ const RootComponent = () => {
 };
 
 export const Route = createRootRoute({
-  // The router serializes this value into the HTML for hydration, so it stays
-  // the nullable the server function answered with.
   loader: () => getCurrentUserFn().then((user) => ({ user })),
   head: () => ({
     meta: [

@@ -2,9 +2,6 @@ import { Option } from "effect";
 
 export type Theme = "dark" | "light";
 
-// Each theme maps to the one the toggle moves to next. `Record<Theme, Theme>`
-// is what makes a successor outside the union fail to compile here, rather
-// than where `resolveThemeCycle` returns it.
 const NEXT = {
   dark: "light",
   light: "dark",
@@ -29,7 +26,8 @@ export const resolveThemeCycle = (
   return { current, next: NEXT[current] };
 };
 
-// 旧ドロップダウンの "system" など、NEXT の外の永続値を検出する。
+// next-themes hands back its persisted string, which can hold a value outside
+// `Theme`.
 export const needsThemeNormalization = (
   theme: Option.Option<string>
 ): boolean => Option.exists(theme, (value) => !isTheme(value));
