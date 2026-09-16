@@ -6,16 +6,14 @@ import type { recommended } from "oxlint-plugin-effect/presets/recommended";
 type EffectRuleName = Exclude<keyof typeof recommended, "complexity">;
 
 /**
- * Every rule `presets.recommended` carries, at the severity the preset chose or
- * off.
+ * Every rule `presets.recommended` carries, at the severity the preset chose.
  *
  * `satisfies` over the preset's own key union is what makes a rule the preset
  * adds or renames fail to compile here, rather than arrive silently enabled or
  * leave a dead key behind.
  *
- * The one set to `"off"` is what `src/` reports today: `noNullish` is the
- * gateways answering `A | null` where the rule wants `Option`. Turning it on
- * means fixing what it reports.
+ * A rule a named path cannot satisfy is turned off in `vite.config.ts`, in the
+ * override block that names that path, with the reason beside it.
  */
 export const effectRules = {
   "effect/maxCognitiveComplexity": ["error", { max: 21 }],
@@ -36,7 +34,7 @@ export const effectRules = {
   "effect/noNewError": "error",
   "effect/noNewPromise": "error",
   "effect/noNodeBuiltinImport": "error",
-  "effect/noNullish": "off",
+  "effect/noNullish": "error",
   "effect/noObjectParameters": "error",
   "effect/noPerCallCacheConstruction": "error",
   "effect/noRunCollectOnUnboundedStream": "error",
