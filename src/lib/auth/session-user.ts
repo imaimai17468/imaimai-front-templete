@@ -1,3 +1,6 @@
+import { Option } from "effect";
+
 export const pickUser = <User>(
-  session: { user: User } | null | undefined
-): User | null => session?.user ?? null;
+  session: Option.Option<{ user: User }>
+): Option.Option<NonNullable<User>> =>
+  Option.flatMapNullishOr(session, ({ user }) => user);
