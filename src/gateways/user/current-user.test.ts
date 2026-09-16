@@ -1,5 +1,6 @@
 import { Effect, Layer, Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
+import type { UserWithEmail } from "@/entities/user";
 import { CurrentSession } from "@/lib/auth/current-session.live";
 import { DriverFailed } from "@/test/defect";
 import { UserGateway, UserPersistenceError } from ".";
@@ -39,6 +40,15 @@ const authenticatedCaller = Option.some({
   id: "user-1",
 });
 
+const profileRow = {
+  avatarUrl: "/api/avatars?key=avatar-1",
+  createdAt: "2026-08-13T00:00:00Z",
+  email: "user-1@example.com",
+  id: "user-1",
+  name: "Test User",
+  updatedAt: "2026-08-13T00:00:00Z",
+} satisfies UserWithEmail;
+
 describe("CurrentUserReader.read", () => {
   it("should return None without reading the gateway when the request is anonymous", () => {
     const { fetchCurrentUser, readCurrentUser: read } = makeFakes(
@@ -55,17 +65,17 @@ describe("CurrentUserReader.read", () => {
     });
   });
 
-  it("should pass the server-derived identity when the request is authenticated", () => {
+  it("should return the row the gateway found for the server-derived identity when the request is authenticated", () => {
     const { fetchCurrentUser, readCurrentUser: read } = makeFakes(
       Effect.succeed(authenticatedCaller)
     );
-    fetchCurrentUser.mockReturnValue(Effect.succeed(Option.none()));
+    fetchCurrentUser.mockReturnValue(Effect.succeed(Option.some(profileRow)));
 
     return read().then((result) => {
       expect({ fetchCalls: fetchCurrentUser.mock.calls, result }).toStrictEqual(
         {
           fetchCalls: [["user-1", "user-1@example.com"]],
-          result: Option.none(),
+          result: Option.some(profileRow),
         }
       );
     });
