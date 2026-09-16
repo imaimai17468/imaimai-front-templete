@@ -1,3 +1,4 @@
+import { Option } from "effect";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -7,13 +8,13 @@ import { DEV_USERS } from "@/lib/auth/dev-users";
 import type { DevUser } from "@/lib/auth/dev-users";
 
 export const DevSignInPanel = () => {
-  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState(() => Option.none<string>());
 
   const handleSignIn = (user: DevUser): Promise<void> => {
-    setPendingEmail(user.email);
+    setPendingEmail(Option.some(user.email));
     return devSignIn(user).then((result) => {
       if (result.kind === "failed") {
-        setPendingEmail(null);
+        setPendingEmail(Option.none());
         toast.error(result.message);
         return;
       }
@@ -36,12 +37,12 @@ export const DevSignInPanel = () => {
           type="button"
           variant="outline"
           className="min-h-11 cursor-pointer"
-          disabled={pendingEmail !== null}
+          disabled={Option.isSome(pendingEmail)}
           onClick={() => {
             void handleSignIn(user);
           }}
         >
-          {pendingEmail === user.email && (
+          {Option.contains(pendingEmail, user.email) && (
             <Loader2 className="motion-safe:animate-spin" />
           )}
           Sign in as {user.email}

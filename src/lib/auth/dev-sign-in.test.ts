@@ -1,3 +1,4 @@
+import { Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { DriverFailed } from "@/test/defect";
 import { createDevSignIn } from "./dev-sign-in";
@@ -22,7 +23,7 @@ const makeFakes = () => {
 describe("devSignIn", () => {
   it("should sign in without creating a user when the account already exists", () => {
     const { devSignIn, signIn, signUp } = makeFakes();
-    signIn.mockResolvedValue(null);
+    signIn.mockResolvedValue(Option.none());
 
     return devSignIn(DEV_USER).then((result) => {
       expect({ result, signUpCalls: signUp.mock.calls }).toStrictEqual({
@@ -34,8 +35,8 @@ describe("devSignIn", () => {
 
   it("should report the account as created when the first sign-in is rejected", () => {
     const { devSignIn, signIn, signUp } = makeFakes();
-    signIn.mockResolvedValue("invalid credentials");
-    signUp.mockResolvedValue(null);
+    signIn.mockResolvedValue(Option.some("invalid credentials"));
+    signUp.mockResolvedValue(Option.none());
 
     return devSignIn(DEV_USER).then((result) => {
       expect({ result, signInCalls: signIn.mock.calls.length }).toStrictEqual({
@@ -47,8 +48,8 @@ describe("devSignIn", () => {
 
   it("should fail with the recovery step when the sign-up is rejected", () => {
     const { devSignIn, signIn, signUp } = makeFakes();
-    signIn.mockResolvedValue("invalid credentials");
-    signUp.mockResolvedValue("User already exists.");
+    signIn.mockResolvedValue(Option.some("invalid credentials"));
+    signUp.mockResolvedValue(Option.some("User already exists."));
 
     return devSignIn(DEV_USER).then((result) => {
       expect(result).toStrictEqual({
