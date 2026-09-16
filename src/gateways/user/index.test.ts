@@ -441,6 +441,37 @@ describe("user gateway", () => {
       });
     });
 
+    it("should encode an absent name as null when the row holds none", () => {
+      const { findProfile, runOrFailure } = makeFakes();
+      findProfile.mockReturnValue(
+        Effect.succeed(
+          Option.some({
+            avatarKey: Option.none(),
+            createdAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
+            id: "user-1",
+            image: Option.none(),
+            name: Option.none(),
+            updatedAt: DateTime.makeUnsafe("2026-01-02T00:00:00.000Z"),
+          })
+        )
+      );
+
+      return runOrFailure((gateway) =>
+        gateway.fetchCurrentUser("user-1", "user@example.com")
+      ).then((result) => {
+        expect(result).toStrictEqual(
+          Option.some({
+            avatarUrl: ABSENT_FIELD,
+            createdAt: "2026-01-01T00:00:00.000Z",
+            email: "user@example.com",
+            id: "user-1",
+            name: ABSENT_FIELD,
+            updatedAt: "2026-01-02T00:00:00.000Z",
+          })
+        );
+      });
+    });
+
     it("should serve the uploaded avatar when the row holds a key", () => {
       const { findProfile, runOrFailure } = makeFakes();
       findProfile.mockReturnValue(
