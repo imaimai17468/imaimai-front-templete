@@ -1,11 +1,12 @@
-// Each theme maps to the one the toggle moves to next. A successor that is not
-// itself a key here fails to compile where `resolveThemeCycle` returns it.
+export type Theme = "dark" | "light";
+
+// Each theme maps to the one the toggle moves to next. `Record<Theme, Theme>`
+// is what makes a successor outside the union fail to compile here, rather
+// than where `resolveThemeCycle` returns it.
 const NEXT = {
   dark: "light",
   light: "dark",
-} as const satisfies Record<string, string>;
-
-export type Theme = keyof typeof NEXT;
+} satisfies Record<Theme, Theme>;
 
 export interface ThemeCycle {
   current: Theme;

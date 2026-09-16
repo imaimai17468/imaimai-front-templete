@@ -353,7 +353,10 @@ export class UserGateway extends Context.Service<
           }
 
           if (previousKey === null) {
-            return { avatarUrl: publicUrl, cleanup: "complete" } as const;
+            return {
+              avatarUrl: publicUrl,
+              cleanup: "complete",
+            } satisfies AvatarUpdated;
           }
           const removedPrevious = yield* succeeded(
             "user.removePrevious",
@@ -362,7 +365,7 @@ export class UserGateway extends Context.Service<
           return {
             avatarUrl: publicUrl,
             cleanup: removedPrevious ? "complete" : "pending",
-          } as const;
+          } satisfies AvatarUpdated;
         }
       );
 

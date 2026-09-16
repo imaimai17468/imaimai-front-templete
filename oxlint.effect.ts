@@ -21,7 +21,7 @@ type EffectRuleName = Exclude<keyof typeof recommended, "complexity">;
 export const effectRules = {
   "effect/maxCognitiveComplexity": ["error", { max: 21 }],
   "effect/maxHalsteadDifficulty": ["error", { max: 79 }],
-  "effect/noAs": "off",
+  "effect/noAs": "error",
   "effect/noAsyncFunction": "off",
   "effect/noChainedTypeAssertions": "error",
   "effect/noConditionalEmptyObjectSpread": "error",

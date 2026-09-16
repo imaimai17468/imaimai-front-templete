@@ -120,19 +120,19 @@ export const updateProfileResult: (
   function* writeProfile(data: UpdateUser) {
     const writer = yield* ProfileWriter;
     yield* writer.updateProfile(data);
-    return { status: "updated" } as const;
+    return { status: "updated" } satisfies UpdateProfileResult;
   },
   Effect.catchTags({
     NotAuthenticated: () =>
       Effect.succeed({
         message: "Not authenticated",
         status: "failed",
-      } as const),
+      } satisfies UpdateProfileResult),
     UserNameUpdateFailed: () =>
       Effect.succeed({
         message: "Failed to update profile",
         status: "failed",
-      } as const),
+      } satisfies UpdateProfileResult),
     UserPersistenceError: (error) => Effect.die(error.cause),
   })
 );
@@ -149,7 +149,7 @@ export const uploadAvatarResult: (
       avatarUrl: updated.avatarUrl,
       cleanup: updated.cleanup,
       status: "uploaded",
-    } as const;
+    } satisfies UploadAvatarResult;
   },
   Effect.catchTags({
     AvatarTypeUnsupported: () =>
@@ -157,19 +157,19 @@ export const uploadAvatarResult: (
         message: "Unsupported image type",
         orphanedKey: null,
         status: "failed",
-      } as const),
+      } satisfies UploadAvatarResult),
     AvatarUploadFailed: (error) =>
       Effect.succeed({
         message: "Failed to upload avatar",
         orphanedKey: error.orphanedKey,
         status: "failed",
-      } as const),
+      } satisfies UploadAvatarResult),
     NotAuthenticated: () =>
       Effect.succeed({
         message: "Not authenticated",
         orphanedKey: null,
         status: "failed",
-      } as const),
+      } satisfies UploadAvatarResult),
     UserPersistenceError: (error) => Effect.die(error.cause),
   })
 );
