@@ -39,6 +39,7 @@ export default defineConfig({
     jsPlugins: [
       "./tools/oxlint-plugins/style-rules.js",
       "./tools/oxlint-plugins/arch-rules.js",
+      "./tools/oxlint-plugins/start-rules.js",
       { name: "react-doctor", specifier: "oxlint-plugin-react-doctor" },
       { name: "tailwindcss", specifier: "oxlint-tailwindcss" },
       { name: "shadcn", specifier: "@shadcn/lint" },
@@ -149,6 +150,7 @@ export default defineConfig({
       "arch-rules/component-file-naming": "error",
       "arch-rules/test-naming-format": "error",
       "arch-rules/single-expect": "error",
+      "start-rules/no-rewritten-factory-in-handler": "error",
     },
     env: {
       builtin: true,
