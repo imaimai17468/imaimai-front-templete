@@ -134,7 +134,7 @@ describe(uploadAvatarResult, () => {
       }).toStrictEqual({
         result: {
           message: "Not authenticated",
-          orphanedKey: null,
+          orphanedKey: Option.none(),
           status: "failed",
         },
         updateCalls: [],
@@ -172,7 +172,7 @@ describe(uploadAvatarResult, () => {
     return uploadAvatar(pngFile(1)).then((result) => {
       expect(result).toStrictEqual({
         message: "Unsupported image type",
-        orphanedKey: null,
+        orphanedKey: Option.none(),
         status: "failed",
       });
     });
@@ -184,14 +184,16 @@ describe(uploadAvatarResult, () => {
     );
     updateUserAvatar.mockReturnValue(
       Effect.fail(
-        new AvatarUploadFailed({ orphanedKey: "user-1/avatars/a.png" })
+        new AvatarUploadFailed({
+          orphanedKey: Option.some("user-1/avatars/a.png"),
+        })
       )
     );
 
     return uploadAvatar(pngFile(1)).then((result) => {
       expect(result).toStrictEqual({
         message: "Failed to upload avatar",
-        orphanedKey: "user-1/avatars/a.png",
+        orphanedKey: Option.some("user-1/avatars/a.png"),
         status: "failed",
       });
     });

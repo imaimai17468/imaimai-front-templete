@@ -109,7 +109,7 @@ export type UploadAvatarResult =
   | {
       readonly status: "failed";
       readonly message: string;
-      readonly orphanedKey: string | null;
+      readonly orphanedKey: Option.Option<string>;
     };
 
 export const updateProfileResult: (
@@ -155,7 +155,7 @@ export const uploadAvatarResult: (
     AvatarTypeUnsupported: () =>
       Effect.succeed({
         message: "Unsupported image type",
-        orphanedKey: null,
+        orphanedKey: Option.none(),
         status: "failed",
       } satisfies UploadAvatarResult),
     AvatarUploadFailed: (error) =>
@@ -167,7 +167,7 @@ export const uploadAvatarResult: (
     NotAuthenticated: () =>
       Effect.succeed({
         message: "Not authenticated",
-        orphanedKey: null,
+        orphanedKey: Option.none(),
         status: "failed",
       } satisfies UploadAvatarResult),
     UserPersistenceError: (error) => Effect.die(error.cause),

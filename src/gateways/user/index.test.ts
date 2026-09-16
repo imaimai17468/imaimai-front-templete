@@ -165,7 +165,7 @@ describe("user gateway", () => {
         gateway.updateUserAvatar("user-1", validPng())
       ).then((result) => {
         expect({ result, uploadCalls: upload.mock.calls }).toStrictEqual({
-          result: new AvatarUploadFailed({ orphanedKey: null }),
+          result: new AvatarUploadFailed({ orphanedKey: Option.none() }),
           uploadCalls: [],
         });
       });
@@ -191,7 +191,7 @@ describe("user gateway", () => {
               name: "DriverFailed",
             },
           ],
-          result: new AvatarUploadFailed({ orphanedKey: null }),
+          result: new AvatarUploadFailed({ orphanedKey: Option.none() }),
           uploadCalls: [],
         });
       });
@@ -218,7 +218,7 @@ describe("user gateway", () => {
               name: "DriverFailed",
             },
           ],
-          result: new AvatarUploadFailed({ orphanedKey: null }),
+          result: new AvatarUploadFailed({ orphanedKey: Option.none() }),
         });
       });
     });
@@ -244,7 +244,7 @@ describe("user gateway", () => {
               name: "DriverFailed",
             },
           ],
-          result: new AvatarUploadFailed({ orphanedKey: null }),
+          result: new AvatarUploadFailed({ orphanedKey: Option.none() }),
         });
       });
     });
@@ -270,7 +270,7 @@ describe("user gateway", () => {
               name: "UnexpectedRowCount",
             },
           ],
-          result: new AvatarUploadFailed({ orphanedKey: null }),
+          result: new AvatarUploadFailed({ orphanedKey: Option.none() }),
         });
       });
     });
@@ -297,7 +297,7 @@ describe("user gateway", () => {
               name: "DriverFailed",
             },
           ],
-          result: new AvatarUploadFailed({ orphanedKey: NEW_KEY }),
+          result: new AvatarUploadFailed({ orphanedKey: Option.some(NEW_KEY) }),
         });
       });
     });

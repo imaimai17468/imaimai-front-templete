@@ -174,11 +174,11 @@ export class AvatarTypeUnsupported extends Schema.TaggedError<AvatarTypeUnsuppor
 /**
  * `orphanedKey` names the object left in the bucket when even the rollback
  * delete failed, which is the only state a caller cannot reconstruct from the
- * row. It is `null` on every other upload failure.
+ * row. It is `None` on every other upload failure.
  */
 export class AvatarUploadFailed extends Schema.TaggedError<AvatarUploadFailed>()(
   "AvatarUploadFailed",
-  { orphanedKey: Schema.NullOr(Schema.String) }
+  { orphanedKey: Schema.Option(Schema.String) }
 ) {}
 
 export interface AvatarUpdated {
@@ -312,7 +312,9 @@ export class UserGateway extends Context.Service<
             store.findAvatarKey(userId)
           ).pipe(Effect.map(Option.flatten));
           if (Option.isNone(current)) {
-            return yield* new AvatarUploadFailed({ orphanedKey: null });
+            return yield* new AvatarUploadFailed({
+              orphanedKey: Option.none(),
+            });
           }
 
           const previousKey = current.value.avatarKey;
@@ -324,7 +326,9 @@ export class UserGateway extends Context.Service<
             storage.upload(key, file, file.type)
           );
           if (!uploaded) {
-            return yield* new AvatarUploadFailed({ orphanedKey: null });
+            return yield* new AvatarUploadFailed({
+              orphanedKey: Option.none(),
+            });
           }
           const publicUrl = avatarUrlForKey(key);
 
@@ -348,8 +352,8 @@ export class UserGateway extends Context.Service<
             );
             return yield* new AvatarUploadFailed({
               orphanedKey: Match.value(rolledBack).pipe(
-                Match.when(true, () => null),
-                Match.when(false, () => key),
+                Match.when(true, () => Option.none<string>()),
+                Match.when(false, () => Option.some(key)),
                 Match.exhaustive
               ),
             });
