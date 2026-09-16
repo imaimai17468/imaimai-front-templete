@@ -1,5 +1,6 @@
 import { DateTime, Option, Result, Schema } from "effect";
 import { describe, expect, it } from "vite-plus/test";
+import { ABSENT_FIELD } from "@/test/absent-field";
 import {
   displayName,
   UpdateAvatarSchema,
@@ -56,10 +57,6 @@ describe("UpdateUserSchema Standard Schema validation", () => {
       });
     }));
 });
-
-// `effect/noNullish` reports a written `null`, and these two are the encoded
-// side of the schema, which stays nullable so the value survives JSON.
-const ABSENT_FIELD = Option.getOrNull(Option.none<string>());
 
 const base = {
   avatarUrl: ABSENT_FIELD,

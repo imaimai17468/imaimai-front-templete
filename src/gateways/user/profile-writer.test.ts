@@ -1,6 +1,7 @@
 import { Effect, Layer, Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import type { UpdateUser, UserWithEmail } from "@/entities/user";
+import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";
 import {
   AvatarTypeUnsupported,
@@ -18,10 +19,6 @@ import {
 
 const pngFile = (byteLength: number) =>
   new File([new Uint8Array(byteLength)], "a.png", { type: "image/png" });
-
-// `effect/noNullish` reports a written `null`, and `UserWithEmail` is the
-// schema's encoded side, which stays nullable so the value survives JSON.
-const ABSENT_FIELD = Option.getOrNull(Option.none<string>());
 
 const authenticatedUser = {
   avatarUrl: ABSENT_FIELD,

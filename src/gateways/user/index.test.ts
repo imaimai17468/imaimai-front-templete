@@ -3,6 +3,7 @@ import { TestClock } from "effect/testing";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { avatarUrlForKey } from "@/lib/avatar-url";
 import type { ErrorLogRecord } from "@/lib/report-error";
+import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";
 import {
   AvatarKeyIds,
@@ -20,10 +21,6 @@ const NEW_KEY = `user-1/avatars/${AVATAR_UUID}.png`;
 const NEW_URL = avatarUrlForKey(NEW_KEY);
 const OLD_KEY = "user-1/avatar.jpg";
 const TEST_CLOCK_INSTANT = "1970-01-01T00:00:00.000Z";
-
-// `effect/noNullish` reports a written `null`, and `UserWithEmail` is the
-// schema's encoded side, which stays nullable so the value survives JSON.
-const ABSENT_FIELD = Option.getOrNull(Option.none<string>());
 
 type CapturedReport = Pick<ErrorLogRecord, "event" | "message" | "name">;
 
