@@ -39,15 +39,20 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "jsdom",
-    globals: true,
     isolate: false,
     // Restores every spy before each test, which is what a per-file
     // `afterEach(() => vi.restoreAllMocks())` did in the two suites that had
-    // one, and now covers the suites that did not. Timers are not included:
-    // `tooltip.test.tsx` pairs each `vi.useFakeTimers()` with its own
-    // `onTestFinished`.
+    // one, and now covers the suites that did not. It does not reach timers or
+    // the DOM: `src/test/render.tsx` and `tooltip.test.tsx` register their own
+    // teardown per call, which holds whichever way `isolate` is set.
     restoreMocks: true,
-    exclude: [...defaultExclude, ".claude/worktrees/**"],
+    // `src/components/ui/` is shadcn CLI output, so a test there reaches
+    // Radix's behaviour and `cn`, which `src/lib/utils.test.ts` covers.
+    exclude: [
+      ...defaultExclude,
+      ".claude/worktrees/**",
+      "src/components/ui/**",
+    ],
     setupFiles: ["./src/test-setup.ts"],
     coverage: {
       include: coverageInclude,
