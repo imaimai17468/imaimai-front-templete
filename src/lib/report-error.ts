@@ -5,23 +5,23 @@ export interface ErrorReport {
   readonly stack: string | null;
 }
 
-export const errorLogPayload = (event: string, error: unknown): ErrorReport => {
-  if (error instanceof Error) {
+export const errorLogPayload = (event: string, cause: unknown): ErrorReport => {
+  if (cause instanceof Error) {
     return {
       event,
-      message: error.message,
-      name: error.name,
-      stack: error.stack ?? null,
+      message: cause.message,
+      name: cause.name,
+      stack: cause.stack ?? null,
     };
   }
   return {
     event,
-    message: String(error),
+    message: String(cause),
     name: null,
     stack: null,
   };
 };
 
-export const reportError = (event: string, error: unknown): void => {
-  console.error(errorLogPayload(event, error));
+export const reportError = (event: string, cause: unknown): void => {
+  console.error(errorLogPayload(event, cause));
 };

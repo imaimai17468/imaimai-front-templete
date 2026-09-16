@@ -51,7 +51,7 @@ export const effectRules = {
   "effect/noTryCatch": "error",
   "effect/noUnboundedConcurrency": "error",
   "effect/noUnboundedRetry": "error",
-  "effect/noUnknownParameters": "off",
+  "effect/noUnknownParameters": "error",
   "effect/noUnknownTypeAliases": "error",
   "effect/noUnsafeDictionaryType": "error",
   "effect/noWidenThenAssert": "error",
