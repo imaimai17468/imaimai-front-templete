@@ -200,7 +200,7 @@ const orNone = <A>(
   effect: Effect.Effect<A, UserPersistenceError>
 ): Effect.Effect<Option.Option<A>> =>
   effect.pipe(
-    Effect.map(Option.some),
+    Effect.asSome,
     Effect.catchTags({
       UserPersistenceError: (error) =>
         reportError(event, error.cause).pipe(Effect.as(Option.none<A>())),
