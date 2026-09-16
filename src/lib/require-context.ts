@@ -1,7 +1,7 @@
 import { Option, Schema } from "effect";
 
 /** A component read a context whose provider was not above it. */
-export class ContextMissing extends Schema.TaggedError<ContextMissing>()(
+class ContextMissing extends Schema.TaggedError<ContextMissing>()(
   "ContextMissing",
   { message: Schema.String }
 ) {}

@@ -31,7 +31,7 @@ export class UserPersistenceError extends Schema.TaggedError<UserPersistenceErro
 ) {}
 
 /** A write the store reported as touching a number of rows nobody expects. */
-export class UnexpectedRowCount extends Schema.TaggedError<UnexpectedRowCount>()(
+class UnexpectedRowCount extends Schema.TaggedError<UnexpectedRowCount>()(
   "UnexpectedRowCount",
   { message: Schema.String, rowsTouched: Schema.Number }
 ) {}
