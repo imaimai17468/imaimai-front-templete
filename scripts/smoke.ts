@@ -12,17 +12,24 @@ export interface Route {
    * carries no body, as a redirect's does not.
    */
   readonly marker: string | null;
+  /** Where a redirect must point, or null where the answer carries no body. */
+  readonly location: string | null;
   readonly path: string;
   readonly status: number;
 }
 
 /** What the smoke run requests, and what each route's answer must hold. */
 export const ROUTES: readonly Route[] = [
-  { marker: "docs/SERVER_BOUNDARY.md", path: "/", status: 200 },
-  { marker: "Sign in With Google", path: "/login", status: 200 },
+  { location: null, marker: "docs/SERVER_BOUNDARY.md", path: "/", status: 200 },
+  {
+    location: null,
+    marker: "Sign in With Google",
+    path: "/login",
+    status: 200,
+  },
   // Signed out, so the profile route's guard answers with its redirect rather
   // than a page. Nothing else here runs that guard.
-  { marker: null, path: "/profile", status: 307 },
+  { location: "/login", marker: null, path: "/profile", status: 307 },
 ];
 
 export type RouteResult =
@@ -43,6 +50,19 @@ export const missingFrom = (body: string, route: Route): readonly string[] =>
   route.marker === null
     ? []
     : [CLOSING_TAG, route.marker].filter((needle) => !body.includes(needle));
+
+/**
+ * What the answer failed to carry: the body's markers, plus the redirect target
+ * where the route names one. One list so `report` prints every miss at once.
+ */
+export const missedBy = (
+  body: string,
+  location: string | null,
+  route: Route
+): readonly string[] =>
+  route.location === null || route.location === location
+    ? missingFrom(body, route)
+    : [...missingFrom(body, route), `location ${route.location}`];
 
 export const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);

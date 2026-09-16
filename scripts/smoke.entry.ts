@@ -24,7 +24,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import {
   report,
   messageOf,
-  missingFrom,
+  missedBy,
   readyUrlIn,
   ROUTES,
   served,
@@ -122,7 +122,7 @@ const request = async (baseUrl: string, route: Route): Promise<RouteResult> => {
     return {
       expectedStatus: route.status,
       kind: "answered",
-      missing: missingFrom(body, route),
+      missing: missedBy(body, response.headers.get("location"), route),
       path: route.path,
       status: response.status,
     };
