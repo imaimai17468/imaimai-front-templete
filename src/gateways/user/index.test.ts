@@ -388,14 +388,14 @@ describe("user gateway", () => {
   });
 
   describe("fetchCurrentUser", () => {
-    it("should return null when no profile row exists", () => {
+    it("should return None when no profile row exists", () => {
       const { findProfile, runOrFailure } = makeFakes();
       findProfile.mockReturnValue(Effect.succeed(Option.none()));
 
       return runOrFailure((gateway) =>
         gateway.fetchCurrentUser("user-1", "user@example.com")
       ).then((result) => {
-        expect(result).toBeNull();
+        expect(result).toStrictEqual(Option.none());
       });
     });
 
@@ -417,14 +417,16 @@ describe("user gateway", () => {
       return runOrFailure((gateway) =>
         gateway.fetchCurrentUser("user-1", "user@example.com")
       ).then((result) => {
-        expect(result).toStrictEqual({
-          avatarUrl: null,
-          createdAt: "2026-01-01T00:00:00.000Z",
-          email: "user@example.com",
-          id: "user-1",
-          name: "Name",
-          updatedAt: "2026-01-02T00:00:00.000Z",
-        });
+        expect(result).toStrictEqual(
+          Option.some({
+            avatarUrl: null,
+            createdAt: "2026-01-01T00:00:00.000Z",
+            email: "user@example.com",
+            id: "user-1",
+            name: "Name",
+            updatedAt: "2026-01-02T00:00:00.000Z",
+          })
+        );
       });
     });
 
@@ -446,14 +448,16 @@ describe("user gateway", () => {
       return runOrFailure((gateway) =>
         gateway.fetchCurrentUser("user-1", "user@example.com")
       ).then((result) => {
-        expect(result).toStrictEqual({
-          avatarUrl: avatarUrlForKey(OLD_KEY),
-          createdAt: "2026-01-01T00:00:00.000Z",
-          email: "user@example.com",
-          id: "user-1",
-          name: "Name",
-          updatedAt: "2026-01-02T00:00:00.000Z",
-        });
+        expect(result).toStrictEqual(
+          Option.some({
+            avatarUrl: avatarUrlForKey(OLD_KEY),
+            createdAt: "2026-01-01T00:00:00.000Z",
+            email: "user@example.com",
+            id: "user-1",
+            name: "Name",
+            updatedAt: "2026-01-02T00:00:00.000Z",
+          })
+        );
       });
     });
 
@@ -475,14 +479,16 @@ describe("user gateway", () => {
       return runOrFailure((gateway) =>
         gateway.fetchCurrentUser("user-1", "user@example.com")
       ).then((result) => {
-        expect(result).toStrictEqual({
-          avatarUrl: "https://images.example.com/from-google.png",
-          createdAt: "2026-01-01T00:00:00.000Z",
-          email: "user@example.com",
-          id: "user-1",
-          name: "Name",
-          updatedAt: "2026-01-02T00:00:00.000Z",
-        });
+        expect(result).toStrictEqual(
+          Option.some({
+            avatarUrl: "https://images.example.com/from-google.png",
+            createdAt: "2026-01-01T00:00:00.000Z",
+            email: "user@example.com",
+            id: "user-1",
+            name: "Name",
+            updatedAt: "2026-01-02T00:00:00.000Z",
+          })
+        );
       });
     });
 

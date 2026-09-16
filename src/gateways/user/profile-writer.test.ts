@@ -1,4 +1,4 @@
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import type { UpdateUser, UserWithEmail } from "@/entities/user";
 import { DriverFailed } from "@/test/defect";
@@ -66,7 +66,9 @@ const makeFakes = (read: CurrentUserReader["Service"]["read"]) => {
 
 describe(updateProfileResult, () => {
   it("should reject without writing persistence when the request is anonymous", () => {
-    const { updateProfile, updateUser } = makeFakes(Effect.succeed(null));
+    const { updateProfile, updateUser } = makeFakes(
+      Effect.succeed(Option.none())
+    );
 
     return updateProfile({ name: "Updated User" }).then((result) => {
       expect({ result, updateCalls: updateUser.mock.calls }).toStrictEqual({
@@ -78,7 +80,7 @@ describe(updateProfileResult, () => {
 
   it("should pass the server-derived identity when the request is authenticated", () => {
     const { updateProfile, updateUser } = makeFakes(
-      Effect.succeed(authenticatedUser)
+      Effect.succeed(Option.some(authenticatedUser))
     );
     const data = { name: "Updated User" };
 
@@ -92,7 +94,7 @@ describe(updateProfileResult, () => {
 
   it("should report the write failure when the name update fails", () => {
     const { updateProfile, updateUser } = makeFakes(
-      Effect.succeed(authenticatedUser)
+      Effect.succeed(Option.some(authenticatedUser))
     );
     updateUser.mockReturnValue(Effect.fail(new UserNameUpdateFailed()));
 
@@ -121,7 +123,9 @@ describe(updateProfileResult, () => {
 
 describe(uploadAvatarResult, () => {
   it("should reject without writing persistence when the request is anonymous", () => {
-    const { updateUserAvatar, uploadAvatar } = makeFakes(Effect.succeed(null));
+    const { updateUserAvatar, uploadAvatar } = makeFakes(
+      Effect.succeed(Option.none())
+    );
 
     return uploadAvatar(pngFile(1)).then((result) => {
       expect({
@@ -140,7 +144,7 @@ describe(uploadAvatarResult, () => {
 
   it("should pass the server-derived identity when the request is authenticated", () => {
     const { updateUserAvatar, uploadAvatar } = makeFakes(
-      Effect.succeed(authenticatedUser)
+      Effect.succeed(Option.some(authenticatedUser))
     );
     const file = pngFile(1);
 
@@ -161,7 +165,7 @@ describe(uploadAvatarResult, () => {
 
   it("should report the rejected type when the gateway refuses the image", () => {
     const { updateUserAvatar, uploadAvatar } = makeFakes(
-      Effect.succeed(authenticatedUser)
+      Effect.succeed(Option.some(authenticatedUser))
     );
     updateUserAvatar.mockReturnValue(Effect.fail(new AvatarTypeUnsupported()));
 
@@ -176,7 +180,7 @@ describe(uploadAvatarResult, () => {
 
   it("should carry the orphaned key when the gateway leaves an object behind", () => {
     const { updateUserAvatar, uploadAvatar } = makeFakes(
-      Effect.succeed(authenticatedUser)
+      Effect.succeed(Option.some(authenticatedUser))
     );
     updateUserAvatar.mockReturnValue(
       Effect.fail(

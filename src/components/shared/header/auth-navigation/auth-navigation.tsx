@@ -1,16 +1,17 @@
 import { Link } from "@tanstack/react-router";
+import { Option } from "effect";
 import { Button } from "@/components/ui/button";
 import type { UserWithEmail } from "@/entities/user";
 import { UserMenu } from "../user-menu/user-menu";
 
 // similarity-ignore: Header と構造が偶然一致するが、認証ナビゲーション固有の Props 契約。
 interface AuthNavigationProps {
-  user: UserWithEmail | null;
+  user: Option.Option<UserWithEmail>;
 }
 
 export const AuthNavigation = ({ user }: AuthNavigationProps) => {
-  if (user) {
-    return <UserMenu user={user} />;
+  if (Option.isSome(user)) {
+    return <UserMenu user={user.value} />;
   }
 
   return (

@@ -40,7 +40,7 @@ const authenticatedCaller = Option.some({
 });
 
 describe("CurrentUserReader.read", () => {
-  it("should return null without reading the gateway when the request is anonymous", () => {
+  it("should return None without reading the gateway when the request is anonymous", () => {
     const { fetchCurrentUser, readCurrentUser: read } = makeFakes(
       Effect.succeed(Option.none())
     );
@@ -49,7 +49,7 @@ describe("CurrentUserReader.read", () => {
       expect({ fetchCalls: fetchCurrentUser.mock.calls, result }).toStrictEqual(
         {
           fetchCalls: [],
-          result: null,
+          result: Option.none(),
         }
       );
     });
@@ -59,13 +59,13 @@ describe("CurrentUserReader.read", () => {
     const { fetchCurrentUser, readCurrentUser: read } = makeFakes(
       Effect.succeed(authenticatedCaller)
     );
-    fetchCurrentUser.mockReturnValue(Effect.succeed(null));
+    fetchCurrentUser.mockReturnValue(Effect.succeed(Option.none()));
 
     return read().then((result) => {
       expect({ fetchCalls: fetchCurrentUser.mock.calls, result }).toStrictEqual(
         {
           fetchCalls: [["user-1", "user-1@example.com"]],
-          result: null,
+          result: Option.none(),
         }
       );
     });

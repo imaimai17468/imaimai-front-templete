@@ -15,7 +15,10 @@ import { makeRunHandler } from "../runtime.live";
 export class CurrentUserReader extends Context.Service<
   CurrentUserReader,
   {
-    readonly read: Effect.Effect<UserWithEmail | null, UserPersistenceError>;
+    readonly read: Effect.Effect<
+      Option.Option<UserWithEmail>,
+      UserPersistenceError
+    >;
   }
 >()("app/gateways/user/CurrentUserReader") {
   static readonly layerNoDeps = Layer.effect(
@@ -27,7 +30,7 @@ export class CurrentUserReader extends Context.Service<
       const read = Effect.gen(function* readCurrentUser() {
         const caller = yield* currentSession.read;
         if (Option.isNone(caller)) {
-          return null;
+          return Option.none();
         }
         return yield* gateway.fetchCurrentUser(
           caller.value.id,
@@ -54,7 +57,7 @@ export class CurrentUserReader extends Context.Service<
  * `Effect.orDie` keeps a failure added later out of this arm.
  */
 export const readCurrentUser: Effect.Effect<
-  UserWithEmail | null,
+  Option.Option<UserWithEmail>,
   never,
   CurrentUserReader
 > = Effect.gen(function* readCurrentUser() {
@@ -68,6 +71,14 @@ export const readCurrentUser: Effect.Effect<
 
 const runCurrentUserHandler = makeRunHandler(CurrentUserReader.layer);
 
-/** Reads the caller's own profile row and hands back a Promise. */
-export const runCurrentUser = (): Promise<UserWithEmail | null> =>
-  runCurrentUserHandler(readCurrentUser);
+/**
+ * Reads the caller's own profile row and hands back a Promise.
+ *
+ * The Promise carries the nullable rather than the `Option`, because
+ * `createServerFn` serializes this value and the receiver gets data alone. An
+ * `Option` through `JSON.parse(JSON.stringify(...))` comes back as a plain
+ * `{ _id: "Option", _tag: "None" }` whose `pipe` is `undefined`, so the type
+ * would promise the receiver an `Option` it does not hold.
+ */
+export const runCurrentUser = () =>
+  runCurrentUserHandler(readCurrentUser.pipe(Effect.map(Option.getOrNull)));
