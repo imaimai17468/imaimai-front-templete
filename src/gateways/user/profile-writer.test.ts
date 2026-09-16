@@ -7,7 +7,7 @@ import {
   UserGateway,
   UserNameUpdateFailed,
   UserPersistenceError,
-} from "@/gateways/user";
+} from ".";
 import { CurrentUserReader } from "./current-user";
 import {
   ProfileWriter,

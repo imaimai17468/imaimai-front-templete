@@ -16,8 +16,7 @@ const TREE = `src/
 │   ├── profile.tsx         # Profile page (auth guard via beforeLoad)
 │   ├── auth.auth-code-error.tsx  # OAuth failure landing page
 │   └── api/                # API routes (auth catch-all, avatars)
-├── server/fn/              # Server functions (createServerFn) and their ManagedRuntime wiring
-├── gateways/               # D1 / R2 persistence
+├── gateways/               # createServerFn, its ManagedRuntime wiring, and D1 / R2 persistence
 ├── entities/               # Domain types and schemas
 ├── components/
 │   ├── ui/                 # shadcn/ui primitives
@@ -73,7 +72,7 @@ const SPECS = [
       {
         term: "層の契約",
         detail:
-          "routes → server/fn → gateways → entities。逆向きの import は tools/oxlint-plugins が落とす",
+          "routes → gateways → entities。逆向きの import は tools/oxlint-plugins が落とす",
       },
       {
         term: "コミット前",

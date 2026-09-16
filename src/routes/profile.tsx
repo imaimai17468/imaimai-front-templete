@@ -4,7 +4,7 @@ import {
   useLoaderData,
 } from "@tanstack/react-router";
 import { ProfilePage } from "@/components/features/profile-page/profile-page";
-import { getCurrentUserFn } from "@/server/fn/user.live";
+import { getCurrentUserFn } from "@/gateways/user/user.live";
 
 const ProfileComponent = () => {
   const { user } = useLoaderData({ from: "/profile" });

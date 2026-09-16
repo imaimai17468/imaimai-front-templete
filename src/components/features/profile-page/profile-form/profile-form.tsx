@@ -17,11 +17,11 @@ import {
 import { Input } from "@/components/ui/input";
 import type { UpdateUser, UserWithEmail } from "@/entities/user";
 import { UpdateUserSchema } from "@/entities/user";
+import { updateProfileFn, uploadAvatarFn } from "@/gateways/user/profile";
 import {
   avatarSizeRejection,
   MAX_AVATAR_BYTES,
 } from "@/lib/storage/avatar-validation";
-import { updateProfileFn, uploadAvatarFn } from "@/server/fn/profile";
 
 // similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
 interface ProfileFormProps {

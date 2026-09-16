@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Effect } from "effect";
-import { AvatarReader, runAvatarHandler } from "@/server/fn/avatar";
+import { AvatarReader, runAvatarHandler } from "@/gateways/avatar/reader";
 
 const jsonError = (status: number, error: string): Response =>
   Response.json({ error }, { status });

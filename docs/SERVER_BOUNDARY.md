@@ -10,8 +10,7 @@
 Cloudflare Worker
 └ src/ssr.tsx           createStartHandler
     ├ routes/           TanStack Router。api/ は 2 本（auth catch-all, avatars）
-    ├ server/fn/        認可境界。createServerFn
-    ├ gateways/         D1 / R2
+    ├ gateways/         認可境界。createServerFn と D1 / R2
     ├ entities/         Effect Schema
     └ lib/              drizzle / auth / storage
 ```
@@ -115,6 +114,12 @@ Hono のミドルウェアに置くとその経路が認可を飛ばす。実装
 通らずに `executed` に到達できない」が成立するのは呼び出しが機械の入口から入る
 場合だけで、component が gateway を直接 import したらその外側になる。
 
+**その lint は 3 層化のときに落とした。** `server/fn/` を `gateways/` へ畳んだとき、
+`routes → gateways` と `gateways → lib/auth` を禁じる 2 本を `arch-rules.js` から
+削除している。認可は `AvatarReader`、`CurrentUserReader`、`ProfileWriter` の中に残るが、route や
+component が `AvatarGateway` を直接 import する経路を機械的に止めるものは無い。
+分割に着手するなら、ここを最初に埋め直す。
+
 ## 移行のコスト
 
 一度やったときの実測。
@@ -125,7 +130,7 @@ Hono のミドルウェアに置くとその経路が認可を飛ばす。実装
 | サーバ処理の全量（テスト除く） | 約 100 行 |
 | HTTP エンドポイント | 2 本 |
 | `src/` パスをハードコードしている設定 | `vitest.config.mts` / `knip.json` / `tsconfig.json` / `wrangler.toml` / `components.json` / `vite.config.ts` |
-| `tools/oxlint-plugins/arch-rules.js` のパス依存 | `"src/` を含む行が 22 |
+| `tools/oxlint-plugins/arch-rules.js` のパス依存 | `"src/` を含む行が 16（2026-09-16 計測。他の行は revert した移行時の記録） |
 
 **エンドポイントの移設コストは本数に比例しない。** ハンドラのロジックが
 `Request → Response` の純関数として切られていれば、Hono へ寄せるのは殻の差し替えで

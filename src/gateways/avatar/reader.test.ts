@@ -1,15 +1,15 @@
 import { Effect, Layer } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
-import { AvatarGateway } from "@/gateways/avatar";
-import type { AvatarObject } from "@/gateways/avatar";
 import { CurrentSession } from "@/lib/auth/current-session.live";
 import type { getSession } from "@/lib/auth/session.live";
+import { AvatarGateway } from ".";
+import type { AvatarObject } from ".";
 import {
   AvatarInvalidKey,
   AvatarNotFound,
   AvatarReader,
   AvatarUnauthorized,
-} from "./avatar";
+} from "./reader";
 
 const makeFakes = (read: CurrentSession["Service"]["read"]) => {
   const fetchAvatar = vi.fn<AvatarGateway["Service"]["fetchAvatar"]>();

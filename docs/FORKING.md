@@ -55,7 +55,7 @@ Better Auth はリクエストの origin を base URL にするので、環境�
 ## 4. 削除するアプリ機能
 
 プロフィール機能（`src/components/features/profile-page/`,
-`src/server/fn/profile.ts`, `src/gateways/user/`, `src/entities/user/`,
+`src/gateways/user/`, `src/entities/user/`,
 `src/routes/profile.tsx`, `src/lib/storage/`）は、認証・DB・R2 を通した参照実装
 であって要件ではない。不要なら削除する。認証自体を外す場合は
 `/remove-db` スキルの手順を確認する。
