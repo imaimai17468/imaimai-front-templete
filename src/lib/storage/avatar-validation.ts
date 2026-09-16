@@ -6,6 +6,8 @@
  * pinned to the `<userId>/avatar.<ext>` shape before any bucket access.
  */
 
+import { Option } from "effect";
+
 const AVATAR_MIME_TO_EXTENSION = new Map([
   ["image/png", "png"],
   ["image/jpeg", "jpg"],
@@ -77,29 +79,29 @@ const AVATAR_KEY_PATTERN =
 
 const parseAvatarKey = (
   key: string
-): { ownerId: string; extension: string } | null => {
-  const match = AVATAR_KEY_PATTERN.exec(key);
-  const ownerId = match?.groups?.ownerId;
-  const extension = match?.groups?.extension;
-  if (
-    ownerId === undefined ||
-    extension === undefined ||
-    !AVATAR_READ_EXTENSIONS.has(extension.toLowerCase())
-  ) {
-    return null;
-  }
-  return { extension, ownerId };
+): Option.Option<{ ownerId: string; extension: string }> => {
+  const groups = AVATAR_KEY_PATTERN.exec(key)?.groups;
+  return Option.all({
+    extension: Option.fromUndefinedOr(groups?.extension),
+    ownerId: Option.fromUndefinedOr(groups?.ownerId),
+  }).pipe(
+    Option.filter(({ extension }) =>
+      AVATAR_READ_EXTENSIONS.has(extension.toLowerCase())
+    )
+  );
 };
 
 /**
- * Returns the storage extension for an allow-listed image MIME type, or
- * `null` when the type is not an exact match (parameters, case variants, and
+ * Returns the storage extension for an allow-listed image MIME type, or a
+ * `None` when the type is not an exact match (parameters, case variants, and
  * non-image types are all rejected).
  */
-export const avatarExtensionForMime = (mimeType: string): string | null =>
+export const avatarExtensionForMime = (
+  mimeType: string
+): Option.Option<string> =>
   // Map.get consults own entries only — Object.prototype members
   // ("__proto__", "constructor", …) can never satisfy the allow-list.
-  AVATAR_MIME_TO_EXTENSION.get(mimeType) ?? null;
+  Option.fromUndefinedOr(AVATAR_MIME_TO_EXTENSION.get(mimeType));
 
 /**
  * Upload size ceiling in bytes. Exported so the client-side pre-check and the
@@ -112,7 +114,7 @@ export const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 export type AvatarSizeRejection = "empty" | "too-large";
 
 /**
- * Classifies an upload's byte length, returning `null` when the size is
+ * Classifies an upload's byte length, returning a `None` when the size is
  * acceptable. A rejection *reason* rather than a boolean so callers can keep
  * distinct messages ("no file selected" vs "too large") and so a future limit
  * (per-plan ceilings, minimum dimensions) can extend the union.
@@ -122,14 +124,14 @@ export type AvatarSizeRejection = "empty" | "too-large";
  */
 export const avatarSizeRejection = (
   size: number
-): AvatarSizeRejection | null => {
+): Option.Option<AvatarSizeRejection> => {
   if (size <= 0) {
-    return "empty";
+    return Option.some("empty");
   }
   if (size > MAX_AVATAR_BYTES) {
-    return "too-large";
+    return Option.some("too-large");
   }
-  return null;
+  return Option.none();
 };
 
 /**
@@ -138,4 +140,4 @@ export const avatarSizeRejection = (
  * avatar so an authenticated user cannot enumerate others' objects.
  */
 export const isOwnAvatarKey = (key: string, userId: string): boolean =>
-  parseAvatarKey(key)?.ownerId === userId;
+  Option.exists(parseAvatarKey(key), (parsed) => parsed.ownerId === userId);

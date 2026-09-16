@@ -1,5 +1,5 @@
 import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
-import { flow, Schema } from "effect";
+import { flow, Option, Schema } from "effect";
 import { UpdateUserSchema } from "@/entities/user";
 import {
   avatarSizeRejection,
@@ -29,7 +29,7 @@ const AVATAR_REJECTION_MESSAGES = {
 
 const rejectsFor = (rejection: AvatarSizeRejection) =>
   Schema.makeFilter<File>(
-    (file) => avatarSizeRejection(file.size) !== rejection,
+    (file) => !Option.contains(avatarSizeRejection(file.size), rejection),
     {
       message: AVATAR_REJECTION_MESSAGES[rejection],
     }

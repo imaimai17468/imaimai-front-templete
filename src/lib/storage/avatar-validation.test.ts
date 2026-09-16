@@ -1,3 +1,4 @@
+import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import {
   avatarContentMatchesMime,
@@ -14,9 +15,9 @@ describe(avatarExtensionForMime, () => {
     ["image/webp", "webp"],
     ["image/gif", "gif"],
   ])(
-    "should return an extension when the allowed type %s maps to %s",
+    "should return the extension when the allowed type %s maps to %s",
     (mime, ext) => {
-      expect(avatarExtensionForMime(mime)).toBe(ext);
+      expect(avatarExtensionForMime(mime)).toStrictEqual(Option.some(ext));
     }
   );
 
@@ -33,9 +34,9 @@ describe(avatarExtensionForMime, () => {
     "hasOwnProperty",
     "valueOf",
   ])(
-    "should return null when the type %j is disallowed or malformed",
+    "should return a None when the type %j is disallowed or malformed",
     (mime) => {
-      expect(avatarExtensionForMime(mime)).toBeNull();
+      expect(avatarExtensionForMime(mime)).toStrictEqual(Option.none());
     }
   );
 });
@@ -45,21 +46,21 @@ describe(avatarSizeRejection, () => {
     ["zero bytes", 0],
     ["negative size", -1],
   ])("should return empty when the size is %s", (_label, size) => {
-    expect(avatarSizeRejection(size)).toBe("empty");
+    expect(avatarSizeRejection(size)).toStrictEqual(Option.some("empty"));
   });
 
   it.each([
     ["one byte over the ceiling", MAX_AVATAR_BYTES + 1],
     ["far over the ceiling", MAX_AVATAR_BYTES * 10],
   ])("should return too-large when the size is %s", (_label, size) => {
-    expect(avatarSizeRejection(size)).toBe("too-large");
+    expect(avatarSizeRejection(size)).toStrictEqual(Option.some("too-large"));
   });
 
   it.each([
     ["the smallest non-empty size", 1],
     ["exactly the ceiling", MAX_AVATAR_BYTES],
-  ])("should return null when the size is %s", (_label, size) => {
-    expect(avatarSizeRejection(size)).toBeNull();
+  ])("should return a None when the size is %s", (_label, size) => {
+    expect(avatarSizeRejection(size)).toStrictEqual(Option.none());
   });
 });
 

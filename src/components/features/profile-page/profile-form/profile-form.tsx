@@ -1,4 +1,5 @@
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import { Option } from "effect";
 import { Camera, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
@@ -77,25 +78,25 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
     // Same two reasons the server distinguishes, so the message matches what
     // actually went wrong rather than blaming size for an empty file.
     const rejection = avatarSizeRejection(file.size);
-    switch (rejection) {
-      case "empty": {
-        toast.error("That file is empty. Please select another one.");
-        return;
-      }
-      case "too-large": {
-        toast.error(
-          `Please keep file size under ${MAX_AVATAR_BYTES / 1024 / 1024}MB`
-        );
-        return;
-      }
-      case null: {
-        break;
-      }
-      // A new rejection reason fails `satisfies never` here rather than
-      // passing silently.
-      default: {
-        rejection satisfies never;
-        return;
+    if (Option.isSome(rejection)) {
+      const reason = rejection.value;
+      switch (reason) {
+        case "empty": {
+          toast.error("That file is empty. Please select another one.");
+          return;
+        }
+        case "too-large": {
+          toast.error(
+            `Please keep file size under ${MAX_AVATAR_BYTES / 1024 / 1024}MB`
+          );
+          return;
+        }
+        // A new rejection reason fails `satisfies never` here rather than
+        // passing silently.
+        default: {
+          reason satisfies never;
+          return;
+        }
       }
     }
 
