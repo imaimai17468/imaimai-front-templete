@@ -187,7 +187,7 @@ export interface AvatarUpdated {
 }
 
 /**
- * The value the read produced, or `None` once the cause has been written to
+ * The value the effect produced, or `None` once the cause has been written to
  * Workers Logs under `event`.
  *
  * Every failure on the avatar path collapses into one user-facing result, so a
