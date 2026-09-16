@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { DateTime } from "effect";
+import { DateTime, Option } from "effect";
 import { getDb } from "@/lib/drizzle/db.live";
 import { users } from "@/lib/drizzle/schema";
 import type { UserProfileRow } from ".";
@@ -9,38 +9,43 @@ import type { UserProfileRow } from ".";
  *
  * `Date` crosses no further than this module: a row's timestamps become
  * `DateTime.Utc` on the way out and a write's `updatedAt` becomes a `Date` on
- * the way in, so the gateway above reads the clock through Effect.
+ * the way in, so the gateway above reads the clock through Effect. A nullable
+ * column becomes an `Option` on the way out, and the name a write carries
+ * becomes `null` again on the way in.
  */
 export const drizzleUserStore = {
   findAvatarKey: (
     userId: string
-  ): Promise<{ avatarKey: string | null } | null> =>
+  ): Promise<Option.Option<Pick<UserProfileRow, "avatarKey">>> =>
     getDb()
       .select({ avatarKey: users.avatarKey })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1)
-      .then((rows) => rows[0] ?? null),
+      .then((rows) =>
+        Option.fromNullishOr(rows[0]).pipe(
+          Option.map((row) => ({ avatarKey: Option.fromNullOr(row.avatarKey) }))
+        )
+      ),
 
-  findProfile: (userId: string): Promise<UserProfileRow | null> =>
+  findProfile: (userId: string): Promise<Option.Option<UserProfileRow>> =>
     getDb()
       .select()
       .from(users)
       .where(eq(users.id, userId))
       .limit(1)
-      .then(([row]) => {
-        if (row === undefined) {
-          return null;
-        }
-        return {
-          avatarKey: row.avatarKey,
-          createdAt: DateTime.fromDateUnsafe(row.createdAt),
-          id: row.id,
-          image: row.image,
-          name: row.name,
-          updatedAt: DateTime.fromDateUnsafe(row.updatedAt),
-        };
-      }),
+      .then(([row]) =>
+        Option.fromNullishOr(row).pipe(
+          Option.map((profile) => ({
+            avatarKey: Option.fromNullOr(profile.avatarKey),
+            createdAt: DateTime.fromDateUnsafe(profile.createdAt),
+            id: profile.id,
+            image: Option.fromNullOr(profile.image),
+            name: Option.fromNullOr(profile.name),
+            updatedAt: DateTime.fromDateUnsafe(profile.updatedAt),
+          }))
+        )
+      ),
 
   setAvatarKey: (
     userId: string,
@@ -54,10 +59,17 @@ export const drizzleUserStore = {
       .returning({ id: users.id })
       .then((rows) => rows.length),
 
-  updateName: (userId: string, name: string | null, updatedAt: DateTime.Utc) =>
+  updateName: (
+    userId: string,
+    name: Option.Option<string>,
+    updatedAt: DateTime.Utc
+  ) =>
     getDb()
       .update(users)
-      .set({ name, updatedAt: DateTime.toDateUtc(updatedAt) })
+      .set({
+        name: Option.getOrNull(name),
+        updatedAt: DateTime.toDateUtc(updatedAt),
+      })
       .where(eq(users.id, userId))
       .execute(),
 };
