@@ -1,9 +1,12 @@
 "use client";
 
+import { Option } from "effect";
 import { useTheme } from "next-themes";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
-const isValidTheme = (t: string): t is "light" | "dark" =>
+type SonnerTheme = "light" | "dark";
+
+const isValidTheme = (t: string): t is SonnerTheme =>
   t === "dark" || t === "light";
 
 // CSS custom properties are not part of `CSSProperties`, so the object is typed
@@ -17,7 +20,9 @@ const toasterTokens: React.CSSProperties & Record<`--${string}`, string> = {
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "light" } = useTheme();
-  const resolvedTheme = isValidTheme(theme) ? theme : "light";
+  const resolvedTheme = Option.liftPredicate(theme, isValidTheme).pipe(
+    Option.getOrElse((): SonnerTheme => "light")
+  );
 
   return (
     <Sonner

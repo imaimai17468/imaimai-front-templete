@@ -1,3 +1,5 @@
+import { Option } from "effect";
+
 export type Theme = "dark" | "light";
 
 // Each theme maps to the one the toggle moves to next. `Record<Theme, Theme>`
@@ -20,7 +22,10 @@ export const resolveThemeCycle = (
   rawTheme: string | undefined,
   mounted: boolean
 ): ThemeCycle => {
-  const current = mounted && isTheme(rawTheme) ? rawTheme : "light";
+  const current = Option.liftPredicate(rawTheme, isTheme).pipe(
+    Option.filter(() => mounted),
+    Option.getOrElse((): Theme => "light")
+  );
   return { current, next: NEXT[current] };
 };
 

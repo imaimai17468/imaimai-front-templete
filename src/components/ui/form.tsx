@@ -1,5 +1,6 @@
 "use client";
 
+import { Option } from "effect";
 import { type Label as LabelPrimitive, Slot as SlotPrimitive } from "radix-ui";
 import * as React from "react";
 import {
@@ -119,9 +120,10 @@ function FormControl({
     <SlotPrimitive.Slot
       data-slot="form-control"
       id={formItemId}
-      aria-describedby={
-        !error ? formDescriptionId : `${formDescriptionId} ${formMessageId}`
-      }
+      aria-describedby={Option.fromNullishOr(error).pipe(
+        Option.map(() => `${formDescriptionId} ${formMessageId}`),
+        Option.getOrElse(() => formDescriptionId)
+      )}
       aria-invalid={!!error}
       {...props}
     />
@@ -143,7 +145,16 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
 
 function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   const { error, formMessageId } = useFormField();
-  const body = error ? (error.message ?? "") : props.children;
+  // `props.children` stays out of a callback: React 19 types it as `ReactNode`,
+  // which admits a Promise, and a callback returning one trips
+  // `promise-function-async`.
+  const failure = Option.fromNullishOr(error).pipe(
+    Option.map((fieldError) => fieldError.message ?? "")
+  );
+  let body: React.ReactNode = props.children;
+  if (Option.isSome(failure)) {
+    body = failure.value;
+  }
 
   if (body == null || body === "") {
     return null;

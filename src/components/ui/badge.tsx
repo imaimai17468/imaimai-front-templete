@@ -3,6 +3,13 @@ import { Slot as SlotPrimitive } from "radix-ui";
 import type * as React from "react";
 import { cn } from "@/lib/utils";
 
+// Selecting the tag from a module-scope table keeps it out of render, which
+// `react/static-components` requires, and leaves no ternary behind.
+const TAG_FOR_AS_CHILD = {
+  false: "span",
+  true: SlotPrimitive.Slot,
+} satisfies Record<`${boolean}`, React.ElementType>;
+
 const badgeVariants = cva(
   "inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3",
   {
@@ -32,7 +39,7 @@ function Badge({
   ...props
 }: React.ComponentProps<"span"> &
   VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
-  const Comp = asChild ? SlotPrimitive.Slot : "span";
+  const Comp = TAG_FOR_AS_CHILD[`${asChild}`];
 
   return (
     <Comp

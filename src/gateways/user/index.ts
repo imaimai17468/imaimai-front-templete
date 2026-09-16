@@ -1,4 +1,12 @@
-import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
+import {
+  Context,
+  DateTime,
+  Effect,
+  Layer,
+  Match,
+  Option,
+  Schema,
+} from "effect";
 import { UserWithEmailSchema } from "@/entities/user";
 import type { UpdateUser, UserWithEmail } from "@/entities/user";
 import { avatarUrlForKey } from "@/lib/avatar-url";
@@ -341,7 +349,11 @@ export class UserGateway extends Context.Service<
               storage.remove(key)
             );
             return yield* new AvatarUploadFailed({
-              orphanedKey: rolledBack ? null : key,
+              orphanedKey: Match.value(rolledBack).pipe(
+                Match.when(true, () => null),
+                Match.when(false, () => key),
+                Match.exhaustive
+              ),
             });
           }
 
@@ -357,7 +369,11 @@ export class UserGateway extends Context.Service<
           );
           return {
             avatarUrl: publicUrl,
-            cleanup: removedPrevious ? "complete" : "pending",
+            cleanup: Match.value(removedPrevious).pipe(
+              Match.when(true, (): AvatarUpdated["cleanup"] => "complete"),
+              Match.when(false, (): AvatarUpdated["cleanup"] => "pending"),
+              Match.exhaustive
+            ),
           } satisfies AvatarUpdated;
         }
       );

@@ -1,3 +1,4 @@
+import { Option } from "effect";
 import type { DevUser } from "./dev-users";
 
 type AuthFailureMessage = string;
@@ -11,6 +12,8 @@ export interface DevSignInDeps {
   signIn: (user: DevUser) => Promise<AuthFailureMessage | null>;
   signUp: (user: DevUser) => Promise<AuthFailureMessage | null>;
 }
+
+const isError = (cause: unknown): cause is Error => cause instanceof Error;
 
 const RECOVERY =
   "Run bun run db:push:local. If that does not help, reset the local D1.";
@@ -31,7 +34,10 @@ export const createDevSignIn =
     } catch (error) {
       return {
         kind: "failed",
-        message: error instanceof Error ? error.message : RECOVERY,
+        message: Option.liftPredicate(error, isError).pipe(
+          Option.map((thrown) => thrown.message),
+          Option.getOrElse(() => RECOVERY)
+        ),
       };
     }
   };
