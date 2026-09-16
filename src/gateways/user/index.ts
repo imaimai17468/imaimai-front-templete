@@ -277,10 +277,11 @@ export class UserGateway extends Context.Service<
             "user.updateName",
             store.updateName(userId, Option.some(data.name), updatedAt)
           );
-          if (written) {
-            return yield* Effect.void;
-          }
-          return yield* new UserNameUpdateFailed();
+          return yield* Match.value(written).pipe(
+            Match.when(true, () => Effect.void),
+            Match.when(false, () => Effect.fail(new UserNameUpdateFailed())),
+            Match.exhaustive
+          );
         }
       );
 
