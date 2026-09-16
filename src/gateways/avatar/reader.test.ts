@@ -73,7 +73,7 @@ describe("AvatarReader.read", () => {
     const { fetchAvatar, readAvatarOrFailure } = makeFakes(
       Effect.succeed(signedInAs("user-1"))
     );
-    fetchAvatar.mockReturnValue(Effect.succeed(null));
+    fetchAvatar.mockReturnValue(Effect.succeed(Option.none()));
 
     return readAvatarOrFailure("user-1/avatar.png").then((result) => {
       expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
@@ -91,7 +91,7 @@ describe("AvatarReader.read", () => {
       body: new ReadableStream<Uint8Array>(),
       contentType: Option.some("image/png"),
     } satisfies AvatarObject;
-    fetchAvatar.mockReturnValue(Effect.succeed(avatar));
+    fetchAvatar.mockReturnValue(Effect.succeed(Option.some(avatar)));
 
     return readAvatarOrFailure("user-1/avatar.png").then((result) => {
       expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({

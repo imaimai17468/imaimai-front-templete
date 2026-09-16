@@ -16,16 +16,21 @@ export interface AvatarObject {
 export class AvatarBucket extends Context.Service<
   AvatarBucket,
   {
-    readonly get: (key: string) => Effect.Effect<{
-      body: R2ObjectBody["body"];
-      httpMetadata?: { contentType?: string | undefined } | undefined;
-    } | null>;
+    readonly get: (key: string) => Effect.Effect<
+      Option.Option<{
+        body: R2ObjectBody["body"];
+        httpMetadata?: { contentType?: string };
+      }>
+    >;
   }
 >()("app/gateways/avatar/AvatarBucket") {
   static readonly layer = Layer.succeed(
     AvatarBucket,
     AvatarBucket.of({
-      get: (key) => Effect.promise(() => r2AvatarBucket.get(key)),
+      get: (key) =>
+        Effect.promise(() => r2AvatarBucket.get(key)).pipe(
+          Effect.map(Option.fromNullOr)
+        ),
     })
   );
 }
@@ -33,7 +38,9 @@ export class AvatarBucket extends Context.Service<
 export class AvatarGateway extends Context.Service<
   AvatarGateway,
   {
-    readonly fetchAvatar: (key: string) => Effect.Effect<AvatarObject | null>;
+    readonly fetchAvatar: (
+      key: string
+    ) => Effect.Effect<Option.Option<AvatarObject>>;
   }
 >()("app/gateways/avatar/AvatarGateway") {
   static readonly layerNoDeps = Layer.effect(
@@ -44,15 +51,14 @@ export class AvatarGateway extends Context.Service<
       const fetchAvatar = Effect.fn("AvatarGateway.fetchAvatar")(
         function* fetchAvatar(key: string) {
           const object = yield* bucket.get(key);
-          if (object === null) {
-            return null;
-          }
-          return {
-            body: object.body,
-            contentType: Option.fromUndefinedOr(
-              object.httpMetadata?.contentType
-            ),
-          };
+          return object.pipe(
+            Option.map((stored) => ({
+              body: stored.body,
+              contentType: Option.fromUndefinedOr(
+                stored.httpMetadata?.contentType
+              ),
+            }))
+          );
         }
       );
 

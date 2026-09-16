@@ -55,10 +55,10 @@ export class AvatarReader extends Context.Service<
           return yield* new AvatarInvalidKey();
         }
         const avatar = yield* gateway.fetchAvatar(key);
-        if (avatar === null) {
+        if (Option.isNone(avatar)) {
           return yield* new AvatarNotFound();
         }
-        return avatar;
+        return avatar.value;
       });
 
       return AvatarReader.of({ read });
