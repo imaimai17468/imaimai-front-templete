@@ -47,7 +47,7 @@ export const effectRules = {
   "effect/noSilentCatchAll": "error",
   "effect/noTernary": "off",
   "effect/noTestLifecycleHooks": "error",
-  "effect/noThrowStatement": "off",
+  "effect/noThrowStatement": "error",
   "effect/noTryCatch": "error",
   "effect/noUnboundedConcurrency": "error",
   "effect/noUnboundedRetry": "error",

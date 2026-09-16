@@ -7,8 +7,11 @@
 const CLOSING_TAG = "</html>";
 
 export interface Route {
-  /** Text only this route's own component renders. */
-  readonly marker: string;
+  /**
+   * Text only this route's own component renders, or null where the answer
+   * carries no body, as a redirect's does not.
+   */
+  readonly marker: string | null;
   readonly path: string;
   readonly status: number;
 }
@@ -17,6 +20,9 @@ export interface Route {
 export const ROUTES: readonly Route[] = [
   { marker: "docs/SERVER_BOUNDARY.md", path: "/", status: 200 },
   { marker: "Sign in With Google", path: "/login", status: 200 },
+  // Signed out, so the profile route's guard answers with its redirect rather
+  // than a page. Nothing else here runs that guard.
+  { marker: null, path: "/profile", status: 307 },
 ];
 
 export type RouteResult =
@@ -34,7 +40,9 @@ export type RouteResult =
     };
 
 export const missingFrom = (body: string, route: Route): readonly string[] =>
-  [CLOSING_TAG, route.marker].filter((needle) => !body.includes(needle));
+  route.marker === null
+    ? []
+    : [CLOSING_TAG, route.marker].filter((needle) => !body.includes(needle));
 
 export const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);

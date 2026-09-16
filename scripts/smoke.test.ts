@@ -100,7 +100,21 @@ describe("smoke", () => {
     );
   });
 
-  it("should request / and /login when the smoke run boots the Worker", () => {
-    expect(ROUTES.map((route) => route.path)).toStrictEqual(["/", "/login"]);
+  it("should find nothing missing when the route answers without a body", () => {
+    const redirectRoute: Route = {
+      marker: null,
+      path: "/profile",
+      status: 307,
+    };
+
+    expect(missingFrom("", redirectRoute)).toStrictEqual([]);
+  });
+
+  it("should request /, /login and /profile when the smoke run boots the Worker", () => {
+    expect(ROUTES.map((route) => route.path)).toStrictEqual([
+      "/",
+      "/login",
+      "/profile",
+    ]);
   });
 });
