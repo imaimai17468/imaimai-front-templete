@@ -8,6 +8,7 @@ import {
   avatarExtensionForMime,
 } from "@/lib/storage/avatar-validation";
 import { r2AvatarBucket } from "../avatar-bucket.live";
+import { randomAvatarKeyId } from "./avatar-key-ids.live";
 import { drizzleUserStore } from "./drizzle-store.live";
 
 /**
@@ -156,7 +157,7 @@ export class AvatarKeyIds extends Context.Service<
 >()("app/gateways/user/AvatarKeyIds") {
   static readonly layer = Layer.succeed(
     AvatarKeyIds,
-    AvatarKeyIds.of({ next: Effect.sync(() => crypto.randomUUID()) })
+    AvatarKeyIds.of({ next: randomAvatarKeyId })
   );
 }
 
@@ -201,10 +202,7 @@ const orNull = <A>(
   effect.pipe(
     Effect.catchTags({
       UserPersistenceError: (error) =>
-        Effect.sync(() => {
-          reportError(event, error.cause);
-          return null;
-        }),
+        reportError(event, error.cause).pipe(Effect.as(null)),
     })
   );
 
@@ -221,10 +219,7 @@ const succeeded = (
     Effect.as(true),
     Effect.catchTags({
       UserPersistenceError: (error) =>
-        Effect.sync(() => {
-          reportError(event, error.cause);
-          return false;
-        }),
+        reportError(event, error.cause).pipe(Effect.as(false)),
     })
   );
 
@@ -333,15 +328,13 @@ export class UserGateway extends Context.Service<
           );
           if (rowsTouched !== 1) {
             if (rowsTouched !== null) {
-              yield* Effect.sync(() => {
-                reportError(
-                  "user.setAvatarKey",
-                  new UnexpectedRowCount({
-                    message: `expected 1 row, got ${String(rowsTouched)}`,
-                    rowsTouched,
-                  })
-                );
-              });
+              yield* reportError(
+                "user.setAvatarKey",
+                new UnexpectedRowCount({
+                  message: `expected 1 row, got ${String(rowsTouched)}`,
+                  rowsTouched,
+                })
+              );
             }
             const rolledBack = yield* succeeded(
               "user.rollbackUpload",

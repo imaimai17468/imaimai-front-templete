@@ -1,3 +1,6 @@
+import type { Effect } from "effect";
+import { Console } from "effect";
+
 export interface ErrorReport {
   readonly event: string;
   readonly message: string;
@@ -22,6 +25,8 @@ export const errorLogPayload = (event: string, cause: unknown): ErrorReport => {
   };
 };
 
-export const reportError = (event: string, cause: unknown): void => {
-  console.error(errorLogPayload(event, cause));
-};
+/** Writes the payload to the console, as an Effect the caller sequences. */
+export const reportError = (
+  event: string,
+  cause: unknown
+): Effect.Effect<void> => Console.error(errorLogPayload(event, cause));

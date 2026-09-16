@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vite-plus/test";
 import { CurrentSession } from "@/lib/auth/current-session.live";
 import type { getSession } from "@/lib/auth/session.live";
 import { DriverFailed } from "@/test/defect";
+import { instant } from "@/test/instant";
 import { UserGateway, UserPersistenceError } from ".";
 import { CurrentUserReader, readCurrentUser } from "./current-user";
 
@@ -37,23 +38,23 @@ const makeFakes = (read: CurrentSession["Service"]["read"]) => {
 
 const authenticatedSession = {
   session: {
-    createdAt: new Date("2026-08-13T00:00:00Z"),
-    expiresAt: new Date("2026-08-20T00:00:00Z"),
+    createdAt: instant("2026-08-13T00:00:00Z"),
+    expiresAt: instant("2026-08-20T00:00:00Z"),
     id: "session-id",
     ipAddress: null,
     token: "session-token",
-    updatedAt: new Date("2026-08-13T00:00:00Z"),
+    updatedAt: instant("2026-08-13T00:00:00Z"),
     userAgent: null,
     userId: "user-1",
   },
   user: {
-    createdAt: new Date("2026-08-13T00:00:00Z"),
+    createdAt: instant("2026-08-13T00:00:00Z"),
     email: "user-1@example.com",
     emailVerified: true,
     id: "user-1",
     image: null,
     name: "Test User",
-    updatedAt: new Date("2026-08-13T00:00:00Z"),
+    updatedAt: instant("2026-08-13T00:00:00Z"),
   },
 } satisfies NonNullable<Awaited<ReturnType<typeof getSession>>>;
 

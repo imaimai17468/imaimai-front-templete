@@ -281,6 +281,13 @@ export default defineConfig({
         rules: effectRules,
       },
       {
+        // The rule's own message exempts a platform adapter, and this module is
+        // one: it is the single place `crypto` is read, and Effect's `Random`
+        // reaches the same global for its seed, so no layer removes it.
+        files: ["src/gateways/user/avatar-key-ids.live.ts"],
+        rules: { "effect/noGlobals": "off" },
+      },
+      {
         // `dev-sign-in.ts` imports no Effect. Its `catch` turns a thrown
         // rejection into the `failed` arm of `DevSignInResult`, which is the
         // shape the rule wants and cannot recognise outside Effect.

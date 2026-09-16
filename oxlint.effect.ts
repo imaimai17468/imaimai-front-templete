@@ -28,7 +28,7 @@ export const effectRules = {
   "effect/noDynamicImports": "error",
   "effect/noEffectBind": "error",
   "effect/noEffectDo": "error",
-  "effect/noGlobals": "off",
+  "effect/noGlobals": "error",
   "effect/noInlineProvide": "error",
   "effect/noKnownValueWidening": "error",
   "effect/noManagedRuntimeInEffect": "error",

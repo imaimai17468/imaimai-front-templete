@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { formatRegisteredOn } from "@/entities/user";
 import type { UserWithEmail } from "@/entities/user";
 import { ProfileForm } from "./profile-form/profile-form";
 
@@ -44,7 +45,7 @@ export const ProfilePage = ({ user }: ProfilePageProps) => (
             <div>
               <p className="text-sm text-muted-foreground">Registration Date</p>
               <p className="font-medium">
-                {new Date(user.createdAt).toLocaleDateString("ja-JP")}
+                {formatRegisteredOn(user.createdAt)}
               </p>
             </div>
           </div>
