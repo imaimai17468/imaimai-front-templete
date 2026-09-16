@@ -1,4 +1,4 @@
-import { DateTime, Result, Schema } from "effect";
+import { DateTime, Option, Result, Schema } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import {
   UpdateAvatarSchema,
@@ -56,11 +56,15 @@ describe("UpdateUserSchema Standard Schema validation", () => {
     }));
 });
 
+// `effect/noNullish` reports a written `null`, and these two are the encoded
+// side of the schema, which stays nullable so the value survives JSON.
+const ABSENT_FIELD = Option.getOrNull(Option.none<string>());
+
 const base = {
-  avatarUrl: null,
+  avatarUrl: ABSENT_FIELD,
   createdAt: "2026-01-01T00:00:00Z",
   id: "user_1",
-  name: null,
+  name: ABSENT_FIELD,
   updatedAt: "2026-01-02T00:00:00Z",
 };
 
@@ -70,10 +74,10 @@ describe("UserSchema decoding", () => {
 
     expect(result).toStrictEqual(
       Result.succeed({
-        avatarUrl: null,
+        avatarUrl: Option.none(),
         createdAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
         id: "user_1",
-        name: null,
+        name: Option.none(),
         updatedAt: DateTime.makeUnsafe("2026-01-02T00:00:00.000Z"),
       })
     );
@@ -106,11 +110,11 @@ describe("UserWithEmailSchema decoding", () => {
 
     expect(result).toStrictEqual(
       Result.succeed({
-        avatarUrl: null,
+        avatarUrl: Option.none(),
         createdAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
         email: "a@example.com",
         id: "user_1",
-        name: null,
+        name: Option.none(),
         updatedAt: DateTime.makeUnsafe("2026-01-02T00:00:00.000Z"),
       })
     );

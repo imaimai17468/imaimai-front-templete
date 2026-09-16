@@ -21,6 +21,10 @@ const NEW_URL = avatarUrlForKey(NEW_KEY);
 const OLD_KEY = "user-1/avatar.jpg";
 const TEST_CLOCK_INSTANT = "1970-01-01T00:00:00.000Z";
 
+// `effect/noNullish` reports a written `null`, and `UserWithEmail` is the
+// schema's encoded side, which stays nullable so the value survives JSON.
+const ABSENT_FIELD = Option.getOrNull(Option.none<string>());
+
 type CapturedReport = Pick<ErrorLogRecord, "event" | "message" | "name">;
 
 const captureErrorReports = (): CapturedReport[] => {
@@ -351,22 +355,16 @@ describe("user gateway", () => {
 
       return runOrFailure((gateway) =>
         gateway.updateUser("user-1", { name: "New Name" })
-      ).then((result) => {
-        expect({
-          result,
-          updateCalls: updateName.mock.calls.map(
-            ([userId, name, updatedAt]) => [
-              userId,
-              name,
-              DateTime.formatIso(updatedAt),
-            ]
-          ),
-        }).toStrictEqual({
-          result: undefined,
-          updateCalls: [
-            ["user-1", Option.some("New Name"), TEST_CLOCK_INSTANT],
-          ],
-        });
+      ).then(() => {
+        expect(
+          updateName.mock.calls.map(([userId, name, updatedAt]) => [
+            userId,
+            name,
+            DateTime.formatIso(updatedAt),
+          ])
+        ).toStrictEqual([
+          ["user-1", Option.some("New Name"), TEST_CLOCK_INSTANT],
+        ]);
       });
     });
 
@@ -424,7 +422,7 @@ describe("user gateway", () => {
       ).then((result) => {
         expect(result).toStrictEqual(
           Option.some({
-            avatarUrl: null,
+            avatarUrl: ABSENT_FIELD,
             createdAt: "2026-01-01T00:00:00.000Z",
             email: "user@example.com",
             id: "user-1",

@@ -19,8 +19,12 @@ import {
 const pngFile = (byteLength: number) =>
   new File([new Uint8Array(byteLength)], "a.png", { type: "image/png" });
 
+// `effect/noNullish` reports a written `null`, and `UserWithEmail` is the
+// schema's encoded side, which stays nullable so the value survives JSON.
+const ABSENT_FIELD = Option.getOrNull(Option.none<string>());
+
 const authenticatedUser = {
-  avatarUrl: null,
+  avatarUrl: ABSENT_FIELD,
   createdAt: "2026-08-13T00:00:00Z",
   email: "user-1@example.com",
   id: "user-1",

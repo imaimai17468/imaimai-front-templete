@@ -263,13 +263,12 @@ export class UserGateway extends Context.Service<
             encodeUserWithEmail({
               avatarUrl: row.avatarKey.pipe(
                 Option.map(avatarUrlForKey),
-                Option.orElse(() => row.image),
-                Option.getOrNull
+                Option.orElse(() => row.image)
               ),
               createdAt: row.createdAt,
               email,
               id: row.id,
-              name: Option.getOrNull(row.name),
+              name: row.name,
               updatedAt: row.updatedAt,
             })
           );

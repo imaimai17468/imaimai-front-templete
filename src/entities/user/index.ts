@@ -16,10 +16,10 @@ const isEmailAddress = Schema.isPattern(
  * @public
  */
 export const UserSchema = Schema.Struct({
-  avatarUrl: Schema.NullOr(Schema.String),
+  avatarUrl: Schema.OptionFromNullOr(Schema.String),
   createdAt: Schema.DateTimeUtcFromString,
   id: Schema.String,
-  name: Schema.NullOr(Schema.String),
+  name: Schema.OptionFromNullOr(Schema.String),
   updatedAt: Schema.DateTimeUtcFromString,
 });
 
