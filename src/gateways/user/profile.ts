@@ -27,19 +27,26 @@ const AVATAR_REJECTION_MESSAGES = {
   "too-large": `Avatar must be ${MAX_AVATAR_BYTES / 1024 / 1024}MB or smaller`,
 } satisfies Record<AvatarSizeRejection, string>;
 
-export const parseAvatarUpload = flow(decodeFormData, (form) => {
-  const file = form.get("avatar");
-  if (!(file instanceof File)) {
-    throw new Error("No file selected");
-  }
-  // Enforced here, not only in the browser: uploadAvatarFn is callable
-  // directly, so a client-side ceiling alone bounds nothing.
-  const rejection = avatarSizeRejection(file.size);
-  if (rejection !== null) {
-    throw new Error(AVATAR_REJECTION_MESSAGES[rejection]);
-  }
-  return { file };
-});
+const rejectsFor = (rejection: AvatarSizeRejection) =>
+  Schema.makeFilter<File>(
+    (file) => avatarSizeRejection(file.size) !== rejection,
+    {
+      message: AVATAR_REJECTION_MESSAGES[rejection],
+    }
+  );
+
+// Checked here, not only in the browser: uploadAvatarFn is callable directly,
+// so a client-side ceiling alone bounds nothing.
+const AvatarFileSchema = Schema.declare<File>(
+  (input): input is File => input instanceof File,
+  { message: AVATAR_REJECTION_MESSAGES.empty }
+).check(rejectsFor("empty"), rejectsFor("too-large"));
+
+const decodeAvatarFile = Schema.decodeUnknownSync(AvatarFileSchema);
+
+export const parseAvatarUpload = flow(decodeFormData, (form) => ({
+  file: decodeAvatarFile(form.get("avatar")),
+}));
 
 const updateProfile = createServerOnlyFn(runUpdateProfile);
 const uploadAvatar = createServerOnlyFn(runUploadAvatar);

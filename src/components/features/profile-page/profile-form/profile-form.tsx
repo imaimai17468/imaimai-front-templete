@@ -82,8 +82,8 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
       // A new rejection reason fails to compile here rather than passing
       // silently, because it has no `never` to widen into.
       default: {
-        const unhandled: never = rejection;
-        throw new Error(`Unhandled avatar rejection: ${String(unhandled)}`);
+        rejection satisfies never;
+        return;
       }
     }
 
