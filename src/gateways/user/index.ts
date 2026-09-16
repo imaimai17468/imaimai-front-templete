@@ -307,10 +307,10 @@ export class UserGateway extends Context.Service<
             return yield* new AvatarTypeUnsupported();
           }
 
-          const current = (yield* orNone(
+          const current = yield* orNone(
             "user.findAvatarKey",
             store.findAvatarKey(userId)
-          )).pipe(Option.flatten);
+          ).pipe(Effect.map(Option.flatten));
           if (Option.isNone(current)) {
             return yield* new AvatarUploadFailed({ orphanedKey: null });
           }
