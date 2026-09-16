@@ -8,6 +8,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
   messageOf,
+  missedBy,
   missingFrom,
   readyUrlIn,
   report,
@@ -16,7 +17,12 @@ import {
 } from "./smoke";
 import type { Route, RouteResult } from "./smoke";
 
-const ROUTE: Route = { marker: "Sign in", path: "/login", status: 200 };
+const ROUTE: Route = {
+  location: null,
+  marker: "Sign in",
+  path: "/login",
+  status: 200,
+};
 
 const answered = (
   overrides: Partial<Extract<RouteResult, { kind: "answered" }>> = {}
@@ -100,7 +106,44 @@ describe("smoke", () => {
     );
   });
 
-  it("should request / and /login when the smoke run boots the Worker", () => {
-    expect(ROUTES.map((route) => route.path)).toStrictEqual(["/", "/login"]);
+  it("should find nothing missing when the route answers without a body", () => {
+    const redirectRoute: Route = {
+      location: null,
+      marker: null,
+      path: "/profile",
+      status: 307,
+    };
+
+    expect(missingFrom("", redirectRoute)).toStrictEqual([]);
+  });
+
+  it("should find the redirect target missing when the answer points elsewhere", () => {
+    const guarded: Route = {
+      location: "/login",
+      marker: null,
+      path: "/profile",
+      status: 307,
+    };
+
+    expect(missedBy("", "/", guarded)).toStrictEqual(["location /login"]);
+  });
+
+  it("should find nothing missing when the redirect points where the route names", () => {
+    const guarded: Route = {
+      location: "/login",
+      marker: null,
+      path: "/profile",
+      status: 307,
+    };
+
+    expect(missedBy("", "/login", guarded)).toStrictEqual([]);
+  });
+
+  it("should request /, /login and /profile when the smoke run boots the Worker", () => {
+    expect(ROUTES.map((route) => route.path)).toStrictEqual([
+      "/",
+      "/login",
+      "/profile",
+    ]);
   });
 });

@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/card";
 import type { UserWithEmail } from "@/entities/user";
 import { ProfileForm } from "./profile-form/profile-form";
+import { formatRegisteredOn } from "./registered-on";
 
 // similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
 interface ProfilePageProps {
@@ -44,7 +45,7 @@ export const ProfilePage = ({ user }: ProfilePageProps) => (
             <div>
               <p className="text-sm text-muted-foreground">Registration Date</p>
               <p className="font-medium">
-                {new Date(user.createdAt).toLocaleDateString("ja-JP")}
+                {formatRegisteredOn(user.createdAt)}
               </p>
             </div>
           </div>

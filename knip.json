@@ -4,9 +4,10 @@
     "src/routes/**/*.{ts,tsx}",
     "scripts/**/*.{ts,js,sh}",
     "src/components/ui/**/*.{ts,tsx}",
-    "src/lib/utils.ts"
+    "src/lib/utils.ts",
+    "src/test/**/*.{ts,tsx}"
   ],
   "project": ["src/**/*.{ts,tsx,css}"],
   "ignoreBinaries": ["shellcheck"],
-  "ignore": ["src/lib/cloudflare/env.live.ts", "src/test/**/*.{ts,tsx}"]
+  "ignore": ["src/lib/cloudflare/env.live.ts"]
 }

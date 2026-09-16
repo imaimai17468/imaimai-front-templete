@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import type { UpdateUser, UserWithEmail } from "@/entities/user";
-import { UpdateUserSchema } from "@/entities/user";
+import { displayName, UpdateUserSchema } from "@/entities/user";
 import { updateProfileFn, uploadAvatarFn } from "@/gateways/user/profile";
 import {
   avatarSizeRejection,
@@ -27,6 +27,18 @@ import {
 interface ProfileFormProps {
   user: UserWithEmail;
 }
+
+const SubmitLabel = ({ isPending }: { readonly isPending: boolean }) => {
+  if (isPending) {
+    return (
+      <>
+        <Loader2 className="mr-2 size-4 motion-safe:animate-spin" />
+        Updating…
+      </>
+    );
+  }
+  return <>Update Profile</>;
+};
 
 export const ProfileForm = ({ user }: ProfileFormProps) => {
   const [isPending, startTransition] = useTransition();
@@ -79,11 +91,11 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
       case null: {
         break;
       }
-      // A new rejection reason fails to compile here rather than passing
-      // silently, because it has no `never` to widen into.
+      // A new rejection reason fails `satisfies never` here rather than
+      // passing silently.
       default: {
-        const unhandled: never = rejection;
-        throw new Error(`Unhandled avatar rejection: ${String(unhandled)}`);
+        rejection satisfies never;
+        return;
       }
     }
 
@@ -117,8 +129,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
     });
   };
 
-  const displayName =
-    user.name === null || user.name === "" ? "User" : user.name;
+  const name = displayName(user.name);
   const avatarUrl = previewUrl ?? user.avatarUrl;
 
   return (
@@ -132,10 +143,8 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
         <div className="flex items-center gap-6">
           <div className="relative">
             <Avatar size="lg">
-              <AvatarImage src={avatarUrl ?? undefined} alt={displayName} />
-              <AvatarFallback>
-                {displayName.charAt(0).toUpperCase()}
-              </AvatarFallback>
+              <AvatarImage src={avatarUrl ?? undefined} alt={name} />
+              <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <button
               type="button"
@@ -196,14 +205,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
           disabled={isPending}
           className="w-full cursor-pointer"
         >
-          {isPending ? (
-            <>
-              <Loader2 className="mr-2 size-4 motion-safe:animate-spin" />
-              Updating…
-            </>
-          ) : (
-            "Update Profile"
-          )}
+          <SubmitLabel isPending={isPending} />
         </Button>
       </form>
     </Form>

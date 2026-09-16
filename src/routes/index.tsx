@@ -34,7 +34,12 @@ const TREE = `src/
 ├── test-setup.ts           # Vitest setup
 └── styles.css              # Tailwind v4 tokens`;
 
-const SPECS = [
+interface Spec {
+  readonly heading: string;
+  readonly rows: readonly { readonly term: string; readonly detail: string }[];
+}
+
+const SPECS: readonly Spec[] = [
   {
     heading: "同梱されているもの",
     rows: [
@@ -128,9 +133,14 @@ const SPECS = [
       },
     ],
   },
-] as const;
+];
 
-const LINKS = [
+interface ExternalLink {
+  readonly name: string;
+  readonly href: string;
+}
+
+const LINKS: readonly ExternalLink[] = [
   { name: "TanStack Start", href: "https://tanstack.com/start/" },
   { name: "TanStack Router", href: "https://tanstack.com/router/" },
   { name: "Tailwind CSS", href: "https://tailwindcss.com/docs" },
@@ -154,7 +164,7 @@ const LINKS = [
   { name: "similarity-ts", href: "https://github.com/mizchi/similarity" },
   { name: "Vitest", href: "https://vitest.dev/" },
   { name: "mise", href: "https://mise.jdx.dev/" },
-] as const;
+];
 
 const HomeComponent = () => (
   <div className="flex flex-col gap-12 pb-16">

@@ -1,5 +1,6 @@
 "use client";
 
+import { Option } from "effect";
 import { type Label as LabelPrimitive, Slot as SlotPrimitive } from "radix-ui";
 import * as React from "react";
 import {
@@ -12,6 +13,7 @@ import {
   useFormState,
 } from "react-hook-form";
 import { Label } from "@/components/ui/label";
+import { requireContext } from "@/lib/require-context";
 import { cn } from "@/lib/utils";
 
 const Form = FormProvider;
@@ -45,15 +47,14 @@ const FormField = <
 };
 
 const useFormField = () => {
-  const fieldContext = React.useContext(FormFieldContext);
-  const itemContext = React.useContext(FormItemContext);
-
-  if (!fieldContext) {
-    throw new Error("useFormField should be used within <FormField>");
-  }
-  if (!itemContext) {
-    throw new Error("useFormField should be used within <FormItem>");
-  }
+  const fieldContext = requireContext(
+    React.useContext(FormFieldContext),
+    "useFormField should be used within <FormField>"
+  );
+  const itemContext = requireContext(
+    React.useContext(FormItemContext),
+    "useFormField should be used within <FormItem>"
+  );
 
   const { getFieldState } = useFormContext();
   const formState = useFormState({ name: fieldContext.name });
@@ -119,9 +120,10 @@ function FormControl({
     <SlotPrimitive.Slot
       data-slot="form-control"
       id={formItemId}
-      aria-describedby={
-        !error ? formDescriptionId : `${formDescriptionId} ${formMessageId}`
-      }
+      aria-describedby={Option.fromNullishOr(error).pipe(
+        Option.map(() => `${formDescriptionId} ${formMessageId}`),
+        Option.getOrElse(() => formDescriptionId)
+      )}
       aria-invalid={!!error}
       {...props}
     />
@@ -143,7 +145,14 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
 
 function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   const { error, formMessageId } = useFormField();
-  const body = error ? (error.message ?? "") : props.children;
+  // The fallback is `??` rather than `Option.getOrElse`: React 19 types
+  // `props.children` as a `ReactNode` that admits a Promise, and a callback
+  // returning one trips `promise-function-async`.
+  const failure = Option.fromNullishOr(error).pipe(
+    Option.map((fieldError) => fieldError.message ?? "")
+  );
+  const body: React.ReactNode =
+    Option.getOrUndefined(failure) ?? props.children;
 
   if (body == null || body === "") {
     return null;

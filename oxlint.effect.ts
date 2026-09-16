@@ -13,7 +13,7 @@ type EffectRuleName = Exclude<keyof typeof recommended, "complexity">;
  * adds or renames fail to compile here, rather than arrive silently enabled or
  * leave a dead key behind.
  *
- * The nine set to `"off"` are the ones `src/` reports today. `noNullish` is the
+ * The two set to `"off"` are the ones `src/` reports today. `noNullish` is the
  * gateways answering `A | null` where the rule wants `Option`, and
  * `noAsyncFunction` is the Promise boundary `createServerFn` requires; turning
  * one on means fixing what it reports.
@@ -21,20 +21,20 @@ type EffectRuleName = Exclude<keyof typeof recommended, "complexity">;
 export const effectRules = {
   "effect/maxCognitiveComplexity": ["error", { max: 21 }],
   "effect/maxHalsteadDifficulty": ["error", { max: 79 }],
-  "effect/noAs": "off",
+  "effect/noAs": "error",
   "effect/noAsyncFunction": "off",
   "effect/noChainedTypeAssertions": "error",
   "effect/noConditionalEmptyObjectSpread": "error",
   "effect/noDynamicImports": "error",
   "effect/noEffectBind": "error",
   "effect/noEffectDo": "error",
-  "effect/noGlobals": "off",
+  "effect/noGlobals": "error",
   "effect/noInlineProvide": "error",
   "effect/noKnownValueWidening": "error",
   "effect/noManagedRuntimeInEffect": "error",
   "effect/noModuleMocks": "error",
   "effect/noNestedEffectGen": "error",
-  "effect/noNewError": "off",
+  "effect/noNewError": "error",
   "effect/noNewPromise": "error",
   "effect/noNodeBuiltinImport": "error",
   "effect/noNullish": "off",
@@ -45,13 +45,13 @@ export const effectRules = {
   "effect/noSequentialEffectAll": "error",
   "effect/noShapeInSymbolNames": "error",
   "effect/noSilentCatchAll": "error",
-  "effect/noTernary": "off",
-  "effect/noTestLifecycleHooks": "off",
-  "effect/noThrowStatement": "off",
+  "effect/noTernary": "error",
+  "effect/noTestLifecycleHooks": "error",
+  "effect/noThrowStatement": "error",
   "effect/noTryCatch": "error",
   "effect/noUnboundedConcurrency": "error",
   "effect/noUnboundedRetry": "error",
-  "effect/noUnknownParameters": "off",
+  "effect/noUnknownParameters": "error",
   "effect/noUnknownTypeAliases": "error",
   "effect/noUnsafeDictionaryType": "error",
   "effect/noWidenThenAssert": "error",

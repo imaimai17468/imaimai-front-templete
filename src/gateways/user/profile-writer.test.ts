@@ -1,6 +1,7 @@
 import { Effect, Layer } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import type { UpdateUser, UserWithEmail } from "@/entities/user";
+import { DriverFailed } from "@/test/defect";
 import {
   AvatarTypeUnsupported,
   AvatarUploadFailed,
@@ -109,7 +110,11 @@ describe(updateProfileResult, () => {
 
   it("should propagate the cause as a defect when the identity read fails", async () => {
     const { updateProfile } = makeFakes(
-      Effect.fail(new UserPersistenceError({ cause: new Error("D1 failed") }))
+      Effect.fail(
+        new UserPersistenceError({
+          cause: new DriverFailed({ message: "D1 failed" }),
+        })
+      )
     );
 
     const result = updateProfile({ name: "Updated User" });
@@ -188,7 +193,11 @@ describe(uploadAvatarResult, () => {
 
   it("should propagate the cause as a defect when the identity read fails", async () => {
     const { uploadAvatar } = makeFakes(
-      Effect.fail(new UserPersistenceError({ cause: new Error("D1 failed") }))
+      Effect.fail(
+        new UserPersistenceError({
+          cause: new DriverFailed({ message: "D1 failed" }),
+        })
+      )
     );
 
     const result = uploadAvatar(pngFile(1));

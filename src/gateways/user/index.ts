@@ -1,4 +1,12 @@
-import { Context, DateTime, Effect, Layer, Schema } from "effect";
+import {
+  Context,
+  DateTime,
+  Effect,
+  Layer,
+  Match,
+  Option,
+  Schema,
+} from "effect";
 import { UserWithEmailSchema } from "@/entities/user";
 import type { UpdateUser, UserWithEmail } from "@/entities/user";
 import { avatarUrlForKey } from "@/lib/avatar-url";
@@ -8,6 +16,7 @@ import {
   avatarExtensionForMime,
 } from "@/lib/storage/avatar-validation";
 import { r2AvatarBucket } from "../avatar-bucket.live";
+import { randomAvatarKeyId } from "./avatar-key-ids.live";
 import { drizzleUserStore } from "./drizzle-store.live";
 
 /**
@@ -28,6 +37,12 @@ const encodeUserWithEmail = Schema.encodeSync(UserWithEmailSchema);
 export class UserPersistenceError extends Schema.TaggedError<UserPersistenceError>()(
   "UserPersistenceError",
   { cause: Schema.Defect() }
+) {}
+
+/** A write the store reported as touching a number of rows nobody expects. */
+class UnexpectedRowCount extends Schema.TaggedError<UnexpectedRowCount>()(
+  "UnexpectedRowCount",
+  { message: Schema.String }
 ) {}
 
 const persistenceEffect = <A>(
@@ -150,7 +165,7 @@ export class AvatarKeyIds extends Context.Service<
 >()("app/gateways/user/AvatarKeyIds") {
   static readonly layer = Layer.succeed(
     AvatarKeyIds,
-    AvatarKeyIds.of({ next: Effect.sync(() => crypto.randomUUID()) })
+    AvatarKeyIds.of({ next: randomAvatarKeyId })
   );
 }
 
@@ -195,10 +210,7 @@ const orNull = <A>(
   effect.pipe(
     Effect.catchTags({
       UserPersistenceError: (error) =>
-        Effect.sync(() => {
-          reportError(event, error.cause);
-          return null;
-        }),
+        reportError(event, error.cause).pipe(Effect.as(null)),
     })
   );
 
@@ -215,10 +227,7 @@ const succeeded = (
     Effect.as(true),
     Effect.catchTags({
       UserPersistenceError: (error) =>
-        Effect.sync(() => {
-          reportError(event, error.cause);
-          return false;
-        }),
+        reportError(event, error.cause).pipe(Effect.as(false)),
     })
   );
 
@@ -256,10 +265,10 @@ export class UserGateway extends Context.Service<
             return null;
           }
           return encodeUserWithEmail({
-            avatarUrl:
-              profile.avatarKey === null
-                ? profile.image
-                : avatarUrlForKey(profile.avatarKey),
+            avatarUrl: Option.fromNullOr(profile.avatarKey).pipe(
+              Option.map(avatarUrlForKey),
+              Option.getOrElse(() => profile.image)
+            ),
             createdAt: profile.createdAt,
             email,
             id: profile.id,
@@ -276,9 +285,12 @@ export class UserGateway extends Context.Service<
             "user.updateName",
             store.updateName(userId, data.name, updatedAt)
           );
-          return yield* written
-            ? Effect.void
-            : Effect.fail(new UserNameUpdateFailed());
+          // Both arms return a value because `consistent-return` refuses a
+          // function that mixes a bare `return` with one that carries a value.
+          if (written) {
+            return yield* Effect.void;
+          }
+          return yield* new UserNameUpdateFailed();
         }
       );
 
@@ -326,24 +338,31 @@ export class UserGateway extends Context.Service<
           );
           if (rowsTouched !== 1) {
             if (rowsTouched !== null) {
-              yield* Effect.sync(() => {
-                reportError(
-                  "user.setAvatarKey",
-                  new Error(`expected 1 row, got ${String(rowsTouched)}`)
-                );
-              });
+              yield* reportError(
+                "user.setAvatarKey",
+                new UnexpectedRowCount({
+                  message: `expected 1 row, got ${String(rowsTouched)}`,
+                })
+              );
             }
             const rolledBack = yield* succeeded(
               "user.rollbackUpload",
               storage.remove(key)
             );
             return yield* new AvatarUploadFailed({
-              orphanedKey: rolledBack ? null : key,
+              orphanedKey: Match.value(rolledBack).pipe(
+                Match.when(true, () => null),
+                Match.when(false, () => key),
+                Match.exhaustive
+              ),
             });
           }
 
           if (previousKey === null) {
-            return { avatarUrl: publicUrl, cleanup: "complete" } as const;
+            return {
+              avatarUrl: publicUrl,
+              cleanup: "complete",
+            } satisfies AvatarUpdated;
           }
           const removedPrevious = yield* succeeded(
             "user.removePrevious",
@@ -351,8 +370,12 @@ export class UserGateway extends Context.Service<
           );
           return {
             avatarUrl: publicUrl,
-            cleanup: removedPrevious ? "complete" : "pending",
-          } as const;
+            cleanup: Match.value(removedPrevious).pipe(
+              Match.when(true, (): AvatarUpdated["cleanup"] => "complete"),
+              Match.when(false, (): AvatarUpdated["cleanup"] => "pending"),
+              Match.exhaustive
+            ),
+          } satisfies AvatarUpdated;
         }
       );
 

@@ -1,25 +1,23 @@
-import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { Effect } from "effect";
+import { describe, expect, it, vi } from "vite-plus/test";
+import { DriverFailed } from "@/test/defect";
 import { errorLogPayload, reportError } from "./report-error";
 
 describe("report-error", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   describe(errorLogPayload, () => {
     it("should copy name, message, and stack when the value is an Error", () => {
-      const error = new Error("D1 failed");
+      const error = new DriverFailed({ message: "D1 failed" });
 
       expect(errorLogPayload("user.updateName", error)).toStrictEqual({
         event: "user.updateName",
         message: "D1 failed",
-        name: "Error",
+        name: "DriverFailed",
         stack: error.stack,
       });
     });
 
     it("should store a null stack when the Error has none", () => {
-      const error = new Error("D1 failed");
+      const error = new DriverFailed({ message: "D1 failed" });
       Object.defineProperty(error, "stack", {
         configurable: true,
         value: undefined,
@@ -28,7 +26,7 @@ describe("report-error", () => {
       expect(errorLogPayload("user.updateName", error)).toStrictEqual({
         event: "user.updateName",
         message: "D1 failed",
-        name: "Error",
+        name: "DriverFailed",
         stack: null,
       });
     });
@@ -44,13 +42,13 @@ describe("report-error", () => {
   });
 
   describe(reportError, () => {
-    it("should write the payload to console.error when called", () => {
+    it("should write the payload to console.error when run", () => {
       const errorSpy = vi
         .spyOn(console, "error")
         .mockImplementation((): void => {});
-      const error = new Error("D1 failed");
+      const error = new DriverFailed({ message: "D1 failed" });
 
-      reportError("user.updateName", error);
+      Effect.runSync(reportError("user.updateName", error));
 
       expect(errorSpy.mock.calls).toStrictEqual([
         [errorLogPayload("user.updateName", error)],

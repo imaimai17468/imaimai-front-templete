@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { displayName } from "@/entities/user";
 import type { UserWithEmail } from "@/entities/user";
 import { signOut } from "@/lib/auth/actions.live";
 
@@ -24,7 +25,7 @@ const handleSignOut = async (): Promise<void> => {
 
 export const UserMenu = ({ user }: UserMenuProps) => {
   const { avatarUrl } = user;
-  const name = user.name === null || user.name === "" ? "User" : user.name;
+  const name = displayName(user.name);
   const { email } = user;
 
   return (

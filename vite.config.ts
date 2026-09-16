@@ -213,10 +213,10 @@ export default defineConfig({
         },
       },
       {
-        files: ["src/test-setup.ts"],
+        files: ["src/test-setup.ts", "src/test/render.tsx"],
         rules: {
-          // vitest.config.mts sets no `globals`, so this import is what
-          // defines afterEach here.
+          // vitest.config.mts sets no `globals`, so the import is what defines
+          // `vi` and `onTestFinished` in these two.
           "vitest/no-importing-vitest-globals": "off",
           "vitest/require-top-level-describe": "off",
         },
@@ -272,52 +272,6 @@ export default defineConfig({
         },
       },
       {
-        // `presets.recommended` from oxlint-plugin-effect, minus three groups.
-        // Its scope is these two layers because the preset is written for
-        // Effect-native code and Effect reaches no further. `complexity` is the
-        // one entry it does not namespace, and this config sets that above.
-        // Nine rules it turns on are left out because the layer does not
-        // satisfy them yet, `noNullish` standing for the gateways returning
-        // `A | null` where it wants `Option`; each is its own ticket, and
-        // enabling one means fixing what it reports rather than listing it here.
-        files: ["src/gateways/**", "src/entities/**"],
-        rules: {
-          "effect/maxCognitiveComplexity": ["error", { max: 21 }],
-          "effect/maxHalsteadDifficulty": ["error", { max: 79 }],
-          "effect/noChainedTypeAssertions": "error",
-          "effect/noConditionalEmptyObjectSpread": "error",
-          "effect/noDynamicImports": "error",
-          "effect/noEffectBind": "error",
-          "effect/noEffectDo": "error",
-          "effect/noInlineProvide": "error",
-          "effect/noKnownValueWidening": "error",
-          "effect/noManagedRuntimeInEffect": "error",
-          "effect/noModuleMocks": "error",
-          "effect/noNestedEffectGen": "error",
-          "effect/noNewPromise": "error",
-          "effect/noNodeBuiltinImport": "error",
-          "effect/noObjectParameters": "error",
-          "effect/noPerCallCacheConstruction": "error",
-          "effect/noRunCollectOnUnboundedStream": "error",
-          "effect/noRuntimeTypeof": "error",
-          "effect/noSequentialEffectAll": "error",
-          "effect/noShapeInSymbolNames": "error",
-          "effect/noSilentCatchAll": "error",
-          "effect/noTryCatch": "error",
-          "effect/noUnboundedConcurrency": "error",
-          "effect/noUnboundedRetry": "error",
-          "effect/noUnknownTypeAliases": "error",
-          "effect/noUnsafeDictionaryType": "error",
-          "effect/noWidenThenAssert": "error",
-          "effect/preferCatchTag": "error",
-          "effect/preferEffectFn": "error",
-          "effect/preferMatchTagsExhaustive": "error",
-          "effect/preferPredicateIsTagged": "error",
-          "effect/preferServiceOf": "error",
-          "effect/requireNamedEffectFn": "error",
-        },
-      },
-      {
         // Effect's own rules. The scope is all of `src/` rather than the
         // layers that hold Effect today, because `lib/auth/` and `routes/api/`
         // hold some too and a glob naming layers leaves the next one outside
@@ -325,6 +279,13 @@ export default defineConfig({
         // a rule firing on a module that carries no Effect.
         files: ["src/**"],
         rules: effectRules,
+      },
+      {
+        // The rule's own message exempts a platform adapter, and this module is
+        // one: it is the single place `crypto` is read, and Effect's `Random`
+        // reaches the same global for its seed, so no layer removes it.
+        files: ["src/gateways/user/avatar-key-ids.live.ts"],
+        rules: { "effect/noGlobals": "off" },
       },
       {
         // `dev-sign-in.ts` imports no Effect. Its `catch` turns a thrown
@@ -341,21 +302,17 @@ export default defineConfig({
         rules: { "effect/noDynamicImports": "off" },
       },
       {
-        // TanStack Start hands `.validator` whatever the client sent, so the
-        // parameter is `unknown` by contract and the parse runs inside. Typing it
-        // as FormData would make the `instanceof` guard read as redundant while
-        // still being the only thing rejecting a malformed payload.
-        files: ["src/gateways/user/profile.ts"],
-        rules: { "anti-slop/no-unknown-parameters": "off" },
-      },
-      {
         // Effect declares a service and each failure it raises as a class, so
         // one module here holds a `Context.Service` plus a `Schema.TaggedError`
         // per failure. `throw-new-error` reads the
         // `Schema.TaggedError<T>()("Tag", {})` call such a class extends as an
         // Error construction missing `new`, and its fix inserts `new` into the
         // `extends` clause, which then does not compile.
-        files: ["src/gateways/**"],
+        files: [
+          "src/gateways/**",
+          "src/lib/require-context.ts",
+          "src/test/defect.ts",
+        ],
         rules: {
           "max-classes-per-file": "off",
           "unicorn/throw-new-error": "off",

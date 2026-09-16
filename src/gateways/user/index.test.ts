@@ -1,8 +1,9 @@
 import { DateTime, Effect, Layer } from "effect";
 import { TestClock } from "effect/testing";
-import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { avatarUrlForKey } from "@/lib/avatar-url";
 import type { ErrorReport } from "@/lib/report-error";
+import { DriverFailed } from "@/test/defect";
 import {
   AvatarKeyIds,
   AvatarStorage,
@@ -35,7 +36,9 @@ const captureErrorReports = (): CapturedReport[] => {
 };
 
 const persistenceFailure = (message: string) =>
-  Effect.fail(new UserPersistenceError({ cause: new Error(message) }));
+  Effect.fail(
+    new UserPersistenceError({ cause: new DriverFailed({ message }) })
+  );
 
 const makeFakes = () => {
   const findAvatarKey = vi.fn<UserStore["Service"]["findAvatarKey"]>();
@@ -99,10 +102,6 @@ const validPng = () =>
   imageFile("image/png", [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 describe("user gateway", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   describe("updateUserAvatar", () => {
     it.each([
       ["the MIME type is unsupported", imageFile("image/svg+xml", [0x3c])],
@@ -185,7 +184,11 @@ describe("user gateway", () => {
         uploadCalls: upload.mock.calls,
       }).toStrictEqual({
         reported: [
-          { event: "user.findAvatarKey", message: "D1 failed", name: "Error" },
+          {
+            event: "user.findAvatarKey",
+            message: "D1 failed",
+            name: "DriverFailed",
+          },
         ],
         result: new AvatarUploadFailed({ orphanedKey: null }),
         uploadCalls: [],
@@ -208,7 +211,11 @@ describe("user gateway", () => {
       }).toStrictEqual({
         removeCalls: [],
         reported: [
-          { event: "user.upload", message: "R2 put failed", name: "Error" },
+          {
+            event: "user.upload",
+            message: "R2 put failed",
+            name: "DriverFailed",
+          },
         ],
         result: new AvatarUploadFailed({ orphanedKey: null }),
       });
@@ -230,7 +237,11 @@ describe("user gateway", () => {
       }).toStrictEqual({
         removeCalls: [[NEW_KEY]],
         reported: [
-          { event: "user.setAvatarKey", message: "D1 failed", name: "Error" },
+          {
+            event: "user.setAvatarKey",
+            message: "D1 failed",
+            name: "DriverFailed",
+          },
         ],
         result: new AvatarUploadFailed({ orphanedKey: null }),
       });
@@ -255,7 +266,7 @@ describe("user gateway", () => {
           {
             event: "user.setAvatarKey",
             message: "expected 1 row, got 0",
-            name: "Error",
+            name: "UnexpectedRowCount",
           },
         ],
         result: new AvatarUploadFailed({ orphanedKey: null }),
@@ -274,11 +285,15 @@ describe("user gateway", () => {
 
       expect({ reported, result }).toStrictEqual({
         reported: [
-          { event: "user.setAvatarKey", message: "D1 failed", name: "Error" },
+          {
+            event: "user.setAvatarKey",
+            message: "D1 failed",
+            name: "DriverFailed",
+          },
           {
             event: "user.rollbackUpload",
             message: "R2 delete failed",
-            name: "Error",
+            name: "DriverFailed",
           },
         ],
         result: new AvatarUploadFailed({ orphanedKey: NEW_KEY }),
@@ -299,7 +314,7 @@ describe("user gateway", () => {
           {
             event: "user.removePrevious",
             message: "R2 delete failed",
-            name: "Error",
+            name: "DriverFailed",
           },
         ],
         result: { avatarUrl: NEW_URL, cleanup: "pending" },
@@ -353,7 +368,11 @@ describe("user gateway", () => {
 
       expect({ reported, result }).toStrictEqual({
         reported: [
-          { event: "user.updateName", message: "D1 failed", name: "Error" },
+          {
+            event: "user.updateName",
+            message: "D1 failed",
+            name: "DriverFailed",
+          },
         ],
         result: new UserNameUpdateFailed(),
       });
@@ -455,7 +474,7 @@ describe("user gateway", () => {
 
     it("should surface the persistence failure when the profile read fails", async () => {
       const { findProfile, runOrFailure } = makeFakes();
-      const cause = new Error("D1 failed");
+      const cause = new DriverFailed({ message: "D1 failed" });
       findProfile.mockReturnValue(
         Effect.fail(new UserPersistenceError({ cause }))
       );

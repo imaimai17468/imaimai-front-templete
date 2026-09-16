@@ -4,6 +4,7 @@ import {
   text,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
+import { DateTime } from "effect";
 
 // Better Auth 必須テーブル
 export const users = sqliteTable("users", {
@@ -13,7 +14,7 @@ export const users = sqliteTable("users", {
   avatarKey: text("avatar_key"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .$defaultFn(() => new Date()),
+    .$defaultFn(() => DateTime.toDateUtc(DateTime.nowUnsafe())),
   email: text("email").notNull().unique(),
   emailVerified: integer("email_verified", { mode: "boolean" }),
   id: text("id").primaryKey(),
@@ -21,20 +22,20 @@ export const users = sqliteTable("users", {
   name: text("name"),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
-    .$defaultFn(() => new Date()),
+    .$defaultFn(() => DateTime.toDateUtc(DateTime.nowUnsafe())),
 });
 
 export const sessions = sqliteTable("sessions", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .$defaultFn(() => new Date()),
+    .$defaultFn(() => DateTime.toDateUtc(DateTime.nowUnsafe())),
   expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
   id: text("id").primaryKey(),
   ipAddress: text("ip_address"),
   token: text("token").notNull().unique(),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
-    .$defaultFn(() => new Date()),
+    .$defaultFn(() => DateTime.toDateUtc(DateTime.nowUnsafe())),
   userAgent: text("user_agent"),
   userId: text("user_id")
     .notNull()
@@ -51,7 +52,7 @@ export const accounts = sqliteTable(
     accountId: text("account_id").notNull(),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
-      .$defaultFn(() => new Date()),
+      .$defaultFn(() => DateTime.toDateUtc(DateTime.nowUnsafe())),
     id: text("id").primaryKey(),
     idToken: text("id_token"),
     issuer: text("issuer").notNull(),
@@ -66,7 +67,7 @@ export const accounts = sqliteTable(
     scope: text("scope"),
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .notNull()
-      .$defaultFn(() => new Date()),
+      .$defaultFn(() => DateTime.toDateUtc(DateTime.nowUnsafe())),
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -80,14 +81,14 @@ export const accounts = sqliteTable(
 );
 
 export const verifications = sqliteTable("verifications", {
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date()
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() =>
+    DateTime.toDateUtc(DateTime.nowUnsafe())
   ),
   expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
   id: text("id").primaryKey(),
   identifier: text("identifier").notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date()
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() =>
+    DateTime.toDateUtc(DateTime.nowUnsafe())
   ),
   value: text("value").notNull(),
 });
