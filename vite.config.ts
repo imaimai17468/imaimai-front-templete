@@ -272,52 +272,6 @@ export default defineConfig({
         },
       },
       {
-        // `presets.recommended` from oxlint-plugin-effect, minus three groups.
-        // Its scope is these two layers because the preset is written for
-        // Effect-native code and Effect reaches no further. `complexity` is the
-        // one entry it does not namespace, and this config sets that above.
-        // Nine rules it turns on are left out because the layer does not
-        // satisfy them yet, `noNullish` standing for the gateways returning
-        // `A | null` where it wants `Option`; each is its own ticket, and
-        // enabling one means fixing what it reports rather than listing it here.
-        files: ["src/gateways/**", "src/entities/**"],
-        rules: {
-          "effect/maxCognitiveComplexity": ["error", { max: 21 }],
-          "effect/maxHalsteadDifficulty": ["error", { max: 79 }],
-          "effect/noChainedTypeAssertions": "error",
-          "effect/noConditionalEmptyObjectSpread": "error",
-          "effect/noDynamicImports": "error",
-          "effect/noEffectBind": "error",
-          "effect/noEffectDo": "error",
-          "effect/noInlineProvide": "error",
-          "effect/noKnownValueWidening": "error",
-          "effect/noManagedRuntimeInEffect": "error",
-          "effect/noModuleMocks": "error",
-          "effect/noNestedEffectGen": "error",
-          "effect/noNewPromise": "error",
-          "effect/noNodeBuiltinImport": "error",
-          "effect/noObjectParameters": "error",
-          "effect/noPerCallCacheConstruction": "error",
-          "effect/noRunCollectOnUnboundedStream": "error",
-          "effect/noRuntimeTypeof": "error",
-          "effect/noSequentialEffectAll": "error",
-          "effect/noShapeInSymbolNames": "error",
-          "effect/noSilentCatchAll": "error",
-          "effect/noTryCatch": "error",
-          "effect/noUnboundedConcurrency": "error",
-          "effect/noUnboundedRetry": "error",
-          "effect/noUnknownTypeAliases": "error",
-          "effect/noUnsafeDictionaryType": "error",
-          "effect/noWidenThenAssert": "error",
-          "effect/preferCatchTag": "error",
-          "effect/preferEffectFn": "error",
-          "effect/preferMatchTagsExhaustive": "error",
-          "effect/preferPredicateIsTagged": "error",
-          "effect/preferServiceOf": "error",
-          "effect/requireNamedEffectFn": "error",
-        },
-      },
-      {
         // Effect's own rules. The scope is all of `src/` rather than the
         // layers that hold Effect today, because `lib/auth/` and `routes/api/`
         // hold some too and a glob naming layers leaves the next one outside
