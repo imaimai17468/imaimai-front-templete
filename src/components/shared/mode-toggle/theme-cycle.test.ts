@@ -1,11 +1,12 @@
+import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { needsThemeNormalization, resolveThemeCycle } from "./theme-cycle";
 
 describe(resolveThemeCycle, () => {
   it.each([
-    { label: "dark", theme: "dark" },
-    { label: "light", theme: "light" },
-    { label: "undefined", theme: undefined },
+    { label: "dark", theme: Option.some("dark") },
+    { label: "light", theme: Option.some("light") },
+    { label: "none", theme: Option.none() },
   ])(
     "should default to light when not mounted and theme is $label",
     ({ theme }) => {
@@ -17,43 +18,56 @@ describe(resolveThemeCycle, () => {
   );
 
   it.each([
-    { current: "light", next: "dark", theme: "light" },
-    { current: "dark", next: "light", theme: "dark" },
+    {
+      current: "light",
+      label: "light",
+      next: "dark",
+      theme: Option.some("light"),
+    },
+    {
+      current: "dark",
+      label: "dark",
+      next: "light",
+      theme: Option.some("dark"),
+    },
   ])(
-    "should toggle to $next when mounted and theme is $theme",
+    "should toggle to $next when mounted and theme is $label",
     ({ theme, current, next }) => {
       expect(resolveThemeCycle(theme, true)).toStrictEqual({ current, next });
     }
   );
 
-  it("should fall back to light when mounted and theme is undefined", () => {
-    expect(resolveThemeCycle(undefined, true)).toStrictEqual({
+  it("should fall back to light when mounted and theme is none", () => {
+    expect(resolveThemeCycle(Option.none(), true)).toStrictEqual({
       current: "light",
       next: "dark",
     });
   });
 
   it("should fall back to light when mounted and theme is unrecognized", () => {
-    expect(resolveThemeCycle("high-contrast", true)).toStrictEqual({
-      current: "light",
-      next: "dark",
-    });
+    expect(resolveThemeCycle(Option.some("high-contrast"), true)).toStrictEqual(
+      {
+        current: "light",
+        next: "dark",
+      }
+    );
   });
 });
 
 describe(needsThemeNormalization, () => {
   it.each([
-    { label: "undefined", theme: undefined },
-    { label: "light", theme: "light" },
-    { label: "dark", theme: "dark" },
-  ])("should return false when the supported theme is $label", ({ theme }) => {
+    { label: "none", theme: Option.none() },
+    { label: "light", theme: Option.some("light") },
+    { label: "dark", theme: Option.some("dark") },
+  ])("should return false when the theme is $label", ({ theme }) => {
     expect(needsThemeNormalization(theme)).toBeFalsy();
   });
 
   it.each([
-    { label: "legacy system", theme: "system" },
-    { label: "unrecognized", theme: "high-contrast" },
-    { label: "empty string", theme: "" },
+    { label: "legacy system", theme: Option.some("system") },
+    { label: "unrecognized", theme: Option.some("high-contrast") },
+    { label: "empty string", theme: Option.some("") },
+    { label: "Object.prototype key", theme: Option.some("toString") },
   ])(
     "should return true when the out-of-cycle theme is $label",
     ({ theme }) => {

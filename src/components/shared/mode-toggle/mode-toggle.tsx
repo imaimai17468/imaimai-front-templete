@@ -1,6 +1,6 @@
 "use client";
 
-import { Match } from "effect";
+import { Match, Option } from "effect";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useSyncExternalStore } from "react";
@@ -27,18 +27,19 @@ export const ModeToggle = () => {
     () => false
   );
 
-  // system モード廃止前に保存された localStorage の "system" など、CYCLE 外の
-  // 永続値を light に正規化する（放置すると <html> に不正クラスが残る）。
-  // effect はクライアントでのみ実行され undefined は needsThemeNormalization が
-  // 除外するため、ここでは mounted ガード不要。resolveThemeCycle 側の mounted
-  // ガードは SSR/ハイドレーション整合のため別途必要で、これとは独立。
+  // system モード廃止前に localStorage へ保存された "system" など、切り替えの
+  // 対象外になった永続値を light に戻す（放置すると <html> に不正クラスが
+  // 残る）。useEffect はクライアントでのみ走るので mounted ガードは不要。
   useEffect(() => {
-    if (needsThemeNormalization(theme)) {
+    if (needsThemeNormalization(Option.fromUndefinedOr(theme))) {
       setTheme("light");
     }
   }, [theme, setTheme]);
 
-  const { current, next } = resolveThemeCycle(theme, mounted);
+  const { current, next } = resolveThemeCycle(
+    Option.fromUndefinedOr(theme),
+    mounted
+  );
 
   const toggleTheme = useCallback(() => {
     if (mounted) {
