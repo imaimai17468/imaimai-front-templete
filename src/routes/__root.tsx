@@ -7,6 +7,7 @@ import {
   useLoaderData,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { Option } from "effect";
 import { Header } from "@/components/shared/header/header";
 import { ThemeProvider } from "@/components/shared/theme-provider/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -34,7 +35,7 @@ const RootComponent = () => {
         >
           <TooltipProvider>
             <div className="flex min-h-dvh flex-col gap-16">
-              <Header user={user} />
+              <Header user={Option.fromNullOr(user)} />
               <div className="flex w-full flex-1 justify-center px-6 md:px-4">
                 <div className="container">
                   <Outlet />
@@ -59,6 +60,8 @@ const RootComponent = () => {
 };
 
 export const Route = createRootRoute({
+  // The router serializes this value into the HTML for hydration, so it stays
+  // the nullable the server function answered with.
   loader: () => getCurrentUserFn().then((user) => ({ user })),
   head: () => ({
     meta: [

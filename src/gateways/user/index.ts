@@ -229,7 +229,7 @@ export class UserGateway extends Context.Service<
     readonly fetchCurrentUser: (
       userId: string,
       email: string
-    ) => Effect.Effect<UserWithEmail | null, UserPersistenceError>;
+    ) => Effect.Effect<Option.Option<UserWithEmail>, UserPersistenceError>;
     readonly updateUser: (
       userId: string,
       data: UpdateUser
@@ -254,21 +254,23 @@ export class UserGateway extends Context.Service<
         function* fetchCurrentUser(userId: string, email: string) {
           const profile = yield* store.findProfile(userId);
           if (Option.isNone(profile)) {
-            return null;
+            return Option.none();
           }
           const row = profile.value;
-          return encodeUserWithEmail({
-            avatarUrl: row.avatarKey.pipe(
-              Option.map(avatarUrlForKey),
-              Option.orElse(() => row.image),
-              Option.getOrNull
-            ),
-            createdAt: row.createdAt,
-            email,
-            id: row.id,
-            name: Option.getOrNull(row.name),
-            updatedAt: row.updatedAt,
-          });
+          return Option.some(
+            encodeUserWithEmail({
+              avatarUrl: row.avatarKey.pipe(
+                Option.map(avatarUrlForKey),
+                Option.orElse(() => row.image),
+                Option.getOrNull
+              ),
+              createdAt: row.createdAt,
+              email,
+              id: row.id,
+              name: Option.getOrNull(row.name),
+              updatedAt: row.updatedAt,
+            })
+          );
         }
       );
 

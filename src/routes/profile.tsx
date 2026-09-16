@@ -3,7 +3,7 @@ import {
   redirect,
   useLoaderData,
 } from "@tanstack/react-router";
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 import { ProfilePage } from "@/components/features/profile-page/profile-page";
 import { getCurrentUserFn } from "@/gateways/user/user.live";
 
@@ -20,11 +20,13 @@ export const Route = createFileRoute("/profile")({
   beforeLoad: () =>
     Effect.runPromise(
       Effect.gen(function* resolveProfileContext() {
-        const user = yield* Effect.promise(() => getCurrentUserFn());
-        if (user === null) {
+        const user = Option.fromNullOr(
+          yield* Effect.promise(() => getCurrentUserFn())
+        );
+        if (Option.isNone(user)) {
           return yield* Effect.fail(redirect({ to: "/login" }));
         }
-        return { user };
+        return { user: user.value };
       })
     ),
   loader: ({ context }) => ({ user: context.user }),

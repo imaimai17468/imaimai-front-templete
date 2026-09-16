@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema } from "effect";
+import { Context, Effect, Layer, Option, Schema } from "effect";
 import type { UpdateUser } from "@/entities/user";
 import { UserGateway } from ".";
 import type {
@@ -52,10 +52,10 @@ export class ProfileWriter extends Context.Service<
 
       const requireUser = Effect.gen(function* requireUser() {
         const user = yield* reader.read;
-        if (user === null) {
+        if (Option.isNone(user)) {
           return yield* new NotAuthenticated();
         }
-        return user;
+        return user.value;
       });
 
       const updateProfile = Effect.fn("ProfileWriter.updateProfile")(
