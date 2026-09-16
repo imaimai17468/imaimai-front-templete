@@ -5,9 +5,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { formatRegisteredOn } from "@/entities/user";
 import type { UserWithEmail } from "@/entities/user";
 import { ProfileForm } from "./profile-form/profile-form";
+import { formatRegisteredOn } from "./registered-on";
 
 // similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
 interface ProfilePageProps {

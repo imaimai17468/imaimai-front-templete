@@ -1,4 +1,4 @@
-import { DateTime, Option, Schema } from "effect";
+import { Option, Schema } from "effect";
 
 // The pattern the HTML Standard gives for a valid e-mail address, which is
 // what `input type=email` accepts. Every class in it is ASCII, so the `u` flag
@@ -79,10 +79,4 @@ export const displayName = (name: string | null): string =>
   Option.fromNullOr(name).pipe(
     Option.filter((value) => value !== ""),
     Option.getOrElse(() => "User")
-  );
-
-/** The registration date, as the profile page shows it. */
-export const formatRegisteredOn = (createdAt: string): string =>
-  DateTime.toDateUtc(DateTime.makeUnsafe(createdAt)).toLocaleDateString(
-    "ja-JP"
   );
