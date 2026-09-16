@@ -1,6 +1,10 @@
-import { Option } from "effect";
+import { Option, Schema } from "effect";
 
-export type Theme = "dark" | "light";
+const ThemeSchema = Schema.Literals(["dark", "light"]);
+
+export type Theme = typeof ThemeSchema.Type;
+
+const decodeTheme = Schema.decodeUnknownOption(ThemeSchema);
 
 const NEXT = {
   dark: "light",
@@ -12,14 +16,12 @@ export interface ThemeCycle {
   next: Theme;
 }
 
-const isTheme = (value: string): value is Theme => Object.hasOwn(NEXT, value);
-
 export const resolveThemeCycle = (
   rawTheme: Option.Option<string>,
   mounted: boolean
 ): ThemeCycle => {
   const current = rawTheme.pipe(
-    Option.filter(isTheme),
+    Option.flatMap(decodeTheme),
     Option.filter(() => mounted),
     Option.getOrElse((): Theme => "light")
   );
@@ -30,4 +32,5 @@ export const resolveThemeCycle = (
 // `Theme`.
 export const needsThemeNormalization = (
   theme: Option.Option<string>
-): boolean => Option.exists(theme, (value) => !isTheme(value));
+): boolean =>
+  Option.exists(theme, (value) => Option.isNone(decodeTheme(value)));
