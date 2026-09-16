@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vite-plus/test";
+import { DriverFailed } from "@/test/defect";
 import { createDevSignIn } from "./dev-sign-in";
 import type { DevSignInDeps } from "./dev-sign-in";
 import type { DevUser } from "./dev-users";
@@ -59,7 +60,7 @@ describe("devSignIn", () => {
 
   it("should fail with the thrown message when the request never reaches the server", async () => {
     const { devSignIn, signIn } = makeFakes();
-    signIn.mockRejectedValue(new Error("Failed to fetch"));
+    signIn.mockRejectedValue(new DriverFailed({ message: "Failed to fetch" }));
 
     const result = await devSignIn(DEV_USER);
 

@@ -301,7 +301,11 @@ export default defineConfig({
         // `Schema.TaggedError<T>()("Tag", {})` call such a class extends as an
         // Error construction missing `new`, and its fix inserts `new` into the
         // `extends` clause, which then does not compile.
-        files: ["src/gateways/**", "src/lib/require-context.ts"],
+        files: [
+          "src/gateways/**",
+          "src/lib/require-context.ts",
+          "src/test/defect.ts",
+        ],
         rules: {
           "max-classes-per-file": "off",
           "unicorn/throw-new-error": "off",

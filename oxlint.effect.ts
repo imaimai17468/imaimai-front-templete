@@ -34,7 +34,7 @@ export const effectRules = {
   "effect/noManagedRuntimeInEffect": "error",
   "effect/noModuleMocks": "error",
   "effect/noNestedEffectGen": "error",
-  "effect/noNewError": "off",
+  "effect/noNewError": "error",
   "effect/noNewPromise": "error",
   "effect/noNodeBuiltinImport": "error",
   "effect/noNullish": "off",

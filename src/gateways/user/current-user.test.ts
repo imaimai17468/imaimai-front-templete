@@ -2,6 +2,7 @@ import { Effect, Layer } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { CurrentSession } from "@/lib/auth/current-session.live";
 import type { getSession } from "@/lib/auth/session.live";
+import { DriverFailed } from "@/test/defect";
 import { UserGateway, UserPersistenceError } from ".";
 import { CurrentUserReader, readCurrentUser } from "./current-user";
 
@@ -99,7 +100,11 @@ describe("CurrentUserReader.read", () => {
       Effect.succeed(authenticatedSession)
     );
     fetchCurrentUser.mockReturnValue(
-      Effect.fail(new UserPersistenceError({ cause: new Error("D1 failed") }))
+      Effect.fail(
+        new UserPersistenceError({
+          cause: new DriverFailed({ message: "D1 failed" }),
+        })
+      )
     );
 
     const result = read();
