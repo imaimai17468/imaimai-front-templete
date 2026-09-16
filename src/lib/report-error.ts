@@ -1,5 +1,5 @@
 import type { Effect } from "effect";
-import { Console, Option, Schema } from "effect";
+import { Console, Option, Predicate, Schema } from "effect";
 
 /**
  * The report's two representations in one declaration: `Option<string>` on the
@@ -27,7 +27,7 @@ const errorLogRecord = (report: ErrorReport): ErrorLogRecord => ({
 });
 
 export const errorReport = (event: string, cause: unknown): ErrorReport => {
-  if (cause instanceof Error) {
+  if (Predicate.isError(cause)) {
     return {
       event,
       message: cause.message,

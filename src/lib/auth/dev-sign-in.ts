@@ -1,4 +1,4 @@
-import { Effect, Option, Schema } from "effect";
+import { Effect, Option, Predicate, Schema } from "effect";
 import type { DevUser } from "./dev-users";
 
 type AuthFailureMessage = string;
@@ -18,8 +18,6 @@ class DevSignInThrew extends Schema.TaggedError<DevSignInThrew>()(
   "DevSignInThrew",
   { cause: Schema.Defect() }
 ) {}
-
-const isError = (cause: unknown): cause is Error => cause instanceof Error;
 
 const RECOVERY =
   "Run bun run db:push:local. If that does not help, reset the local D1.";
@@ -51,7 +49,7 @@ export const createDevSignIn =
         Effect.catchTag("DevSignInThrew", (error) =>
           Effect.succeed({
             kind: "failed",
-            message: Option.liftPredicate(error.cause, isError).pipe(
+            message: Option.liftPredicate(error.cause, Predicate.isError).pipe(
               Option.map((thrown) => thrown.message),
               Option.getOrElse(() => RECOVERY)
             ),
