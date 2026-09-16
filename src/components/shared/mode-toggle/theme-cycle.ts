@@ -15,7 +15,7 @@ export interface ThemeCycle {
   next: Theme;
 }
 
-const isTheme = (value: string): value is Theme => value in NEXT;
+const isTheme = (value: string): value is Theme => Object.hasOwn(NEXT, value);
 
 export const resolveThemeCycle = (
   rawTheme: Option.Option<string>,

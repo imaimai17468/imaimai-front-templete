@@ -67,6 +67,7 @@ describe(needsThemeNormalization, () => {
     { label: "legacy system", theme: Option.some("system") },
     { label: "unrecognized", theme: Option.some("high-contrast") },
     { label: "empty string", theme: Option.some("") },
+    { label: "Object.prototype key", theme: Option.some("toString") },
   ])(
     "should return true when the out-of-cycle theme is $label",
     ({ theme }) => {
