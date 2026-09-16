@@ -145,16 +145,14 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
 
 function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   const { error, formMessageId } = useFormField();
-  // `props.children` stays out of a callback: React 19 types it as `ReactNode`,
-  // which admits a Promise, and a callback returning one trips
-  // `promise-function-async`.
+  // The fallback is `??` rather than `Option.getOrElse`: React 19 types
+  // `props.children` as a `ReactNode` that admits a Promise, and a callback
+  // returning one trips `promise-function-async`.
   const failure = Option.fromNullishOr(error).pipe(
     Option.map((fieldError) => fieldError.message ?? "")
   );
-  let body: React.ReactNode = props.children;
-  if (Option.isSome(failure)) {
-    body = failure.value;
-  }
+  const body: React.ReactNode =
+    Option.getOrUndefined(failure) ?? props.children;
 
   if (body == null || body === "") {
     return null;

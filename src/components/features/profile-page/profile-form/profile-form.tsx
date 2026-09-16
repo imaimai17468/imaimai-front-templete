@@ -91,8 +91,8 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
       case null: {
         break;
       }
-      // A new rejection reason fails to compile here rather than passing
-      // silently, because it has no `never` to widen into.
+      // A new rejection reason fails `satisfies never` here rather than
+      // passing silently.
       default: {
         rejection satisfies never;
         return;

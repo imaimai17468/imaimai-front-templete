@@ -13,7 +13,7 @@ type EffectRuleName = Exclude<keyof typeof recommended, "complexity">;
  * adds or renames fail to compile here, rather than arrive silently enabled or
  * leave a dead key behind.
  *
- * The nine set to `"off"` are the ones `src/` reports today. `noNullish` is the
+ * The two set to `"off"` are the ones `src/` reports today. `noNullish` is the
  * gateways answering `A | null` where the rule wants `Option`, and
  * `noAsyncFunction` is the Promise boundary `createServerFn` requires; turning
  * one on means fixing what it reports.

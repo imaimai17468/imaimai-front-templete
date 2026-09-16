@@ -42,7 +42,7 @@ export class UserPersistenceError extends Schema.TaggedError<UserPersistenceErro
 /** A write the store reported as touching a number of rows nobody expects. */
 class UnexpectedRowCount extends Schema.TaggedError<UnexpectedRowCount>()(
   "UnexpectedRowCount",
-  { message: Schema.String, rowsTouched: Schema.Number }
+  { message: Schema.String }
 ) {}
 
 const persistenceEffect = <A>(
@@ -285,6 +285,8 @@ export class UserGateway extends Context.Service<
             "user.updateName",
             store.updateName(userId, data.name, updatedAt)
           );
+          // Both arms return a value because `consistent-return` refuses a
+          // function that mixes a bare `return` with one that carries a value.
           if (written) {
             return yield* Effect.void;
           }
@@ -340,7 +342,6 @@ export class UserGateway extends Context.Service<
                 "user.setAvatarKey",
                 new UnexpectedRowCount({
                   message: `expected 1 row, got ${String(rowsTouched)}`,
-                  rowsTouched,
                 })
               );
             }
