@@ -1,4 +1,4 @@
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { AvatarBucket, AvatarGateway } from ".";
 
@@ -20,14 +20,14 @@ const makeFakes = () => {
 };
 
 describe("fetchAvatar", () => {
-  it("should return null when R2 has no object", () => {
+  it("should return an absent avatar when R2 has no object", () => {
     const { fetchAvatar, get } = makeFakes();
-    get.mockReturnValue(Effect.succeed(null));
+    get.mockReturnValue(Effect.succeed(Option.none()));
 
     return fetchAvatar("user-1/avatar.png").then((result) => {
       expect({ calls: get.mock.calls, result }).toStrictEqual({
         calls: [["user-1/avatar.png"]],
-        result: null,
+        result: Option.none(),
       });
     });
   });
@@ -36,21 +36,27 @@ describe("fetchAvatar", () => {
     const { fetchAvatar, get } = makeFakes();
     const body = new ReadableStream<Uint8Array>();
     get.mockReturnValue(
-      Effect.succeed({ body, httpMetadata: { contentType: "image/webp" } })
+      Effect.succeed(
+        Option.some({ body, httpMetadata: { contentType: "image/webp" } })
+      )
     );
 
     return fetchAvatar("user-1/avatar.webp").then((result) => {
-      expect(result).toStrictEqual({ body, contentType: "image/webp" });
+      expect(result).toStrictEqual(
+        Option.some({ body, contentType: Option.some("image/webp") })
+      );
     });
   });
 
-  it("should return a null content type when R2 has no metadata", () => {
+  it("should return an absent content type when R2 has no metadata", () => {
     const { fetchAvatar, get } = makeFakes();
     const body = new ReadableStream<Uint8Array>();
-    get.mockReturnValue(Effect.succeed({ body }));
+    get.mockReturnValue(Effect.succeed(Option.some({ body })));
 
     return fetchAvatar("user-1/avatar.png").then((result) => {
-      expect(result).toStrictEqual({ body, contentType: null });
+      expect(result).toStrictEqual(
+        Option.some({ body, contentType: Option.none() })
+      );
     });
   });
 

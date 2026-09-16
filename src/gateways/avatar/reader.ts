@@ -31,7 +31,7 @@ export class AvatarReader extends Context.Service<
   AvatarReader,
   {
     readonly read: (
-      key: string | null
+      key: Option.Option<string>
     ) => Effect.Effect<
       AvatarObject,
       AvatarInvalidKey | AvatarNotFound | AvatarUnauthorized
@@ -45,20 +45,25 @@ export class AvatarReader extends Context.Service<
       const gateway = yield* AvatarGateway;
 
       const read = Effect.fn("AvatarReader.read")(function* read(
-        key: string | null
+        key: Option.Option<string>
       ) {
         const caller = yield* currentSession.read;
         if (Option.isNone(caller)) {
           return yield* new AvatarUnauthorized();
         }
-        if (key === null || !isOwnAvatarKey(key, caller.value.id)) {
+        const ownKey = key.pipe(
+          Option.filter((candidate) =>
+            isOwnAvatarKey(candidate, caller.value.id)
+          )
+        );
+        if (Option.isNone(ownKey)) {
           return yield* new AvatarInvalidKey();
         }
-        const avatar = yield* gateway.fetchAvatar(key);
-        if (avatar === null) {
+        const avatar = yield* gateway.fetchAvatar(ownKey.value);
+        if (Option.isNone(avatar)) {
           return yield* new AvatarNotFound();
         }
-        return avatar;
+        return avatar.value;
       });
 
       return AvatarReader.of({ read });

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 import { AvatarReader, runAvatarHandler } from "@/gateways/avatar/reader";
 
 const jsonError = (status: number, error: string): Response =>
@@ -12,13 +12,17 @@ export const getAvatarResponse: (
 )(
   function* readRequestedAvatar(request: Request) {
     const reader = yield* AvatarReader;
-    return yield* reader.read(new URL(request.url).searchParams.get("key"));
+    return yield* reader.read(
+      Option.fromNullOr(new URL(request.url).searchParams.get("key"))
+    );
   },
   Effect.map(
     (avatar) =>
       new Response(avatar.body, {
         headers: {
-          "Content-Type": avatar.contentType ?? "image/png",
+          "Content-Type": avatar.contentType.pipe(
+            Option.getOrElse(() => "image/png")
+          ),
           // `private`: the response is session-gated — shared caches must
           // not store it (an edge/proxy hit would bypass the auth check).
           "Cache-Control": "private, max-age=31536000, immutable",

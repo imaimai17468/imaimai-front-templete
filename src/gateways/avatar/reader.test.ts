@@ -22,7 +22,7 @@ const makeFakes = (read: CurrentSession["Service"]["read"]) => {
   );
   return {
     fetchAvatar,
-    readAvatarOrFailure: (key: string | null) =>
+    readAvatarOrFailure: (key: Option.Option<string>) =>
       Effect.runPromise(
         Effect.gen(function* callRead() {
           const reader = yield* AvatarReader;
@@ -38,13 +38,21 @@ const makeFakes = (read: CurrentSession["Service"]["read"]) => {
 const signedInAs = (userId: string) =>
   Option.some({ email: `${userId}@example.com`, id: userId });
 
+const ownKey = Option.some("user-1/avatar.png");
+
+const rejectedKeyCases = [
+  ["the key is missing", Option.none()],
+  ["the key belongs to another user", Option.some("user-2/avatar.png")],
+  ["the key is malformed", Option.some("../user-1/avatar.png")],
+] satisfies [string, Option.Option<string>][];
+
 describe("AvatarReader.read", () => {
   it("should reject without reading persistence when the request is anonymous", () => {
     const { fetchAvatar, readAvatarOrFailure } = makeFakes(
       Effect.succeed(Option.none())
     );
 
-    return readAvatarOrFailure("user-1/avatar.png").then((result) => {
+    return readAvatarOrFailure(ownKey).then((result) => {
       expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
         fetchCalls: [],
         result: new AvatarUnauthorized(),
@@ -52,30 +60,29 @@ describe("AvatarReader.read", () => {
     });
   });
 
-  it.each([
-    ["the key is missing", null],
-    ["the key belongs to another user", "user-2/avatar.png"],
-    ["the key is malformed", "../user-1/avatar.png"],
-  ])("should reject without reading persistence when %s", (_label, key) => {
-    const { fetchAvatar, readAvatarOrFailure } = makeFakes(
-      Effect.succeed(signedInAs("user-1"))
-    );
+  it.each(rejectedKeyCases)(
+    "should reject without reading persistence when %s",
+    (_label, key) => {
+      const { fetchAvatar, readAvatarOrFailure } = makeFakes(
+        Effect.succeed(signedInAs("user-1"))
+      );
 
-    return readAvatarOrFailure(key).then((result) => {
-      expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
-        fetchCalls: [],
-        result: new AvatarInvalidKey(),
+      return readAvatarOrFailure(key).then((result) => {
+        expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
+          fetchCalls: [],
+          result: new AvatarInvalidKey(),
+        });
       });
-    });
-  });
+    }
+  );
 
   it("should fail with not-found when the owned object is absent", () => {
     const { fetchAvatar, readAvatarOrFailure } = makeFakes(
       Effect.succeed(signedInAs("user-1"))
     );
-    fetchAvatar.mockReturnValue(Effect.succeed(null));
+    fetchAvatar.mockReturnValue(Effect.succeed(Option.none()));
 
-    return readAvatarOrFailure("user-1/avatar.png").then((result) => {
+    return readAvatarOrFailure(ownKey).then((result) => {
       expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
         fetchCalls: [["user-1/avatar.png"]],
         result: new AvatarNotFound(),
@@ -89,11 +96,11 @@ describe("AvatarReader.read", () => {
     );
     const avatar = {
       body: new ReadableStream<Uint8Array>(),
-      contentType: "image/png",
+      contentType: Option.some("image/png"),
     } satisfies AvatarObject;
-    fetchAvatar.mockReturnValue(Effect.succeed(avatar));
+    fetchAvatar.mockReturnValue(Effect.succeed(Option.some(avatar)));
 
-    return readAvatarOrFailure("user-1/avatar.png").then((result) => {
+    return readAvatarOrFailure(ownKey).then((result) => {
       expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
         fetchCalls: [["user-1/avatar.png"]],
         result: avatar,
@@ -106,7 +113,7 @@ describe("AvatarReader.read", () => {
       Effect.die(new Error("session failed"))
     );
 
-    const result = readAvatarOrFailure("user-1/avatar.png");
+    const result = readAvatarOrFailure(ownKey);
 
     return expect(result).rejects.toThrow("session failed");
   });
@@ -117,7 +124,7 @@ describe("AvatarReader.read", () => {
     );
     fetchAvatar.mockReturnValue(Effect.die(new Error("R2 failed")));
 
-    const result = readAvatarOrFailure("user-1/avatar.png");
+    const result = readAvatarOrFailure(ownKey);
 
     return expect(result).rejects.toThrow("R2 failed");
   });

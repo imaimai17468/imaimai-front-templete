@@ -1,4 +1,4 @@
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import {
   AvatarInvalidKey,
@@ -50,6 +50,11 @@ const errorCases = [
   string,
 ][];
 
+const servedTypeCases = [
+  ["carries a stored content type", Option.some("image/webp"), "image/webp"],
+  ["carries no content type", Option.none(), "image/png"],
+] satisfies [string, Option.Option<string>, string][];
+
 describe(getAvatarResponse, () => {
   it.each(errorCases)(
     "should return the expected JSON error when authorization rejects the request",
@@ -67,11 +72,8 @@ describe(getAvatarResponse, () => {
     }
   );
 
-  it.each([
-    ["the stored type", "image/webp", "image/webp"],
-    ["the fallback type", null, "image/png"],
-  ])(
-    "should return hardened headers with %s when the avatar exists",
+  it.each(servedTypeCases)(
+    "should return hardened headers and the served type when the stored object %s",
     (_label, contentType, expectedContentType) => {
       const { read, respond } = makeFakes();
       read.mockReturnValue(Effect.succeed({ body: avatarBody(), contentType }));
@@ -107,7 +109,18 @@ describe(getAvatarResponse, () => {
     read.mockReturnValue(Effect.fail(new AvatarNotFound()));
 
     return respond(request()).then(() => {
-      expect(read.mock.calls).toStrictEqual([["user-1/avatar.png"]]);
+      expect(read.mock.calls).toStrictEqual([
+        [Option.some("user-1/avatar.png")],
+      ]);
+    });
+  });
+
+  it("should pass an absent key to the authorization boundary when the request carries no key", () => {
+    const { read, respond } = makeFakes();
+    read.mockReturnValue(Effect.fail(new AvatarInvalidKey()));
+
+    return respond(new Request("https://example.com/api/avatars")).then(() => {
+      expect(read.mock.calls).toStrictEqual([[Option.none()]]);
     });
   });
 
