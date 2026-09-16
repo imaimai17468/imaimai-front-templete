@@ -9,6 +9,7 @@ import ultraciteReact from "ultracite/oxlint/react";
 import tanstack from "ultracite/oxlint/tanstack";
 import ultraciteVitest from "ultracite/oxlint/vitest";
 import { defineConfig } from "vite-plus";
+import { effectRules } from "./oxlint.effect.ts";
 import reactDoctor from "./oxlint.react-doctor.ts";
 import { wranglerTypes } from "./tools/vite-plugins/wrangler-types-plugin.live";
 
@@ -40,6 +41,7 @@ export default defineConfig({
       "./tools/oxlint-plugins/style-rules.js",
       "./tools/oxlint-plugins/arch-rules.js",
       "./tools/oxlint-plugins/start-rules.js",
+      { name: "effect", specifier: "oxlint-plugin-effect/plugin" },
       { name: "react-doctor", specifier: "oxlint-plugin-react-doctor" },
       { name: "tailwindcss", specifier: "oxlint-tailwindcss" },
       { name: "shadcn", specifier: "@shadcn/lint" },
@@ -268,6 +270,75 @@ export default defineConfig({
           "tailwindcss/no-unnecessary-whitespace": "off",
           "shadcn/no-restyle": "off",
         },
+      },
+      {
+        // `presets.recommended` from oxlint-plugin-effect, minus three groups.
+        // Its scope is these two layers because the preset is written for
+        // Effect-native code and Effect reaches no further. `complexity` is the
+        // one entry it does not namespace, and this config sets that above.
+        // Nine rules it turns on are left out because the layer does not
+        // satisfy them yet, `noNullish` standing for the gateways returning
+        // `A | null` where it wants `Option`; each is its own ticket, and
+        // enabling one means fixing what it reports rather than listing it here.
+        files: ["src/gateways/**", "src/entities/**"],
+        rules: {
+          "effect/maxCognitiveComplexity": ["error", { max: 21 }],
+          "effect/maxHalsteadDifficulty": ["error", { max: 79 }],
+          "effect/noChainedTypeAssertions": "error",
+          "effect/noConditionalEmptyObjectSpread": "error",
+          "effect/noDynamicImports": "error",
+          "effect/noEffectBind": "error",
+          "effect/noEffectDo": "error",
+          "effect/noInlineProvide": "error",
+          "effect/noKnownValueWidening": "error",
+          "effect/noManagedRuntimeInEffect": "error",
+          "effect/noModuleMocks": "error",
+          "effect/noNestedEffectGen": "error",
+          "effect/noNewPromise": "error",
+          "effect/noNodeBuiltinImport": "error",
+          "effect/noObjectParameters": "error",
+          "effect/noPerCallCacheConstruction": "error",
+          "effect/noRunCollectOnUnboundedStream": "error",
+          "effect/noRuntimeTypeof": "error",
+          "effect/noSequentialEffectAll": "error",
+          "effect/noShapeInSymbolNames": "error",
+          "effect/noSilentCatchAll": "error",
+          "effect/noTryCatch": "error",
+          "effect/noUnboundedConcurrency": "error",
+          "effect/noUnboundedRetry": "error",
+          "effect/noUnknownTypeAliases": "error",
+          "effect/noUnsafeDictionaryType": "error",
+          "effect/noWidenThenAssert": "error",
+          "effect/preferCatchTag": "error",
+          "effect/preferEffectFn": "error",
+          "effect/preferMatchTagsExhaustive": "error",
+          "effect/preferPredicateIsTagged": "error",
+          "effect/preferServiceOf": "error",
+          "effect/requireNamedEffectFn": "error",
+        },
+      },
+      {
+        // Effect's own rules. The scope is all of `src/` rather than the
+        // layers that hold Effect today, because `lib/auth/` and `routes/api/`
+        // hold some too and a glob naming layers leaves the next one outside
+        // without reporting it. The two entries below are what `src/` costs:
+        // a rule firing on a module that carries no Effect.
+        files: ["src/**"],
+        rules: effectRules,
+      },
+      {
+        // `dev-sign-in.ts` imports no Effect. Its `catch` turns a thrown
+        // rejection into the `failed` arm of `DevSignInResult`, which is the
+        // shape the rule wants and cannot recognise outside Effect.
+        files: ["src/lib/auth/dev-sign-in.ts"],
+        rules: { "effect/noTryCatch": "off" },
+      },
+      {
+        // The one dynamic import here loads react-grab in dev only, so binding
+        // it to a name would keep the dev tool reachable from the production
+        // bundle's module graph.
+        files: ["src/routes/__root.tsx"],
+        rules: { "effect/noDynamicImports": "off" },
       },
       {
         // TanStack Start hands `.validator` whatever the client sent, so the
