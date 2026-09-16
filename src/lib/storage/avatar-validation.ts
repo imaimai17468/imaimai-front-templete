@@ -130,14 +130,6 @@ export const avatarSizeRejection = (
 };
 
 /**
- * Whether a bucket key has the `<userId>/avatar.<ext>` shape with an
- * image extension. The extension check is case-insensitive and also accepts
- * `jpeg` so legacy avatar objects remain readable (see AVATAR_READ_EXTENSIONS).
- */
-export const isValidAvatarKey = (key: string): boolean =>
-  parseAvatarKey(key) !== null;
-
-/**
  * Whether `key` is a well-formed avatar key owned by `userId` — the prefix
  * segment must equal the caller's id. Scopes reads to the caller's own
  * avatar so an authenticated user cannot enumerate others' objects.

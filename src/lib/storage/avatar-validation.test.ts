@@ -4,7 +4,6 @@ import {
   avatarExtensionForMime,
   avatarSizeRejection,
   isOwnAvatarKey,
-  isValidAvatarKey,
   MAX_AVATAR_BYTES,
 } from "./avatar-validation";
 
@@ -41,41 +40,6 @@ describe(avatarExtensionForMime, () => {
   );
 });
 
-describe(isValidAvatarKey, () => {
-  it.each([
-    "user-123/avatar.png",
-    "aB0_-x/avatar.jpg",
-    "u/avatar.webp",
-    "u/avatar.gif",
-    "user-123/avatars/123e4567-e89b-42d3-a456-426614174000.png",
-    // legacy variants tolerated on read (written before the hardening)
-    "user-123/avatar.jpeg",
-    "user-123/avatar.PNG",
-    "user-123/avatar.JPG",
-    // uppercase + jpeg together (both tolerances at once)
-    "user-123/avatar.JPEG",
-  ])("should return true when the key %s is well-formed", (key) => {
-    expect(isValidAvatarKey(key)).toBeTruthy();
-  });
-
-  it.each([
-    ["empty", ""],
-    ["missing prefix", "avatar.png"],
-    ["empty prefix", "/avatar.png"],
-    ["path traversal", "../secrets/avatar.png"],
-    ["nested path", "a/b/avatar.png"],
-    ["wrong filename", "user-123/other.png"],
-    ["disallowed extension", "user-123/avatar.svg"],
-    ["html extension", "user-123/avatar.html"],
-    ["trailing garbage", "user-123/avatar.png.html"],
-    ["prefix with dot", "user.123/avatar.png"],
-    ["no extension", "user-123/avatar"],
-    ["versioned key with malformed UUID", "user-123/avatars/not-a-uuid.png"],
-  ])("should return false when the key is %s (%j)", (_label, key) => {
-    expect(isValidAvatarKey(key)).toBeFalsy();
-  });
-});
-
 describe(avatarSizeRejection, () => {
   it.each([
     ["zero bytes", 0],
@@ -100,8 +64,37 @@ describe(avatarSizeRejection, () => {
 });
 
 describe(isOwnAvatarKey, () => {
-  it("should accept the key when it is well-formed and owned by the caller", () => {
-    expect(isOwnAvatarKey("user-123/avatar.png", "user-123")).toBeTruthy();
+  it.each([
+    ["user-123/avatar.png", "user-123"],
+    ["aB0_-x/avatar.jpg", "aB0_-x"],
+    ["u/avatar.webp", "u"],
+    ["u/avatar.gif", "u"],
+    ["user-123/avatars/123e4567-e89b-42d3-a456-426614174000.png", "user-123"],
+    // legacy variants tolerated on read (written before the hardening)
+    ["user-123/avatar.jpeg", "user-123"],
+    ["user-123/avatar.PNG", "user-123"],
+    ["user-123/avatar.JPG", "user-123"],
+    // uppercase + jpeg together (both tolerances at once)
+    ["user-123/avatar.JPEG", "user-123"],
+  ])("should accept the key %s when the caller owns it", (key, userId) => {
+    expect(isOwnAvatarKey(key, userId)).toBeTruthy();
+  });
+
+  it.each([
+    ["empty", ""],
+    ["missing prefix", "avatar.png"],
+    ["empty prefix", "/avatar.png"],
+    ["path traversal", "../secrets/avatar.png"],
+    ["nested path", "a/b/avatar.png"],
+    ["wrong filename", "user-123/other.png"],
+    ["disallowed extension", "user-123/avatar.svg"],
+    ["html extension", "user-123/avatar.html"],
+    ["trailing garbage", "user-123/avatar.png.html"],
+    ["prefix with dot", "user.123/avatar.png"],
+    ["no extension", "user-123/avatar"],
+    ["versioned key with malformed UUID", "user-123/avatars/not-a-uuid.png"],
+  ])("should reject the key when it is %s (%j)", (_label, key) => {
+    expect(isOwnAvatarKey(key, "user-123")).toBeFalsy();
   });
 
   it.each([
