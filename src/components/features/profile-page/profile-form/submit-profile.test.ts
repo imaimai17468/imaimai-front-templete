@@ -1,3 +1,4 @@
+import { Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import type { UpdateUser } from "@/entities/user";
 import { createSubmitProfile } from "./submit-profile";
@@ -31,7 +32,7 @@ describe("submitProfile", () => {
   it("should save the name and leave the avatar alone when no file is pending", () => {
     const { submitProfile, updateProfile, uploadAvatar } = makeFakes();
 
-    return submitProfile(DATA, null).then((submission) => {
+    return submitProfile(DATA, Option.none()).then((submission) => {
       expect({
         submission,
         submittedName: updateProfile.mock.calls[0]?.[0].get("name"),
@@ -51,7 +52,7 @@ describe("submitProfile", () => {
       status: "failed",
     });
 
-    return submitProfile(DATA, null).then((submission) => {
+    return submitProfile(DATA, Option.none()).then((submission) => {
       expect(submission).toStrictEqual({
         avatarUploaded: false,
         outcome: { message: "Failed to update profile", status: "failed" },
@@ -67,7 +68,7 @@ describe("submitProfile", () => {
       status: "failed",
     });
 
-    return submitProfile(DATA, AVATAR).then((submission) => {
+    return submitProfile(DATA, Option.some(AVATAR)).then((submission) => {
       expect({
         submission,
         updateCalls: updateProfile.mock.calls,
@@ -86,7 +87,7 @@ describe("submitProfile", () => {
   it("should report the avatar as uploaded when both the upload and the name write succeed", () => {
     const { submitProfile } = makeFakes();
 
-    return submitProfile(DATA, AVATAR).then((submission) => {
+    return submitProfile(DATA, Option.some(AVATAR)).then((submission) => {
       expect(submission).toStrictEqual({
         avatarUploaded: true,
         outcome: { status: "saved" },
@@ -101,7 +102,7 @@ describe("submitProfile", () => {
       status: "failed",
     });
 
-    return submitProfile(DATA, AVATAR).then((submission) => {
+    return submitProfile(DATA, Option.some(AVATAR)).then((submission) => {
       expect(submission).toStrictEqual({
         avatarUploaded: true,
         outcome: { message: "Failed to update profile", status: "failed" },

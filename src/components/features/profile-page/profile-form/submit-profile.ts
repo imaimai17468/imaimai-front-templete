@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 import type { UpdateUser } from "@/entities/user";
 import type {
   UpdateProfileResult,
@@ -59,13 +59,19 @@ const saveName = Effect.fn("saveName")(function* saveName(
  */
 export const createSubmitProfile =
   ({ updateProfile, uploadAvatar }: SubmitProfileDeps) =>
-  (data: UpdateUser, pendingFile: File | null): Promise<ProfileSubmission> =>
+  (
+    data: UpdateUser,
+    pendingFile: Option.Option<File>
+  ): Promise<ProfileSubmission> =>
     Effect.runPromise(
       Effect.gen(function* submitProfile() {
-        if (pendingFile === null) {
+        if (Option.isNone(pendingFile)) {
           return yield* saveName(updateProfile, data, false);
         }
-        const uploaded = yield* uploadPendingAvatar(uploadAvatar, pendingFile);
+        const uploaded = yield* uploadPendingAvatar(
+          uploadAvatar,
+          pendingFile.value
+        );
         if (uploaded.status === "failed") {
           return {
             avatarUploaded: false,
