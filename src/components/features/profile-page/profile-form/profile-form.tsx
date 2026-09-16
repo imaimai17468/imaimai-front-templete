@@ -44,15 +44,15 @@ const SubmitLabel = ({ isPending }: { readonly isPending: boolean }) => {
 export const ProfileForm = ({ user }: ProfileFormProps) => {
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState(() => Option.none<string>());
+  const [pendingFile, setPendingFile] = useState(() => Option.none<File>());
 
   // Object URL(外部リソース)の解放を表示中の previewUrl に同期する。
   // 差し替え時は古い URL の cleanup が走り、アンマウント時も解放される。
   useEffect(
     () => () => {
-      if (previewUrl !== null) {
-        URL.revokeObjectURL(previewUrl);
+      if (Option.isSome(previewUrl)) {
+        URL.revokeObjectURL(previewUrl.value);
       }
     },
     [previewUrl]
@@ -101,15 +101,15 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
     }
 
     const nextPreviewUrl = URL.createObjectURL(file);
-    setPendingFile(file);
-    setPreviewUrl(nextPreviewUrl);
+    setPendingFile(Option.some(file));
+    setPreviewUrl(Option.some(nextPreviewUrl));
   };
 
   const onSubmit = (data: UpdateUser) => {
     startTransition(() =>
       submitProfile(data, pendingFile).then(({ avatarUploaded, outcome }) => {
         if (avatarUploaded) {
-          setPendingFile(null);
+          setPendingFile(Option.none());
         }
         if (outcome.status === "failed") {
           toast.error(outcome.message);
@@ -121,7 +121,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
   };
 
   const name = displayName(user.name);
-  const avatarUrl = previewUrl ?? user.avatarUrl;
+  const avatarUrl = Option.getOrElse(previewUrl, () => user.avatarUrl);
 
   return (
     <Form {...form}>
@@ -162,7 +162,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
                 {`Click to change image (max ${MAX_AVATAR_BYTES / 1024 / 1024}MB)`}
               </p>
             </div>
-            {pendingFile && (
+            {Option.isSome(pendingFile) && (
               <p className="text-xs text-muted-foreground">
                 New image selected. Click &quot;Update Profile&quot; to save.
               </p>
