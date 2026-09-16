@@ -20,9 +20,8 @@ export const getAvatarResponse: (
     (avatar) =>
       new Response(avatar.body, {
         headers: {
-          "Content-Type": Option.getOrElse(
-            avatar.contentType,
-            () => "image/png"
+          "Content-Type": avatar.contentType.pipe(
+            Option.getOrElse(() => "image/png")
           ),
           // `private`: the response is session-gated — shared caches must
           // not store it (an edge/proxy hit would bypass the auth check).
