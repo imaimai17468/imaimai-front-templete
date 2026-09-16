@@ -103,9 +103,11 @@ R2 バケットは非公開のまま使用します。アバターは認証と�
 
 ### 開発用ログイン
 
-`bun run dev` で立てた開発ビルドでは `/login` に「Sign in as Dev User」ボタンが出ます。押すと `src/lib/auth/dev-users.ts` が持つ資格情報でサインインし、ローカル D1 にそのユーザーが居なければ作ってから入ります。`.wrangler/state` を消しても次のクリックで作り直されます。Google の認証情報を登録しなくても認証済みの画面を触れるので、下の Google 設定はデプロイ先を用意する段で行えば足ります。
+`/login` には「Sign in With Google」ボタンが 1 つだけ並びます。`bun run dev` で立てた開発ビルドでは、このボタンが Google へ飛ばずに `src/lib/auth/dev-users.ts` が持つ資格情報でサインインし、ローカル D1 にそのユーザーが居なければ作ってから入ります。`.wrangler/state` を消しても次のクリックで作り直されます。Google の認証情報を登録しなくても認証済みの画面を触れるので、下の Google 設定はデプロイ先を用意する段で行えば足ります。
 
-このボタンとメール・パスワード認証は本番ビルドに残りません。Vite が `import.meta.env.DEV` を `false` に畳むので、デプロイされた Worker の `/api/auth/sign-in/email` は `EMAIL_PASSWORD_DISABLED` を返します。
+開発ビルドから Google 側を試すときは `VITE_GOOGLE_SIGN_IN=1 PORTLESS=0 bun run dev` で起動します。同じボタンがそのまま Google へ飛びます。
+
+この差し替えとメール・パスワード認証は本番ビルドでは働きません。Vite が `import.meta.env.DEV` を `false` に畳むので、デプロイされた Worker の `/api/auth/sign-in/email` は `EMAIL_PASSWORD_DISABLED` を返します。
 
 メール・パスワードが使う `accounts.password` 列は drizzle スキーマに入っているので、既にある D1 にはマイグレーションを当ててから使ってください。ローカルなら最初のクリックの前に `bun run db:push:local`、デプロイ先なら手順5の remote 適用です。drizzle は全列を名指しで SELECT するため、列が無い D1 では Google ログインの account 参照も落ちます。当てる前に押してしまい `User already exists.` が出続ける場合は、下の[ローカルデータのリセット](#ローカルデータのリセット)で作りかけの行ごと消してください。
 
@@ -119,7 +121,7 @@ R2 バケットは非公開のまま使用します。アバターは認証と�
 5. **承認済みのリダイレクト URI** に以下を追加:
    - `http://localhost:5173/api/auth/callback/google`（開発時）
 
-   Google はリダイレクト URI のホストに [Public Suffix List](https://publicsuffix.org/) 上の TLD か `localhost` そのものを要求するので、portless の `https://my-app.localhost` は登録できません。Google ログインを確認するときは `PORTLESS=0 bun run dev` で portless を通さず起動し、`http://localhost:5173` で行います。
+   Google はリダイレクト URI のホストに [Public Suffix List](https://publicsuffix.org/) 上の TLD か `localhost` そのものを要求するので、portless の `https://my-app.localhost` は登録できません。Google ログインを確認するときは `VITE_GOOGLE_SIGN_IN=1 PORTLESS=0 bun run dev` で起動し、`http://localhost:5173` で行います。`PORTLESS=0` が portless を外し、`VITE_GOOGLE_SIGN_IN=1` が ボタンを開発用ログインから Google へ戻します。
 6. 作成後、Client ID / Client Secret を `.env.local` に設定
 
 > **本番環境**: 生成元とリダイレクト URI にデプロイ先の Workers オリジンも追加してください。カスタムドメインを使わない場合、既定のオリジンは `<Worker名>.<アカウントサブドメイン>.workers.dev` です。
@@ -171,7 +173,7 @@ Cloudflare Workers ランタイムをエミュレートして実行します。�
 | コマンド | ポート | DB/ストレージ | HMR | 用途 |
 |---------|--------|-------------|-----|------|
 | `bun run dev` | portless が割り当て（`https://my-app.localhost`） | ローカルD1/R2 | ○ | 日常的な開発 |
-| `PORTLESS=0 bun run dev` | 5173 | ローカルD1/R2 | ○ | Google ログインの確認 |
+| `VITE_GOOGLE_SIGN_IN=1 PORTLESS=0 bun run dev` | 5173 | ローカルD1/R2 | ○ | Google ログインの確認 |
 | `bun run preview` | 4173 | ローカルD1/R2 | × | デプロイ前確認 |
 
 ### ローカルデータのリセット

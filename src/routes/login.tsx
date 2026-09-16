@@ -1,24 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { DevSignInPanel } from "@/components/features/login-page/dev-sign-in-panel";
-import { Button } from "@/components/ui/button";
-import { signInWithGoogle } from "@/lib/auth/actions.live";
+import { SignInButton } from "@/components/features/login-page/sign-in-button";
 
 const LoginComponent = () => (
   <div className="absolute inset-0 flex flex-col items-center justify-center gap-8">
     <p>message</p>
-    <div className="flex flex-col gap-4">
-      <Button
-        type="button"
-        variant="outline"
-        className="min-h-11 cursor-pointer"
-        onClick={() => {
-          void signInWithGoogle();
-        }}
-      >
-        Sign in With Google
-      </Button>
-    </div>
-    {import.meta.env.DEV && <DevSignInPanel />}
+    <SignInButton />
   </div>
 );
 
