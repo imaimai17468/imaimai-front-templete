@@ -1,4 +1,10 @@
-import { Option } from "effect";
+import { Option, Schema } from "effect";
+
+/** A component read a context whose provider was not above it. */
+export class ContextMissing extends Schema.TaggedError<ContextMissing>()(
+  "ContextMissing",
+  { message: Schema.String }
+) {}
 
 /**
  * Reads a React context whose provider is mandatory.
@@ -9,4 +15,7 @@ import { Option } from "effect";
  * caller's own control flow free of one.
  */
 export const requireContext = <T>(value: T | null, message: string): T =>
-  Option.getOrThrowWith(Option.fromNullOr(value), () => new Error(message));
+  Option.getOrThrowWith(
+    Option.fromNullOr(value),
+    () => new ContextMissing({ message })
+  );

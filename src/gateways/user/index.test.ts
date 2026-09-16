@@ -251,7 +251,7 @@ describe("user gateway", () => {
           {
             event: "user.setAvatarKey",
             message: "expected 1 row, got 0",
-            name: "Error",
+            name: "UnexpectedRowCount",
           },
         ],
         result: new AvatarUploadFailed({ orphanedKey: null }),

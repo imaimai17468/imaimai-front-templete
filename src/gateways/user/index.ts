@@ -30,6 +30,12 @@ export class UserPersistenceError extends Schema.TaggedError<UserPersistenceErro
   { cause: Schema.Defect() }
 ) {}
 
+/** A write the store reported as touching a number of rows nobody expects. */
+export class UnexpectedRowCount extends Schema.TaggedError<UnexpectedRowCount>()(
+  "UnexpectedRowCount",
+  { message: Schema.String, rowsTouched: Schema.Number }
+) {}
+
 const persistenceEffect = <A>(
   run: () => Promise<A>
 ): Effect.Effect<A, UserPersistenceError> =>
@@ -329,7 +335,10 @@ export class UserGateway extends Context.Service<
               yield* Effect.sync(() => {
                 reportError(
                   "user.setAvatarKey",
-                  new Error(`expected 1 row, got ${String(rowsTouched)}`)
+                  new UnexpectedRowCount({
+                    message: `expected 1 row, got ${String(rowsTouched)}`,
+                    rowsTouched,
+                  })
                 );
               });
             }
