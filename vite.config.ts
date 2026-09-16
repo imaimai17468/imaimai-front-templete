@@ -244,11 +244,37 @@ export default defineConfig({
         },
       },
       {
+        // Effect's own rules. The scope is all of `src/` rather than the
+        // layers that hold Effect today, because `lib/auth/` and `routes/api/`
+        // hold some too and a glob naming layers leaves the next one outside
+        // without reporting it.
+        files: ["src/**"],
+        rules: {
+          ...effectRules,
+          // These three ask for the `async`/`await` that
+          // `effect/noAsyncFunction` reports, so no function that hands a
+          // framework a Promise can satisfy both sides.
+          // `promise-function-async` wants `async` on every function whose
+          // return type is a Promise, `prefer-await-to-then` wants `await` in
+          // place of the `.then` chains that replaced it, and
+          // `prefer-await-to-callbacks` reports the error handler passed to
+          // `Effect.catch` or `Effect.catchTag` once the function around it
+          // stops being `async`. The Effect rule is the one this project
+          // keeps: work that can be sequenced goes through `Effect.promise`
+          // and `Effect.tryPromise`, and what is left passes a framework's
+          // Promise straight through.
+          "@typescript-eslint/promise-function-async": "off",
+          "promise/prefer-await-to-then": "off",
+          "promise/prefer-await-to-callbacks": "off",
+        },
+      },
+      {
         // shadcn CLI output. These are the rules the CLI's own files trip,
         // so leaving them on means rewriting every generated file by hand after
         // each `shadcn add`.
         files: ["src/components/ui/**"],
         rules: {
+          "effect/noNullish": "off",
           "func-style": "off",
           "react/function-component-definition": "off",
           "sort-keys": "off",
@@ -269,32 +295,6 @@ export default defineConfig({
           "tailwindcss/enforce-consistent-important-position": "off",
           "tailwindcss/no-unnecessary-whitespace": "off",
           "shadcn/no-restyle": "off",
-        },
-      },
-      {
-        // Effect's own rules. The scope is all of `src/` rather than the
-        // layers that hold Effect today, because `lib/auth/` and `routes/api/`
-        // hold some too and a glob naming layers leaves the next one outside
-        // without reporting it. The two entries below are what `src/` costs:
-        // a rule firing on a module that carries no Effect.
-        files: ["src/**"],
-        rules: {
-          ...effectRules,
-          // These three ask for the `async`/`await` that
-          // `effect/noAsyncFunction` reports, so no function that hands a
-          // framework a Promise can satisfy both sides.
-          // `promise-function-async` wants `async` on every function whose
-          // return type is a Promise, `prefer-await-to-then` wants `await` in
-          // place of the `.then` chains that replaced it, and
-          // `prefer-await-to-callbacks` reports the error handler passed to
-          // `Effect.catch` or `Effect.catchTag` once the function around it
-          // stops being `async`. The Effect rule is the one this project
-          // keeps: work that can be sequenced goes through `Effect.promise`
-          // and `Effect.tryPromise`, and what is left passes a framework's
-          // Promise straight through.
-          "@typescript-eslint/promise-function-async": "off",
-          "promise/prefer-await-to-then": "off",
-          "promise/prefer-await-to-callbacks": "off",
         },
       },
       {
@@ -328,6 +328,26 @@ export default defineConfig({
           "max-classes-per-file": "off",
           "unicorn/throw-new-error": "off",
         },
+      },
+      {
+        // `useRef` takes the value React hands back as `current`, and a ref
+        // attached to a DOM node starts with no node.
+        files: [
+          "src/components/features/profile-page/profile-form/profile-form.tsx",
+        ],
+        rules: { "effect/noNullish": "off" },
+      },
+      {
+        // A React component renders nothing by returning `null`, which is what
+        // the stub route here does.
+        files: ["src/test/router-utils.tsx"],
+        rules: { "effect/noNullish": "off" },
+      },
+      {
+        // `cn` forwards whatever clsx accepts, and this file asserts that an
+        // `undefined` among its arguments contributes no class.
+        files: ["src/lib/utils.test.ts"],
+        rules: { "effect/noNullish": "off" },
       },
       {
         files: ["src/components/shared/code-block/code-block.tsx"],
