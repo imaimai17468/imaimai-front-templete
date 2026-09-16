@@ -97,8 +97,8 @@ export type UpdateProfileResult =
  * What `uploadAvatarFn` answers with.
  *
  * `cleanup: "pending"` rides the success arm: the row points at the new avatar
- * and only the previous object is still in the bucket. `orphanedKey` rides the
- * failure arm, where the row still points at the previous avatar.
+ * and only the previous object is still in the bucket. The failure arm leaves
+ * the row pointing at the previous avatar.
  */
 export type UploadAvatarResult =
   | {
@@ -109,7 +109,6 @@ export type UploadAvatarResult =
   | {
       readonly status: "failed";
       readonly message: string;
-      readonly orphanedKey: Option.Option<string>;
     };
 
 export const updateProfileResult: (
@@ -155,19 +154,16 @@ export const uploadAvatarResult: (
     AvatarTypeUnsupported: () =>
       Effect.succeed({
         message: "Unsupported image type",
-        orphanedKey: Option.none(),
         status: "failed",
       } satisfies UploadAvatarResult),
-    AvatarUploadFailed: (error) =>
+    AvatarUploadFailed: () =>
       Effect.succeed({
         message: "Failed to upload avatar",
-        orphanedKey: error.orphanedKey,
         status: "failed",
       } satisfies UploadAvatarResult),
     NotAuthenticated: () =>
       Effect.succeed({
         message: "Not authenticated",
-        orphanedKey: Option.none(),
         status: "failed",
       } satisfies UploadAvatarResult),
     UserPersistenceError: (error) => Effect.die(error.cause),

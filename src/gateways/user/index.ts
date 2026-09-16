@@ -45,6 +45,12 @@ class UnexpectedRowCount extends Schema.TaggedError<UnexpectedRowCount>()(
   { message: Schema.String }
 ) {}
 
+/** An uploaded object the rollback delete failed to remove from the bucket. */
+class AvatarObjectOrphaned extends Schema.TaggedError<AvatarObjectOrphaned>()(
+  "AvatarObjectOrphaned",
+  { message: Schema.String }
+) {}
+
 const persistenceEffect = <A>(
   run: () => Promise<A>
 ): Effect.Effect<A, UserPersistenceError> =>
@@ -171,14 +177,9 @@ export class AvatarTypeUnsupported extends Schema.TaggedError<AvatarTypeUnsuppor
   {}
 ) {}
 
-/**
- * `orphanedKey` names the object left in the bucket when even the rollback
- * delete failed, which is the only state a caller cannot reconstruct from the
- * row. It is `None` on every other upload failure.
- */
 export class AvatarUploadFailed extends Schema.TaggedError<AvatarUploadFailed>()(
   "AvatarUploadFailed",
-  { orphanedKey: Schema.Option(Schema.String) }
+  {}
 ) {}
 
 export interface AvatarUpdated {
@@ -312,9 +313,7 @@ export class UserGateway extends Context.Service<
             store.findAvatarKey(userId)
           ).pipe(Effect.map(Option.flatten));
           if (Option.isNone(current)) {
-            return yield* new AvatarUploadFailed({
-              orphanedKey: Option.none(),
-            });
+            return yield* new AvatarUploadFailed();
           }
 
           const previousKey = current.value.avatarKey;
@@ -326,9 +325,7 @@ export class UserGateway extends Context.Service<
             storage.upload(key, file, file.type)
           );
           if (!uploaded) {
-            return yield* new AvatarUploadFailed({
-              orphanedKey: Option.none(),
-            });
+            return yield* new AvatarUploadFailed();
           }
           const publicUrl = avatarUrlForKey(key);
 
@@ -350,13 +347,21 @@ export class UserGateway extends Context.Service<
               "user.rollbackUpload",
               storage.remove(key)
             );
-            return yield* new AvatarUploadFailed({
-              orphanedKey: Match.value(rolledBack).pipe(
-                Match.when(true, () => Option.none<string>()),
-                Match.when(false, () => Option.some(key)),
-                Match.exhaustive
+            // The bucket now holds an object no row points at, and its key is
+            // reconstructible from nothing the caller has.
+            yield* Match.value(rolledBack).pipe(
+              Match.when(true, () => Effect.void),
+              Match.when(false, () =>
+                reportError(
+                  "user.rollbackUpload",
+                  new AvatarObjectOrphaned({
+                    message: `${key} was left in the bucket`,
+                  })
+                )
               ),
-            });
+              Match.exhaustive
+            );
+            return yield* new AvatarUploadFailed();
           }
 
           if (Option.isNone(previousKey)) {

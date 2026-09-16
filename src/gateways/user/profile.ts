@@ -7,7 +7,6 @@ import {
 } from "@/lib/storage/avatar-validation";
 import type { AvatarSizeRejection } from "@/lib/storage/avatar-validation";
 import { runUpdateProfile, runUploadAvatar } from "./profile-writer";
-import { toWire } from "./upload-avatar-wire";
 
 // The wire hands `.validator` whatever the client sent, so the contract starts
 // at this schema rather than at a parameter annotation.
@@ -58,4 +57,4 @@ export const updateProfileFn = createServerFn({ method: "POST" })
 
 export const uploadAvatarFn = createServerFn({ method: "POST" })
   .validator(parseAvatarUpload)
-  .handler(({ data }) => uploadAvatar(data.file).then(toWire));
+  .handler(({ data }) => uploadAvatar(data.file));
