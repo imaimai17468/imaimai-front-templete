@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema } from "effect";
+import { Context, Effect, Layer, Option, Schema } from "effect";
 import { CurrentSession } from "@/lib/auth/current-session.live";
 import { isOwnAvatarKey } from "@/lib/storage/avatar-validation";
 import { AvatarGateway } from ".";
@@ -47,11 +47,11 @@ export class AvatarReader extends Context.Service<
       const read = Effect.fn("AvatarReader.read")(function* read(
         key: string | null
       ) {
-        const session = yield* currentSession.read;
-        if (!session?.user) {
+        const caller = yield* currentSession.read;
+        if (Option.isNone(caller)) {
           return yield* new AvatarUnauthorized();
         }
-        if (key === null || !isOwnAvatarKey(key, session.user.id)) {
+        if (key === null || !isOwnAvatarKey(key, caller.value.id)) {
           return yield* new AvatarInvalidKey();
         }
         const avatar = yield* gateway.fetchAvatar(key);
