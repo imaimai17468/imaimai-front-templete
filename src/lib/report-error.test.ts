@@ -1,13 +1,10 @@
 import { Effect, Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
+import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";
 import { errorReport, reportError } from "./report-error";
 
 const STACK = "DriverFailed: D1 failed\n    at report-error.test.ts:1:1";
-
-// `effect/noNullish` reports a written `null`, so the encoding of an absent
-// field is built from a `None` rather than spelled out.
-const ABSENT_FIELD = Option.getOrNull(Option.none<string>());
 
 const failureWithStack = (): DriverFailed => {
   const error = new DriverFailed({ message: "D1 failed" });

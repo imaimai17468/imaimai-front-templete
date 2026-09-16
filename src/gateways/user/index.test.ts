@@ -3,6 +3,7 @@ import { TestClock } from "effect/testing";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { avatarUrlForKey } from "@/lib/avatar-url";
 import type { ErrorLogRecord } from "@/lib/report-error";
+import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";
 import {
   AvatarKeyIds,
@@ -353,7 +354,9 @@ describe("user gateway", () => {
         gateway.updateUser("user-1", { name: "New Name" })
       ).then((result) => {
         expect({
-          result,
+          // `runOrFailure` folds a failure into the success channel, so a None
+          // here is what says the write took its success arm.
+          result: Option.fromNullishOr(result),
           updateCalls: updateName.mock.calls.map(
             ([userId, name, updatedAt]) => [
               userId,
@@ -362,7 +365,7 @@ describe("user gateway", () => {
             ]
           ),
         }).toStrictEqual({
-          result: undefined,
+          result: Option.none(),
           updateCalls: [
             ["user-1", Option.some("New Name"), TEST_CLOCK_INSTANT],
           ],
@@ -424,11 +427,42 @@ describe("user gateway", () => {
       ).then((result) => {
         expect(result).toStrictEqual(
           Option.some({
-            avatarUrl: null,
+            avatarUrl: ABSENT_FIELD,
             createdAt: "2026-01-01T00:00:00.000Z",
             email: "user@example.com",
             id: "user-1",
             name: "Name",
+            updatedAt: "2026-01-02T00:00:00.000Z",
+          })
+        );
+      });
+    });
+
+    it("should encode an absent name as null when the row holds none", () => {
+      const { findProfile, runOrFailure } = makeFakes();
+      findProfile.mockReturnValue(
+        Effect.succeed(
+          Option.some({
+            avatarKey: Option.none(),
+            createdAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
+            id: "user-1",
+            image: Option.none(),
+            name: Option.none(),
+            updatedAt: DateTime.makeUnsafe("2026-01-02T00:00:00.000Z"),
+          })
+        )
+      );
+
+      return runOrFailure((gateway) =>
+        gateway.fetchCurrentUser("user-1", "user@example.com")
+      ).then((result) => {
+        expect(result).toStrictEqual(
+          Option.some({
+            avatarUrl: ABSENT_FIELD,
+            createdAt: "2026-01-01T00:00:00.000Z",
+            email: "user@example.com",
+            id: "user-1",
+            name: ABSENT_FIELD,
             updatedAt: "2026-01-02T00:00:00.000Z",
           })
         );

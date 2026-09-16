@@ -16,15 +16,17 @@ const isEmailAddress = Schema.isPattern(
  * @public
  */
 export const UserSchema = Schema.Struct({
-  avatarUrl: Schema.NullOr(Schema.String),
+  avatarUrl: Schema.OptionFromNullOr(Schema.String),
   createdAt: Schema.DateTimeUtcFromString,
   id: Schema.String,
-  name: Schema.NullOr(Schema.String),
+  name: Schema.OptionFromNullOr(Schema.String),
   updatedAt: Schema.DateTimeUtcFromString,
 });
 
 /**
- * テンプレート用途で公開。UserSchema と対になる型。
+ * `UserSchema` の符号化側。name と avatarUrl は string | null、2 つの時刻は
+ * ISO-8601 文字列で、この形のまま JSON を往復する。復号側は name と
+ * avatarUrl が Option<string>、時刻が DateTime.Utc になる別の型。
  *
  * @public
  */
@@ -37,8 +39,9 @@ export const UserWithEmailSchema = Schema.Struct({
 
 /**
  * `UserWithEmailSchema`'s encoded side, where the two instants are ISO-8601
- * strings and the whole value survives JSON. Decoding turns them into
- * `DateTime.Utc`.
+ * strings, `name` and `avatarUrl` are `string | null`, and the whole value
+ * survives JSON. Decoding turns the instants into `DateTime.Utc` and those two
+ * fields into `Option<string>`.
  */
 export type UserWithEmail = typeof UserWithEmailSchema.Encoded;
 
@@ -72,11 +75,11 @@ export type UpdateAvatar = typeof UpdateAvatarSchema.Encoded;
 /**
  * The name to show for a user.
  *
- * A row carries `null` before the first profile save, and the form accepts a
+ * A row carries no name before the first profile save, and the form accepts a
  * blank submission as a clear, so both reach here and both fall back.
  */
-export const displayName = (name: string | null): string =>
-  Option.fromNullOr(name).pipe(
+export const displayName = (name: Option.Option<string>): string =>
+  name.pipe(
     Option.filter((value) => value !== ""),
     Option.getOrElse(() => "User")
   );

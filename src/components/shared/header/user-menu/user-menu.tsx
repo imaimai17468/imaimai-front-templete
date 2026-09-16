@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { Option } from "effect";
 import { LogOut, User as UserIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -24,8 +25,8 @@ const handleSignOut = (): Promise<void> =>
   });
 
 export const UserMenu = ({ user }: UserMenuProps) => {
-  const { avatarUrl } = user;
-  const name = displayName(user.name);
+  const avatarUrl = Option.fromNullOr(user.avatarUrl);
+  const name = displayName(Option.fromNullOr(user.name));
   const { email } = user;
 
   return (
@@ -36,7 +37,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
           className="cursor-pointer rounded-full focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
         >
           <Avatar>
-            <AvatarImage src={avatarUrl ?? undefined} alt={name} />
+            <AvatarImage src={Option.getOrUndefined(avatarUrl)} alt={name} />
             <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
         </button>

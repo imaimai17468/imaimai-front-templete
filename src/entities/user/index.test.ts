@@ -1,6 +1,8 @@
-import { DateTime, Result, Schema } from "effect";
+import { DateTime, Option, Result, Schema } from "effect";
 import { describe, expect, it } from "vite-plus/test";
+import { ABSENT_FIELD } from "@/test/absent-field";
 import {
+  displayName,
   UpdateAvatarSchema,
   UpdateUserSchema,
   UserSchema,
@@ -57,10 +59,10 @@ describe("UpdateUserSchema Standard Schema validation", () => {
 });
 
 const base = {
-  avatarUrl: null,
+  avatarUrl: ABSENT_FIELD,
   createdAt: "2026-01-01T00:00:00Z",
   id: "user_1",
-  name: null,
+  name: ABSENT_FIELD,
   updatedAt: "2026-01-02T00:00:00Z",
 };
 
@@ -70,10 +72,10 @@ describe("UserSchema decoding", () => {
 
     expect(result).toStrictEqual(
       Result.succeed({
-        avatarUrl: null,
+        avatarUrl: Option.none(),
         createdAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
         id: "user_1",
-        name: null,
+        name: Option.none(),
         updatedAt: DateTime.makeUnsafe("2026-01-02T00:00:00.000Z"),
       })
     );
@@ -106,11 +108,11 @@ describe("UserWithEmailSchema decoding", () => {
 
     expect(result).toStrictEqual(
       Result.succeed({
-        avatarUrl: null,
+        avatarUrl: Option.none(),
         createdAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
         email: "a@example.com",
         id: "user_1",
-        name: null,
+        name: Option.none(),
         updatedAt: DateTime.makeUnsafe("2026-01-02T00:00:00.000Z"),
       })
     );
@@ -120,6 +122,26 @@ describe("UserWithEmailSchema decoding", () => {
     const result = decodeUserWithEmail({ ...base, email: "not-an-email" });
 
     expect(Result.isFailure(result)).toBeTruthy();
+  });
+});
+
+describe(displayName, () => {
+  it("should fall back to User when the row holds no name", () => {
+    const result = displayName(Option.none());
+
+    expect(result).toBe("User");
+  });
+
+  it("should fall back to User when the name was cleared to an empty string", () => {
+    const result = displayName(Option.some(""));
+
+    expect(result).toBe("User");
+  });
+
+  it("should return the name when the row holds one", () => {
+    const result = displayName(Option.some("Alice"));
+
+    expect(result).toBe("Alice");
   });
 });
 

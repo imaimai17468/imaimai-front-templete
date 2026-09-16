@@ -60,7 +60,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
 
   const form = useForm<UpdateUser>({
     defaultValues: {
-      name: user.name ?? "",
+      name: Option.getOrElse(Option.fromNullOr(user.name), () => ""),
     },
     resolver: standardSchemaResolver(UpdateUserSchema),
   });
@@ -120,8 +120,10 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
     );
   };
 
-  const name = displayName(user.name);
-  const avatarUrl = Option.getOrElse(previewUrl, () => user.avatarUrl);
+  const name = displayName(Option.fromNullOr(user.name));
+  const avatarUrl = Option.orElse(previewUrl, () =>
+    Option.fromNullOr(user.avatarUrl)
+  );
 
   return (
     <Form {...form}>
@@ -134,7 +136,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
         <div className="flex items-center gap-6">
           <div className="relative">
             <Avatar size="lg">
-              <AvatarImage src={avatarUrl ?? undefined} alt={name} />
+              <AvatarImage src={Option.getOrUndefined(avatarUrl)} alt={name} />
               <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <button
