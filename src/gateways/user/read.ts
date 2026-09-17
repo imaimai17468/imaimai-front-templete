@@ -5,7 +5,7 @@ import { UserWithEmailSchema } from "@/entities/user";
 import type { UserWithEmail } from "@/entities/user";
 import { CurrentSession } from "@/lib/auth/current-session.live";
 import { avatarUrlForKey } from "@/lib/avatar-url";
-import { getDb } from "@/lib/drizzle/db.live";
+import { getDb } from "@/lib/drizzle/db";
 import { users } from "@/lib/drizzle/schema";
 import { persistenceEffect } from ".";
 import type { UserPersistenceError } from ".";

@@ -1156,7 +1156,7 @@ describe("layer-boundaries", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ImportDeclaration?.(importNode("@/lib/cloudflare/env.live"));
+    visitors.ImportDeclaration?.(importNode("@/lib/cloudflare/env"));
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -1249,7 +1249,7 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it.each(["@/lib/drizzle/db.live", "@/entities/user"])(
+  it.each(["@/lib/drizzle/db", "@/entities/user"])(
     "should not report when an adapter imports %s",
     (specifier) => {
       // Arrange

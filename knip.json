@@ -9,5 +9,5 @@
   ],
   "project": ["src/**/*.{ts,tsx,css}"],
   "ignoreBinaries": ["shellcheck"],
-  "ignore": ["src/lib/cloudflare/env.live.ts"]
+  "ignore": ["src/lib/cloudflare/env.ts"]
 }

@@ -1,7 +1,7 @@
 import "@tanstack/react-start/server-only";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { getDb } from "@/lib/drizzle/db.live";
+import { getDb } from "@/lib/drizzle/db";
 import * as schema from "@/lib/drizzle/schema";
 import { memoizeValue } from "@/lib/memoize-value";
 import { readAuthSecret } from "./secret.live";

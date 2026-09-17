@@ -10,7 +10,7 @@ import {
   Schema,
 } from "effect";
 import { avatarUrlForKey } from "@/lib/avatar-url";
-import { getDb } from "@/lib/drizzle/db.live";
+import { getDb } from "@/lib/drizzle/db";
 import { users } from "@/lib/drizzle/schema";
 import { reportError } from "@/lib/report-error";
 import {
