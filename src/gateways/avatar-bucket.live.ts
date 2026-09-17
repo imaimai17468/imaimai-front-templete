@@ -1,3 +1,4 @@
+import "@tanstack/react-start/server-only";
 import { getCloudflareEnv } from "@/lib/cloudflare/env.live";
 
 /**

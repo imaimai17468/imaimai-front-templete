@@ -1,3 +1,4 @@
+import "@tanstack/react-start/server-only";
 import { Context, Effect, Layer, Option } from "effect";
 import type { UserWithEmail } from "@/entities/user";
 import { CurrentSession } from "@/lib/auth/current-session.live";

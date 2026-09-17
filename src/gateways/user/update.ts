@@ -1,3 +1,4 @@
+import "@tanstack/react-start/server-only";
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import type { UpdateUser } from "@/entities/user";
 import { UserGateway } from ".";
