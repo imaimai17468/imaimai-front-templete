@@ -5,9 +5,10 @@ from https://github.com/cloudflare/security-audit-skill at commit
 `c1c8a8c1471069fb0e188eeaff69b8e8db6564a8` (2026-09-14), plus that repository's
 `LICENSE` (MIT). Edit none of them: the refresh below overwrites the edit.
 
-`vite.config.ts` and `vitest.config.mts` each name this directory, keeping the
-project's formatter, linter and test runner off a copy nobody here owns. Drop
-those three entries along with the directory if the skill is ever removed.
+`vite.config.ts`, `vitest.config.mts` and `lefthook.yml` each name this
+directory, keeping the project's formatter, linter and test runner off a copy
+nobody here owns. Drop those entries along with the directory if the skill is
+ever removed.
 
 To use the skill, ask a session in this repository for a security audit of the
 codebase; `SKILL.md` decides from the request whether it answers as guidance or
