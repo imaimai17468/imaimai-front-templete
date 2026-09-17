@@ -27,8 +27,6 @@ AGENTS.md settles the layer this sits in and that it is the authorization bounda
 
 **A service declaration and the real implementation live in the same file.** The service is the substitution point, so a test provides a different `Layer` and needs no binding. A separate module holding the real dependency buys nothing the layer does not already buy, and it puts one operation in two files.
 
-**A gateway module that is not a service keeps its plain name and stays inside the coverage gate.** `runtime.ts` wires a `ManagedRuntime` and holds no branch, so the gate passes without the `*.live.ts` exemption AGENTS.md's Testing section describes. That exemption is for a module whose logic is tested elsewhere, and here the logic and its seam are already in one file.
-
 **Name a service for the column or the object it reaches**, so what a test has to provide is readable from the name: `UserNames`, `UserAvatarKeys`, `AvatarBucket`.
 
 ## Rows

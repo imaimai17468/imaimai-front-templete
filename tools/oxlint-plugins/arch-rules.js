@@ -450,9 +450,9 @@ const srcPathOf = (context) => {
   return filename.slice(srcIndex + 1);
 };
 
-// `*.live` と `*.entry` は coverage 規約が付ける接尾辞で、付いていてもレイヤ上の
-// 位置は変わらないので、ban の照合前に落とす。
-const COVERAGE_NAME_SUFFIX = /\.(?:live|entry)$/u;
+// `*.entry` は coverage 規約が付ける接尾辞で、付いていてもレイヤ上の位置は
+// 変わらないので、ban の照合前に落とす。
+const COVERAGE_NAME_SUFFIX = /\.entry$/u;
 
 const resolveImportTarget = (fileSrcDir, specifier) => {
   if (specifier.startsWith("@/")) {
