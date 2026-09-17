@@ -5,7 +5,11 @@ import os from "node:os";
 import path from "node:path";
 import { globSync } from "tinyglobby";
 import { describe, expect, it, onTestFinished } from "vite-plus/test";
-import { coverageExclude, coverageInclude } from "./vitest.config.mts";
+import {
+  coverageExclude,
+  coverageInclude,
+  vendoredSkillExclude,
+} from "./vitest.config.mts";
 
 const ROOT = import.meta.dirname;
 
@@ -57,5 +61,11 @@ describe("coverage.include and coverage.exclude", () => {
     expect(stalePatterns(["src/empty/**"], root)).toStrictEqual([
       "src/empty/**",
     ]);
+  });
+});
+
+describe("test.exclude", () => {
+  it("should report no stale pattern when the vendored skill directory holds files", () => {
+    expect(stalePatterns([vendoredSkillExclude], ROOT)).toStrictEqual([]);
   });
 });

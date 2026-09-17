@@ -15,7 +15,12 @@ pre-commit:
         - ".claude/hooks/*.{js,ts,jsx,tsx}"
       run: bunx vp lint {staged_files}
     format:
+      # oxfmt exits 2 when every path it is handed is one `fmt.ignorePatterns`
+      # excludes, so a commit that stages only the vendored skill fails here on
+      # its `report-schema.json` without this exclude.
       glob: "*.{js,ts,jsx,tsx,json,yml,yaml,toml}"
+      exclude:
+        - ".claude/skills/security-audit/**"
       run: bunx vp fmt --check {staged_files}
     # `--staged` reads the git index itself, so it needs no {staged_files}; the
     # glob only keeps a docs-only commit from paying for the scan. `--no-score`
