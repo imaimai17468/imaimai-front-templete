@@ -169,8 +169,8 @@ and commits, and nothing downstream judges the remedy.
 
 - `fix`: the concrete change, naming which file, what it should say instead, and why that
   shape. "Validate the size server-side" is not a fix. "Add `avatarSizeRejection(file.size)`
-  to `uploadAvatarFn`'s `inputValidator`, sharing `MAX_AVATAR_BYTES` with the client so the
-  two cannot drift" is.
+  to the schema `uploadAvatarFn` passes to `.validator`, sharing `MAX_AVATAR_BYTES` with
+  the client so the two cannot drift" is.
 - `acceptance`: how the parent confirms it landed without re-running a review, given as a
   command or a specific observable in the code.
 
