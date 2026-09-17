@@ -50,8 +50,17 @@ would have survived.
   mutable state, double submission
 - **integrity**: swallowed errors, missing failure paths, partial writes, inconsistent
   persisted state, missing boundary validation
+- **security**: each side of a boundary validates what reaches it, whatever the other side
+  claims to have checked. A `createServerFn` whose `.validator` lets through a field the
+  handler then acts on, a gateway operation that takes whose row it touches from its
+  argument instead of from the session, a value out of a row or a URL parameter that
+  reaches `href`, `src`, `redirect()` or `dangerouslySetInnerHTML` unchecked, a secret or a
+  server-only import that a `*.fn.ts` carries into the browser bundle. A browser-side check
+  bounds nothing on its own, because the server function is callable directly. Severity
+  here is critical or major.
 - **cleanup**: duplication, dead code, needless complexity, obvious performance problems,
-  drift from surrounding conventions
+  drift from surrounding conventions. `bun run check` reports formatting, import order and
+  every lint rule, so raise none of those
 - **reuse**: new code that re-implements something the codebase already has; grep the
   shared modules and the files next to the change, and name the existing helper to call
   instead
@@ -195,7 +204,7 @@ effort: standard — 4 raised, 1 merged, 1 refuted, 1 abstained, 1 returned
   caller holds the lock across both
 
 ## Checked
-- logic, state, integrity, cleanup, efficiency, altitude — swept over the whole diff
+- logic, state, integrity, security, cleanup, efficiency, altitude — swept over the whole diff
 - reuse — swept src/components/ and src/lib/ only, so a helper living elsewhere would not
   have been found
 - rules — AGENTS.md and prose.md; design.md never loaded, so this diff's CSS went
