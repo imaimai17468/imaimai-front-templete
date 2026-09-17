@@ -1,18 +1,19 @@
 import { TanStackDevtools } from "@tanstack/react-devtools";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
+import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
 import {
   HeadContent,
   Outlet,
   Scripts,
-  createRootRoute,
-  useLoaderData,
+  createRootRouteWithContext,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { Option } from "effect";
 import { Header } from "@/components/shared/header/header";
 import { ThemeProvider } from "@/components/shared/theme-provider/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { getCurrentUserFn } from "@/gateways/user/read.fn";
+import { currentUserQueryOptions } from "@/gateways/user/read.fn";
 import "@/styles.css";
 
 if (import.meta.env.DEV && !import.meta.env.SSR) {
@@ -20,7 +21,7 @@ if (import.meta.env.DEV && !import.meta.env.SSR) {
 }
 
 const RootComponent = () => {
-  const { user } = useLoaderData({ from: "__root__" });
+  const { data: user } = useSuspenseQuery(currentUserQueryOptions());
   return (
     <html lang="ja" suppressHydrationWarning>
       <head>
@@ -35,7 +36,7 @@ const RootComponent = () => {
         >
           <TooltipProvider>
             <div className="flex min-h-dvh flex-col gap-16">
-              <Header user={Option.fromNullOr(user)} />
+              <Header user={user} />
               <div className="flex w-full flex-1 justify-center px-6 md:px-4">
                 <div className="container">
                   <Outlet />
@@ -51,6 +52,10 @@ const RootComponent = () => {
               name: "TanStack Router",
               render: <TanStackRouterDevtoolsPanel />,
             },
+            {
+              name: "TanStack Query",
+              render: <ReactQueryDevtoolsPanel />,
+            },
           ]}
         />
         <Scripts />
@@ -59,8 +64,10 @@ const RootComponent = () => {
   );
 };
 
-export const Route = createRootRoute({
-  loader: () => getCurrentUserFn().then((user) => ({ user })),
+export const Route = createRootRouteWithContext<{
+  queryClient: QueryClient;
+}>()({
+  loader: ({ context }) => context.queryClient.query(currentUserQueryOptions()),
   head: () => ({
     meta: [
       { charSet: "utf-8" },
