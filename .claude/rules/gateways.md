@@ -13,7 +13,7 @@ AGENTS.md settles the layer this sits in and that it is the authorization bounda
 
 **A `*.fn.ts` holds `createServerFn` declarations and their validators, and nothing else.** The compiler ships that file to the browser with each handler argument rewritten into a `fetch`, so a service, a `ManagedRuntime`, or a D1 or R2 call written there lands in the client bundle. Put it in another module and let the `*.fn.ts` import it, because that import line is what the compiler deletes once the handler argument is gone.
 
-**Every other module opens with `import "@tanstack/react-start/server-only"`.** `arch-rules/gateway-server-only-marker` reports a module that does not, and the marker fails the build when a client module reaches a marked one. `createServerOnlyFn` around a handler argument does not do this: it replaces one function and leaves a class whose static initializer still references a server import, so the module graph survives. The `src/lib` adapters that reach a binding or the request carry the marker for the same reason.
+**Every other module opens with `import "@tanstack/react-start/server-only"`.** `arch-rules/server-only-marker` reports a module that does not, and the marker fails the build when a client module reaches a marked one. `createServerOnlyFn` around a handler argument does not do this: it replaces one function and leaves a class whose static initializer still references a server import, so the module graph survives. The `src/lib` adapters that reach a binding or the request carry the marker for the same reason.
 
 ## Shape
 
