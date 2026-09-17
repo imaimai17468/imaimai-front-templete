@@ -358,11 +358,6 @@ const LAYER_BANS = [
       },
       {
         message:
-          "Routes must not resolve request authentication — delegate to a gateway.",
-        target: "src/lib/auth/current-session",
-      },
-      {
-        message:
           "Routes must not access Cloudflare persistence bindings directly — delegate to a gateway.",
         target: "src/lib/cloudflare",
       },
@@ -442,8 +437,8 @@ const LAYER_BANS_MOST_SPECIFIC_FIRST = LAYER_BANS.toSorted(
 
 const SRC_MARKER = "/src/";
 
-// `session.live` と `session` は同じレイヤ位置のモジュールを指すので、ban の
-// 照合前にこの接尾辞を落とす。
+// `*.live` と `*.entry` は coverage 規約が付ける接尾辞で、付いていてもレイヤ上の
+// 位置は変わらないので、ban の照合前に落とす。
 const COVERAGE_NAME_SUFFIX = /\.(?:live|entry)$/u;
 
 const resolveImportTarget = (fileSrcDir, specifier) => {

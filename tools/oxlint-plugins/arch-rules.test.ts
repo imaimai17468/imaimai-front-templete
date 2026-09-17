@@ -1032,13 +1032,13 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it("should report when a route imports the current-session service", () => {
+  it("should report when a route imports a module inside the session directory", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/profile.tsx");
     const visitors = rule.create(context);
 
     // Act
-    visitors.ImportDeclaration?.(importNode("@/lib/auth/current-session.live"));
+    visitors.ImportDeclaration?.(importNode("@/lib/auth/session/caller"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -1082,7 +1082,7 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it.each(["@/lib/auth/auth.live", "@/lib/auth/actions.live"])(
+  it.each(["@/lib/auth/better-auth", "@/lib/auth/sign-in"])(
     "should allow the auth adapter %s when a route imports it",
     (specifier) => {
       // Arrange
@@ -1276,7 +1276,7 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it("should report when a route imports @/lib/auth/session.live, whose ban target matches only once the coverage suffix is stripped", () => {
+  it("should report when a route imports a banned specifier carrying the coverage suffix", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
     const visitors = rule.create(context);
@@ -1300,7 +1300,7 @@ describe("layer-boundaries", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it("should report when a route imports the session adapter carrying the coverage suffix via relative path", () => {
+  it("should report when a route imports a banned relative specifier carrying the coverage suffix", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/profile.tsx");
     const visitors = rule.create(context);

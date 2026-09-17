@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { requireAuthSecret } from "./required-secret";
-import type { AuthSecretName } from "./required-secret";
+import { requireAuthSecret } from "./secret";
+import type { AuthSecretName } from "./secret";
 
 const secretNames = [
   "BETTER_AUTH_SECRET",

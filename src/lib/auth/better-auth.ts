@@ -4,7 +4,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { getDb } from "@/lib/drizzle/db";
 import * as schema from "@/lib/drizzle/schema";
 import { memoizeValue } from "@/lib/memoize-value";
-import { readAuthSecret } from "./secret.live";
+import { readAuthSecret } from "./secret";
 
 const buildAuth = () => {
   // better-auth resolves BETTER_AUTH_SECRET from `globalThis.process.env`,

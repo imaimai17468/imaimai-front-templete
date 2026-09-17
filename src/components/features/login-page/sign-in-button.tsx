@@ -2,7 +2,7 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { signIn } from "@/lib/auth/actions.live";
+import { signIn } from "@/lib/auth/sign-in";
 
 export const SignInButton = () => {
   const [pending, setPending] = useState(false);

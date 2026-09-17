@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import type { Caller } from "./session-user";
-import { pickCaller, pickUser } from "./session-user";
+import type { Caller } from "./caller";
+import { pickCaller, pickUser } from "./caller";
 
 // `effect/noNullish` reports a written `null`, so an absent user is built from
 // a `None` rather than spelled out.

@@ -1,12 +1,8 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { DriverFailed } from "@/test/defect";
-import {
-  devSignInOutcome,
-  signInThrewOutcome,
-  socialSignInOutcome,
-} from "./sign-in";
-import type { SignInFailure } from "./sign-in";
+import type { SignInFailure } from "./outcome";
+import { signInThrewOutcome, socialSignInOutcome } from "./outcome";
 
 describe(socialSignInOutcome, () => {
   it("should report a redirect when the provider call carries no failure", () => {
@@ -60,32 +56,6 @@ describe(signInThrewOutcome, () => {
     expect(outcome).toStrictEqual({
       kind: "failed",
       message: "sign-in failed",
-    });
-  });
-});
-
-describe(devSignInOutcome, () => {
-  it("should report a session when the dev user already existed", () => {
-    const outcome = devSignInOutcome({ kind: "signed-in" });
-
-    expect(outcome).toStrictEqual({ kind: "signed-in" });
-  });
-
-  it("should report a session when the dev user was created first", () => {
-    const outcome = devSignInOutcome({ kind: "created" });
-
-    expect(outcome).toStrictEqual({ kind: "signed-in" });
-  });
-
-  it("should carry the recovery message when the dev sign-in failed", () => {
-    const outcome = devSignInOutcome({
-      kind: "failed",
-      message: "User already exists. Run bun run db:push:local.",
-    });
-
-    expect(outcome).toStrictEqual({
-      kind: "failed",
-      message: "User already exists. Run bun run db:push:local.",
     });
   });
 });

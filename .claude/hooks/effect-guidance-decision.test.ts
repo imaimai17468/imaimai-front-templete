@@ -94,7 +94,7 @@ const CASES: readonly Case[] = [
   },
   {
     answer: REMINDER,
-    file: "src/lib/auth/session.live.ts",
+    file: "src/lib/auth/session/index.ts",
     name: "should ask for the guidance when the import is written with single quotes",
     text: "import { Option } from 'effect';",
     tool: "Edit",

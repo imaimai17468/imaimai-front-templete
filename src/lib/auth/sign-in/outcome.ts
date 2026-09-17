@@ -1,5 +1,4 @@
 import { Option, Predicate } from "effect";
-import type { DevSignInResult } from "./dev-sign-in";
 
 /**
  * How one sign-in attempt ended: the client is already navigating to the
@@ -48,14 +47,3 @@ export const signInThrewOutcome = (cause: unknown): SignInOutcome => ({
     Option.getOrElse(() => FALLBACK_MESSAGE)
   ),
 });
-
-/**
- * Email and password sign-in returns to the caller with the page unchanged,
- * and it reaches a session whether it found the dev user or created one.
- */
-export const devSignInOutcome = (result: DevSignInResult): SignInOutcome => {
-  if (result.kind === "failed") {
-    return { kind: "failed", message: result.message };
-  }
-  return { kind: "signed-in" };
-};

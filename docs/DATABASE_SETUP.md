@@ -103,7 +103,7 @@ R2 バケットは非公開のまま使用します。アバターは認証と�
 
 ### 開発用ログイン
 
-`/login` には「Sign in With Google」ボタンが 1 つだけ並びます。`bun run dev` で立てた開発ビルドでは、このボタンが Google へ飛ばずに `src/lib/auth/dev-users.ts` が持つ資格情報でサインインし、ローカル D1 にそのユーザーが居なければ作ってから入ります。`.wrangler/state` を消しても次のクリックで作り直されます。Google の認証情報を登録しなくても認証済みの画面を触れるので、下の Google 設定はデプロイ先を用意する段で行えば足ります。
+`/login` には「Sign in With Google」ボタンが 1 つだけ並びます。`bun run dev` で立てた開発ビルドでは、このボタンが Google へ飛ばずに `src/lib/auth/sign-in/dev.ts` が持つ資格情報でサインインし、ローカル D1 にそのユーザーが居なければ作ってから入ります。`.wrangler/state` を消しても次のクリックで作り直されます。Google の認証情報を登録しなくても認証済みの画面を触れるので、下の Google 設定はデプロイ先を用意する段で行えば足ります。
 
 開発ビルドから Google 側を試すときは `VITE_GOOGLE_SIGN_IN=1 PORTLESS=0 bun run dev` で起動します。同じボタンがそのまま Google へ飛びます。
 

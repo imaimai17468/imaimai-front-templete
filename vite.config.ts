@@ -322,7 +322,7 @@ export default defineConfig({
         // `extends` clause, which then does not compile.
         files: [
           "src/gateways/**",
-          "src/lib/auth/dev-sign-in.ts",
+          "src/lib/auth/sign-in/dev.ts",
           "src/lib/require-context.ts",
           "src/test/defect.ts",
         ],
@@ -350,6 +350,17 @@ export default defineConfig({
         // `undefined` among its arguments contributes no class.
         files: ["src/lib/utils.test.ts"],
         rules: { "effect/noNullish": "off" },
+      },
+      {
+        // The rule asks for `vi.mock(import("./x"), …)`, whose argument
+        // `effect/noDynamicImports` reports as an inline dynamic import. The
+        // Effect rule is the one this project keeps, so the path stays a
+        // string. The Effect rules are scoped to `src/**` above, so the
+        // exemption stops there too. `ultracite/oxlint/vitest` sets this one
+        // inside an override of its own, which the top-level `rules` above
+        // cannot reach.
+        files: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+        rules: { "vitest/prefer-import-in-mock": "off" },
       },
       {
         files: ["src/components/shared/code-block/code-block.tsx"],
