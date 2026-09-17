@@ -21,6 +21,8 @@ This governs every text a person reads: replies to the user, plans, reports, com
 
 **Cut the word that adds heat rather than light.** `really`, `simply`, `actually`, `truly`, `fundamentally`, `非常に`, `まさに` raise the temperature of a claim without changing it. A hedge that carries real uncertainty is a different thing, and Precision below protects it.
 
+**Anchor a term the reader may not hold to one they do, once.** Keep the file name, the type, the command in the report, because a reader given only the outcome cannot check it or carry it into the next conversation, and every later report then restarts from nothing. On first use, tie the term to a word the reader has used themselves, a place on screen, or work they did by hand. Use the name alone after that. Where you cannot tell what the reader holds, ask.
+
 **When handing a decision back, state the goal, where it stands, what blocks it, and how the options differ, in that order.** The blocker is the one thing the reader cannot reconstruct alone, so it must be a fact rather than an impression.
 
 ## Say the specific thing
