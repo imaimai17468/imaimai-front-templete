@@ -449,14 +449,24 @@ When proposing fixes, prefer earlier moves over later ones:
 
 ## Review Output Format
 
-### Part 1 — Findings table (REQUIRED)
+### Verdict (REQUIRED)
+
+The report's first line is the decision, followed by the finding that decided
+it.
+
+- **Block** — any feel-breaking regression, animation on keyboard/high-frequency
+  action, `scale(0)`/`ease-in` on UI, or non-GPU animation with an easy GPU fix.
+- **Approve** — no feel-breaking regressions, durations and easing within
+  bounds, interruptibility handled, reduced-motion respected.
+
+### Findings table (REQUIRED)
 
 | Before | After | Why |
 | --- | --- | --- |
 | `transition: all 300ms` | `transition: transform 200ms ease-out` | `all` animates unintended properties off-GPU |
 | `transform: scale(0)` | `transform: scale(0.95); opacity: 0` | Nothing appears from nothing |
 
-### Part 2 — Verdict (REQUIRED)
+### Findings by impact tier (REQUIRED)
 
 Group by impact tier, highest first. Omit empty tiers.
 
@@ -466,13 +476,6 @@ Group by impact tier, highest first. Omit empty tiers.
 4. **Interruptibility & timing**
 5. **Origin, physicality & cohesion**
 6. **Accessibility**
-
-Close with an explicit decision:
-
-- **Block** — any feel-breaking regression, animation on keyboard/high-frequency
-  action, `scale(0)`/`ease-in` on UI, or non-GPU animation with an easy GPU fix.
-- **Approve** — no feel-breaking regressions, durations and easing within
-  bounds, interruptibility handled, reduced-motion respected.
 
 Cite `file:line`. Pull exact values from `.claude/rules/design.md` and Part 2
 rather than approximating.
