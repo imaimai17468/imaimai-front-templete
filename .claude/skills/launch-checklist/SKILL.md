@@ -1,6 +1,6 @@
 ---
 name: launch-checklist
-description: Pre-launch checklist for web services. Comprehensively audits security, SEO, OGP, performance, accessibility, and more, then generates a report.
+description: Pre-launch checklist for web services. Audits security, SEO, OGP, performance, accessibility, and more, then writes a report.
 when_to_use: When the user asks for a launch checklist, pre-launch audit, release readiness check, or wants to verify the app is ready for production.
 argument-hint: "[category (optional): security, seo, ogp, performance, a11y, email, payment, env, all]"
 arguments: category
@@ -8,7 +8,7 @@ arguments: category
 
 # Pre-Launch Web Service Checklist
 
-Comprehensively audit a pre-launch service and write a report to `docs/launch-checklist/YYYY-MM-DD.md`.
+Audit a pre-launch service and write a report to `docs/launch-checklist/YYYY-MM-DD.md`.
 
 Reference: https://zenn.dev/catnose99/articles/547cbf57e5ad28
 
