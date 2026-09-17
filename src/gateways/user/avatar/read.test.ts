@@ -1,21 +1,28 @@
 import { Effect, Layer, Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { CurrentSession } from "@/lib/auth/current-session.live";
-import { AvatarGateway } from ".";
+import { AvatarBucket } from ".";
 import type { AvatarObject } from ".";
 import {
   AvatarInvalidKey,
   AvatarNotFound,
   AvatarReader,
   AvatarUnauthorized,
-} from "./reader";
+} from "./read";
 
 const makeFakes = (read: CurrentSession["Service"]["read"]) => {
-  const fetchAvatar = vi.fn<AvatarGateway["Service"]["fetchAvatar"]>();
+  const fetchAvatar = vi.fn<AvatarBucket["Service"]["get"]>();
   const layer = AvatarReader.layerNoDeps.pipe(
     Layer.provide(
       Layer.merge(
-        Layer.succeed(AvatarGateway, AvatarGateway.of({ fetchAvatar })),
+        Layer.succeed(
+          AvatarBucket,
+          AvatarBucket.of({
+            get: fetchAvatar,
+            put: vi.fn<AvatarBucket["Service"]["put"]>(),
+            remove: vi.fn<AvatarBucket["Service"]["remove"]>(),
+          })
+        ),
         Layer.succeed(CurrentSession, CurrentSession.of({ read }))
       )
     )

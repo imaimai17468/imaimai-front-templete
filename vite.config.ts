@@ -299,9 +299,10 @@ export default defineConfig({
       },
       {
         // The rule's own message exempts a platform adapter, and this module is
-        // one: it is the single place `crypto` is read, and Effect's `Random`
-        // reaches the same global for its seed, so no layer removes it.
-        files: ["src/gateways/user/avatar-key-ids.live.ts"],
+        // the avatar directory's: it holds the R2 binding and is the single
+        // place `crypto` is read. Effect's `Random` reaches the same global for
+        // its seed, so no layer removes it.
+        files: ["src/gateways/user/avatar/index.ts"],
         rules: { "effect/noGlobals": "off" },
       },
       {

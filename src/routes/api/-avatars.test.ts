@@ -5,7 +5,7 @@ import {
   AvatarNotFound,
   AvatarReader,
   AvatarUnauthorized,
-} from "@/gateways/avatar/reader";
+} from "@/gateways/user/avatar/read";
 import { AVATAR_ROUTE_PATH } from "@/lib/avatar-url";
 import type { FileRouteTypes } from "@/routeTree.gen";
 import { getAvatarResponse } from "./avatars";

@@ -16,7 +16,14 @@ const TREE = `src/
 │   ├── profile.tsx         # Profile page (auth guard via beforeLoad)
 │   ├── auth.auth-code-error.tsx  # OAuth failure landing page
 │   └── api/                # API routes (auth catch-all, avatars)
-├── gateways/               # createServerFn, its ManagedRuntime wiring, and D1 / R2 persistence
+├── gateways/               # 認可境界と D1 / R2 アクセス
+│   └── user/
+│       ├── read.ts         # プロフィール読み取り
+│       ├── read.fn.ts      # createServerFn（ブラウザに配られる側）
+│       ├── update.ts       # 名前とアバターの更新
+│       ├── update.fn.ts    # createServerFn（ブラウザに配られる側）
+│       ├── index.ts        # 永続化エラーと共通ヘルパー
+│       └── avatar/         # アバターの配信とアップロード
 ├── entities/               # Domain types and schemas
 ├── components/
 │   ├── ui/                 # shadcn/ui primitives
