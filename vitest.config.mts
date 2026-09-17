@@ -53,6 +53,10 @@ export default defineConfig({
     exclude: [
       ...defaultExclude,
       ".claude/worktrees/**",
+      // The vendored security-audit skill ships its validators with `node:test`
+      // suites, which vitest collects and then fails as holding no test. Run
+      // them with `node --test .claude/skills/security-audit/*.test.cjs`.
+      ".claude/skills/security-audit/**",
       "src/components/ui/**",
     ],
     setupFiles: ["./src/test-setup.ts"],
