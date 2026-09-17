@@ -5,6 +5,7 @@ TanStack Start + TypeScript + Tailwind CSS + shadcn/ui を使用したモダン�
 ## 技術スタック
 
 - **Framework**: TanStack Start (TanStack Router + Vite)
+- **Data Fetching**: TanStack Query (SSR 統合は @tanstack/react-router-ssr-query)
 - **Language**: TypeScript 7 (native compiler)
 - **Styling**: Tailwind CSS v4
 - **UI Components**: shadcn/ui (Radix UI primitives)
@@ -69,7 +70,8 @@ src/
 │   ├── __root.tsx          # Root layout (ThemeProvider, Header, Toaster)
 │   ├── index.tsx           # Home page
 │   ├── login.tsx           # Login page
-│   ├── profile.tsx         # Profile page (auth guard via beforeLoad)
+│   ├── _authed.tsx         # Pathless layout whose beforeLoad guards its children
+│   ├── _authed/profile.tsx # Profile page
 │   ├── auth.auth-code-error.tsx  # OAuth failure landing page
 │   └── api/                # API routes (auth catch-all, avatars)
 ├── gateways/               # createServerFn, its ManagedRuntime wiring, and D1 / R2 persistence

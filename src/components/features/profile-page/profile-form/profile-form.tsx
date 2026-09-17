@@ -1,7 +1,8 @@
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Option } from "effect";
 import { Camera, Loader2 } from "lucide-react";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import type { UpdateUser, UserWithEmail } from "@/entities/user";
 import { displayName, UpdateUserSchema } from "@/entities/user";
+import { currentUserQueryOptions } from "@/gateways/user/read.fn";
 import {
   avatarSizeRejection,
   MAX_AVATAR_BYTES,
@@ -42,7 +44,7 @@ const SubmitLabel = ({ isPending }: { readonly isPending: boolean }) => {
 };
 
 export const ProfileForm = ({ user }: ProfileFormProps) => {
-  const [isPending, startTransition] = useTransition();
+  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState(() => Option.none<string>());
   const [pendingFile, setPendingFile] = useState(() => Option.none<File>());
@@ -103,19 +105,30 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
     setPreviewUrl(Option.some(nextPreviewUrl));
   };
 
-  const onSubmit = (data: UpdateUser) => {
-    startTransition(() =>
-      submitProfile(data, pendingFile).then(({ avatarUploaded, outcome }) => {
-        if (avatarUploaded) {
-          setPendingFile(Option.none());
-        }
-        if (outcome.status === "failed") {
-          toast.error(outcome.message);
-          return;
-        }
+  const { mutate: saveProfile, isPending } = useMutation({
+    mutationFn: (data: UpdateUser) => submitProfile(data, pendingFile),
+    // `submitProfile` folds a rejection the server shaped into `outcome`, so
+    // what reaches here is the call never completing.
+    onError: () => {
+      toast.error("Could not save your profile. Please try again.");
+    },
+    onSuccess: ({ avatarUploaded, outcome }) => {
+      if (avatarUploaded) {
+        setPendingFile(Option.none());
+      }
+      if (outcome.status === "failed") {
+        toast.error(outcome.message);
+      } else {
         toast.success("Profile updated successfully");
-      })
-    );
+      }
+      // A stored avatar followed by a failed name write still changed the row
+      // this reads, so the refetch is not conditional on the outcome.
+      return queryClient.invalidateQueries(currentUserQueryOptions());
+    },
+  });
+
+  const onSubmit = (data: UpdateUser) => {
+    saveProfile(data);
   };
 
   const name = displayName(Option.fromNullOr(user.name));

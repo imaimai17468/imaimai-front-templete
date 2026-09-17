@@ -29,7 +29,8 @@ tsc / knip / vitest toolchain.
 rm -rf src/lib/auth src/lib/cloudflare src/lib/drizzle src/lib/storage
 rm -rf src/entities src/gateways
 rm -rf src/routes/api
-rm -f src/routes/login.tsx src/routes/profile.tsx src/routes/auth.auth-code-error.tsx
+rm -f src/routes/login.tsx src/routes/_authed.tsx src/routes/auth.auth-code-error.tsx
+rm -rf src/routes/_authed
 rm -rf src/components/features/profile-page
 rmdir src/components/features 2>/dev/null || true
 rm -rf src/components/shared/header/auth-navigation src/components/shared/header/user-menu
@@ -89,8 +90,8 @@ export const Header = () => (
 
 ### `src/routes/__root.tsx`
 
-- Delete the `getCurrentUserFn` import and the `loader` option.
-- Delete `const { user } = useLoaderData({ from: "__root__" });` and render `<Header />` without props.
+- Delete the `currentUserQueryOptions` import and the `loader` option.
+- Delete `const { data: user } = useSuspenseQuery(currentUserQueryOptions());` and render `<Header />` without props.
 
 ### `src/routes/index.tsx`
 
@@ -103,7 +104,7 @@ will **not** catch these, because `"Better Auth"` has a space and
 ### Residual auth references
 
 ```bash
-grep -rn "signIn\|signOut\|session\|getCurrentUserFn\|AuthNavigation\|UserMenu\|UserWithEmail" src/
+grep -rn "signIn\|signOut\|session\|currentUserQueryOptions\|AuthNavigation\|UserMenu\|UserWithEmail" src/
 ```
 
 Remove every hit individually.
