@@ -2218,8 +2218,8 @@ describe("component-file-naming (defensive branches)", () => {
   });
 });
 
-describe("gateway-server-only-marker", () => {
-  const rule = plugin.rules["gateway-server-only-marker"];
+describe("server-only-marker", () => {
+  const rule = plugin.rules["server-only-marker"];
 
   const SERVER_ONLY = "@tanstack/react-start/server-only";
 
@@ -2285,7 +2285,117 @@ describe("gateway-server-only-marker", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it("should stay silent when the module sits outside the gateways layer", () => {
+  it("should report when a session module opens without the marker", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/lib/auth/session/caller.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(programNode(["effect"]));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should stay silent when a session module carries the marker", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/lib/auth/session/caller.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(programNode([SERVER_ONLY, "effect"]));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when a session module names a suffix only the gateways layer exempts", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/lib/auth/session/read.fn.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(programNode(["effect"]));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a fn file carries the marker the compiler would ship", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/gateways/user/read.fn.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(programNode([SERVER_ONLY, "@tanstack/react-start"]));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a module directly under the auth directory opens without the marker", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/lib/auth/better-auth.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(programNode(["better-auth"]));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when the Cloudflare env adapter opens without the marker", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/lib/cloudflare/env.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(programNode(["cloudflare:workers"]));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a sign-in module carries the marker", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/lib/auth/sign-in/client.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(programNode([SERVER_ONLY, "effect"]));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should stay silent when a sign-in module opens without the marker", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/lib/auth/sign-in/client.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(programNode(["effect"]));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should stay silent when a sign-in module names the marker as a type-only import", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/lib/auth/sign-in/client.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(
+      programNode([{ importKind: "type", value: SERVER_ONLY }])
+    );
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should stay silent when the module sits outside every directory the rule names", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/lib/avatar-url.ts");
     const visitors = rule.create(context);

@@ -437,6 +437,19 @@ const LAYER_BANS_MOST_SPECIFIC_FIRST = LAYER_BANS.toSorted(
 
 const SRC_MARKER = "/src/";
 
+/** The file's path from `src/` down, or `null` when it sits outside `src/`. */
+const srcPathOf = (context) => {
+  const filename = context.filename ?? context.getFilename?.();
+  if (!filename) {
+    return null;
+  }
+  const srcIndex = filename.lastIndexOf(SRC_MARKER);
+  if (srcIndex === -1) {
+    return null;
+  }
+  return filename.slice(srcIndex + 1);
+};
+
 // `*.live` と `*.entry` は coverage 規約が付ける接尾辞で、付いていてもレイヤ上の
 // 位置は変わらないので、ban の照合前に落とす。
 const COVERAGE_NAME_SUFFIX = /\.(?:live|entry)$/u;
@@ -455,16 +468,10 @@ const resolveImportTarget = (fileSrcDir, specifier) => {
 
 const layerBoundaries = {
   create(context) {
-    const filename = context.filename ?? context.getFilename?.();
-    if (!filename) {
+    const srcPath = srcPathOf(context);
+    if (srcPath === null) {
       return {};
     }
-
-    const srcIndex = filename.lastIndexOf(SRC_MARKER);
-    if (srcIndex === -1) {
-      return {};
-    }
-    const srcPath = filename.slice(srcIndex + 1);
     const fileSrcDir = srcPath.slice(0, srcPath.lastIndexOf("/"));
 
     const layerEntry = LAYER_BANS_MOST_SPECIFIC_FIRST.find((entry) =>
@@ -510,47 +517,109 @@ const layerBoundaries = {
 const SERVER_ONLY_MARKER = "@tanstack/react-start/server-only";
 
 /**
- * Every module under `src/gateways/` reaches a binding or the request, so a
- * client module that imports one has to fail the build on that module rather
- * than on whatever specifier its deepest import trips. A `*.fn.ts` is the one
- * the compiler ships to the browser, so it carries no marker.
+ * Which environment runs a module, decided by the directory it sits in. The
+ * longest matching prefix wins, so a browser directory nested inside a server
+ * one stays a browser directory. A `browserSuffix` flips one file inside a
+ * server directory to the browser.
+ *
+ * A client module importing a marked module fails the build on that module
+ * rather than on whatever specifier its deepest import trips, and the marker
+ * inside a module the browser runs fails the client build on that file.
  */
-const gatewayServerOnlyMarker = {
+const MARKER_DIRECTORIES = [
+  {
+    browserSuffixes: [".fn.ts"],
+    hint: "Write the `createServerFn` declarations in a `*.fn.ts`, and put everything else in a module that file imports.",
+    prefix: "src/gateways/",
+    runs: "server",
+  },
+  {
+    browserSuffixes: [],
+    hint: "`src/lib/auth/session/` is the half the server runs and `src/lib/auth/sign-in/` the half the browser runs.",
+    prefix: "src/lib/auth/",
+    runs: "server",
+  },
+  {
+    browserSuffixes: [],
+    hint: "`src/lib/auth/session/` is the half the server runs and `src/lib/auth/sign-in/` the half the browser runs.",
+    prefix: "src/lib/auth/sign-in/",
+    runs: "client",
+  },
+  {
+    browserSuffixes: [],
+    hint: "This directory hands out the Worker bindings, which exist on the server alone.",
+    prefix: "src/lib/cloudflare/",
+    runs: "server",
+  },
+];
+
+const MARKER_DIRECTORIES_MOST_SPECIFIC_FIRST = MARKER_DIRECTORIES.toSorted(
+  (a, b) => b.prefix.length - a.prefix.length
+);
+
+/** What the message calls the module, and which environment runs it. */
+const classifyModule = (srcPath) => {
+  const directory = MARKER_DIRECTORIES_MOST_SPECIFIC_FIRST.find((entry) =>
+    srcPath.startsWith(entry.prefix)
+  );
+  if (directory === undefined) {
+    return null;
+  }
+  const browserSuffix = directory.browserSuffixes.find((suffix) =>
+    srcPath.endsWith(suffix)
+  );
+  if (browserSuffix !== undefined) {
+    return {
+      hint: directory.hint,
+      runs: "client",
+      subject: `A \`*${browserSuffix}\``,
+    };
+  }
+  return {
+    hint: directory.hint,
+    runs: directory.runs,
+    subject: `A module under \`${directory.prefix}\``,
+  };
+};
+
+const carriesMarker = (program) =>
+  program.body.some(
+    (statement) =>
+      statement.type === "ImportDeclaration" &&
+      statement.source.value === SERVER_ONLY_MARKER &&
+      // TypeScript erases a type-only import, so the marker would not ship and
+      // the module would reach a client bundle unguarded.
+      statement.importKind !== "type"
+  );
+
+const markerReport = ({ hint, runs, subject }, marked) => {
+  if (runs === "server" && !marked) {
+    return `${subject} must open with \`import "${SERVER_ONLY_MARKER}";\`, so a client module importing it fails the build on this file. ${hint}`;
+  }
+  if (runs === "client" && marked) {
+    return `${subject} reaches the browser, so \`import "${SERVER_ONLY_MARKER}";\` here fails the client build. ${hint}`;
+  }
+  return null;
+};
+
+const serverOnlyMarker = {
   create(context) {
-    const filename = context.filename ?? context.getFilename?.();
-    if (!filename) {
+    const srcPath = srcPathOf(context);
+    if (srcPath === null || srcPath.endsWith(".test.ts")) {
       return {};
     }
-    const srcIndex = filename.lastIndexOf(SRC_MARKER);
-    if (srcIndex === -1) {
-      return {};
-    }
-    const srcPath = filename.slice(srcIndex + 1);
-    if (
-      !srcPath.startsWith("src/gateways/") ||
-      srcPath.endsWith(".fn.ts") ||
-      srcPath.endsWith(".test.ts")
-    ) {
+    const module = classifyModule(srcPath);
+    if (module === null) {
       return {};
     }
 
     return {
       Program(node) {
-        const marked = node.body.some(
-          (statement) =>
-            statement.type === "ImportDeclaration" &&
-            statement.source.value === SERVER_ONLY_MARKER &&
-            // TypeScript erases a type-only import, so the marker would not
-            // ship and the module would reach a client bundle unguarded.
-            statement.importKind !== "type"
-        );
-        if (marked) {
+        const message = markerReport(module, carriesMarker(node));
+        if (message === null) {
           return;
         }
-        context.report({
-          message: `A gateway module must open with \`import "${SERVER_ONLY_MARKER}";\`, so a client module importing it fails the build on this file. Write the \`createServerFn\` declarations in a \`*.fn.ts\` instead, which carries no marker.`,
-          node,
-        });
+        context.report({ message, node });
       },
     };
   },
@@ -560,10 +629,10 @@ const plugin = {
   meta: { name: "arch-rules" },
   rules: {
     "component-file-naming": componentFileNaming,
-    "gateway-server-only-marker": gatewayServerOnlyMarker,
     "layer-boundaries": layerBoundaries,
     "no-size-props": noSizeProps,
     "one-component-per-file": oneComponentPerFile,
+    "server-only-marker": serverOnlyMarker,
     "single-expect": singleExpect,
     "test-naming-format": testNamingFormat,
   },

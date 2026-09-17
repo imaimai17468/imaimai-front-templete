@@ -146,7 +146,7 @@ export default defineConfig({
       "shadcn/no-restyle": ["error", { allow: ["layout"] }],
       "shadcn/no-inline-styles": "error",
       "shadcn/require-static-classes": "error",
-      "arch-rules/gateway-server-only-marker": "error",
+      "arch-rules/server-only-marker": "error",
       "arch-rules/layer-boundaries": "error",
       "arch-rules/no-size-props": "error",
       "arch-rules/one-component-per-file": "error",
