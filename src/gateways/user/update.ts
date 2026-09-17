@@ -2,7 +2,7 @@ import "@tanstack/react-start/server-only";
 import { eq } from "drizzle-orm";
 import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
 import type { UpdateUser } from "@/entities/user";
-import { getDb } from "@/lib/drizzle/db.live";
+import { getDb } from "@/lib/drizzle/db";
 import { users } from "@/lib/drizzle/schema";
 import { persistenceEffect, succeeded } from ".";
 import type { UserPersistenceError } from ".";

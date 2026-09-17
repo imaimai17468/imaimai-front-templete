@@ -1156,7 +1156,7 @@ describe("layer-boundaries", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ImportDeclaration?.(importNode("@/lib/cloudflare/env.live"));
+    visitors.ImportDeclaration?.(importNode("@/lib/cloudflare/env"));
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -1249,7 +1249,7 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it.each(["@/lib/drizzle/db.live", "@/entities/user"])(
+  it.each(["@/lib/drizzle/db", "@/entities/user"])(
     "should not report when an adapter imports %s",
     (specifier) => {
       // Arrange
@@ -1276,20 +1276,17 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it.each(["@/lib/auth/session.live", "@/lib/cloudflare/env.live"])(
-    "should report when a route imports %s, a banned module carrying the coverage suffix",
-    (specifier) => {
-      // Arrange
-      const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
-      const visitors = rule.create(context);
+  it("should report when a route imports @/lib/auth/session.live, whose ban target matches only once the coverage suffix is stripped", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
+    const visitors = rule.create(context);
 
-      // Act
-      visitors.ImportDeclaration?.(importNode(specifier));
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/auth/session.live"));
 
-      // Assert
-      expect(context.report).toHaveBeenCalledOnce();
-    }
-  );
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
 
   it("should not report when a route imports a module whose trailing segment is not a coverage suffix", () => {
     // Arrange
