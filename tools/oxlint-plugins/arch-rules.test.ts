@@ -1100,7 +1100,7 @@ describe("layer-boundaries", () => {
 
   it("should report when a gateway imports a route", () => {
     // Arrange
-    const context = makeLayerContext("/repo/src/gateways/user/user.live.ts");
+    const context = makeLayerContext("/repo/src/gateways/user/read.fn.ts");
     const visitors = rule.create(context);
 
     // Act
@@ -1196,7 +1196,7 @@ describe("layer-boundaries", () => {
 
   it("should not report when a gateway imports a sibling gateway", () => {
     // Arrange
-    const context = makeLayerContext("/repo/src/gateways/user/user.live.ts");
+    const context = makeLayerContext("/repo/src/gateways/user/read.fn.ts");
     const visitors = rule.create(context);
 
     // Act

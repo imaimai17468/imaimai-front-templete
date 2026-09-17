@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-router";
 import { Effect, Option } from "effect";
 import { ProfilePage } from "@/components/features/profile-page/profile-page";
-import { getCurrentUserFn } from "@/gateways/user/user.live";
+import { getCurrentUserFn } from "@/gateways/user/read.fn";
 
 const ProfileComponent = () => {
   const { user } = useLoaderData({ from: "/profile" });

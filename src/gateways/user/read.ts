@@ -80,5 +80,5 @@ const runCurrentUserHandler = makeRunHandler(CurrentUserReader.layer);
  * `{ _id: "Option", _tag: "None" }` whose `pipe` is `undefined`, so the type
  * would promise the receiver an `Option` it does not hold.
  */
-export const runCurrentUser = () =>
+export const getCurrentUser = () =>
   runCurrentUserHandler(readCurrentUser.pipe(Effect.map(Option.getOrNull)));

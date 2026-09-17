@@ -1,4 +1,4 @@
-import { updateProfileFn, uploadAvatarFn } from "@/gateways/user/profile";
+import { updateProfileFn, uploadAvatarFn } from "@/gateways/user/update.fn";
 import { createSubmitProfile } from "./submit-profile";
 
 export const submitProfile = createSubmitProfile({
