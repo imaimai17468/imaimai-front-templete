@@ -14,6 +14,22 @@ const makeLayerContext = (filename?: string) => ({
 // has to be able to produce one.
 type ImportSource = string | number;
 
+/** A `Program` node holding the import declarations a module opens with. */
+const programNode = (
+  sources: (string | { importKind: string; value: string })[]
+) => ({
+  body: sources.map((source) =>
+    typeof source === "string"
+      ? { source: { value: source }, type: "ImportDeclaration" }
+      : {
+          importKind: source.importKind,
+          source: { value: source.value },
+          type: "ImportDeclaration",
+        }
+  ),
+  type: "Program",
+});
+
 const importNode = (specifier: ImportSource, importedNames: string[] = []) => ({
   source: { value: specifier },
   specifiers: importedNames.map((name) => ({
@@ -2202,5 +2218,107 @@ describe("component-file-naming (defensive branches)", () => {
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
+  });
+});
+
+describe("gateway-server-only-marker", () => {
+  const rule = plugin.rules["gateway-server-only-marker"];
+
+  const SERVER_ONLY = "@tanstack/react-start/server-only";
+
+  it("should report when a gateway module opens without the marker", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/gateways/user/read.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(programNode(["effect"]));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should stay silent when a gateway module carries the marker", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/gateways/user/read.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(programNode([SERVER_ONLY, "effect"]));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when the marker arrives as a type-only import", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/gateways/user/read.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(
+      programNode([{ importKind: "type", value: SERVER_ONLY }])
+    );
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should stay silent when the module is the fn file the compiler ships to the browser", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/gateways/user/read.fn.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(programNode(["@tanstack/react-start"]));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should stay silent when the module is a gateway test file", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/gateways/user/read.test.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(programNode(["effect"]));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should stay silent when the module sits outside the gateways layer", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/lib/avatar-url.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(programNode(["effect"]));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should stay silent when the file sits outside src", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/scripts/smoke.entry.ts");
+
+    // Act
+    const visitors = rule.create(context);
+
+    // Assert
+    expect(visitors).toStrictEqual({});
+  });
+
+  it("should stay silent when the linter supplies no filename", () => {
+    // Arrange
+    const context = makeLayerContext();
+
+    // Act
+    const visitors = rule.create(context);
+
+    // Assert
+    expect(visitors).toStrictEqual({});
   });
 });

@@ -2,9 +2,9 @@ import "@tanstack/react-start/server-only";
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { CurrentSession } from "@/lib/auth/current-session.live";
 import { isOwnAvatarKey } from "@/lib/storage/avatar-validation";
-import { AvatarGateway } from ".";
+import { AvatarBucket } from ".";
 import type { AvatarObject } from ".";
-import { makeRunHandler } from "../runtime.live";
+import { makeRunHandler } from "../../runtime";
 
 export class AvatarUnauthorized extends Schema.TaggedError<AvatarUnauthorized>()(
   "AvatarUnauthorized",
@@ -38,12 +38,12 @@ export class AvatarReader extends Context.Service<
       AvatarInvalidKey | AvatarNotFound | AvatarUnauthorized
     >;
   }
->()("app/gateways/avatar/AvatarReader") {
+>()("app/gateways/user/avatar/AvatarReader") {
   static readonly layerNoDeps = Layer.effect(
     AvatarReader,
     Effect.gen(function* buildAvatarReader() {
       const currentSession = yield* CurrentSession;
-      const gateway = yield* AvatarGateway;
+      const bucket = yield* AvatarBucket;
 
       const read = Effect.fn("AvatarReader.read")(function* read(
         key: Option.Option<string>
@@ -60,7 +60,7 @@ export class AvatarReader extends Context.Service<
         if (Option.isNone(ownKey)) {
           return yield* new AvatarInvalidKey();
         }
-        const avatar = yield* gateway.fetchAvatar(ownKey.value);
+        const avatar = yield* bucket.get(ownKey.value);
         if (Option.isNone(avatar)) {
           return yield* new AvatarNotFound();
         }
@@ -72,7 +72,7 @@ export class AvatarReader extends Context.Service<
   );
 
   static readonly layer = AvatarReader.layerNoDeps.pipe(
-    Layer.provide(AvatarGateway.layer),
+    Layer.provide(AvatarBucket.layer),
     Layer.provide(CurrentSession.layer)
   );
 }

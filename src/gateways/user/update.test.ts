@@ -1,21 +1,42 @@
-import { Effect, Layer, Option } from "effect";
+import { DateTime, Effect, Layer, Option } from "effect";
+import { TestClock } from "effect/testing";
 import { describe, expect, it, vi } from "vite-plus/test";
 import type { UpdateUser, UserWithEmail } from "@/entities/user";
+import type { ErrorLogRecord } from "@/lib/report-error";
 import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";
+import { UserPersistenceError } from ".";
 import {
   AvatarTypeUnsupported,
   AvatarUploadFailed,
-  UserGateway,
-  UserNameUpdateFailed,
-  UserPersistenceError,
-} from ".";
+  AvatarWriter,
+} from "./avatar/update";
 import { CurrentUserReader } from "./read";
 import {
   ProfileWriter,
+  UserNames,
   updateProfileResult,
   uploadAvatarResult,
 } from "./update";
+
+const TEST_CLOCK_INSTANT = "1970-01-01T00:00:00.000Z";
+
+// similarity-ignore: avatar/update.test.ts の同名ヘルパーと同じ形だが、`vi` は
+// テストファイルの外から import できない（vitest/no-importing-vitest-globals）ので、
+// 共有モジュールに出せない。
+type CapturedReport = Pick<ErrorLogRecord, "event" | "message" | "name">;
+
+const captureErrorReports = (): CapturedReport[] => {
+  const reported: CapturedReport[] = [];
+  vi.spyOn(console, "error").mockImplementation((payload: ErrorLogRecord) => {
+    reported.push({
+      event: payload.event,
+      message: payload.message,
+      name: payload.name,
+    });
+  });
+  return reported;
+};
 
 const pngFile = (byteLength: number) =>
   new File([new Uint8Array(byteLength)], "a.png", { type: "image/png" });
@@ -30,49 +51,53 @@ const authenticatedUser = {
 } satisfies UserWithEmail;
 
 const makeFakes = (read: CurrentUserReader["Service"]["read"]) => {
-  const updateUser = vi.fn<UserGateway["Service"]["updateUser"]>();
-  const updateUserAvatar = vi.fn<UserGateway["Service"]["updateUserAvatar"]>();
+  const setName = vi.fn<UserNames["Service"]["set"]>();
+  const replaceAvatar = vi.fn<AvatarWriter["Service"]["replace"]>();
 
-  updateUser.mockReturnValue(Effect.void);
-  updateUserAvatar.mockReturnValue(
+  setName.mockReturnValue(Effect.void);
+  replaceAvatar.mockReturnValue(
     Effect.succeed({ avatarUrl: "/api/avatars?key=new", cleanup: "complete" })
   );
 
   const layer = ProfileWriter.layerNoDeps.pipe(
     Layer.provide(
-      Layer.merge(
-        Layer.succeed(CurrentUserReader, CurrentUserReader.of({ read })),
+      Layer.mergeAll(
         Layer.succeed(
-          UserGateway,
-          UserGateway.of({
-            fetchCurrentUser:
-              vi.fn<UserGateway["Service"]["fetchCurrentUser"]>(),
-            updateUser,
-            updateUserAvatar,
-          })
-        )
+          AvatarWriter,
+          AvatarWriter.of({ replace: replaceAvatar })
+        ),
+        Layer.succeed(CurrentUserReader, CurrentUserReader.of({ read })),
+        Layer.succeed(UserNames, UserNames.of({ set: setName }))
       )
     )
   );
 
   return {
+    replaceAvatar,
+    setName,
     updateProfile: (data: UpdateUser) =>
-      Effect.runPromise(updateProfileResult(data).pipe(Effect.provide(layer))),
-    updateUser,
-    updateUserAvatar,
+      Effect.runPromise(
+        updateProfileResult(data).pipe(
+          Effect.provide(layer),
+          Effect.provide(TestClock.layer())
+        )
+      ),
     uploadAvatar: (file: File) =>
-      Effect.runPromise(uploadAvatarResult(file).pipe(Effect.provide(layer))),
+      Effect.runPromise(
+        uploadAvatarResult(file).pipe(
+          Effect.provide(layer),
+          Effect.provide(TestClock.layer())
+        )
+      ),
   };
 };
 
 describe(updateProfileResult, () => {
   it("should reject without writing persistence when the request is anonymous", () => {
-    const { updateProfile, updateUser } = makeFakes(
-      Effect.succeed(Option.none())
-    );
+    const { setName, updateProfile } = makeFakes(Effect.succeed(Option.none()));
 
     return updateProfile({ name: "Updated User" }).then((result) => {
-      expect({ result, updateCalls: updateUser.mock.calls }).toStrictEqual({
+      expect({ result, updateCalls: setName.mock.calls }).toStrictEqual({
         result: { message: "Not authenticated", status: "failed" },
         updateCalls: [],
       });
@@ -80,29 +105,51 @@ describe(updateProfileResult, () => {
   });
 
   it("should pass the server-derived identity when the request is authenticated", () => {
-    const { updateProfile, updateUser } = makeFakes(
+    const { setName, updateProfile } = makeFakes(
       Effect.succeed(Option.some(authenticatedUser))
     );
     const data = { name: "Updated User" };
 
     return updateProfile(data).then((result) => {
-      expect({ result, updateCalls: updateUser.mock.calls }).toStrictEqual({
+      expect({ result, updateCalls: setName.mock.calls }).toStrictEqual({
         result: { status: "updated" },
-        updateCalls: [["user-1", data]],
+        updateCalls: [
+          [
+            "user-1",
+            Option.some("Updated User"),
+            DateTime.makeUnsafe(TEST_CLOCK_INSTANT),
+          ],
+        ],
       });
     });
   });
 
   it("should report the write failure when the name update fails", () => {
-    const { updateProfile, updateUser } = makeFakes(
+    const { setName, updateProfile } = makeFakes(
       Effect.succeed(Option.some(authenticatedUser))
     );
-    updateUser.mockReturnValue(Effect.fail(new UserNameUpdateFailed()));
+    setName.mockReturnValue(
+      Effect.fail(
+        new UserPersistenceError({
+          cause: new DriverFailed({ message: "D1 failed" }),
+        })
+      )
+    );
+    const reported = captureErrorReports();
 
     return updateProfile({ name: "Updated User" }).then((result) => {
-      expect(result).toStrictEqual({
-        message: "Failed to update profile",
-        status: "failed",
+      expect({ reported, result }).toStrictEqual({
+        reported: [
+          {
+            event: "user.updateName",
+            message: "D1 failed",
+            name: "DriverFailed",
+          },
+        ],
+        result: {
+          message: "Failed to update profile",
+          status: "failed",
+        },
       });
     });
   });
@@ -124,14 +171,14 @@ describe(updateProfileResult, () => {
 
 describe(uploadAvatarResult, () => {
   it("should reject without writing persistence when the request is anonymous", () => {
-    const { updateUserAvatar, uploadAvatar } = makeFakes(
+    const { replaceAvatar, uploadAvatar } = makeFakes(
       Effect.succeed(Option.none())
     );
 
     return uploadAvatar(pngFile(1)).then((result) => {
       expect({
         result,
-        updateCalls: updateUserAvatar.mock.calls,
+        updateCalls: replaceAvatar.mock.calls,
       }).toStrictEqual({
         result: {
           message: "Not authenticated",
@@ -143,7 +190,7 @@ describe(uploadAvatarResult, () => {
   });
 
   it("should pass the server-derived identity when the request is authenticated", () => {
-    const { updateUserAvatar, uploadAvatar } = makeFakes(
+    const { replaceAvatar, uploadAvatar } = makeFakes(
       Effect.succeed(Option.some(authenticatedUser))
     );
     const file = pngFile(1);
@@ -151,7 +198,7 @@ describe(uploadAvatarResult, () => {
     return uploadAvatar(file).then((result) => {
       expect({
         result,
-        updateCalls: updateUserAvatar.mock.calls,
+        updateCalls: replaceAvatar.mock.calls,
       }).toStrictEqual({
         result: {
           avatarUrl: "/api/avatars?key=new",
@@ -164,10 +211,10 @@ describe(uploadAvatarResult, () => {
   });
 
   it("should report the rejected type when the gateway refuses the image", () => {
-    const { updateUserAvatar, uploadAvatar } = makeFakes(
+    const { replaceAvatar, uploadAvatar } = makeFakes(
       Effect.succeed(Option.some(authenticatedUser))
     );
-    updateUserAvatar.mockReturnValue(Effect.fail(new AvatarTypeUnsupported()));
+    replaceAvatar.mockReturnValue(Effect.fail(new AvatarTypeUnsupported()));
 
     return uploadAvatar(pngFile(1)).then((result) => {
       expect(result).toStrictEqual({
@@ -178,10 +225,10 @@ describe(uploadAvatarResult, () => {
   });
 
   it("should report a failed upload when the gateway could not store the object", () => {
-    const { updateUserAvatar, uploadAvatar } = makeFakes(
+    const { replaceAvatar, uploadAvatar } = makeFakes(
       Effect.succeed(Option.some(authenticatedUser))
     );
-    updateUserAvatar.mockReturnValue(Effect.fail(new AvatarUploadFailed()));
+    replaceAvatar.mockReturnValue(Effect.fail(new AvatarUploadFailed()));
 
     return uploadAvatar(pngFile(1)).then((result) => {
       expect(result).toStrictEqual({

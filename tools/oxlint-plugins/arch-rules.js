@@ -512,10 +512,60 @@ const layerBoundaries = {
   },
 };
 
+const SERVER_ONLY_MARKER = "@tanstack/react-start/server-only";
+
+/**
+ * Every module under `src/gateways/` reaches a binding or the request, so a
+ * client module that imports one has to fail the build on that module rather
+ * than on whatever specifier its deepest import trips. A `*.fn.ts` is the one
+ * the compiler ships to the browser, so it carries no marker.
+ */
+const gatewayServerOnlyMarker = {
+  create(context) {
+    const filename = context.filename ?? context.getFilename?.();
+    if (!filename) {
+      return {};
+    }
+    const srcIndex = filename.lastIndexOf(SRC_MARKER);
+    if (srcIndex === -1) {
+      return {};
+    }
+    const srcPath = filename.slice(srcIndex + 1);
+    if (
+      !srcPath.startsWith("src/gateways/") ||
+      srcPath.endsWith(".fn.ts") ||
+      srcPath.endsWith(".test.ts")
+    ) {
+      return {};
+    }
+
+    return {
+      Program(node) {
+        const marked = node.body.some(
+          (statement) =>
+            statement.type === "ImportDeclaration" &&
+            statement.source.value === SERVER_ONLY_MARKER &&
+            // TypeScript erases a type-only import, so the marker would not
+            // ship and the module would reach a client bundle unguarded.
+            statement.importKind !== "type"
+        );
+        if (marked) {
+          return;
+        }
+        context.report({
+          message: `A gateway module must open with \`import "${SERVER_ONLY_MARKER}";\`, so a client module importing it fails the build on this file. Write the \`createServerFn\` declarations in a \`*.fn.ts\` instead, which carries no marker.`,
+          node,
+        });
+      },
+    };
+  },
+};
+
 const plugin = {
   meta: { name: "arch-rules" },
   rules: {
     "component-file-naming": componentFileNaming,
+    "gateway-server-only-marker": gatewayServerOnlyMarker,
     "layer-boundaries": layerBoundaries,
     "no-size-props": noSizeProps,
     "one-component-per-file": oneComponentPerFile,

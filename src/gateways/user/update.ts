@@ -1,21 +1,63 @@
 import "@tanstack/react-start/server-only";
-import { Context, Effect, Layer, Option, Schema } from "effect";
+import { eq } from "drizzle-orm";
+import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
 import type { UpdateUser } from "@/entities/user";
-import { UserGateway } from ".";
+import { getDb } from "@/lib/drizzle/db.live";
+import { users } from "@/lib/drizzle/schema";
+import { persistenceEffect, succeeded } from ".";
+import type { UserPersistenceError } from ".";
+import { makeRunHandler } from "../runtime";
+import { AvatarWriter } from "./avatar/update";
 import type {
   AvatarTypeUnsupported,
   AvatarUpdated,
   AvatarUploadFailed,
-  UserNameUpdateFailed,
-  UserPersistenceError,
-} from ".";
-import { makeRunHandler } from "../runtime.live";
+} from "./avatar/update";
 import { CurrentUserReader } from "./read";
 
 export class NotAuthenticated extends Schema.TaggedError<NotAuthenticated>()(
   "NotAuthenticated",
   {}
 ) {}
+
+export class UserNameUpdateFailed extends Schema.TaggedError<UserNameUpdateFailed>()(
+  "UserNameUpdateFailed",
+  {}
+) {}
+
+/**
+ * The `name` column of a user's own row.
+ *
+ * A service rather than a direct query so a test drives the failure arm
+ * without a D1 binding.
+ */
+export class UserNames extends Context.Service<
+  UserNames,
+  {
+    readonly set: (
+      userId: string,
+      name: Option.Option<string>,
+      updatedAt: DateTime.Utc
+    ) => Effect.Effect<void, UserPersistenceError>;
+  }
+>()("app/gateways/user/UserNames") {
+  static readonly layer = Layer.succeed(
+    UserNames,
+    UserNames.of({
+      set: (userId, name, updatedAt) =>
+        persistenceEffect(() =>
+          getDb()
+            .update(users)
+            .set({
+              name: Option.getOrNull(name),
+              updatedAt: DateTime.toDateUtc(updatedAt),
+            })
+            .where(eq(users.id, userId))
+            .execute()
+        ).pipe(Effect.asVoid),
+    })
+  );
+}
 
 /**
  * The authorization boundary between a caller and the writes on their own
@@ -49,7 +91,8 @@ export class ProfileWriter extends Context.Service<
     ProfileWriter,
     Effect.gen(function* buildProfileWriter() {
       const reader = yield* CurrentUserReader;
-      const gateway = yield* UserGateway;
+      const names = yield* UserNames;
+      const avatars = yield* AvatarWriter;
 
       const requireUser = Effect.gen(function* requireUser() {
         const user = yield* reader.read;
@@ -62,14 +105,22 @@ export class ProfileWriter extends Context.Service<
       const updateProfile = Effect.fn("ProfileWriter.updateProfile")(
         function* updateProfile(data: UpdateUser) {
           const user = yield* requireUser;
-          return yield* gateway.updateUser(user.id, data);
+          const updatedAt = yield* DateTime.now;
+          const written = yield* succeeded(
+            "user.updateName",
+            names.set(user.id, Option.some(data.name), updatedAt)
+          );
+          if (!written) {
+            return yield* new UserNameUpdateFailed();
+          }
+          return yield* Effect.void;
         }
       );
 
       const uploadAvatar = Effect.fn("ProfileWriter.uploadAvatar")(
         function* uploadAvatar(file: File) {
           const user = yield* requireUser;
-          return yield* gateway.updateUserAvatar(user.id, file);
+          return yield* avatars.replace(user.id, file);
         }
       );
 
@@ -78,8 +129,9 @@ export class ProfileWriter extends Context.Service<
   );
 
   static readonly layer = ProfileWriter.layerNoDeps.pipe(
+    Layer.provide(AvatarWriter.layer),
     Layer.provide(CurrentUserReader.layer),
-    Layer.provide(UserGateway.layer)
+    Layer.provide(UserNames.layer)
   );
 }
 
