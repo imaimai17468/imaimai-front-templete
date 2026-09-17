@@ -11,9 +11,8 @@ nobody here owns. Drop those entries along with the directory if the skill is
 ever removed.
 
 To use the skill, ask a session in this repository for a security audit of the
-codebase; `SKILL.md` decides from the request whether it answers as guidance or
-runs the full six-phase workflow, and the workflow writes its report outside
-this repository.
+codebase. `SKILL.md`'s Operating modes section decides guidance or full audit,
+and its Full audit setup section decides where the report is written.
 
 ## Refresh
 
