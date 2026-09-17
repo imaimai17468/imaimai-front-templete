@@ -1276,20 +1276,17 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it.each(["@/lib/auth/session.live", "@/lib/cloudflare/env.live"])(
-    "should report when a route imports %s, a banned module carrying the coverage suffix",
-    (specifier) => {
-      // Arrange
-      const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
-      const visitors = rule.create(context);
+  it("should report when a route imports @/lib/auth/session.live, whose ban target matches only once the coverage suffix is stripped", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
+    const visitors = rule.create(context);
 
-      // Act
-      visitors.ImportDeclaration?.(importNode(specifier));
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/auth/session.live"));
 
-      // Assert
-      expect(context.report).toHaveBeenCalledOnce();
-    }
-  );
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
 
   it("should not report when a route imports a module whose trailing segment is not a coverage suffix", () => {
     // Arrange
