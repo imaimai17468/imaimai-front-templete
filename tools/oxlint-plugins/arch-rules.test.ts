@@ -1226,7 +1226,7 @@ describe("layer-boundaries", () => {
     "should report when an adapter imports %s",
     (specifier) => {
       // Arrange
-      const context = makeLayerContext("/repo/src/lib/storage/r2.live.ts");
+      const context = makeLayerContext("/repo/src/lib/storage/r2.ts");
       const visitors = rule.create(context);
 
       // Act
@@ -1239,11 +1239,11 @@ describe("layer-boundaries", () => {
 
   it("should report when an adapter imports a module under src/gateways via relative path", () => {
     // Arrange
-    const context = makeLayerContext("/repo/src/lib/storage/r2.live.ts");
+    const context = makeLayerContext("/repo/src/lib/storage/r2.ts");
     const visitors = rule.create(context);
 
     // Act
-    visitors.ImportDeclaration?.(importNode("../../gateways/runtime.live"));
+    visitors.ImportDeclaration?.(importNode("../../gateways/runtime"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -1253,7 +1253,7 @@ describe("layer-boundaries", () => {
     "should not report when an adapter imports %s",
     (specifier) => {
       // Arrange
-      const context = makeLayerContext("/repo/src/lib/storage/r2.live.ts");
+      const context = makeLayerContext("/repo/src/lib/storage/r2.ts");
       const visitors = rule.create(context);
 
       // Act
@@ -1282,7 +1282,7 @@ describe("layer-boundaries", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ImportDeclaration?.(importNode("@/lib/auth/session.live"));
+    visitors.ImportDeclaration?.(importNode("@/lib/auth/session.entry"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -1306,7 +1306,7 @@ describe("layer-boundaries", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ImportDeclaration?.(importNode("../lib/auth/session.live"));
+    visitors.ImportDeclaration?.(importNode("../lib/auth/session.entry"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();

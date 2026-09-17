@@ -6,10 +6,10 @@ const COVERED_ROOTS = "{src,scripts,tools}";
 
 export const coverageInclude = [`${COVERED_ROOTS}/**/*.ts`, "tools/**/*.js"];
 
-// coverage の gate から外れる条件はファイル名。実依存を配線するだけの
-// モジュールは `*.live.ts`、コマンドとして実行されるファイルは `*.entry.ts`
-// と名付ければ、この配列を編集せずに外れる。パスで並ぶ 2 本は、ファイル名を
-// この規約の外が決めていて、改名するとその外側まで書き換わる。
+// coverage の gate から外れる条件はファイル名。コマンドとして実行される
+// ファイルは `*.entry.ts` と名付ければ、この配列を編集せずに外れる。パスで
+// 並ぶ 2 本は、ファイル名をこの規約の外が決めていて、改名するとその外側まで
+// 書き換わる。
 export const coverageExclude = [
   "src/**/*.gen.ts",
   // include の `*.ts` は picomatch の contains モードで照合されるので `.tsx`
@@ -17,7 +17,6 @@ export const coverageExclude = [
   "src/**/*.tsx",
   "src/test/**",
   `${COVERED_ROOTS}/**/*.entry.ts`,
-  `${COVERED_ROOTS}/**/*.live.ts`,
   // `.claude/settings.json` の allow ルール `Bash(bun scripts/orchestrate.ts *)`
   // がこのパスを名指すので、改名はその設定ファイルの編集になる。
   "scripts/orchestrate.ts",

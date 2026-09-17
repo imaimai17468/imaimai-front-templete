@@ -11,7 +11,7 @@ import ultraciteVitest from "ultracite/oxlint/vitest";
 import { defineConfig } from "vite-plus";
 import { effectRules } from "./oxlint.effect.ts";
 import reactDoctor from "./oxlint.react-doctor.ts";
-import { wranglerTypes } from "./tools/vite-plugins/wrangler-types-plugin.live";
+import { wranglerTypes } from "./tools/vite-plugins/wrangler-types-plugin";
 
 const CONFIG_FILES = "*.config.{js,ts,mjs,mts}";
 const FILES_VITEST_NEVER_LOADS = [CONFIG_FILES, "scripts/**"];
