@@ -1,6 +1,6 @@
 import { DateTime, Effect, Layer, Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
-import { CurrentSession } from "@/lib/auth/current-session.live";
+import { CurrentSession } from "@/lib/auth/session";
 import { avatarUrlForKey } from "@/lib/avatar-url";
 import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";

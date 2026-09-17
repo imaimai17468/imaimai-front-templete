@@ -1,3 +1,4 @@
+import "@tanstack/react-start/server-only";
 import { Option } from "effect";
 
 /** The signed-in caller: the identity fields taken out of a session. */

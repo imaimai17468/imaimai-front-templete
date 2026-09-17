@@ -1,6 +1,6 @@
 import { Effect, Layer, Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
-import { CurrentSession } from "@/lib/auth/current-session.live";
+import { CurrentSession } from "@/lib/auth/session";
 import { AvatarBucket } from ".";
 import type { AvatarObject } from ".";
 import {

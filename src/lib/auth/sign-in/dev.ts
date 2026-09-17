@@ -1,16 +1,22 @@
 import { Effect, Option, Predicate, Schema } from "effect";
-import type { DevUser } from "./dev-users";
+import type { SignInFailure, SignInOutcome } from "./outcome";
 
-type AuthFailureMessage = string;
+/** The account a dev build signs in as, so a local session needs no Google credentials. */
+export interface DevUser {
+  readonly email: string;
+  readonly name: string;
+  readonly password: string;
+}
 
-export type DevSignInResult =
-  | { kind: "signed-in" }
-  | { kind: "created" }
-  | { kind: "failed"; message: string };
+export const DEV_USER: DevUser = {
+  email: "dev@example.com",
+  name: "Dev User",
+  password: "dev-password",
+};
 
 export interface DevSignInDeps {
-  signIn: (user: DevUser) => Promise<Option.Option<AuthFailureMessage>>;
-  signUp: (user: DevUser) => Promise<Option.Option<AuthFailureMessage>>;
+  readonly signIn: (user: DevUser) => Promise<Option.Option<SignInFailure>>;
+  readonly signUp: (user: DevUser) => Promise<Option.Option<SignInFailure>>;
 }
 
 /** A rejection from the auth client, which carries no `failed` message of its own. */
@@ -22,29 +28,39 @@ class DevSignInThrew extends Schema.TaggedError<DevSignInThrew>()(
 const RECOVERY =
   "Run bun run db:push:local. If that does not help, reset the local D1.";
 
-const attempt = (run: () => Promise<Option.Option<AuthFailureMessage>>) =>
+const SIGN_UP_FALLBACK_MESSAGE = "sign-up failed";
+
+const attempt = (run: () => Promise<Option.Option<SignInFailure>>) =>
   Effect.tryPromise({
     catch: (cause) => new DevSignInThrew({ cause }),
     try: run,
   });
 
+/**
+ * The first sign-in doubles as the check for whether the dev user exists, so
+ * its failure only selects the sign-up and its message is never reported.
+ */
 export const createDevSignIn =
   ({ signIn, signUp }: DevSignInDeps) =>
-  (user: DevUser): Promise<DevSignInResult> =>
+  (user: DevUser): Promise<SignInOutcome> =>
     Effect.runPromise(
       Effect.gen(function* attemptDevSignIn() {
         const signInFailure = yield* attempt(() => signIn(user));
         if (Option.isNone(signInFailure)) {
-          return { kind: "signed-in" } satisfies DevSignInResult;
+          return { kind: "signed-in" } satisfies SignInOutcome;
         }
         const signUpFailure = yield* attempt(() => signUp(user));
         if (Option.isSome(signUpFailure)) {
+          const reported = Option.getOrElse(
+            signUpFailure.value.message,
+            () => SIGN_UP_FALLBACK_MESSAGE
+          );
           return {
             kind: "failed",
-            message: `${signUpFailure.value} ${RECOVERY}`,
-          } satisfies DevSignInResult;
+            message: `${reported} ${RECOVERY}`,
+          } satisfies SignInOutcome;
         }
-        return { kind: "created" } satisfies DevSignInResult;
+        return { kind: "signed-in" } satisfies SignInOutcome;
       }).pipe(
         Effect.catchTag("DevSignInThrew", (error) =>
           Effect.succeed({
@@ -53,7 +69,7 @@ export const createDevSignIn =
               Option.map((thrown) => thrown.message),
               Option.getOrElse(() => RECOVERY)
             ),
-          } satisfies DevSignInResult)
+          } satisfies SignInOutcome)
         )
       )
     );

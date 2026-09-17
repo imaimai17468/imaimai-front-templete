@@ -1,4 +1,6 @@
+import "@tanstack/react-start/server-only";
 import { Option, Schema } from "effect";
+import { getCloudflareEnv } from "@/lib/cloudflare/env";
 
 export type AuthSecretName =
   | "BETTER_AUTH_SECRET"
@@ -21,3 +23,6 @@ export const requireAuthSecret = (
   Schema.decodeUnknownSync(configuredSecret(name))(
     Option.getOrUndefined(value)
   );
+
+export const readAuthSecret = (name: AuthSecretName): string =>
+  requireAuthSecret(name, Option.fromUndefinedOr(getCloudflareEnv()[name]));

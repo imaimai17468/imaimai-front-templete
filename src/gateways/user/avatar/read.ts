@@ -1,6 +1,6 @@
 import "@tanstack/react-start/server-only";
 import { Context, Effect, Layer, Option, Schema } from "effect";
-import { CurrentSession } from "@/lib/auth/current-session.live";
+import { CurrentSession } from "@/lib/auth/session";
 import { isOwnAvatarKey } from "@/lib/storage/avatar-validation";
 import { AvatarBucket } from ".";
 import type { AvatarObject } from ".";

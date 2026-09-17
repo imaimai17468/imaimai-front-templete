@@ -46,6 +46,9 @@ export default defineConfig({
     // the DOM: `src/test/render.tsx` and `tooltip.test.tsx` register their own
     // teardown per call, which holds whichever way `isolate` is set.
     restoreMocks: true,
+    // `isolate: false` shares a worker between files, so an `import.meta.env`
+    // stub a test leaves behind reaches the files that run after it.
+    unstubEnvs: true,
     // `src/components/ui/` is shadcn CLI output, so a test there reaches
     // Radix's behaviour and `cn`, which `src/lib/utils.test.ts` covers.
     exclude: [
