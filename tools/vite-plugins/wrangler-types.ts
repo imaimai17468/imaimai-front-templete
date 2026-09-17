@@ -1,7 +1,11 @@
 import path from "node:path";
 
-export type ScriptRunner = (script: string, cwd: string) => Promise<number>;
-type MtimeReader = (file: string) => Promise<number | null>;
+export type ScriptRunner = (
+  script: string,
+  cwd: string
+) => Promise<number | null>;
+/** Rejects when the mtime cannot be read, as `stat` does for an absent file. */
+type MtimeReader = (file: string) => Promise<number>;
 
 export interface WranglerTypesIo {
   runScript: ScriptRunner;
@@ -17,8 +21,10 @@ const CONFIG_FILE = "wrangler.toml";
 const TYPES_FILE = "worker-configuration.d.ts";
 const GENERATE_SCRIPT = "cf-typegen";
 
-export const failureMessage = (code: number): string =>
-  `\`bun run ${GENERATE_SCRIPT}\` exited with ${code}. ${TYPES_FILE} may be out of date.`;
+export const failureMessage = (code: number | null): string =>
+  code === null
+    ? `\`bun run ${GENERATE_SCRIPT}\` reported no exit code. ${TYPES_FILE} may be out of date.`
+    : `\`bun run ${GENERATE_SCRIPT}\` exited with ${code}. ${TYPES_FILE} may be out of date.`;
 
 export const isWranglerConfig = (root: string, file: string): boolean =>
   path.resolve(file) === path.resolve(root, CONFIG_FILE);
@@ -36,6 +42,18 @@ export const needsRegenerate = (
   return configMtime > typesMtime;
 };
 
+/** `null` where the mtime could not be read, which is how an absent file arrives. */
+const mtimeOrNull = async (
+  readMtime: MtimeReader,
+  file: string
+): Promise<number | null> => {
+  try {
+    return await readMtime(file);
+  } catch {
+    return null;
+  }
+};
+
 export const attachWranglerTypes = async (
   server: DevServerLike,
   io: WranglerTypesIo
@@ -45,7 +63,7 @@ export const attachWranglerTypes = async (
   let queued = false;
 
   const runGenerate = async (): Promise<void> => {
-    const code = await io.runScript(GENERATE_SCRIPT, root).catch(() => 1);
+    const code = await io.runScript(GENERATE_SCRIPT, root).catch(() => null);
     if (code !== 0) {
       server.config.logger.error(failureMessage(code));
     }
@@ -75,8 +93,8 @@ export const attachWranglerTypes = async (
   });
 
   const [configMtime, typesMtime] = await Promise.all([
-    io.readMtime(path.resolve(root, CONFIG_FILE)),
-    io.readMtime(path.resolve(root, TYPES_FILE)),
+    mtimeOrNull(io.readMtime, path.resolve(root, CONFIG_FILE)),
+    mtimeOrNull(io.readMtime, path.resolve(root, TYPES_FILE)),
   ]);
   if (!needsRegenerate(configMtime, typesMtime)) {
     return;

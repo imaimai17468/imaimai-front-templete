@@ -38,11 +38,17 @@ const createServer = () => {
 };
 
 const createIo = (
-  mtimes: Record<string, number | null>,
+  mtimes: Record<string, number>,
   runScript = vi.fn<ScriptRunner>().mockResolvedValue(0)
 ) => {
   const io: WranglerTypesIo = {
-    readMtime: async (file) => await Promise.resolve(mtimes[file] ?? null),
+    readMtime: async (file) => {
+      const mtime = mtimes[file];
+      if (mtime === undefined) {
+        throw new Error(`${file} does not exist`);
+      }
+      return await Promise.resolve(mtime);
+    },
     runScript,
   };
   return { io, runScript };
@@ -113,6 +119,14 @@ describe(failureMessage, () => {
 
     expect(result).toBe(
       "`bun run cf-typegen` exited with 3. worker-configuration.d.ts may be out of date."
+    );
+  });
+
+  it("should say no code was reported when the run produced none", () => {
+    const result = failureMessage(null);
+
+    expect(result).toBe(
+      "`bun run cf-typegen` reported no exit code. worker-configuration.d.ts may be out of date."
     );
   });
 });
@@ -224,6 +238,16 @@ describe(attachWranglerTypes, () => {
 
     await attachWranglerTypes(server, io);
 
-    expect(logError.mock.calls).toStrictEqual([[failureMessage(1)]]);
+    expect(logError.mock.calls).toStrictEqual([[failureMessage(null)]]);
+  });
+
+  it("should report a failure when the generate script reports no exit code", async () => {
+    const { server, logError } = createServer();
+    const killed = vi.fn<ScriptRunner>().mockResolvedValue(null);
+    const { io } = createIo({ [CONFIG_PATH]: 1 }, killed);
+
+    await attachWranglerTypes(server, io);
+
+    expect(logError.mock.calls).toStrictEqual([[failureMessage(null)]]);
   });
 });
