@@ -3,12 +3,16 @@ import { createDevSignIn, DEV_USER } from "./dev";
 import type { SignIn } from "./outcome";
 import { signInThrewOutcome, socialSignInOutcome } from "./outcome";
 
-const devSignIn = createDevSignIn({
-  signIn: signInWithEmail,
-  signUp: signUpWithEmail,
-});
-
-const signInAsDevUser: SignIn = () => devSignIn(DEV_USER);
+/**
+ * `createDevSignIn` is called here rather than bound at module scope, so the
+ * only reference to `./dev` sits inside the arm `selectSignIn` folds away. A
+ * production build then carries no part of that module: with the binding at
+ * module scope, `dist/` held its recovery message and its fallback message.
+ */
+const signInAsDevUser: SignIn = () =>
+  createDevSignIn({ signIn: signInWithEmail, signUp: signUpWithEmail })(
+    DEV_USER
+  );
 
 const signInWithGoogle: SignIn = () =>
   startGoogleSignIn().then(socialSignInOutcome);
