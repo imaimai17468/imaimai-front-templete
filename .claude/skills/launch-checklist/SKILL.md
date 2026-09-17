@@ -1,6 +1,6 @@
 ---
 name: launch-checklist
-description: Pre-launch checklist for web services. Comprehensively audits security, SEO, OGP, performance, accessibility, and more, then generates a report.
+description: Pre-launch checklist for web services. Audits security, SEO, OGP, performance, accessibility, and more, then writes a report.
 when_to_use: When the user asks for a launch checklist, pre-launch audit, release readiness check, or wants to verify the app is ready for production.
 argument-hint: "[category (optional): security, seo, ogp, performance, a11y, email, payment, env, all]"
 arguments: category
@@ -8,7 +8,7 @@ arguments: category
 
 # Pre-Launch Web Service Checklist
 
-Comprehensively audit a pre-launch service and write a report to `docs/launch-checklist/YYYY-MM-DD.md`.
+Audit a pre-launch service and write a report to `docs/launch-checklist/YYYY-MM-DD.md`.
 
 Reference: https://zenn.dev/catnose99/articles/547cbf57e5ad28
 
@@ -186,6 +186,15 @@ Create `docs/launch-checklist/YYYY-MM-DD.md`:
 
 Commit: `{short hash}` {subject}
 
+## Action Items
+
+FAIL items in severity order, each with the fix. Where nothing failed, this
+section says so in one line.
+
+1. **[Critical]** {item}: {fix suggestion}
+2. **[Important]** {item}: {fix suggestion}
+3. **[Minor]** {item}: {fix suggestion}
+
 ## Summary
 
 | Category | Pass | Fail | N/A | Score |
@@ -209,19 +218,15 @@ Commit: `{short hash}` {subject}
 
 ### {Category}
 
+Pass: {the item numbers that passed, e.g. 1, 2, 4-6}
+
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| {n} | {item} | PASS / FAIL / N/A | {evidence or fix suggestion} |
+| {n} | {item} | FAIL / N/A | {the evidence, and the fix for a FAIL} |
 
-(Repeat for each category in scope)
-
-## Action Items
-
-Priority fixes (FAIL items ordered by severity):
-
-1. **[Critical]** {item}: {fix suggestion}
-2. **[Important]** {item}: {fix suggestion}
-3. **[Minor]** {item}: {fix suggestion}
+(Repeat for each category in scope. A passing item takes its number on the
+`Pass:` line and no table row, so step 4 can still compare it against the
+previous report, and a category that failed nothing is that line alone.)
 ```
 
 ### 4. Compare with the previous report

@@ -7,7 +7,7 @@ paths: src/**/*.css, src/**/*.tsx
 
 # Design System
 
-## Overview
+## Tokens and scope
 
 Token values are defined in `src/styles.css`: shadcn/ui's neutral base, kept
 achromatic for every surface and text role, with a hue only on `destructive`
