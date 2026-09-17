@@ -56,7 +56,7 @@ Better Auth はリクエストの origin を base URL にするので、環境�
 
 プロフィール機能（`src/components/features/profile-page/`,
 `src/gateways/user/`, `src/entities/user/`,
-`src/routes/profile.tsx`, `src/lib/storage/`）は、認証・DB・R2 を通した参照実装
+`src/routes/_authed.tsx`, `src/routes/_authed/`, `src/lib/storage/`）は、認証・DB・R2 を通した参照実装
 であって要件ではない。不要なら削除する。認証自体を外す場合は
 `/remove-db` スキルの手順を確認する。
 

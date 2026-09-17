@@ -13,7 +13,8 @@ const TREE = `src/
 │   ├── __root.tsx          # Root layout (ThemeProvider, Header, Toaster)
 │   ├── index.tsx           # Home page
 │   ├── login.tsx           # Login page
-│   ├── profile.tsx         # Profile page (auth guard via beforeLoad)
+│   ├── _authed.tsx         # 配下をまとめて守る pathless layout
+│   ├── _authed/profile.tsx # Profile page
 │   ├── auth.auth-code-error.tsx  # OAuth failure landing page
 │   └── api/                # API routes (auth catch-all, avatars)
 ├── gateways/               # 認可境界と D1 / R2 アクセス
@@ -53,9 +54,14 @@ const SPECS: readonly Spec[] = [
       {
         term: "認証",
         detail:
-          "Better Auth と Google OAuth。/login でサインインし、/profile は beforeLoad が未認証を弾く",
+          "Better Auth と Google OAuth。/login でサインインし、_authed の beforeLoad が配下のページから未認証を弾く",
       },
       { term: "データ", detail: "Cloudflare D1 と Drizzle ORM" },
+      {
+        term: "データ取得",
+        detail:
+          "TanStack Query。loader が queryClient.query でキャッシュを満たし、コンポーネントは useSuspenseQuery で読む",
+      },
       {
         term: "ファイル",
         detail: "Cloudflare R2。プロフィール画像のアップロードが動く",
