@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import { MAX_AVATAR_BYTES } from "@/lib/storage/avatar-validation";
-import { parseAvatarUpload, parseProfileUpdate } from "./profile";
+import { parseAvatarUpload, parseProfileUpdate } from "./update.fn";
 
 const pngFile = (byteLength: number) =>
   new File([new Uint8Array(byteLength)], "a.png", { type: "image/png" });

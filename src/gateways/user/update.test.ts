@@ -10,12 +10,12 @@ import {
   UserNameUpdateFailed,
   UserPersistenceError,
 } from ".";
-import { CurrentUserReader } from "./current-user";
+import { CurrentUserReader } from "./read";
 import {
   ProfileWriter,
   updateProfileResult,
   uploadAvatarResult,
-} from "./profile-writer";
+} from "./update";
 
 const pngFile = (byteLength: number) =>
   new File([new Uint8Array(byteLength)], "a.png", { type: "image/png" });

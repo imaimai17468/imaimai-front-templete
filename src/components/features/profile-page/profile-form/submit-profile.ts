@@ -3,7 +3,7 @@ import type { UpdateUser } from "@/entities/user";
 import type {
   UpdateProfileResult,
   UploadAvatarResult,
-} from "@/gateways/user/profile-writer";
+} from "@/gateways/user/update";
 
 export interface SubmitProfileDeps {
   readonly updateProfile: (form: FormData) => Promise<UpdateProfileResult>;

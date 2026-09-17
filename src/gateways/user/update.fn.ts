@@ -1,4 +1,4 @@
-import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
+import { createServerFn } from "@tanstack/react-start";
 import { flow, Option, Schema } from "effect";
 import { UpdateUserSchema } from "@/entities/user";
 import {
@@ -6,7 +6,7 @@ import {
   MAX_AVATAR_BYTES,
 } from "@/lib/storage/avatar-validation";
 import type { AvatarSizeRejection } from "@/lib/storage/avatar-validation";
-import { runUpdateProfile, runUploadAvatar } from "./profile-writer";
+import { updateProfile, uploadAvatar } from "./update";
 
 // The wire hands `.validator` whatever the client sent, so the contract starts
 // at this schema rather than at a parameter annotation.
@@ -47,9 +47,6 @@ const decodeAvatarFile = Schema.decodeUnknownSync(AvatarFileSchema);
 export const parseAvatarUpload = flow(decodeFormData, (form) => ({
   file: decodeAvatarFile(form.get("avatar")),
 }));
-
-const updateProfile = createServerOnlyFn(runUpdateProfile);
-const uploadAvatar = createServerOnlyFn(runUploadAvatar);
 
 export const updateProfileFn = createServerFn({ method: "POST" })
   .validator(parseProfileUpdate)

@@ -4,7 +4,7 @@ import type { UserWithEmail } from "@/entities/user";
 import { CurrentSession } from "@/lib/auth/current-session.live";
 import { DriverFailed } from "@/test/defect";
 import { UserGateway, UserPersistenceError } from ".";
-import { CurrentUserReader, readCurrentUser } from "./current-user";
+import { CurrentUserReader, readCurrentUser } from "./read";
 
 // similarity-ignore: avatar/reader.test.ts の makeFakes とは別のサービス（AvatarReader vs
 // CurrentUserReader）の Layer を組む。CurrentSession を差し替える形が一致しているだけで、

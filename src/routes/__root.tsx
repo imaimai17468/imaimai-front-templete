@@ -12,7 +12,7 @@ import { Header } from "@/components/shared/header/header";
 import { ThemeProvider } from "@/components/shared/theme-provider/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { getCurrentUserFn } from "@/gateways/user/user.live";
+import { getCurrentUserFn } from "@/gateways/user/read.fn";
 import "@/styles.css";
 
 if (import.meta.env.DEV && !import.meta.env.SSR) {

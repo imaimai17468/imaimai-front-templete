@@ -1,3 +1,4 @@
+import "@tanstack/react-start/server-only";
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import type { UpdateUser } from "@/entities/user";
 import { UserGateway } from ".";
@@ -9,7 +10,7 @@ import type {
   UserPersistenceError,
 } from ".";
 import { makeRunHandler } from "../runtime.live";
-import { CurrentUserReader } from "./current-user";
+import { CurrentUserReader } from "./read";
 
 export class NotAuthenticated extends Schema.TaggedError<NotAuthenticated>()(
   "NotAuthenticated",
@@ -173,9 +174,8 @@ export const uploadAvatarResult: (
 const runProfileHandler = makeRunHandler(ProfileWriter.layer);
 
 /** Writes the caller's name onto their own profile row. */
-export const runUpdateProfile = (
-  data: UpdateUser
-): Promise<UpdateProfileResult> => runProfileHandler(updateProfileResult(data));
+export const updateProfile = (data: UpdateUser): Promise<UpdateProfileResult> =>
+  runProfileHandler(updateProfileResult(data));
 
-export const runUploadAvatar = (file: File): Promise<UploadAvatarResult> =>
+export const uploadAvatar = (file: File): Promise<UploadAvatarResult> =>
   runProfileHandler(uploadAvatarResult(file));

@@ -51,7 +51,8 @@ packages/
 
 **構造上の利点**: web に実装が存在しないので、サーバコードがブラウザへ漏れる経路
 自体が消える。単一 Worker のままだと、SSR 用クライアントがルータ実装を import する
-ので、防御がビルド時削除だけになる。
+ので、防御はビルド時に留まる。いまの形では `server-only` マーカーがそれを担い、
+クライアント環境から marked なモジュールへ到達した時点でビルドが落ちる。
 
 ### 検証済みの前提
 
@@ -116,9 +117,11 @@ Hono のミドルウェアに置くとその経路が認可を飛ばす。実装
 
 **その lint は 3 層化のときに落とした。** `server/fn/` を `gateways/` へ畳んだとき、
 `routes → gateways` と `gateways → lib/auth` を禁じる 2 本を `arch-rules.js` から
-削除している。認可は `AvatarReader`、`CurrentUserReader`、`ProfileWriter` の中に残るが、route や
-component が `AvatarGateway` を直接 import する経路を機械的に止めるものは無い。
-分割に着手するなら、ここを最初に埋め直す。
+削除している。認可は `AvatarReader`、`CurrentUserReader`、`ProfileWriter` の中に残る。
+component が `AvatarGateway` を直接 import する経路は、`src/gateways/` の各モジュールが
+持つ `server-only` マーカーがビルド時に止める。止まらないのはサーバルートで、
+`src/routes/api/` のファイルは gateway のサービスへ直接到達できる。分割に着手するなら、
+そこを最初に埋め直す。
 
 ## 移行のコスト
 
