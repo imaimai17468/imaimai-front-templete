@@ -22,7 +22,7 @@ import {
   avatarSizeRejection,
   MAX_AVATAR_BYTES,
 } from "@/lib/storage/avatar-validation";
-import { submitProfile } from "./submit-profile.live";
+import { submitProfile } from "./submit-profile";
 
 // similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
 interface ProfileFormProps {

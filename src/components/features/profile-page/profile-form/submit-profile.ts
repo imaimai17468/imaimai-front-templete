@@ -4,6 +4,7 @@ import type {
   UpdateProfileResult,
   UploadAvatarResult,
 } from "@/gateways/user/update";
+import { updateProfileFn, uploadAvatarFn } from "@/gateways/user/update.fn";
 
 export interface SubmitProfileDeps {
   readonly updateProfile: (form: FormData) => Promise<UpdateProfileResult>;
@@ -81,3 +82,8 @@ export const createSubmitProfile =
         return yield* saveName(updateProfile, data, true);
       })
     );
+
+export const submitProfile = createSubmitProfile({
+  updateProfile: (form) => updateProfileFn({ data: form }),
+  uploadAvatar: (form) => uploadAvatarFn({ data: form }),
+});
