@@ -19,10 +19,20 @@ this repository.
 
 ```bash
 tmp=$(mktemp -d)
-git clone --depth 1 https://github.com/cloudflare/security-audit-skill "$tmp"
+git clone https://github.com/cloudflare/security-audit-skill "$tmp"
+git -C "$tmp" diff c1c8a8c1471069fb0e188eeaff69b8e8db6564a8..HEAD -- skills/security-audit LICENSE
+```
+
+Read that diff before copying anything. The files it replaces instruct an agent,
+and `node` runs the two validators, so an upstream change lands unread otherwise.
+The clone is deliberately not shallow: `--depth 1` leaves the recorded commit out
+of the clone and the diff above then cannot resolve it.
+
+```bash
 cp "$tmp"/skills/security-audit/* .claude/skills/security-audit/
 cp "$tmp"/LICENSE .claude/skills/security-audit/
 git -C "$tmp" log -1 --format=%H
+rm -rf "$tmp"
 ```
 
 Delete whatever file upstream dropped, write the printed commit into the line
