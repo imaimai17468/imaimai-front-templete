@@ -1,34 +1,19 @@
-import {
-  createFileRoute,
-  redirect,
-  useLoaderData,
-} from "@tanstack/react-router";
-import { Effect, Option } from "effect";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { Navigate, createFileRoute } from "@tanstack/react-router";
+import { Option } from "effect";
 import { ProfilePage } from "@/components/features/profile-page/profile-page";
-import { getCurrentUserFn } from "@/gateways/user/read.fn";
+import { currentUserQueryOptions } from "@/gateways/user/read.fn";
 
 const ProfileComponent = () => {
-  const { user } = useLoaderData({ from: "/profile" });
-  return <ProfilePage user={user} />;
+  const { data: user } = useSuspenseQuery(currentUserQueryOptions());
+  // A session that ends while this page stays mounted comes back as a `None`
+  // from the next refetch, and this is what answers it.
+  return Option.match(user, {
+    onNone: () => <Navigate to="/login" />,
+    onSome: (signedIn) => <ProfilePage user={signedIn} />,
+  });
 };
 
-export const Route = createFileRoute("/profile")({
-  // The redirect rides the error channel because that is the channel that
-  // stops the pipeline and hands its value to the caller. `runPromise` rejects
-  // with that value unwrapped, and the router's `isRedirect` accepts it, so
-  // the success type stays the context this route actually produces.
-  beforeLoad: () =>
-    Effect.runPromise(
-      Effect.gen(function* resolveProfileContext() {
-        const user = Option.fromNullOr(
-          yield* Effect.promise(() => getCurrentUserFn())
-        );
-        if (Option.isNone(user)) {
-          return yield* Effect.fail(redirect({ to: "/login" }));
-        }
-        return { user: user.value };
-      })
-    ),
-  loader: ({ context }) => ({ user: context.user }),
+export const Route = createFileRoute("/_authed/profile")({
   component: ProfileComponent,
 });
