@@ -1,11 +1,11 @@
 ---
-description: "How a sentence is built in comments, instruction documents, commit messages, and replies, in English and Japanese: plain words, what a sentence is allowed to be about, precision, format, and the generated-text patterns to keep out"
+description: "How a sentence is built and what a document carries, in comments, instruction documents, commit messages, PR bodies, and replies, in English and Japanese: plain words, what a sentence is allowed to be about, precision, where the decision sits, format, and the generated-text patterns to keep out"
 alwaysApply: true
 ---
 
 # Prose
 
-This governs every text a person reads: replies to the user, plans, reports, commit messages, PR descriptions, review comments, code comments, and instruction documents. Check a reply against these rules before sending it, including where the sentence names a category in one word or hands a decision back. Code Practices settles what such prose may take as its subject, and Knowledge Currency whether its claims are verified. This file settles how the sentence is built. Every rule here describes what a sentence does rather than which words it uses, so all of them hold in both languages.
+This governs every text a person reads: replies to the user, plans, reports, commit messages, PR descriptions, review comments, code comments, and instruction documents. Check a reply against these rules before sending it, including where the sentence names a category in one word or hands a decision back. Code Practices settles what such prose may take as its subject, and Knowledge Currency whether its claims are verified. This file settles how the sentence is built and what the document carries. Every rule here describes what a text does rather than which words it uses, so all of them hold in both languages.
 
 ## Plain words
 
@@ -85,6 +85,18 @@ These decide whether the sentence says only as much as was checked, where Knowle
 **Do not write detection, prevention, or a guarantee as unconditional.** Give the condition: `〜が成り立つときに限り`, `〜しやすい`.
 
 **Narrow the claim to what the example supports.** Where the example carries only part of it, the claim moves rather than the example.
+
+## What the document includes
+
+These decide what gets written and where it sits, where the sections above decide how each sentence is built.
+
+**Open with what was decided.** A plan, a report, a PR body, or a review carries the decision and the reason it beat the alternative in its first lines, and the reasoning that produced it follows. Announcing the conclusion in place of stating it is the run-up Sentence shape refuses.
+
+**Give a point the room its consequence earns.** A judgment that could have gone the other way takes the space it needs, and a premise no reader would dispute takes one line or none. Where every point runs to the same length, the reader is left to work out which one decided the design.
+
+**An option ruled out by a stated requirement gets that requirement and nothing else.** Writing its advantages, or balancing them against a drawback, gives a case nobody could adopt the same length as the design you adopted. Where several options were weighed, the ones you dropped go in a table of the option and the reason it lost, and the prose covers the option you took.
+
+**Cut a section the decision survives without.** Ask it of each section once the document is written. A background, a glossary, an audience note, or a list of future extensions is written where the reader cannot follow the decision without it, and dropped where a template was the only thing asking for it.
 
 ## Format
 
