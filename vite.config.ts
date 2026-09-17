@@ -42,6 +42,7 @@ export default defineConfig({
       "./tools/oxlint-plugins/arch-rules.js",
       "./tools/oxlint-plugins/start-rules.js",
       { name: "effect", specifier: "oxlint-plugin-effect/plugin" },
+      { name: "query", specifier: "@tanstack/eslint-plugin-query" },
       { name: "react-doctor", specifier: "oxlint-plugin-react-doctor" },
       { name: "tailwindcss", specifier: "oxlint-tailwindcss" },
       { name: "shadcn", specifier: "@shadcn/lint" },
@@ -242,6 +243,21 @@ export default defineConfig({
           "@typescript-eslint/no-unsafe-return": "off",
           "@typescript-eslint/strict-boolean-expressions": "off",
           "@typescript-eslint/unbound-method": "off",
+        },
+      },
+      {
+        // TanStack Query's own rules, scoped to the layers that hold React and
+        // the query options: `scripts/` and `tools/` reach neither.
+        files: ["src/**"],
+        rules: {
+          "query/exhaustive-deps": "error",
+          "query/infinite-query-property-order": "error",
+          "query/mutation-property-order": "error",
+          "query/no-rest-destructuring": "error",
+          "query/no-unstable-deps": "error",
+          "query/no-void-query-fn": "error",
+          "query/prefer-query-options": "error",
+          "query/stable-query-client": "error",
         },
       },
       {
