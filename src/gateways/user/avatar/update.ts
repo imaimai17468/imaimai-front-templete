@@ -202,9 +202,8 @@ export class AvatarWriter extends Context.Service<
             cleanup: "complete",
           } satisfies AvatarUpdated;
         }
-        // The same check the read path runs before it touches the bucket. The
-        // column is the only value on this path the gateway did not build, so
-        // ownership is established here rather than assumed from the writer.
+        // The column is the only value on this path the gateway did not
+        // build, so ownership is established here rather than assumed.
         if (!isOwnAvatarKey(previousKey.value, userId)) {
           yield* reportError(
             "user.removePrevious",

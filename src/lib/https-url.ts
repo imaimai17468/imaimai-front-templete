@@ -13,6 +13,9 @@ const decodeHttpsUrl = Schema.decodeUnknownOption(
  * as. The string survives rather than the parsed `URL`, because the caller
  * hands it to the browser as an attribute value and a re-serialized URL is no
  * longer the value that was stored.
+ *
+ * This filters one value on its way out. A caller that stores the value, or
+ * reads the same column by another route, is not covered by it.
  */
 export const httpsUrl = (value: string): Option.Option<string> =>
   Option.map(decodeHttpsUrl(value), () => value);

@@ -109,9 +109,9 @@ export class CurrentUserReader extends Context.Service<
           encodeUserWithEmail({
             // An avatar this app uploaded wins over the social provider's
             // image, because the provider's URL is frozen at signup while the
-            // key addresses whatever the user last uploaded. The provider's
-            // column is writable through the auth endpoint that carries `image`
-            // unvalidated, so it reaches an `img src` only as an https URL.
+            // key addresses whatever the user last uploaded. That column
+            // holds a value this app did not build, so it leaves here only as
+            // an https URL.
             avatarUrl: row.avatarKey.pipe(
               Option.map(avatarUrlForKey),
               Option.orElse(() => row.image.pipe(Option.flatMap(httpsUrl)))
