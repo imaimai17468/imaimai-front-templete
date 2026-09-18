@@ -54,7 +54,7 @@ const makeFakes = (read: CurrentUserReader["Service"]["read"]) => {
   const setName = vi.fn<UserNames["Service"]["set"]>();
   const replaceAvatar = vi.fn<AvatarWriter["Service"]["replace"]>();
 
-  setName.mockReturnValue(Effect.void);
+  setName.mockReturnValue(Effect.succeed(1));
   replaceAvatar.mockReturnValue(
     Effect.succeed({ avatarUrl: "/api/avatars?key=new", cleanup: "complete" })
   );

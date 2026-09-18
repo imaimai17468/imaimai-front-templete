@@ -4,7 +4,7 @@ import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
 import type { UpdateUser } from "@/entities/user";
 import { getDb } from "@/lib/drizzle/db";
 import { users } from "@/lib/drizzle/schema";
-import { persistenceEffect, succeeded } from ".";
+import { orNone, persistenceEffect } from ".";
 import type { UserPersistenceError } from ".";
 import { makeRunHandler } from "../runtime";
 import { AvatarWriter } from "./avatar/update";
@@ -29,7 +29,9 @@ export class UserNameUpdateFailed extends Schema.TaggedError<UserNameUpdateFaile
  * The `name` column of a user's own row.
  *
  * A service rather than a direct query so a test drives the failure arm
- * without a D1 binding.
+ * without a D1 binding. `set` reports the number of rows it touched, so the
+ * caller can reject a write that addressed nobody, the way the avatar path
+ * already does.
  */
 export class UserNames extends Context.Service<
   UserNames,
@@ -38,7 +40,7 @@ export class UserNames extends Context.Service<
       userId: string,
       name: Option.Option<string>,
       updatedAt: DateTime.Utc
-    ) => Effect.Effect<void, UserPersistenceError>;
+    ) => Effect.Effect<number, UserPersistenceError>;
   }
 >()("app/gateways/user/UserNames") {
   static readonly layer = Layer.succeed(
@@ -53,8 +55,9 @@ export class UserNames extends Context.Service<
               updatedAt: DateTime.toDateUtc(updatedAt),
             })
             .where(eq(users.id, userId))
-            .execute()
-        ).pipe(Effect.asVoid),
+            .returning({ id: users.id })
+            .then((rows) => rows.length)
+        ),
     })
   );
 }
@@ -106,11 +109,11 @@ export class ProfileWriter extends Context.Service<
         function* updateProfile(data: UpdateUser) {
           const user = yield* requireUser;
           const updatedAt = yield* DateTime.now;
-          const written = yield* succeeded(
+          const rowsTouched = yield* orNone(
             "user.updateName",
             names.set(user.id, Option.some(data.name), updatedAt)
           );
-          if (!written) {
+          if (!Option.contains(rowsTouched, 1)) {
             return yield* new UserNameUpdateFailed();
           }
           return yield* Effect.void;
