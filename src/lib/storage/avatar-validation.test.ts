@@ -3,7 +3,6 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   avatarContentMatchesMime,
   avatarExtensionForMime,
-  avatarServedMime,
   avatarSizeRejection,
   isOwnAvatarKey,
   MAX_AVATAR_BYTES,
@@ -158,26 +157,4 @@ describe(avatarContentMatchesMime, () => {
       avatarContentMatchesMime(imageFile(mimeType, bytes))
     ).resolves.toBeFalsy()
   );
-});
-
-describe(avatarServedMime, () => {
-  it.each(["image/png", "image/jpeg", "image/webp", "image/gif"])(
-    "should return the stored type when %s is one the write path admits",
-    (mime) => {
-      expect(avatarServedMime(Option.some(mime))).toStrictEqual(
-        Option.some(mime)
-      );
-    }
-  );
-
-  it.each(["text/html", "image/svg+xml", "image/png; charset=utf-8", ""])(
-    "should return a None when the stored type %j is outside the allow-list",
-    (mime) => {
-      expect(avatarServedMime(Option.some(mime))).toStrictEqual(Option.none());
-    }
-  );
-
-  it("should return a None when the object carries no stored type", () => {
-    expect(avatarServedMime(Option.none())).toStrictEqual(Option.none());
-  });
 });

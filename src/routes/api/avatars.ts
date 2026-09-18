@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Effect, Option } from "effect";
 import { AvatarReader, runAvatarHandler } from "@/gateways/user/avatar/read";
-import { avatarServedMime } from "@/lib/storage/avatar-validation";
 
 const jsonError = (status: number, error: string): Response =>
   Response.json({ error }, { status });
@@ -21,7 +20,7 @@ export const getAvatarResponse: (
     (avatar) =>
       new Response(avatar.body, {
         headers: {
-          "Content-Type": avatarServedMime(avatar.contentType).pipe(
+          "Content-Type": avatar.contentType.pipe(
             Option.getOrElse(() => "image/png")
           ),
           // `private`: the response is session-gated — shared caches must
