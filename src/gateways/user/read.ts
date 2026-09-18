@@ -7,6 +7,7 @@ import { CurrentSession } from "@/lib/auth/session";
 import { avatarUrlForKey } from "@/lib/avatar-url";
 import { getDb } from "@/lib/drizzle/db";
 import { users } from "@/lib/drizzle/schema";
+import { httpsUrl } from "@/lib/https-url";
 import { persistenceEffect } from ".";
 import type { UserPersistenceError } from ".";
 import { makeRunHandler } from "../runtime";
@@ -108,10 +109,12 @@ export class CurrentUserReader extends Context.Service<
           encodeUserWithEmail({
             // An avatar this app uploaded wins over the social provider's
             // image, because the provider's URL is frozen at signup while the
-            // key addresses whatever the user last uploaded.
+            // key addresses whatever the user last uploaded. The provider's
+            // column is writable through the auth endpoint that carries `image`
+            // unvalidated, so it reaches an `img src` only as an https URL.
             avatarUrl: row.avatarKey.pipe(
               Option.map(avatarUrlForKey),
-              Option.orElse(() => row.image)
+              Option.orElse(() => row.image.pipe(Option.flatMap(httpsUrl)))
             ),
             createdAt: row.createdAt,
             email: caller.value.email,
