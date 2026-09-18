@@ -58,7 +58,7 @@
     "@cloudflare/vite-plugin": "1.54.2",
     "@shadcn/lint": "0.1.0",
     "@standard-schema/spec": "1.1.0",
-    "@tailwindcss/vite": "4.3.2",
+    "@tailwindcss/vite": "4.3.3",
     "@tanstack/devtools-vite": "0.8.5",
     "@tanstack/eslint-plugin-query": "5.102.8",
     "@tanstack/react-devtools": "0.10.12",
