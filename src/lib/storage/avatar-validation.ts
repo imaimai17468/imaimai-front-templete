@@ -64,11 +64,11 @@ export const avatarContentMatchesMime = (file: File): Promise<boolean> =>
 // Read-side extension tolerance. The write path always normalizes to the
 // canonical lowercase extensions above, but avatar objects written before
 // this hardening took the extension straight from the client filename, so
-// legacy keys may carry ".jpeg" or uppercase variants. The extension is not
-// security-relevant on read — the served Content-Type comes from R2
-// httpMetadata and is neutralized by nosniff/CSP — so tolerating those
-// variants (case-insensitively) keeps existing avatars serving without
-// widening the actual attack surface.
+// legacy keys may carry ".jpeg" or uppercase variants. The extension decides
+// nothing the caller receives: `avatarServedMime` passes the stored type
+// through the write-side allow-list, and the serve route adds nosniff and a
+// CSP. So tolerating those variants (case-insensitively) keeps existing
+// avatars serving without widening the surface.
 const AVATAR_READ_EXTENSIONS = new Set([
   ...AVATAR_MIME_TO_EXTENSION.values(),
   "jpeg",
@@ -102,6 +102,19 @@ export const avatarExtensionForMime = (
   // Map.get consults own entries only — Object.prototype members
   // ("__proto__", "constructor", …) can never satisfy the allow-list.
   Option.fromUndefinedOr(AVATAR_MIME_TO_EXTENSION.get(mimeType));
+
+/**
+ * The stored content type when it is one the write path admits, so the served
+ * header is a property of this allow-list rather than of the bucket's history.
+ * Objects written before the current hardening carry whatever type the client
+ * sent, and `None` sends those down the caller's own default instead.
+ */
+export const avatarServedMime = (
+  storedType: Option.Option<string>
+): Option.Option<string> =>
+  storedType.pipe(
+    Option.filter((value) => AVATAR_MIME_TO_EXTENSION.has(value))
+  );
 
 /**
  * Upload size ceiling in bytes. Exported so the client-side pre-check and the
