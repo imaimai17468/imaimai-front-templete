@@ -25,8 +25,6 @@ This governs every text a person reads: replies to the user, plans, reports, com
 
 **Hand the reader the vocabulary they can act on, not the one you worked in.** A tool's output labels, an internal variable name, the nickname the task went by while you did it, and a term only one field holds (`tween`, `トゥイーン`) each put the reader where you were standing. Say what the thing does for them instead. The identifier they will type or click is what the rule above anchors and keeps; what goes is the word that only records how the work happened to be done. A name and an error message in the code are read the same way, by someone who never saw the work, so they take this rule too.
 
-**When handing a decision back, state the goal, where it stands, what blocks it, and how the options differ, in that order.** The blocker is the one thing the reader cannot reconstruct alone, so it must be a fact rather than an impression.
-
 ## Say the specific thing
 
 **Apply the portability test.** A sentence that could move unchanged to another repository, another module, or another company is filler. Replace it with a fact, a mechanism, a number, a file path, or a consequence that belongs to this subject alone. `The implications are significant` and `速度が向上する` name nothing.
