@@ -14,6 +14,7 @@ import { ThemeProvider } from "@/components/shared/theme-provider/theme-provider
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { currentUserQueryOptions } from "@/gateways/user/read.fn";
+import { DOCUMENT_HEADERS } from "@/lib/response-headers";
 import "@/styles.css";
 
 if (import.meta.env.DEV && !import.meta.env.SSR) {
@@ -75,6 +76,7 @@ export const Route = createRootRouteWithContext<{
       { title: "imaimai-front-templete" },
     ],
   }),
+  headers: () => DOCUMENT_HEADERS,
   component: RootComponent,
   notFoundComponent: () => <p>ページが見つかりません</p>,
 });
