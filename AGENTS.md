@@ -90,6 +90,7 @@ Rules are auto-loaded from `.claude/rules/`, and each is mirrored into `.cursor/
 - **`design.md`** is scoped to `src/**/*.css` and `src/**/*.tsx`, so a session deciding a UI question without opening one of those files loads none of it and has to open the rule itself.
 - **`prose.md`** carries no path scope, so every session holds it whatever it is editing.
 - **`react.md`** names the concrete `src/components/` and `src/lib/` homes in its Module Organization section, so where a module or a non-component value goes is settled there rather than here.
+- **`replies.md`** carries no path scope either, and it governs the reply to the user alone: what its first line holds, when a procedure is numbered, where the progress line goes, and what makes that shape give way. Every other text takes `prose.md`.
 
 A principle lives in this file. A concrete of this repository, such as a path, a file name, or a command, lives in the rule whose scope covers the files it names, and the part of it a scope would hide from a session that needs it stays here. A step-by-step procedure for a named task lives in the skill that names it, and a constraint lives in the structure or the types.
 
