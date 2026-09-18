@@ -19,7 +19,7 @@ import {
   isOwnAvatarKey,
 } from "@/lib/storage/avatar-validation";
 import { AvatarBucket, AvatarKeyIds } from ".";
-import { orNone, persistenceEffect, succeeded } from "..";
+import { orNone, persistenceEffect, succeeded, UnexpectedRowCount } from "..";
 import type { UserPersistenceError } from "..";
 
 export class AvatarTypeUnsupported extends Schema.TaggedError<AvatarTypeUnsupported>()(
@@ -30,12 +30,6 @@ export class AvatarTypeUnsupported extends Schema.TaggedError<AvatarTypeUnsuppor
 export class AvatarUploadFailed extends Schema.TaggedError<AvatarUploadFailed>()(
   "AvatarUploadFailed",
   {}
-) {}
-
-/** A write the store reported as touching a number of rows nobody expects. */
-class UnexpectedRowCount extends Schema.TaggedError<UnexpectedRowCount>()(
-  "UnexpectedRowCount",
-  { message: Schema.String }
 ) {}
 
 /** An uploaded object the rollback delete failed to remove from the bucket. */

@@ -4,7 +4,8 @@ import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
 import type { UpdateUser } from "@/entities/user";
 import { getDb } from "@/lib/drizzle/db";
 import { users } from "@/lib/drizzle/schema";
-import { orNone, persistenceEffect } from ".";
+import { reportError } from "@/lib/report-error";
+import { orNone, persistenceEffect, UnexpectedRowCount } from ".";
 import type { UserPersistenceError } from ".";
 import { makeRunHandler } from "../runtime";
 import { AvatarWriter } from "./avatar/update";
@@ -114,6 +115,14 @@ export class ProfileWriter extends Context.Service<
             names.set(user.id, Option.some(data.name), updatedAt)
           );
           if (!Option.contains(rowsTouched, 1)) {
+            if (Option.isSome(rowsTouched)) {
+              yield* reportError(
+                "user.updateName",
+                new UnexpectedRowCount({
+                  message: `expected 1 row, got ${String(rowsTouched.value)}`,
+                })
+              );
+            }
             return yield* new UserNameUpdateFailed();
           }
           return yield* Effect.void;
