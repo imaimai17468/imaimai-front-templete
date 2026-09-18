@@ -156,6 +156,30 @@ describe("AvatarWriter.replace", () => {
     );
   });
 
+  it("should leave the object in place when the stored key names another owner", () => {
+    const { findAvatarKey, remove, runOrFailure, upload } = makeFakes();
+    const reported = captureErrorReports();
+    findAvatarKey.mockReturnValue(
+      Effect.succeed(Option.some(Option.some("user-2/avatar.png")))
+    );
+
+    return runOrFailure((writer) => writer.replace("user-1", validPng())).then(
+      (result) => {
+        expect({
+          removeCalls: remove.mock.calls,
+          reportedEvents: reported.map(({ event }) => event),
+          result,
+          uploadKey: upload.mock.calls[0]?.[0],
+        }).toStrictEqual({
+          removeCalls: [],
+          reportedEvents: ["user.removePrevious"],
+          result: { avatarUrl: NEW_URL, cleanup: "pending" },
+          uploadKey: NEW_KEY,
+        });
+      }
+    );
+  });
+
   it("should report a failure when the current row is absent", () => {
     const { findAvatarKey, runOrFailure, upload } = makeFakes();
     findAvatarKey.mockReturnValue(Effect.succeed(Option.none()));
