@@ -7,9 +7,11 @@
 
 import { describe, expect, it } from "vite-plus/test";
 import {
+  EXPECTED_DOCUMENT_HEADERS,
   messageOf,
   missedBy,
   missingFrom,
+  missingHeaders,
   readyUrlIn,
   report,
   ROUTES,
@@ -18,6 +20,7 @@ import {
 import type { Route, RouteResult } from "./smoke";
 
 const ROUTE: Route = {
+  headers: {},
   location: null,
   marker: "Sign in",
   path: "/login",
@@ -108,6 +111,7 @@ describe("smoke", () => {
 
   it("should find nothing missing when the route answers without a body", () => {
     const redirectRoute: Route = {
+      headers: {},
       location: null,
       marker: null,
       path: "/profile",
@@ -119,24 +123,67 @@ describe("smoke", () => {
 
   it("should find the redirect target missing when the answer points elsewhere", () => {
     const guarded: Route = {
+      headers: {},
       location: "/login",
       marker: null,
       path: "/profile",
       status: 307,
     };
 
-    expect(missedBy("", "/", guarded)).toStrictEqual(["location /login"]);
+    expect(missedBy("", new Headers({ location: "/" }), guarded)).toStrictEqual(
+      ["location /login"]
+    );
   });
 
   it("should find nothing missing when the redirect points where the route names", () => {
     const guarded: Route = {
+      headers: {},
       location: "/login",
       marker: null,
       path: "/profile",
       status: 307,
     };
 
-    expect(missedBy("", "/login", guarded)).toStrictEqual([]);
+    expect(
+      missedBy("", new Headers({ location: "/login" }), guarded)
+    ).toStrictEqual([]);
+  });
+
+  it("should find nothing missing when the answer carries every header the route names", () => {
+    const route: Route = { ...ROUTE, headers: EXPECTED_DOCUMENT_HEADERS };
+
+    expect(
+      missingHeaders(new Headers(EXPECTED_DOCUMENT_HEADERS), route)
+    ).toStrictEqual([]);
+  });
+
+  it("should name the header when the answer omits one the route requires", () => {
+    const route: Route = { ...ROUTE, headers: EXPECTED_DOCUMENT_HEADERS };
+    const withoutFrameOptions = new Headers(EXPECTED_DOCUMENT_HEADERS);
+    withoutFrameOptions.delete("X-Frame-Options");
+
+    expect(missingHeaders(withoutFrameOptions, route)).toStrictEqual([
+      "X-Frame-Options: DENY",
+    ]);
+  });
+
+  it("should name the header when the answer carries another value for it", () => {
+    const route: Route = {
+      ...ROUTE,
+      headers: { "Cache-Control": "private, no-store" },
+    };
+
+    expect(
+      missingHeaders(new Headers({ "Cache-Control": "public" }), route)
+    ).toStrictEqual(["Cache-Control: private, no-store"]);
+  });
+
+  it("should require the document headers when the route is a rendered page", () => {
+    expect(
+      ROUTES.filter((route) => route.marker !== null).map(
+        (route) => route.headers
+      )
+    ).toStrictEqual([EXPECTED_DOCUMENT_HEADERS, EXPECTED_DOCUMENT_HEADERS]);
   });
 
   it("should request /, /login and /profile when the smoke run boots the Worker", () => {
