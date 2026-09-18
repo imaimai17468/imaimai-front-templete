@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Prose
 
-This governs every text a person reads: replies to the user, plans, reports, commit messages, PR descriptions, review comments, code comments, and instruction documents. Check a reply against these rules before sending it, including where the sentence names a category in one word or hands a decision back. Code Practices settles what such prose may take as its subject, and Knowledge Currency whether its claims are verified. This file settles how the sentence is built and what the document carries. Every rule here describes what a text does rather than which words it uses, so all of them hold in both languages.
+This governs every text a person reads: replies to the user, plans, reports, commit messages, PR descriptions, review comments, code comments, and instruction documents. Read this file before drafting a PR body, an issue comment, or a review, because these rules decide what the draft is made of and a later pass only patches what the draft already committed to. Check a reply against them before sending it, including where the sentence names a category in one word or hands a decision back. Code Practices settles what such prose may take as its subject, and Knowledge Currency whether its claims are verified. This file settles how the sentence is built and what the document carries. Every rule here describes what a text does rather than which words it uses, so all of them hold in both languages.
 
 ## Plain words
 
@@ -23,6 +23,8 @@ This governs every text a person reads: replies to the user, plans, reports, com
 
 **Anchor a term the reader may not hold to one they do, once.** Keep the file name, the type, the command in the report, because a reader given only the outcome cannot check it or carry it into the next conversation, and every later report then restarts from nothing. On first use, tie the term to a word the reader has used themselves, a place on screen, or work they did by hand. Use the name alone after that. Where you cannot tell what the reader holds, ask.
 
+**Hand the reader the vocabulary they can act on, not the one you worked in.** A tool's output labels, an internal variable name, the nickname the task went by while you did it, and a term only one field holds (`tween`, `トゥイーン`) each put the reader where you were standing. Say what the thing does for them instead. The identifier they will type or click is what the rule above anchors and keeps; what goes is the word that only records how the work happened to be done. A name and an error message in the code are read the same way, by someone who never saw the work, so they take this rule too.
+
 **When handing a decision back, state the goal, where it stands, what blocks it, and how the options differ, in that order.** The blocker is the one thing the reader cannot reconstruct alone, so it must be a fact rather than an impression.
 
 ## Say the specific thing
@@ -32,6 +34,8 @@ This governs every text a person reads: replies to the user, plans, reports, com
 **Repeat the right word rather than rotating synonyms.** Calling one thing a gate, then a check, then a guard reads as variety and costs the reader the identity of the thing. Pick the term and keep it.
 
 **Do not reach for a sweeping quantifier to add force.** `every`, `always`, `everyone`, `すべて` used to mean "many" claim more than was checked. A directive is the exception, because `never hand-edit it` states the rule's force rather than a measurement.
+
+**Count the behavior, not the edits.** `2 本追加した` measures the diff, which the reader can already open. `none のときに描画されなくなった` tells them what is different when they run it. Where a number belongs in the sentence, let it count something the reader would observe.
 
 **Write one claim once.** Do not restate a point in new words to make a passage feel thorough, and do not summarize a passage immediately after writing it. Where a text circles the same claim more than twice, cut the repetitions.
 
@@ -94,11 +98,21 @@ These decide what gets written and where it sits, where the sections above decid
 
 **Open with what was decided.** A plan, a report, a PR body, or a review carries the decision and the reason it beat the alternative in its first lines, and the reasoning that produced it follows. Announcing the conclusion in place of stating it is the run-up Sentence shape refuses.
 
+**Answer what the reader came to ask, and leave the diff to the diff.** Whoever reads a PR body, an issue comment, or a review reply can open the changed files, so walking them through the change spends their attention on what they already hold. Write what the diff cannot tell them: why this over the alternative, what it costs, what is still open.
+
 **Give a point the room its consequence earns.** A judgment that could have gone the other way takes the space it needs, and a premise no reader would dispute takes one line or none. Where every point runs to the same length, the reader is left to work out which one decided the design.
 
 **An option ruled out by a stated requirement gets that requirement and nothing else.** Writing its advantages, or balancing them against a drawback, gives a case nobody could adopt the same length as the design you adopted. Where several options were weighed, the ones you dropped go in a table of the option and the reason it lost, and the prose covers the option you took.
 
 **Cut a section the decision survives without.** Ask it of each section once the document is written. A background, a glossary, an audience note, or a list of future extensions is written where the reader cannot follow the decision without it, and dropped where a template was the only thing asking for it.
+
+**Open a finding with what someone does and what they then see.** The mechanism follows that. A finding that opens with the mechanism leaves the reader to derive the reproduction, and the one they derive may not be the one you found.
+
+**Do not open a reply to a finding with agreement.** `仰るとおり` and `確かに` report your stance while leaving the reader unable to tell what you took the problem to be. Restate the problem in your own words first, then name the fix and link it. A wrong restatement is visible to them and gets corrected; agreement hides the same error.
+
+**A review of code you will not write is advice.** On someone else's pull request, `〜するのはどうでしょうか` and `〜できないでしょうか` leave the decision with the author. `〜しませんか` invites, which presumes you share the work, and `直してください` asks for it outright, so once you write none of the code both leave only the demand behind. Where the author decides to defer, that decision carries no conditions from you.
+
+**Write what you are doing, and nothing you have not committed to.** A comment on your own issue is a note to yourself: it records what you will do next and asks no one for approval, because no one is being asked. `あとで Issue を切ります`, added because the comment felt thin without it, puts work in the record that nobody assigned.
 
 ## Format
 
@@ -106,7 +120,9 @@ These decide what gets written and where it sits, where the sections above decid
 
 **A label names an action, or points at a literal.** A heading, a table column, or a bullet lead holds no room for a mechanism, so a slot that asks for one noun takes the nearest image instead. `溶かした先` names nothing that happened where `入れた節` names the action, and a file path or a section title cannot become an image at all.
 
-**A bold lead names a rule.** In the normative documents here it opens the paragraph and carries the rule's name, which is why these paragraphs have one. Bold scattered mid-sentence marks nothing, because emphasis everywhere is emphasis nowhere.
+**A bold lead names a rule.** In the normative documents here it opens the paragraph and carries the rule's name, which is why these paragraphs have one. Bold scattered mid-sentence marks nothing, because emphasis everywhere is emphasis nowhere. A comment on a pull request or an issue is short enough to be read whole, so a table or a bold run there directs attention that was never divided, and the reader reads the formatting as a claim about what matters.
+
+**Do not carry your investigation's structure into what you post.** The categories you sorted findings into were built for sorting them. Whoever reads the comment arrives with a different question, so order it by what they have to decide next and write the passage again from there.
 
 ## Japanese
 
