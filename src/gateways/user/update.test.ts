@@ -54,7 +54,7 @@ const makeFakes = (read: CurrentUserReader["Service"]["read"]) => {
   const setName = vi.fn<UserNames["Service"]["set"]>();
   const replaceAvatar = vi.fn<AvatarWriter["Service"]["replace"]>();
 
-  setName.mockReturnValue(Effect.void);
+  setName.mockReturnValue(Effect.succeed(1));
   replaceAvatar.mockReturnValue(
     Effect.succeed({ avatarUrl: "/api/avatars?key=new", cleanup: "complete" })
   );
@@ -144,6 +144,30 @@ describe(updateProfileResult, () => {
             event: "user.updateName",
             message: "D1 failed",
             name: "DriverFailed",
+          },
+        ],
+        result: {
+          message: "Failed to update profile",
+          status: "failed",
+        },
+      });
+    });
+  });
+
+  it("should report the write failure when the name update touches zero rows", () => {
+    const { setName, updateProfile } = makeFakes(
+      Effect.succeed(Option.some(authenticatedUser))
+    );
+    setName.mockReturnValue(Effect.succeed(0));
+    const reported = captureErrorReports();
+
+    return updateProfile({ name: "Updated User" }).then((result) => {
+      expect({ reported, result }).toStrictEqual({
+        reported: [
+          {
+            event: "user.updateName",
+            message: "expected 1 row, got 0",
+            name: "UnexpectedRowCount",
           },
         ],
         result: {

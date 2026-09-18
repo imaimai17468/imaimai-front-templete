@@ -122,7 +122,7 @@ const request = async (baseUrl: string, route: Route): Promise<RouteResult> => {
     return {
       expectedStatus: route.status,
       kind: "answered",
-      missing: missedBy(body, response.headers.get("location"), route),
+      missing: missedBy(body, response.headers, route),
       path: route.path,
       status: response.status,
     };

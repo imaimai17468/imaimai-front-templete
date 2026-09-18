@@ -16,6 +16,12 @@ export class UserPersistenceError extends Schema.TaggedError<UserPersistenceErro
   { cause: Schema.Defect() }
 ) {}
 
+/** A write the store reported as touching a number of rows nobody expects. */
+export class UnexpectedRowCount extends Schema.TaggedError<UnexpectedRowCount>()(
+  "UnexpectedRowCount",
+  { message: Schema.String }
+) {}
+
 export const persistenceEffect = <A>(
   run: () => Promise<A>
 ): Effect.Effect<A, UserPersistenceError> =>

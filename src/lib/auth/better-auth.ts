@@ -25,6 +25,13 @@ const buildAuth = () => {
   const googleClientSecret = readAuthSecret("GOOGLE_CLIENT_SECRET");
 
   return betterAuth({
+    // Pinned rather than inferred. better-auth falls back to NODE_ENV to decide
+    // the session cookie's Secure flag when neither this option nor `baseURL`
+    // is set, and NODE_ENV is not a Worker binding, so that fallback reads
+    // false in a deployed Worker and the cookie ships without Secure and
+    // without the `__Secure-` name prefix. The dev arm keeps `PORTLESS=0`
+    // working, which serves plain http on localhost.
+    advanced: { useSecureCookies: !import.meta.env.DEV },
     database: drizzleAdapter(getDb(), {
       provider: "sqlite",
       schema: {

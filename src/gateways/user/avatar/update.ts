@@ -16,9 +16,10 @@ import { reportError } from "@/lib/report-error";
 import {
   avatarContentMatchesMime,
   avatarExtensionForMime,
+  isOwnAvatarKey,
 } from "@/lib/storage/avatar-validation";
 import { AvatarBucket, AvatarKeyIds } from ".";
-import { orNone, persistenceEffect, succeeded } from "..";
+import { orNone, persistenceEffect, succeeded, UnexpectedRowCount } from "..";
 import type { UserPersistenceError } from "..";
 
 export class AvatarTypeUnsupported extends Schema.TaggedError<AvatarTypeUnsupported>()(
@@ -31,15 +32,15 @@ export class AvatarUploadFailed extends Schema.TaggedError<AvatarUploadFailed>()
   {}
 ) {}
 
-/** A write the store reported as touching a number of rows nobody expects. */
-class UnexpectedRowCount extends Schema.TaggedError<UnexpectedRowCount>()(
-  "UnexpectedRowCount",
-  { message: Schema.String }
-) {}
-
 /** An uploaded object the rollback delete failed to remove from the bucket. */
 class AvatarObjectOrphaned extends Schema.TaggedError<AvatarObjectOrphaned>()(
   "AvatarObjectOrphaned",
+  { message: Schema.String }
+) {}
+
+/** A stored key the cleanup refused, because it names no object of this owner's. */
+class AvatarKeyNotOwned extends Schema.TaggedError<AvatarKeyNotOwned>()(
+  "AvatarKeyNotOwned",
   { message: Schema.String }
 ) {}
 
@@ -199,6 +200,20 @@ export class AvatarWriter extends Context.Service<
           return {
             avatarUrl: publicUrl,
             cleanup: "complete",
+          } satisfies AvatarUpdated;
+        }
+        // The column is the only value on this path the gateway did not
+        // build, so ownership is established here rather than assumed.
+        if (!isOwnAvatarKey(previousKey.value, userId)) {
+          yield* reportError(
+            "user.removePrevious",
+            new AvatarKeyNotOwned({
+              message: `${previousKey.value} does not belong to ${userId}`,
+            })
+          );
+          return {
+            avatarUrl: publicUrl,
+            cleanup: "pending",
           } satisfies AvatarUpdated;
         }
         const removedPrevious = yield* succeeded(
