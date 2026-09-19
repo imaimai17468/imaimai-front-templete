@@ -9,27 +9,29 @@ bun run setup                # 依存・git hooks・生成ファイル・.env.lo
 bun run dev`;
 
 const TREE = `src/
-├── routes/                 # TanStack Router file-based routes
+├── routes/                 # ディレクトリ名が URL セグメント
 │   ├── __root.tsx          # Root layout (ThemeProvider, Header, Toaster)
-│   ├── index.tsx           # Home page
-│   ├── login.tsx           # Login page
-│   ├── _authed.tsx         # 配下をまとめて守る pathless layout
-│   ├── _authed/profile.tsx # Profile page
+│   ├── index/
+│   │   ├── route.tsx       # Home page
+│   │   └── -components/    # このルートだけが描くもの（- 始まりは URL にならない）
+│   ├── login/              # route.tsx と -components/
+│   ├── _authed/
+│   │   ├── route.tsx       # 配下をまとめて守る pathless layout
+│   │   └── profile/        # route.tsx と -components/
 │   ├── auth.auth-code-error.tsx  # OAuth failure landing page
 │   └── api/                # API routes (auth catch-all, avatars)
-├── gateways/               # 認可境界と D1 / R2 アクセス
-│   └── user/
-│       ├── read.ts         # プロフィール読み取り
-│       ├── read.fn.ts      # createServerFn（ブラウザに配られる側）
-│       ├── update.ts       # 名前とアバターの更新
-│       ├── update.fn.ts    # createServerFn（ブラウザに配られる側）
-│       ├── index.ts        # 永続化エラーと共通ヘルパー
-│       └── avatar/         # アバターの配信とアップロード
-├── entities/               # Domain types and schemas
-├── components/
+├── shared/                 # 2 つ以上のルートが使うもの
+│   ├── components/         # header、theme-provider
 │   ├── ui/                 # shadcn/ui primitives
-│   ├── shared/             # Cross-page shared components
-│   └── features/           # Feature-specific components
+│   ├── gateway/            # 認可境界と D1 / R2 アクセス
+│   │   └── user/
+│   │       ├── read.ts     # プロフィール読み取り
+│   │       ├── read.fn.ts  # createServerFn（ブラウザに配られる側）
+│   │       ├── update.ts   # 名前とアバターの更新
+│   │       ├── update.fn.ts  # createServerFn（ブラウザに配られる側）
+│   │       ├── index.ts    # 永続化エラーと共通ヘルパー
+│   │       └── avatar/     # アバターの配信とアップロード
+│   └── entities/           # Domain types and schemas
 ├── lib/
 │   ├── auth/               # Better Auth 設定
 │   ├── cloudflare/         # CloudflareEnv helper (cloudflare:workers)
@@ -90,7 +92,7 @@ const SPECS: readonly Spec[] = [
       {
         term: "層の契約",
         detail:
-          "routes → gateways → entities。逆向きの import は tools/oxlint-plugins が落とす",
+          "ルートとコンポーネント → gateway → entities。逆向きの import と、ルートを跨ぐ -components/ の参照は tools/oxlint-plugins が落とす",
       },
       {
         term: "コミット前",
