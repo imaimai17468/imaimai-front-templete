@@ -369,10 +369,12 @@ const layerOf = (srcPath) => {
   if (srcPath.startsWith("src/shared/ui/")) {
     return "component";
   }
-  if (srcPath.startsWith("src/lib/")) {
+  // The directory itself, because an import target can name it without a
+  // trailing segment (`@/routes`) and that target sits in the layer too.
+  if (srcPath === "src/lib" || srcPath.startsWith("src/lib/")) {
     return "adapter";
   }
-  if (srcPath.startsWith("src/routes/")) {
+  if (srcPath === "src/routes" || srcPath.startsWith("src/routes/")) {
     return "route";
   }
   return null;

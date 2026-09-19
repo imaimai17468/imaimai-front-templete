@@ -1258,6 +1258,30 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
+  it("should report when an entity imports the routes directory itself", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/shared/entities/user/index.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/routes"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when an entity imports the lib directory itself", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/shared/entities/user/index.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
   it("should report when an entity imports an adapter", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/shared/entities/user/index.ts");
