@@ -208,7 +208,7 @@ const HomeComponent = () => (
         https://my-app.localhost でアクセスできる（portless が名前付き URL
         を割り当てる）。
         <code className="font-mono text-foreground">
-          src/routes/index.tsx
+          src/routes/index/route.tsx
         </code>{" "}
         を編集して開発を始められます。
       </p>

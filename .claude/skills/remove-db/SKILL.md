@@ -91,7 +91,7 @@ export const Header = () => (
 - Delete the `currentUserQueryOptions` import and the `loader` option.
 - Delete `const { data: user } = useSuspenseQuery(currentUserQueryOptions());` and render `<Header />` without props.
 
-### `src/routes/index.tsx`
+### `src/routes/index/route.tsx`
 
 The sample home page hardcodes the stack. Remove the `Better Auth` and
 `Drizzle ORM` entries from the `STACK` array. Note: the step 7 residual grep
