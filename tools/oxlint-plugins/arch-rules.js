@@ -508,6 +508,23 @@ const resolveImportTarget = (fileSrcDir, specifier) => {
   return null;
 };
 
+const PRIVATE_DIRECTORY_PREFIX = "-";
+
+/**
+ * The directory that owns the first `-` directory on this path, or `null` when
+ * the path holds none. Everything under that directory may import from there.
+ *
+ * The last segment is a module name rather than a directory, so a `-` file such
+ * as `src/routes/api/-avatars.test.ts` owns nothing.
+ */
+const privateOwnerOf = (srcPath) => {
+  const segments = srcPath.split("/");
+  const index = segments
+    .slice(0, -1)
+    .findIndex((segment) => segment.startsWith(PRIVATE_DIRECTORY_PREFIX));
+  return index === -1 ? null : segments.slice(0, index).join("/");
+};
+
 const layerBoundaries = {
   create(context) {
     const srcPath = srcPathOf(context);
@@ -550,6 +567,14 @@ const layerBoundaries = {
       );
       if (layerViolation !== undefined) {
         context.report({ message: layerViolation.message, node });
+        return;
+      }
+      const owner = privateOwnerOf(target);
+      if (owner !== null && !srcPath.startsWith(`${owner}/`)) {
+        context.report({
+          message: `A \`-\` directory is private to \`${owner}/\`. A second route reaching this module makes it shared, so move it to \`src/shared/\`.`,
+          node,
+        });
       }
     };
 

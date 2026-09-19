@@ -1435,6 +1435,88 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
+  it("should report when a route imports another route's private directory", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/login/route.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(
+      importNode("@/routes/index/-components/code-block/code-block")
+    );
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a layout route imports a nested route's private directory", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/_authed/route.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(
+      importNode("@/routes/_authed/profile/-components/profile-page")
+    );
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a shared component imports a route's private directory", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/shared/components/header/header.tsx"
+    );
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(
+      importNode("@/routes/login/-components/sign-in-button")
+    );
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when a route imports its own private directory", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/login/route.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("./-components/sign-in-button"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a module inside a private directory imports its sibling", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/routes/_authed/profile/-components/profile-form/profile-form.tsx"
+    );
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("../profile-page"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a route imports a dash-prefixed file beside it", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("./-avatars.test"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
   it("should not report when a route imports a sibling route via relative path", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/login/route.tsx");
