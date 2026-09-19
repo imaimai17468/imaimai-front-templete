@@ -17,13 +17,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import type { UpdateUser, UserWithEmail } from "@/entities/user";
-import { displayName, UpdateUserSchema } from "@/entities/user";
-import { currentUserQueryOptions } from "@/gateways/user/read.fn";
 import {
   avatarSizeRejection,
   MAX_AVATAR_BYTES,
 } from "@/lib/storage/avatar-validation";
+import type { UpdateUser, UserWithEmail } from "@/shared/entities/user";
+import { displayName, UpdateUserSchema } from "@/shared/entities/user";
+import { currentUserQueryOptions } from "@/shared/gateway/user/read.fn";
 import { submitProfile } from "./submit-profile";
 
 // similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。

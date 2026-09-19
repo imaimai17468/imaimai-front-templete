@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { UserWithEmail } from "@/entities/user";
+import type { UserWithEmail } from "@/shared/entities/user";
 import { ProfileForm } from "./profile-form/profile-form";
 import { formatRegisteredOn } from "./registered-on";
 

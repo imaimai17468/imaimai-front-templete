@@ -1,10 +1,13 @@
 import { Effect, Option } from "effect";
-import type { UpdateUser } from "@/entities/user";
+import type { UpdateUser } from "@/shared/entities/user";
 import type {
   UpdateProfileResult,
   UploadAvatarResult,
-} from "@/gateways/user/update";
-import { updateProfileFn, uploadAvatarFn } from "@/gateways/user/update.fn";
+} from "@/shared/gateway/user/update";
+import {
+  updateProfileFn,
+  uploadAvatarFn,
+} from "@/shared/gateway/user/update.fn";
 
 export interface SubmitProfileDeps {
   readonly updateProfile: (form: FormData) => Promise<UpdateProfileResult>;

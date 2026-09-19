@@ -1,13 +1,13 @@
 import "@tanstack/react-start/server-only";
 import { eq } from "drizzle-orm";
 import { Context, Effect, Layer, Option, Schema } from "effect";
-import { UserWithEmailSchema } from "@/entities/user";
-import type { UserWithEmail } from "@/entities/user";
 import { CurrentSession } from "@/lib/auth/session";
 import { avatarUrlForKey } from "@/lib/avatar-url";
 import { getDb } from "@/lib/drizzle/db";
 import { users } from "@/lib/drizzle/schema";
 import { httpsUrl } from "@/lib/https-url";
+import { UserWithEmailSchema } from "@/shared/entities/user";
+import type { UserWithEmail } from "@/shared/entities/user";
 import { persistenceEffect } from ".";
 import type { UserPersistenceError } from ".";
 import { makeRunHandler } from "../runtime";

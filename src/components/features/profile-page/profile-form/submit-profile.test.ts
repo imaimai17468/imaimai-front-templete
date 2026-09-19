@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
-import type { UpdateUser } from "@/entities/user";
+import type { UpdateUser } from "@/shared/entities/user";
 import { createSubmitProfile } from "./submit-profile";
 import type { SubmitProfileDeps } from "./submit-profile";
 

@@ -322,7 +322,7 @@ export default defineConfig({
         // the avatar directory's: it holds the R2 binding and is the single
         // place `crypto` is read. Effect's `Random` reaches the same global for
         // its seed, so no layer removes it.
-        files: ["src/gateways/user/avatar/index.ts"],
+        files: ["src/shared/gateway/user/avatar/index.ts"],
         rules: { "effect/noGlobals": "off" },
       },
       {
@@ -340,7 +340,7 @@ export default defineConfig({
         // Error construction missing `new`, and its fix inserts `new` into the
         // `extends` clause, which then does not compile.
         files: [
-          "src/gateways/**",
+          "src/shared/gateway/**",
           "src/lib/auth/sign-in/dev.ts",
           "src/lib/require-context.ts",
           "src/test/defect.ts",

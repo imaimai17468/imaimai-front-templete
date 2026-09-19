@@ -1,8 +1,8 @@
 import { DateTime, Effect, Layer, Option } from "effect";
 import { TestClock } from "effect/testing";
 import { describe, expect, it, vi } from "vite-plus/test";
-import type { UpdateUser, UserWithEmail } from "@/entities/user";
 import type { ErrorLogRecord } from "@/lib/report-error";
+import type { UpdateUser, UserWithEmail } from "@/shared/entities/user";
 import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";
 import { UserPersistenceError } from ".";

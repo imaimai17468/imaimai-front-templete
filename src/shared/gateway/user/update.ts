@@ -1,10 +1,10 @@
 import "@tanstack/react-start/server-only";
 import { eq } from "drizzle-orm";
 import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
-import type { UpdateUser } from "@/entities/user";
 import { getDb } from "@/lib/drizzle/db";
 import { users } from "@/lib/drizzle/schema";
 import { reportError } from "@/lib/report-error";
+import type { UpdateUser } from "@/shared/entities/user";
 import { orNone, persistenceEffect, UnexpectedRowCount } from ".";
 import type { UserPersistenceError } from ".";
 import { makeRunHandler } from "../runtime";

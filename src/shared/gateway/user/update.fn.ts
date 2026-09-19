@@ -1,11 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { flow, Option, Schema } from "effect";
-import { UpdateUserSchema } from "@/entities/user";
 import {
   avatarSizeRejection,
   MAX_AVATAR_BYTES,
 } from "@/lib/storage/avatar-validation";
 import type { AvatarSizeRejection } from "@/lib/storage/avatar-validation";
+import { UpdateUserSchema } from "@/shared/entities/user";
 import { updateProfile, uploadAvatar } from "./update";
 
 // The wire hands `.validator` whatever the client sent, so the contract starts

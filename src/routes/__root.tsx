@@ -13,8 +13,8 @@ import { Header } from "@/components/shared/header/header";
 import { ThemeProvider } from "@/components/shared/theme-provider/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { currentUserQueryOptions } from "@/gateways/user/read.fn";
 import { DOCUMENT_HEADERS } from "@/lib/response-headers";
+import { currentUserQueryOptions } from "@/shared/gateway/user/read.fn";
 import "@/styles.css";
 
 if (import.meta.env.DEV && !import.meta.env.SSR) {

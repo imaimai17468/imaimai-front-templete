@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Effect, Option } from "effect";
-import { currentUserQueryOptions } from "@/gateways/user/read.fn";
+import { currentUserQueryOptions } from "@/shared/gateway/user/read.fn";
 
 // A pathless layout route, so each page nested under it is guarded by this one
 // check and keeps its own URL. The route renders `<Outlet />` on its own when

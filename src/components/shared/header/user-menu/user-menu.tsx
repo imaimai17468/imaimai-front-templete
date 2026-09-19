@@ -10,9 +10,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { displayName } from "@/entities/user";
-import type { UserWithEmail } from "@/entities/user";
 import { signOut } from "@/lib/auth/sign-in";
+import { displayName } from "@/shared/entities/user";
+import type { UserWithEmail } from "@/shared/entities/user";
 
 // similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
 interface UserMenuProps {

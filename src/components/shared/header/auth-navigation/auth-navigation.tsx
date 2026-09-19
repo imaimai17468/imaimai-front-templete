@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Option } from "effect";
 import { Button } from "@/components/ui/button";
-import type { UserWithEmail } from "@/entities/user";
+import type { UserWithEmail } from "@/shared/entities/user";
 import { UserMenu } from "../user-menu/user-menu";
 
 // similarity-ignore: Header と構造が偶然一致するが、認証ナビゲーション固有の Props 契約。
