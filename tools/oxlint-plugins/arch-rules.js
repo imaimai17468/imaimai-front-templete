@@ -339,101 +339,138 @@ const componentFileNaming = {
   },
 };
 
-// Each entry names, for the files under its `layer` prefix, the import targets
-// that break the layering, and each ban carries the reason it states.
-// LAYER_BANS_MOST_SPECIFIC_FIRST below picks the entry whose prefix matches a
-// file most specifically, so the order written here carries no behaviour.
-const LAYER_BANS = [
+// A file's layer is the innermost role directory on its path, so one entry
+// reaches `src/shared/gateway/user/read.ts` and `src/routes/login/-gateway/read.ts`
+// alike. The `-` spellings are the same directories inside `src/routes/`, where
+// the prefix keeps the route generator from reading them as URL segments.
+const ROLE_BY_SEGMENT = new Map([
+  ["-components", "component"],
+  ["-entities", "entity"],
+  ["-gateway", "gateway"],
+  ["components", "component"],
+  ["entities", "entity"],
+  ["gateway", "gateway"],
+  // shadcn CLI output, which `components.json` addresses by this name rather
+  // than by sitting under `components/`.
+  ["ui", "component"],
+]);
+
+const roleOf = (segments) =>
+  ROLE_BY_SEGMENT.get(
+    segments.findLast((segment) => ROLE_BY_SEGMENT.has(segment))
+  ) ?? null;
+
+/** Which layer a `src/`-relative path sits in, or `null` for none. */
+const layerOf = (srcPath) => {
+  const role = roleOf(srcPath.split("/"));
+  if (role !== null) {
+    return role;
+  }
+  if (srcPath.startsWith("src/lib/")) {
+    return "adapter";
+  }
+  if (srcPath.startsWith("src/routes/")) {
+    return "route";
+  }
+  return null;
+};
+
+// A route file and a component are both reached through the browser build, so
+// they carry the same bans.
+const BROWSER_PATH_BANS = [
   {
-    bans: [
-      {
-        message:
-          "Routes must not touch persistence — src/lib/drizzle is owned by gateways.",
-        target: "src/lib/drizzle",
-      },
-      {
-        message:
-          "Routes must not resolve request authentication — delegate to a gateway.",
-        target: "src/lib/auth/session",
-      },
-      {
-        message:
-          "Routes must not access Cloudflare persistence bindings directly — delegate to a gateway.",
-        target: "src/lib/cloudflare",
-      },
-    ],
-    externalBans: [
-      {
-        message:
-          "Routes must not access Cloudflare bindings directly — delegate to a gateway.",
-        source: "cloudflare:workers",
-      },
-      {
-        message:
-          "Routes must not resolve request context directly — delegate to a gateway.",
-        source: "@tanstack/react-start/server",
-      },
-    ],
-    layer: "src/routes",
+    message:
+      "Routes and components must not touch persistence. src/lib/drizzle is owned by gateways.",
+    target: "src/lib/drizzle",
   },
   {
-    bans: [
-      {
-        message:
-          "Gateways must not import routes — imports flow downward only.",
-        target: "src/routes",
-      },
-      {
-        message: "Gateways never import components.",
-        target: "src/components",
-      },
-    ],
-    layer: "src/gateways",
+    message:
+      "Routes and components must not resolve request authentication. Delegate to a gateway.",
+    target: "src/lib/auth/session",
   },
   {
-    bans: [
-      {
-        message:
-          "Entities import nothing from the layers above — routes are above entities.",
-        target: "src/routes",
-      },
-      {
-        message:
-          "Entities import nothing from the layers above — gateways are above entities.",
-        target: "src/gateways",
-      },
-      {
-        message:
-          "Entities import nothing from the layers above — a src/lib adapter reads entities, never the reverse.",
-        target: "src/lib",
-      },
-    ],
-    layer: "src/entities",
-  },
-  {
-    bans: [
-      {
-        message:
-          "Adapters must not import routes — src/lib is read by the layers above it.",
-        target: "src/routes",
-      },
-      {
-        message:
-          "Adapters must not import gateways — a gateway reaches src/lib, never the reverse.",
-        target: "src/gateways",
-      },
-      {
-        message: "Adapters never import components.",
-        target: "src/components",
-      },
-    ],
-    layer: "src/lib",
+    message:
+      "Routes and components must not access Cloudflare persistence bindings directly. Delegate to a gateway.",
+    target: "src/lib/cloudflare",
   },
 ];
 
-const LAYER_BANS_MOST_SPECIFIC_FIRST = LAYER_BANS.toSorted(
-  (a, b) => b.layer.length - a.layer.length
-);
+const BROWSER_EXTERNAL_BANS = [
+  {
+    message:
+      "Routes and components must not access Cloudflare bindings directly. Delegate to a gateway.",
+    source: "cloudflare:workers",
+  },
+  {
+    message:
+      "Routes and components must not resolve request context directly. Delegate to a gateway.",
+    source: "@tanstack/react-start/server",
+  },
+];
+
+// What each layer may not import. `paths` names a target by where it sits,
+// `layers` by what `layerOf` calls it, which is what reaches a role directory
+// at any depth, and `externals` by its bare specifier.
+const LAYER_RULES = {
+  adapter: {
+    layers: [
+      {
+        layer: "route",
+        message:
+          "Adapters must not import routes. src/lib is read by the layers above it.",
+      },
+      {
+        layer: "gateway",
+        message:
+          "Adapters must not import gateways. A gateway reaches src/lib, never the reverse.",
+      },
+      { layer: "component", message: "Adapters never import components." },
+    ],
+  },
+  component: {
+    externals: BROWSER_EXTERNAL_BANS,
+    paths: BROWSER_PATH_BANS,
+  },
+  entity: {
+    layers: [
+      {
+        layer: "route",
+        message:
+          "Entities import nothing from the layers above. Routes are above entities.",
+      },
+      {
+        layer: "gateway",
+        message:
+          "Entities import nothing from the layers above. Gateways are above entities.",
+      },
+      {
+        layer: "component",
+        message:
+          "Entities import nothing from the layers above. A component reads entities, never the reverse.",
+      },
+    ],
+    paths: [
+      {
+        message:
+          "Entities import nothing from the layers above. A src/lib adapter reads entities, never the reverse.",
+        target: "src/lib",
+      },
+    ],
+  },
+  gateway: {
+    layers: [
+      {
+        layer: "route",
+        message: "Gateways must not import routes. Imports flow downward only.",
+      },
+      { layer: "component", message: "Gateways never import components." },
+    ],
+  },
+  route: {
+    externals: BROWSER_EXTERNAL_BANS,
+    paths: BROWSER_PATH_BANS,
+  },
+};
 
 const SRC_MARKER = "/src/";
 
@@ -474,10 +511,8 @@ const layerBoundaries = {
     }
     const fileSrcDir = srcPath.slice(0, srcPath.lastIndexOf("/"));
 
-    const layerEntry = LAYER_BANS_MOST_SPECIFIC_FIRST.find((entry) =>
-      srcPath.startsWith(`${entry.layer}/`)
-    );
-    if (!layerEntry) {
+    const rules = LAYER_RULES[layerOf(srcPath)];
+    if (rules === undefined) {
       return {};
     }
 
@@ -486,7 +521,7 @@ const layerBoundaries = {
       if (!source || typeof source.value !== "string") {
         return;
       }
-      const externalViolation = layerEntry.externalBans?.find(
+      const externalViolation = rules.externals?.find(
         (ban) => source.value === ban.source
       );
       if (externalViolation !== undefined) {
@@ -497,11 +532,19 @@ const layerBoundaries = {
       if (target === null) {
         return;
       }
-      const violated = layerEntry.bans.find(
+      const pathViolation = rules.paths?.find(
         (ban) => target === ban.target || target.startsWith(`${ban.target}/`)
       );
-      if (violated !== undefined) {
-        context.report({ message: violated.message, node });
+      if (pathViolation !== undefined) {
+        context.report({ message: pathViolation.message, node });
+        return;
+      }
+      const targetLayer = layerOf(target);
+      const layerViolation = rules.layers?.find(
+        (ban) => ban.layer === targetLayer
+      );
+      if (layerViolation !== undefined) {
+        context.report({ message: layerViolation.message, node });
       }
     };
 
@@ -517,10 +560,10 @@ const layerBoundaries = {
 const SERVER_ONLY_MARKER = "@tanstack/react-start/server-only";
 
 /**
- * Which environment runs a module, decided by the directory it sits in. The
- * longest matching prefix wins, so a browser directory nested inside a server
- * one stays a browser directory. A `browserSuffix` flips one file inside a
- * server directory to the browser.
+ * Which environment runs a module that `src/lib` holds, decided by the
+ * directory it sits in. The longest matching prefix wins, so a browser
+ * directory nested inside a server one stays a browser directory. A gateway is
+ * decided by `layerOf` instead, in `classifyModule` below.
  *
  * A client module importing a marked module fails the build on that module
  * rather than on whatever specifier its deepest import trips, and the marker
@@ -528,25 +571,16 @@ const SERVER_ONLY_MARKER = "@tanstack/react-start/server-only";
  */
 const MARKER_DIRECTORIES = [
   {
-    browserSuffixes: [".fn.ts"],
-    hint: "Write the `createServerFn` declarations in a `*.fn.ts`, and put everything else in a module that file imports.",
-    prefix: "src/gateways/",
-    runs: "server",
-  },
-  {
-    browserSuffixes: [],
     hint: "`src/lib/auth/session/` is the half the server runs and `src/lib/auth/sign-in/` the half the browser runs.",
     prefix: "src/lib/auth/",
     runs: "server",
   },
   {
-    browserSuffixes: [],
     hint: "`src/lib/auth/session/` is the half the server runs and `src/lib/auth/sign-in/` the half the browser runs.",
     prefix: "src/lib/auth/sign-in/",
     runs: "client",
   },
   {
-    browserSuffixes: [],
     hint: "This directory hands out the Worker bindings, which exist on the server alone.",
     prefix: "src/lib/cloudflare/",
     runs: "server",
@@ -557,23 +591,32 @@ const MARKER_DIRECTORIES_MOST_SPECIFIC_FIRST = MARKER_DIRECTORIES.toSorted(
   (a, b) => b.prefix.length - a.prefix.length
 );
 
+const GATEWAY_BROWSER_SUFFIX = ".fn.ts";
+
+const GATEWAY_HINT =
+  "Write the `createServerFn` declarations in a `*.fn.ts`, and put everything else in a module that file imports.";
+
 /** What the message calls the module, and which environment runs it. */
 const classifyModule = (srcPath) => {
+  if (layerOf(srcPath) === "gateway") {
+    if (srcPath.endsWith(GATEWAY_BROWSER_SUFFIX)) {
+      return {
+        hint: GATEWAY_HINT,
+        runs: "client",
+        subject: `A \`*${GATEWAY_BROWSER_SUFFIX}\``,
+      };
+    }
+    return {
+      hint: GATEWAY_HINT,
+      runs: "server",
+      subject: "A module in a `gateway/` directory",
+    };
+  }
   const directory = MARKER_DIRECTORIES_MOST_SPECIFIC_FIRST.find((entry) =>
     srcPath.startsWith(entry.prefix)
   );
   if (directory === undefined) {
     return null;
-  }
-  const browserSuffix = directory.browserSuffixes.find((suffix) =>
-    srcPath.endsWith(suffix)
-  );
-  if (browserSuffix !== undefined) {
-    return {
-      hint: directory.hint,
-      runs: "client",
-      subject: `A \`*${browserSuffix}\``,
-    };
   }
   return {
     hint: directory.hint,
