@@ -1,7 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { Option } from "effect";
 import { LogOut, User as UserIcon } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { signOut } from "@/lib/auth/sign-in";
+import { displayName } from "@/shared/entities/user";
+import type { UserWithEmail } from "@/shared/entities/user";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,10 +12,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { signOut } from "@/lib/auth/sign-in";
-import { displayName } from "@/shared/entities/user";
-import type { UserWithEmail } from "@/shared/entities/user";
+} from "@/shared/ui/dropdown-menu";
 
 // similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
 interface UserMenuProps {

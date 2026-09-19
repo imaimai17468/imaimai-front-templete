@@ -3,7 +3,7 @@
   "entry": [
     "src/routes/**/*.{ts,tsx}",
     "scripts/**/*.{ts,js,sh}",
-    "src/components/ui/**/*.{ts,tsx}",
+    "src/shared/ui/**/*.{ts,tsx}",
     "src/lib/utils.ts",
     "src/test/**/*.{ts,tsx}"
   ],

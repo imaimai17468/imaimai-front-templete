@@ -1,11 +1,11 @@
+import type { UserWithEmail } from "@/shared/entities/user";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import type { UserWithEmail } from "@/shared/entities/user";
+} from "@/shared/ui/card";
 import { ProfileForm } from "./profile-form/profile-form";
 import { formatRegisteredOn } from "./registered-on";
 

@@ -292,7 +292,7 @@ export default defineConfig({
         // shadcn CLI output. These are the rules the CLI's own files trip,
         // so leaving them on means rewriting every generated file by hand after
         // each `shadcn add`.
-        files: ["src/components/ui/**"],
+        files: ["src/shared/ui/**"],
         rules: {
           "effect/noNullish": "off",
           "func-style": "off",

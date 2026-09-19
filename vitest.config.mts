@@ -55,13 +55,13 @@ export default defineConfig({
     // `isolate: false` shares a worker between files, so an `import.meta.env`
     // stub a test leaves behind reaches the files that run after it.
     unstubEnvs: true,
-    // `src/components/ui/` is shadcn CLI output, so a test there reaches
+    // `src/shared/ui/` is shadcn CLI output, so a test there reaches
     // Radix's behaviour and `cn`, which `src/lib/utils.test.ts` covers.
     exclude: [
       ...defaultExclude,
       ".claude/worktrees/**",
       vendoredSkillExclude,
-      "src/components/ui/**",
+      "src/shared/ui/**",
     ],
     setupFiles: ["./src/test-setup.ts"],
     coverage: {

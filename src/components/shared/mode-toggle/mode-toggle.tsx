@@ -4,7 +4,7 @@ import { Match, Option } from "effect";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useSyncExternalStore } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import { needsThemeNormalization, resolveThemeCycle } from "./theme-cycle";
 import type { Theme } from "./theme-cycle";
 

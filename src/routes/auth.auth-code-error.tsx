@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 
 const AuthCodeErrorComponent = () => (
   <div className="flex min-h-dvh flex-col items-center justify-center gap-6">

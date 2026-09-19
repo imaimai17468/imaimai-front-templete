@@ -1,8 +1,8 @@
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { signIn } from "@/lib/auth/sign-in";
+import { Button } from "@/shared/ui/button";
 
 export const SignInButton = () => {
   const [pending, setPending] = useState(false);

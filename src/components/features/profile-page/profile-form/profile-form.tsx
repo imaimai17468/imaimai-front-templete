@@ -5,8 +5,15 @@ import { Camera, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import {
+  avatarSizeRejection,
+  MAX_AVATAR_BYTES,
+} from "@/lib/storage/avatar-validation";
+import type { UpdateUser, UserWithEmail } from "@/shared/entities/user";
+import { displayName, UpdateUserSchema } from "@/shared/entities/user";
+import { currentUserQueryOptions } from "@/shared/gateway/user/read.fn";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
+import { Button } from "@/shared/ui/button";
 import {
   Form,
   FormControl,
@@ -15,15 +22,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import {
-  avatarSizeRejection,
-  MAX_AVATAR_BYTES,
-} from "@/lib/storage/avatar-validation";
-import type { UpdateUser, UserWithEmail } from "@/shared/entities/user";
-import { displayName, UpdateUserSchema } from "@/shared/entities/user";
-import { currentUserQueryOptions } from "@/shared/gateway/user/read.fn";
+} from "@/shared/ui/form";
+import { Input } from "@/shared/ui/input";
 import { submitProfile } from "./submit-profile";
 
 // similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
