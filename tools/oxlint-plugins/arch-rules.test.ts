@@ -1324,6 +1324,18 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
+  it("should report when an adapter in a ui directory imports a gateway", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/lib/ui/thing.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/shared/gateway/user"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
   it("should report when an adapter imports a gateway via relative path", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/lib/storage/r2.ts");
