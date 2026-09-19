@@ -118,7 +118,7 @@ Hono のミドルウェアに置くとその経路が認可を飛ばす。実装
 **その lint は 3 層化のときに落とした。** `server/fn/` を `gateways/` へ畳んだとき、
 `routes → gateways` と `gateways → lib/auth` を禁じる 2 本を `arch-rules.js` から
 削除している。認可は `AvatarReader`、`CurrentUserReader`、`ProfileWriter` の中に残る。
-component が `AvatarGateway` を直接 import する経路は、`src/gateways/` の各モジュールが
+component が `AvatarGateway` を直接 import する経路は、`src/shared/gateway/` の各モジュールが
 持つ `server-only` マーカーがビルド時に止める。止まらないのはサーバルートで、
 `src/routes/api/` のファイルは gateway のサービスへ直接到達できる。分割に着手するなら、
 そこを最初に埋め直す。

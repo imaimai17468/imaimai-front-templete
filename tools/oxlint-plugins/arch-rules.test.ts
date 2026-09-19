@@ -648,7 +648,7 @@ describe("component-file-naming", () => {
   it("should not report when component name matches file name", () => {
     const context = {
       ...makeContext(),
-      filename: "/src/components/StatsCard/StatsCard.tsx",
+      filename: "/src/shared/components/StatsCard/StatsCard.tsx",
     };
     const visitors = rule.create(context);
     const node = {
@@ -663,7 +663,7 @@ describe("component-file-naming", () => {
   it("should not report when component name matches kebab-case file name", () => {
     const context = {
       ...makeContext(),
-      filename: "/src/components/stats-card/stats-card.tsx",
+      filename: "/src/shared/components/stats-card/stats-card.tsx",
     };
     const visitors = rule.create(context);
     const node = {
@@ -678,7 +678,7 @@ describe("component-file-naming", () => {
   it("should report when component name does not match kebab-case file name", () => {
     const context = {
       ...makeContext(),
-      filename: "/src/components/stats-card/stats-card.tsx",
+      filename: "/src/shared/components/stats-card/stats-card.tsx",
     };
     const visitors = rule.create(context);
     const node = {
@@ -693,7 +693,7 @@ describe("component-file-naming", () => {
   it("should report when component name does not match file name", () => {
     const context = {
       ...makeContext(),
-      filename: "/src/components/StatsCard/StatsCard.tsx",
+      filename: "/src/shared/components/StatsCard/StatsCard.tsx",
     };
     const visitors = rule.create(context);
     const node = {
@@ -708,7 +708,7 @@ describe("component-file-naming", () => {
   it("should not report when component name matches container file convention", () => {
     const context = {
       ...makeContext(),
-      filename: "/src/components/StatsCard/StatsCard.container.tsx",
+      filename: "/src/shared/components/StatsCard/StatsCard.container.tsx",
     };
     const visitors = rule.create(context);
     const node = {
@@ -724,7 +724,10 @@ describe("component-file-naming", () => {
   });
 
   it("should not report when file is index", () => {
-    const context = { ...makeContext(), filename: "/src/components/index.tsx" };
+    const context = {
+      ...makeContext(),
+      filename: "/src/shared/components/index.tsx",
+    };
     const visitors = rule.create(context);
     const node = {
       declaration: { id: { name: "Anything" }, type: "FunctionDeclaration" },
@@ -738,7 +741,7 @@ describe("component-file-naming", () => {
   it("should not report when file is a test file", () => {
     const context = {
       ...makeContext(),
-      filename: "/src/components/StatsCard/StatsCard.test.tsx",
+      filename: "/src/shared/components/StatsCard/StatsCard.test.tsx",
     };
     const visitors = rule.create(context);
     const node = {
@@ -753,7 +756,7 @@ describe("component-file-naming", () => {
   it("should not report when lowercase function is exported", () => {
     const context = {
       ...makeContext(),
-      filename: "/src/components/StatsCard/StatsCard.tsx",
+      filename: "/src/shared/components/StatsCard/StatsCard.tsx",
     };
     const visitors = rule.create(context);
     const node = {
@@ -2063,7 +2066,7 @@ describe("component-file-naming (defensive branches)", () => {
     // Arrange
     const context = {
       ...makeContext(),
-      getFilename: () => "/src/components/Card.tsx",
+      getFilename: () => "/src/shared/components/Card.tsx",
     };
     const visitors = rule.create(context);
     const node = {
@@ -2079,7 +2082,7 @@ describe("component-file-naming (defensive branches)", () => {
 
   it("should return no visitors when the filename ends with a slash", () => {
     // Arrange
-    const context = { ...makeContext(), filename: "/src/components/" };
+    const context = { ...makeContext(), filename: "/src/shared/components/" };
 
     // Act
     const visitors = rule.create(context);
@@ -2090,7 +2093,10 @@ describe("component-file-naming (defensive branches)", () => {
 
   it("should skip the empty leading segment when the file name starts with a dot", () => {
     // Arrange
-    const context = { ...makeContext(), filename: "/src/components/.card.tsx" };
+    const context = {
+      ...makeContext(),
+      filename: "/src/shared/components/.card.tsx",
+    };
     const visitors = rule.create(context);
     const node = {
       declaration: { id: { name: "Other" }, type: "FunctionDeclaration" },
@@ -2116,7 +2122,10 @@ describe("component-file-naming (defensive branches)", () => {
 
   it("should not report when a named export has no declaration", () => {
     // Arrange
-    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const context = {
+      ...makeContext(),
+      filename: "/src/shared/components/Card.tsx",
+    };
     const visitors = rule.create(context);
 
     // Act
@@ -2128,7 +2137,10 @@ describe("component-file-naming (defensive branches)", () => {
 
   it("should not report when a named export is a type alias", () => {
     // Arrange
-    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const context = {
+      ...makeContext(),
+      filename: "/src/shared/components/Card.tsx",
+    };
     const visitors = rule.create(context);
 
     // Act
@@ -2142,7 +2154,10 @@ describe("component-file-naming (defensive branches)", () => {
 
   it("should not report when a variable declarator uses a destructuring pattern", () => {
     // Arrange
-    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const context = {
+      ...makeContext(),
+      filename: "/src/shared/components/Card.tsx",
+    };
     const visitors = rule.create(context);
     const node = {
       declaration: {
@@ -2160,7 +2175,10 @@ describe("component-file-naming (defensive branches)", () => {
 
   it("should not report when a lowercase variable is exported", () => {
     // Arrange
-    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const context = {
+      ...makeContext(),
+      filename: "/src/shared/components/Card.tsx",
+    };
     const visitors = rule.create(context);
     const node = {
       declaration: {
@@ -2183,7 +2201,10 @@ describe("component-file-naming (defensive branches)", () => {
 
   it("should not report when a component-named variable has no initializer", () => {
     // Arrange
-    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const context = {
+      ...makeContext(),
+      filename: "/src/shared/components/Card.tsx",
+    };
     const visitors = rule.create(context);
     const node = {
       declaration: {
@@ -2203,7 +2224,10 @@ describe("component-file-naming (defensive branches)", () => {
 
   it("should not report when a component-named variable is initialized by a call", () => {
     // Arrange
-    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const context = {
+      ...makeContext(),
+      filename: "/src/shared/components/Card.tsx",
+    };
     const visitors = rule.create(context);
     const node = {
       declaration: {
@@ -2226,7 +2250,10 @@ describe("component-file-naming (defensive branches)", () => {
 
   it("should not report when a default export has no declaration", () => {
     // Arrange
-    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const context = {
+      ...makeContext(),
+      filename: "/src/shared/components/Card.tsx",
+    };
     const visitors = rule.create(context);
 
     // Act
@@ -2238,7 +2265,10 @@ describe("component-file-naming (defensive branches)", () => {
 
   it("should not report when a default export is an arrow function", () => {
     // Arrange
-    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const context = {
+      ...makeContext(),
+      filename: "/src/shared/components/Card.tsx",
+    };
     const visitors = rule.create(context);
 
     // Act
@@ -2252,7 +2282,10 @@ describe("component-file-naming (defensive branches)", () => {
 
   it("should not report when a default export is an anonymous function expression", () => {
     // Arrange
-    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const context = {
+      ...makeContext(),
+      filename: "/src/shared/components/Card.tsx",
+    };
     const visitors = rule.create(context);
 
     // Act
@@ -2266,7 +2299,10 @@ describe("component-file-naming (defensive branches)", () => {
 
   it("should report when an exported arrow component does not match the file name", () => {
     // Arrange
-    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const context = {
+      ...makeContext(),
+      filename: "/src/shared/components/Card.tsx",
+    };
     const visitors = rule.create(context);
     const node = {
       declaration: {
@@ -2289,7 +2325,10 @@ describe("component-file-naming (defensive branches)", () => {
 
   it("should report when a default-exported function does not match the file name", () => {
     // Arrange
-    const context = { ...makeContext(), filename: "/src/components/Card.tsx" };
+    const context = {
+      ...makeContext(),
+      filename: "/src/shared/components/Card.tsx",
+    };
     const visitors = rule.create(context);
 
     // Act

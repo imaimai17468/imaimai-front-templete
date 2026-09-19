@@ -7,13 +7,13 @@ paths: src/**/*.ts, src/**/*.tsx
 
 # Data Fetching
 
-AGENTS.md settles the layer order and that `src/gateways/` is the authorization boundary. This file settles the shape inside it and how a component reaches it.
+AGENTS.md settles the layer order and that a `gateway/` directory is the authorization boundary. This file settles the shape inside one and how a component reaches it.
 
 ## What the browser receives
 
 A `*.fn.ts` holds `createServerFn` declarations, their validators, and the `queryOptions` factories that address them. Nothing else. The compiler ships that file to the browser with each handler argument rewritten into a `fetch`, so a service, a `ManagedRuntime`, or a D1 or R2 call written there lands in the client bundle. Put it in another module and let the `*.fn.ts` import it, because that import line is what the compiler deletes once the handler argument is gone.
 
-Every other module under `src/gateways/` opens with `import "@tanstack/react-start/server-only"`. `arch-rules/server-only-marker` reports a module that does not, and the marker fails the build when a client module reaches a marked one. `createServerOnlyFn` around a handler argument does not do this: it replaces one function and leaves a class whose static initializer still references a server import, so the module graph survives. The `src/lib` adapters that reach a binding or the request carry the marker for the same reason.
+Every other module in a `gateway/` directory opens with `import "@tanstack/react-start/server-only"`. `arch-rules/server-only-marker` reports a module that does not, and the marker fails the build when a client module reaches a marked one. `createServerOnlyFn` around a handler argument does not do this: it replaces one function and leaves a class whose static initializer still references a server import, so the module graph survives. The `src/lib` adapters that reach a binding or the request carry the marker for the same reason.
 
 ## Gateway shape
 
@@ -28,7 +28,7 @@ Every other module under `src/gateways/` opens with `import "@tanstack/react-sta
 
 ## Rows
 
-A `Schema` decodes a row, rather than a hand-written mapping. Decoding is what turns a driver's `Date` into `DateTime.Utc` and its nullable columns into `Option`. `src/entities/` owns the schema a value crosses the wire as; the row schema stays beside the query that produced it.
+A `Schema` decodes a row, rather than a hand-written mapping. Decoding is what turns a driver's `Date` into `DateTime.Utc` and its nullable columns into `Option`. `src/shared/entities/` owns the schema a value crosses the wire as; the row schema stays beside the query that produced it.
 
 ## Query options
 
@@ -57,7 +57,7 @@ A `Schema` decodes a row, rather than a hand-written mapping. Decoding is what t
 ## The client and the guard
 
 - The `QueryClient` is built inside `getRouter()` in `src/router.tsx`. Start builds a router per SSR request and the Worker keeps the module between them, so a client at module scope serves one reader's rows in the next reader's HTML.
-- A signed-in area is a pathless layout route (`src/routes/_authed.tsx`) whose `beforeLoad` reads the query and fails with `redirect`. That read is served from the cache while it is fresh, so on a client navigation the guard can act on a value up to `staleTime` old; `src/gateways/` authorizes every read and write, and this guard decides which page to show rather than what the caller may reach. It returns nothing into the route context: a context value is captured when `beforeLoad` runs and does not follow an invalidation, so a page reading the user from context shows the value it had before the last write.
+- A signed-in area is a pathless layout route (`src/routes/_authed/route.tsx`) whose `beforeLoad` reads the query and fails with `redirect`. That read is served from the cache while it is fresh, so on a client navigation the guard can act on a value up to `staleTime` old; the gateway authorizes every read and write, and this guard decides which page to show rather than what the caller may reach. It returns nothing into the route context: a context value is captured when `beforeLoad` runs and does not follow an invalidation, so a page reading the user from context shows the value it had before the last write.
 
 ## Checklist
 

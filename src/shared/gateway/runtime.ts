@@ -12,7 +12,7 @@ const appMemoMap = Layer.makeMemoMapUnsafe();
  * the framework the Promise it expects.
  *
  * `never` in the error channel is what a handler has to satisfy to get here, so
- * a failure added to `src/gateways/` and left without a result fails to
+ * a failure added to the gateway and left without a result fails to
  * compile at the call site rather than reaching the framework as a rejection.
  */
 export const makeRunHandler = <R>(layer: Layer.Layer<R>) => {
