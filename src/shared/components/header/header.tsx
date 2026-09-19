@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import type { Option } from "effect";
-import { ModeToggle } from "@/components/shared/mode-toggle/mode-toggle";
 import type { UserWithEmail } from "@/shared/entities/user";
 import { AuthNavigation } from "./auth-navigation/auth-navigation";
+import { ModeToggle } from "./mode-toggle/mode-toggle";
 
 // similarity-ignore: Header と AuthNavigation はそれぞれ独立した責務（レイアウト vs 認証ナビ）の Props 契約。構造が偶然一致しているだけで共通化しない。
 interface HeaderProps {
