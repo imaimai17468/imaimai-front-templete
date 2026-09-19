@@ -15,7 +15,7 @@ Strips the template down to a frontend-only TanStack Start app by removing:
 (D1, R2) and the auth vars leave `wrangler.toml`, so `bun run deploy` keeps
 working the moment this procedure finishes.
 
-What else stays: the app shell, shared UI (`src/components/ui`, header,
+What else stays: the app shell, shared UI (`src/shared/ui`, header,
 mode-toggle, theme-provider), the sample home page, and the oxlint / oxfmt /
 tsc / knip / vitest toolchain.
 
@@ -27,13 +27,11 @@ tsc / knip / vitest toolchain.
 
 ```bash
 rm -rf src/lib/auth src/lib/cloudflare src/lib/drizzle src/lib/storage
-rm -rf src/entities src/gateways
+rm -rf src/shared/entities src/shared/gateway
 rm -rf src/routes/api
-rm -f src/routes/login.tsx src/routes/_authed.tsx src/routes/auth.auth-code-error.tsx
-rm -rf src/routes/_authed
-rm -rf src/components/features/profile-page
-rmdir src/components/features 2>/dev/null || true
-rm -rf src/components/shared/header/auth-navigation src/components/shared/header/user-menu
+rm -rf src/routes/login src/routes/_authed
+rm -f src/routes/auth.auth-code-error.tsx
+rm -rf src/shared/components/header/auth-navigation src/shared/components/header/user-menu
 rm -f src/test/cloudflare-workers-stub.ts
 ```
 
@@ -57,14 +55,14 @@ interface rather than omitting it, which was verified rather than assumed).
 
 ## 2. Fix auth-dependent UI
 
-### `src/components/shared/header/header.tsx`
+### `src/shared/components/header/header.tsx`
 
 Remove the `user` prop, the `UserWithEmail` / `AuthNavigation` imports, and the
 `similarity-ignore` comment:
 
 ```tsx
 import { Link } from "@tanstack/react-router";
-import { ModeToggle } from "@/components/shared/mode-toggle/mode-toggle";
+import { ModeToggle } from "./mode-toggle/mode-toggle";
 
 export const Header = () => (
   <header className="sticky top-0 z-50 bg-transparent backdrop-blur-md">
@@ -93,7 +91,7 @@ export const Header = () => (
 - Delete the `currentUserQueryOptions` import and the `loader` option.
 - Delete `const { data: user } = useSuspenseQuery(currentUserQueryOptions());` and render `<Header />` without props.
 
-### `src/routes/index.tsx`
+### `src/routes/index/route.tsx`
 
 The sample home page hardcodes the stack. Remove the `Better Auth` and
 `Drizzle ORM` entries from the `STACK` array. Note: the step 7 residual grep
@@ -128,9 +126,14 @@ other one that names a file it deleted.
 
 ### `tools/oxlint-plugins/arch-rules.js`: prune the dead layer bans
 
-`LAYER_BANS` encodes as import bans the layer order AGENTS.md's Rules section
-names. Step 1 deletes every layer below `routes`, so a ban whose `layer` or
-`target` names a deleted path has nothing left to protect.
+`LAYER_RULES` encodes as import bans the layer order AGENTS.md's Rules section
+names. Each key is a layer `layerOf` returns, and its entry bans a target by
+path (`paths`), by the layer `layerOf` gives that target (`layers`), or by bare
+specifier (`externals`). Step 1 deletes the gateway and entity layers and the
+`src/lib/` adapters the browser bans name, so drop the `gateway` and `entity`
+keys, every `layers` entry naming one of them, and every `paths` entry whose
+target step 1 removed. Drop the matching names from `ROLE_BY_SEGMENT` and
+`layerOf`.
 Remove those entries together with the cases in `arch-rules.test.ts` that cover
 them: `vitest.config.mts` holds this file at 100% branch coverage, so a pruned
 ban with a surviving test, or the reverse, fails `bun run test`. If every ban
@@ -214,7 +217,7 @@ Keep everything else, explicitly including `deploy`, `preview`, and
 After the knip run in step 8, remove any dependencies it now flags as unused.
 Expected: `@hookform/resolvers` (its last consumer was the profile form).
 `react-hook-form`, `sonner`, and `radix-ui` stay, because
-`src/components/ui/` still uses them.
+`src/shared/ui/` still uses them.
 
 ## 6. Update docs / settings
 

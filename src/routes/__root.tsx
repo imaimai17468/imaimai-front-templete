@@ -9,12 +9,12 @@ import {
   createRootRouteWithContext,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { Header } from "@/components/shared/header/header";
-import { ThemeProvider } from "@/components/shared/theme-provider/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { currentUserQueryOptions } from "@/gateways/user/read.fn";
 import { DOCUMENT_HEADERS } from "@/lib/response-headers";
+import { Header } from "@/shared/components/header/header";
+import { ThemeProvider } from "@/shared/components/theme-provider/theme-provider";
+import { currentUserQueryOptions } from "@/shared/gateway/user/read.fn";
+import { Toaster } from "@/shared/ui/sonner";
+import { TooltipProvider } from "@/shared/ui/tooltip";
 import "@/styles.css";
 
 if (import.meta.env.DEV && !import.meta.env.SSR) {

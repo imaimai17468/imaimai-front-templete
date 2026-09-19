@@ -1,13 +1,13 @@
 import { Effect, Layer, Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
+import { AVATAR_ROUTE_PATH } from "@/lib/avatar-url";
+import type { FileRouteTypes } from "@/routeTree.gen";
 import {
   AvatarInvalidKey,
   AvatarNotFound,
   AvatarReader,
   AvatarUnauthorized,
-} from "@/gateways/user/avatar/read";
-import { AVATAR_ROUTE_PATH } from "@/lib/avatar-url";
-import type { FileRouteTypes } from "@/routeTree.gen";
+} from "@/shared/gateway/user/avatar/read";
 import { getAvatarResponse } from "./avatars";
 
 // The URL `avatarUrlForKey` builds is a route this app serves, and the file

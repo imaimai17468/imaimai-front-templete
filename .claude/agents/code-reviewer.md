@@ -205,7 +205,7 @@ effort: standard — 4 raised, 1 merged, 1 refuted, 1 abstained, 1 returned
 
 ## Checked
 - logic, state, integrity, security, cleanup, efficiency, altitude — swept over the whole diff
-- reuse — swept src/components/ and src/lib/ only, so a helper living elsewhere would not
+- reuse — swept src/shared/ and src/lib/ only, so a helper living elsewhere would not
   have been found
 - rules — AGENTS.md and prose.md; design.md never loaded, so this diff's CSS went
   unchecked against it

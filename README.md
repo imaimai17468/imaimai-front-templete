@@ -49,7 +49,7 @@ bun run dev
 - **[Vite+](https://viteplus.dev/)**：Vite / Vitest / oxlint / oxfmt を束ねる CLI。設定は `vite.config.ts` の `lint` / `fmt` ブロックに集約される
 - **[oxlint](https://oxc.rs/docs/guide/usage/linter)**：Linter (`vite.config.ts` の `lint` ブロック)
 - **[oxlint-tailwindcss](https://oxlint-tailwindcss.pages.dev/)**：Tailwind CSS のクラス名検査 (`vite.config.ts` の `lint` ブロック)
-- **[@shadcn/lint](https://github.com/shadcn-ui/lint)**：デザインシステムの検査 (`vite.config.ts` の `lint` ブロック)。呼び出し側が `className` でコンポーネントの見た目を上書きすると落ちる。配置に使う layout 系クラスだけが通り、見た目を変えたいときは `src/components/ui/` 側の variant を使う
+- **[@shadcn/lint](https://github.com/shadcn-ui/lint)**：デザインシステムの検査 (`vite.config.ts` の `lint` ブロック)。呼び出し側が `className` でコンポーネントの見た目を上書きすると落ちる。配置に使う layout 系クラスだけが通り、見た目を変えたいときは `src/shared/ui/` 側の variant を使う
 - **自作 oxlint プラグイン** (`tools/oxlint-plugins/`)：`vite.config.ts` の `lint.jsPlugins` から読み込まれる。層契約・コンポーネント命名・1ファイル1コンポーネント・テストの形（1テスト1 expect など）を機械的に強制するので、規約は文書だけでなくここにもある
 - **自作 vite プラグイン** (`tools/vite-plugins/`)：`vite.config.ts` から読み込まれる。`wrangler.toml` の変更を検知して `bun run cf-typegen` を走らせ、dev 起動時は `worker-configuration.d.ts` が `wrangler.toml` より古いときだけ生成する
 - **[oxlint-plugin-effect](https://github.com/cevr/effect-oxlint)**：Effect 向け追加ルール (`oxlint.effect.ts`、`vite.config.ts` の `lint.overrides` から `src/**` にかかる)。満たせないパスがあるときは、そのパスを名指しした `vite.config.ts` の override ブロックで外し、理由をその隣に書く

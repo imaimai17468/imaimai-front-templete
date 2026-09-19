@@ -341,7 +341,7 @@ Where an entrance scales, it starts between `scale(0.9)` and `scale(0.97)` with
 transform rather than fading alone.
 
 A popover, dropdown, or tooltip scales from its trigger. The Radix primitives in
-`src/components/ui/` publish that point as a CSS variable, which
+`src/shared/ui/` publish that point as a CSS variable, which
 `dropdown-menu.tsx` and `tooltip.tsx` read through Tailwind's
 `origin-(--radix-<part>-content-transform-origin)`. A modal keeps
 `transform-origin: center`.
@@ -437,10 +437,10 @@ unchanged. Decide that first, then build the sections from it.
   over every year or two.
 - Compose the screen as a whole. Presets compound, so a run of blocks that each
   pass on their own still reads as one template with the content swapped.
-- Build on the primitives in `src/components/ui/` and restyle what you take.
+- Build on the primitives in `src/shared/ui/` and restyle what you take.
   Taking a prebuilt block's behavior costs nothing, and taking its styling
   costs the identity.
-- Restyle a primitive by changing its variants in `src/components/ui/`, not by
+- Restyle a primitive by changing its variants in `src/shared/ui/`, not by
   passing appearance classes at the call site. A call site passes the classes
   that place the element, such as its width or its position in a grid or flex
   parent. Color, typography, spacing, shape, effects, and motion belong to the

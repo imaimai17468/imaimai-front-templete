@@ -292,7 +292,7 @@ export default defineConfig({
         // shadcn CLI output. These are the rules the CLI's own files trip,
         // so leaving them on means rewriting every generated file by hand after
         // each `shadcn add`.
-        files: ["src/components/ui/**"],
+        files: ["src/shared/ui/**"],
         rules: {
           "effect/noNullish": "off",
           "func-style": "off",
@@ -322,7 +322,7 @@ export default defineConfig({
         // the avatar directory's: it holds the R2 binding and is the single
         // place `crypto` is read. Effect's `Random` reaches the same global for
         // its seed, so no layer removes it.
-        files: ["src/gateways/user/avatar/index.ts"],
+        files: ["src/shared/gateway/user/avatar/index.ts"],
         rules: { "effect/noGlobals": "off" },
       },
       {
@@ -340,7 +340,7 @@ export default defineConfig({
         // Error construction missing `new`, and its fix inserts `new` into the
         // `extends` clause, which then does not compile.
         files: [
-          "src/gateways/**",
+          "src/shared/gateway/**",
           "src/lib/auth/sign-in/dev.ts",
           "src/lib/require-context.ts",
           "src/test/defect.ts",
@@ -354,7 +354,7 @@ export default defineConfig({
         // `useRef` takes the value React hands back as `current`, and a ref
         // attached to a DOM node starts with no node.
         files: [
-          "src/components/features/profile-page/profile-form/profile-form.tsx",
+          "src/routes/_authed/profile/-components/profile-form/profile-form.tsx",
         ],
         rules: { "effect/noNullish": "off" },
       },
@@ -382,7 +382,7 @@ export default defineConfig({
         rules: { "vitest/prefer-import-in-mock": "off" },
       },
       {
-        files: ["src/components/shared/code-block/code-block.tsx"],
+        files: ["src/routes/index/-components/code-block/code-block.tsx"],
         rules: {
           "jsx-a11y/no-noninteractive-tabindex": [
             "error",
