@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SignInButton } from "@/components/features/login-page/sign-in-button";
+import { SignInButton } from "./-components/sign-in-button";
 
 const LoginComponent = () => (
   <div className="absolute inset-0 flex flex-col items-center justify-center gap-8">

@@ -354,7 +354,7 @@ export default defineConfig({
         // `useRef` takes the value React hands back as `current`, and a ref
         // attached to a DOM node starts with no node.
         files: [
-          "src/components/features/profile-page/profile-form/profile-form.tsx",
+          "src/routes/_authed/profile/-components/profile-form/profile-form.tsx",
         ],
         rules: { "effect/noNullish": "off" },
       },
@@ -382,7 +382,7 @@ export default defineConfig({
         rules: { "vitest/prefer-import-in-mock": "off" },
       },
       {
-        files: ["src/components/shared/code-block/code-block.tsx"],
+        files: ["src/routes/index/-components/code-block/code-block.tsx"],
         rules: {
           "jsx-a11y/no-noninteractive-tabindex": [
             "error",
