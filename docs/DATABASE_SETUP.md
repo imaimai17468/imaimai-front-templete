@@ -121,7 +121,7 @@ R2 バケットは非公開のまま使用します。アバターは認証と�
 5. **承認済みのリダイレクト URI** に以下を追加:
    - `http://localhost:5173/api/auth/callback/google`（開発時）
 
-   Google はリダイレクト URI のホストに [Public Suffix List](https://publicsuffix.org/) 上の TLD か `localhost` そのものを要求するので、portless の `https://my-app.localhost` は登録できません。Google ログインを確認するときは `VITE_GOOGLE_SIGN_IN=1 PORTLESS=0 bun run dev` で起動し、`http://localhost:5173` で行います。`PORTLESS=0` が portless を外し、`VITE_GOOGLE_SIGN_IN=1` が ボタンを開発用ログインから Google へ戻します。
+   Google はリダイレクト URI のホストに [Public Suffix List](https://publicsuffix.org/) 上の TLD か `localhost` そのものを要求するので、portless の `http://my-app.localhost:1355` は登録できません。Google ログインを確認するときは `VITE_GOOGLE_SIGN_IN=1 PORTLESS=0 bun run dev` で起動し、`http://localhost:5173` で行います。`PORTLESS=0` が portless を外し、`VITE_GOOGLE_SIGN_IN=1` が ボタンを開発用ログインから Google へ戻します。
 6. 作成後、Client ID / Client Secret を `.env.local` に設定
 
 > **本番環境**: 生成元とリダイレクト URI にデプロイ先の Workers オリジンも追加してください。カスタムドメインを使わない場合、既定のオリジンは `<Worker名>.<アカウントサブドメイン>.workers.dev` です。
@@ -172,7 +172,7 @@ Cloudflare Workers ランタイムをエミュレートして実行します。�
 
 | コマンド | ポート | DB/ストレージ | HMR | 用途 |
 |---------|--------|-------------|-----|------|
-| `bun run dev` | portless が割り当て（`https://my-app.localhost`） | ローカルD1/R2 | ○ | 日常的な開発 |
+| `bun run dev` | portless が割り当て（`http://my-app.localhost:1355`） | ローカルD1/R2 | ○ | 日常的な開発 |
 | `VITE_GOOGLE_SIGN_IN=1 PORTLESS=0 bun run dev` | 5173 | ローカルD1/R2 | ○ | Google ログインの確認 |
 | `bun run preview` | 4173 | ローカルD1/R2 | × | デプロイ前確認 |
 

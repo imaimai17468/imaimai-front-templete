@@ -207,7 +207,7 @@ const HomeComponent = () => (
       <h2 className="text-base font-medium">セットアップ</h2>
       <CodeBlock label="セットアップコマンド" code={SETUP} />
       <p className="max-w-prose text-sm text-muted-foreground">
-        https://my-app.localhost でアクセスできる（portless が名前付き URL
+        http://my-app.localhost:1355 でアクセスできる（portless が名前付き URL
         を割り当てる）。
         <code className="font-mono text-foreground">
           src/routes/index/route.tsx

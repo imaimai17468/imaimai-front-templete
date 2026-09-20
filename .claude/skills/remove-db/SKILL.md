@@ -321,7 +321,7 @@ bun run check
 bun run test
 bun run knip
 bun run build
-bun run dev      # https://my-app.localhost (portless)
+bun run dev      # http://my-app.localhost:1355 (portless)
 bun run preview  # runs the built Worker on http://localhost:4173
 ```
 

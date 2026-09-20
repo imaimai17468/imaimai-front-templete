@@ -29,8 +29,8 @@ const buildAuth = () => {
     // the session cookie's Secure flag when neither this option nor `baseURL`
     // is set, and NODE_ENV is not a Worker binding, so that fallback reads
     // false in a deployed Worker and the cookie ships without Secure and
-    // without the `__Secure-` name prefix. The dev arm keeps `PORTLESS=0`
-    // working, which serves plain http on localhost.
+    // without the `__Secure-` name prefix. The dev arm stays false because
+    // `bun run dev` serves plain http through portless.
     advanced: { useSecureCookies: !import.meta.env.DEV },
     database: drizzleAdapter(getDb(), {
       provider: "sqlite",
