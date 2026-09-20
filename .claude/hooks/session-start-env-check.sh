@@ -79,6 +79,16 @@ fi
 [ -f "$TREE/src/routeTree.gen.ts" ] || SETUP+=("src/routeTree.gen.ts absent (fix: bun run setup, or bun run generate-routes)")
 [ -f "$TREE/worker-configuration.d.ts" ] || SETUP+=("worker-configuration.d.ts absent (fix: bun run setup, or bun run cf-typegen)")
 [ -d "$TREE/.wrangler/state" ] || SETUP+=("local D1 not initialized — .wrangler/state absent (fix: bun run db:push:local before first bun run dev)")
+# macOS only, because the keychain is where this goes wrong. Chrome reads the
+# admin and system trust domains, and `portless trust` writes the CA to the
+# System keychain only when it runs as root; without sudo it writes to the login
+# keychain, returns success, and prints "Local CA added to system trust store."
+# `portless doctor` then reports the CA as trusted, because macOS does trust a
+# user-domain root. Chrome answers ERR_CERT_AUTHORITY_INVALID throughout.
+if [ "$(uname -s)" = "Darwin" ]; then
+  security find-certificate -c "portless Local CA" /Library/Keychains/System.keychain >/dev/null 2>&1 ||
+    SETUP+=("portless CA absent from the System keychain — Chrome rejects the https://<name>.localhost dev URL with ERR_CERT_AUTHORITY_INVALID (fix: sudo portless trust — the same command without sudo reports success and does not fix it)")
+fi
 
 if [ "${#CREATED[@]}" -gt 0 ]; then
   printf '[env-check] %s\n' "${CREATED[@]}"
