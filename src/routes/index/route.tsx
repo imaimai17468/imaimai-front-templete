@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { CodeBlock } from "./-components/code-block/code-block";
 
 const SETUP = `git clone https://github.com/imaimai17468/imaimai-front-templete.git
@@ -181,6 +182,19 @@ const LINKS: readonly ExternalLink[] = [
   { name: "mise", href: "https://mise.jdx.dev/" },
 ];
 
+const Section = ({
+  children,
+  heading,
+}: {
+  readonly children: ReactNode;
+  readonly heading: string;
+}) => (
+  <section className="flex flex-col gap-3">
+    <h2 className="text-base font-medium">{heading}</h2>
+    {children}
+  </section>
+);
+
 const HomeComponent = () => (
   <div className="flex flex-col gap-12 pb-16">
     <section className="flex flex-col gap-3">
@@ -203,8 +217,7 @@ const HomeComponent = () => (
       </a>
     </section>
 
-    <section className="flex flex-col gap-3">
-      <h2 className="text-base font-medium">セットアップ</h2>
+    <Section heading="セットアップ">
       <CodeBlock label="セットアップコマンド" code={SETUP} />
       <p className="max-w-prose text-sm text-muted-foreground">
         http://my-app.localhost:1355 でアクセスできる（portless が名前付き URL
@@ -227,21 +240,19 @@ const HomeComponent = () => (
         </code>{" "}
         が同じセットアップを自動実行する。
       </p>
-    </section>
+    </Section>
 
-    <section className="flex flex-col gap-3">
-      <h2 className="text-base font-medium">ファイル構成</h2>
+    <Section heading="ファイル構成">
       <CodeBlock label="src ディレクトリの構成" code={TREE} />
       <p className="max-w-prose text-sm text-muted-foreground">
         配置と import 方向の規約は{" "}
         <code className="font-mono text-foreground">AGENTS.md</code> の Rules
         にある。
       </p>
-    </section>
+    </Section>
 
     {SPECS.map((spec) => (
-      <section key={spec.heading} className="flex flex-col gap-3">
-        <h2 className="text-base font-medium">{spec.heading}</h2>
+      <Section key={spec.heading} heading={spec.heading}>
         <dl className="flex flex-col gap-3">
           {spec.rows.map((row) => (
             <div
@@ -257,11 +268,10 @@ const HomeComponent = () => (
             </div>
           ))}
         </dl>
-      </section>
+      </Section>
     ))}
 
-    <section className="flex flex-col gap-3">
-      <h2 className="text-base font-medium">参考リンク</h2>
+    <Section heading="参考リンク">
       <ul className="grid gap-x-6 sm:grid-cols-2">
         {LINKS.map((link) => (
           <li key={link.href}>
@@ -277,7 +287,7 @@ const HomeComponent = () => (
           </li>
         ))}
       </ul>
-    </section>
+    </Section>
 
     <p className="max-w-prose text-sm text-muted-foreground">
       データベースと認証の設定は{" "}
