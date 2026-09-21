@@ -163,6 +163,7 @@ export default defineConfig({
       "arch-rules/layer-boundaries": "error",
       "arch-rules/no-size-props": "error",
       "arch-rules/one-component-per-file": "error",
+      "arch-rules/route-imports-its-component": "error",
       "arch-rules/component-file-naming": "error",
       "arch-rules/test-naming-format": "error",
       "arch-rules/single-expect": "error",
@@ -306,6 +307,7 @@ export default defineConfig({
         // each `shadcn add`.
         files: ["src/shared/ui/**"],
         rules: {
+          "arch-rules/one-component-per-file": "off",
           "effect/noNullish": "off",
           "func-style": "off",
           "react/function-component-definition": "off",

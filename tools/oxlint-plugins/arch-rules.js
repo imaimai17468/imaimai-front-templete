@@ -41,63 +41,129 @@ const noSizeProps = {
   },
 };
 
+const COMPONENT_WRAPPERS = new Set(["forwardRef", "memo"]);
+
+const wrapperName = (callee) => {
+  if (callee?.type === "Identifier") {
+    return callee.name;
+  }
+  if (callee?.type === "MemberExpression") {
+    return callee.property?.name;
+  }
+  return null;
+};
+
+/**
+ * Whether this initializer produces a component.
+ *
+ * `memo(() => …)` and `forwardRef(() => …)` are components, where every other
+ * call is not, which is what keeps `Route = createFileRoute(...)(...)` out.
+ */
+const isFunctionInit = (init) => {
+  if (
+    init?.type === "ArrowFunctionExpression" ||
+    init?.type === "FunctionExpression"
+  ) {
+    return true;
+  }
+  if (
+    init?.type === "CallExpression" &&
+    COMPONENT_WRAPPERS.has(wrapperName(init.callee))
+  ) {
+    return isFunctionInit(init.arguments?.[0]);
+  }
+  return false;
+};
+
+/**
+ * The component-named function declarations a module-scope statement holds,
+ * reading through an `export` wrapper to the declaration under it.
+ *
+ * Reading `Program.body` is what reaches a declaration the file never exports.
+ * Visiting `VariableDeclaration` instead would reach those, and every arrow
+ * nested inside a component with it.
+ */
+const componentsDeclaredBy = (statement) => {
+  const declaration =
+    statement.type === "ExportNamedDeclaration" ||
+    statement.type === "ExportDefaultDeclaration"
+      ? statement.declaration
+      : statement;
+  if (!declaration) {
+    return [];
+  }
+  if (
+    declaration.type === "FunctionDeclaration" ||
+    declaration.type === "FunctionExpression"
+  ) {
+    return declaration.id && isComponentName(declaration.id.name)
+      ? [declaration.id.name]
+      : [];
+  }
+  if (declaration.type === "VariableDeclaration") {
+    return declaration.declarations
+      .filter(
+        (declarator) =>
+          declarator.id?.type === "Identifier" &&
+          isComponentName(declarator.id.name) &&
+          isFunctionInit(declarator.init)
+      )
+      .map((declarator) => declarator.id.name);
+  }
+  return [];
+};
+
+const SKIP_STEMS = new Set(["index"]);
+
+const TEST_STEM_SUFFIX = /\.(?:test|spec)$/u;
+
+const isTestStem = (stem) => TEST_STEM_SUFFIX.test(stem);
+
+/**
+ * The component name a file's own name calls for, or `null` where the name
+ * yields none: an empty or test stem, `index`, or a stem whose first character
+ * does not upper-case (`__root`).
+ */
+const expectedComponentName = (filename) => {
+  const basename = filename.slice(filename.lastIndexOf("/") + 1);
+  const stem = basename.replace(/\.(?:tsx?|jsx?)$/u, "");
+  if (stem === "" || SKIP_STEMS.has(stem) || isTestStem(stem)) {
+    return null;
+  }
+  const name = stem
+    .split(/[.-]/u)
+    .map((part) =>
+      part.length === 0 ? part : part[0].toUpperCase() + part.slice(1)
+    )
+    .join("");
+  return isComponentName(name) ? name : null;
+};
+
 const oneComponentPerFile = {
   create(context) {
-    const exportedComponents = [];
-
-    const reportIfSecond = (node) => {
-      exportedComponents.push(node);
-      if (exportedComponents.length > 1) {
-        context.report({
-          message:
-            "Only one component may be exported per file. Found multiple exported components.",
-          node,
-        });
-      }
-    };
+    const filename = context.filename ?? context.getFilename?.();
+    const namesake = filename ? expectedComponentName(filename) : null;
 
     return {
-      ExportDefaultDeclaration(node) {
-        const decl = node.declaration;
-        if (!decl) {
+      Program(node) {
+        const declared = node.body.flatMap((statement) =>
+          componentsDeclaredBy(statement).map((name) => ({ name, statement }))
+        );
+        if (declared.length < 2) {
           return;
         }
-        if (
-          (decl.type === "FunctionDeclaration" ||
-            decl.type === "FunctionExpression") &&
-          decl.id &&
-          isComponentName(decl.id.name)
-        ) {
-          reportIfSecond(node);
-        }
-      },
-      ExportNamedDeclaration(node) {
-        const decl = node.declaration;
-        if (!decl) {
-          return;
-        }
-        if (decl.type === "FunctionDeclaration") {
-          if (decl.id && isComponentName(decl.id.name)) {
-            reportIfSecond(node);
+        // The file's namesake stays, so the report lands on the intruder even
+        // where it was declared first, as `SubmitLabel` was above `ProfileForm`.
+        const keeper =
+          declared.find((entry) => entry.name === namesake) ?? declared[0];
+        for (const entry of declared) {
+          if (entry === keeper) {
+            continue;
           }
-          return;
-        }
-        if (decl.type === "VariableDeclaration") {
-          for (const declarator of decl.declarations) {
-            const name =
-              declarator.id?.type === "Identifier" ? declarator.id.name : null;
-            if (!name || !isComponentName(name)) {
-              continue;
-            }
-            const { init } = declarator;
-            if (
-              init &&
-              (init.type === "ArrowFunctionExpression" ||
-                init.type === "FunctionExpression")
-            ) {
-              reportIfSecond(node);
-            }
-          }
+          context.report({
+            message: `A file declares one component, exported or not. '${entry.name}' shares this file with '${keeper.name}'. Move '${entry.name}' to a file named after it.`,
+            node: entry.statement,
+          });
         }
       },
     };
@@ -255,8 +321,6 @@ const singleExpect = {
   },
 };
 
-const SKIP_STEMS = new Set(["index"]);
-
 const componentFileNaming = {
   create(context) {
     const filename = context.filename ?? context.getFilename?.();
@@ -264,24 +328,8 @@ const componentFileNaming = {
       return {};
     }
 
-    const basename = filename.slice(filename.lastIndexOf("/") + 1);
-    const withoutExt = basename.replace(/\.(?:tsx?|jsx?)$/u, "");
-
-    if (
-      withoutExt === "" ||
-      SKIP_STEMS.has(withoutExt) ||
-      withoutExt.endsWith(".test") ||
-      withoutExt.endsWith(".spec")
-    ) {
-      return {};
-    }
-
-    const expectedName = withoutExt
-      .split(/[.-]/u)
-      .map((s) => (s.length === 0 ? s : s[0].toUpperCase() + s.slice(1)))
-      .join("");
-
-    if (!isComponentName(expectedName)) {
+    const expectedName = expectedComponentName(filename);
+    if (expectedName === null) {
       return {};
     }
 
@@ -510,9 +558,11 @@ const resolveImportTarget = (fileSrcDir, specifier) => {
 
 const PRIVATE_DIRECTORY_PREFIX = "-";
 
+const ROUTES_ROOT = "src/routes";
+
 /**
  * The directory that owns the first `-` directory on this path, or `null` when
- * the path holds none. Everything under that directory may import from there.
+ * the path holds none.
  *
  * The last segment is a module name rather than a directory, so a `-` file such
  * as `src/routes/api/-avatars.test.ts` owns nothing.
@@ -523,6 +573,26 @@ const privateOwnerOf = (srcPath) => {
     .slice(0, -1)
     .findIndex((segment) => segment.startsWith(PRIVATE_DIRECTORY_PREFIX));
   return index === -1 ? null : segments.slice(0, index).join("/");
+};
+
+/**
+ * Whether a module at `importerPath` may read one owned by `ownerPath`.
+ *
+ * A deeper owner is one route's directory, and every module under it shares
+ * that route. `src/routes` is the URL space rather than a route, so its `-`
+ * directories are read by the route files sitting directly in it (`__root.tsx`)
+ * and by the modules inside a `-` directory at that level; `src/routes/login/
+ * route.tsx` is a second route reaching in.
+ */
+const mayReadPrivate = (importerPath, ownerPath) => {
+  if (!importerPath.startsWith(`${ownerPath}/`)) {
+    return false;
+  }
+  if (ownerPath !== ROUTES_ROOT) {
+    return true;
+  }
+  const rest = importerPath.slice(ownerPath.length + 1);
+  return !rest.includes("/") || rest.startsWith(PRIVATE_DIRECTORY_PREFIX);
 };
 
 const layerBoundaries = {
@@ -570,9 +640,13 @@ const layerBoundaries = {
         return;
       }
       const owner = privateOwnerOf(target);
-      if (owner !== null && !srcPath.startsWith(`${owner}/`)) {
+      if (owner !== null && !mayReadPrivate(srcPath, owner)) {
+        const scope =
+          owner === ROUTES_ROOT
+            ? `the route files directly in \`${owner}/\``
+            : `\`${owner}/\``;
         context.report({
-          message: `A \`-\` directory is private to \`${owner}/\`. A second route reaching this module makes it shared, so move it to \`src/shared/\`.`,
+          message: `A \`-\` directory is private to ${scope}. A second route reaching this module makes it shared, so move it to \`src/shared/\`.`,
           node,
         });
       }
@@ -698,6 +772,38 @@ const serverOnlyMarker = {
   },
 };
 
+/**
+ * A route file declares `Route` and imports the component it draws.
+ *
+ * `one-component-per-file` does not reach this: `export const Route =
+ * createFileRoute(...)({...})` is a declarator whose init is a `CallExpression`,
+ * so a route file holding one inline component counts one, not two.
+ */
+const routeImportsItsComponent = {
+  create(context) {
+    const srcPath = srcPathOf(context);
+    if (
+      srcPath === null ||
+      layerOf(srcPath) !== "route" ||
+      isTestStem(srcPath.replace(/\.(?:tsx?|jsx?)$/u, ""))
+    ) {
+      return {};
+    }
+    return {
+      Program(node) {
+        for (const statement of node.body) {
+          for (const name of componentsDeclaredBy(statement)) {
+            context.report({
+              message: `A route file declares 'Route' and imports what it draws. Move '${name}' to a '-components/' directory beside this file and import it.`,
+              node: statement,
+            });
+          }
+        }
+      },
+    };
+  },
+};
+
 const plugin = {
   meta: { name: "arch-rules" },
   rules: {
@@ -705,6 +811,7 @@ const plugin = {
     "layer-boundaries": layerBoundaries,
     "no-size-props": noSizeProps,
     "one-component-per-file": oneComponentPerFile,
+    "route-imports-its-component": routeImportsItsComponent,
     "server-only-marker": serverOnlyMarker,
     "single-expect": singleExpect,
     "test-naming-format": testNamingFormat,

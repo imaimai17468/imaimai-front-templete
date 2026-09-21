@@ -30,6 +30,53 @@ const programNode = (
   type: "Program",
 });
 
+interface InitFixture {
+  type: string;
+  body?: unknown;
+  callee?: { name?: string; type?: string; property?: { name: string } };
+  arguments?: { type: string }[];
+}
+
+interface DeclaratorFixture {
+  id?: { name?: string; type?: string } | null;
+  init?: InitFixture | null;
+}
+
+/**
+ * A module-scope statement, carrying the fields `one-component-per-file` reads
+ * and no others, so a fixture cannot satisfy the rule by a field it ignores.
+ */
+interface StatementFixture {
+  type: string;
+  id?: { name?: string } | null;
+  declaration?: StatementFixture | null;
+  declarations?: DeclaratorFixture[];
+  source?: { value: string };
+}
+
+/** A `Program` whose body is the module-scope statements passed to it. */
+const moduleBody = (...body: StatementFixture[]) => ({ body, type: "Program" });
+
+const exported = (declaration: StatementFixture): StatementFixture => ({
+  declaration,
+  type: "ExportNamedDeclaration",
+});
+
+const functionDeclaration = (name: string) => ({
+  id: { name },
+  type: "FunctionDeclaration",
+});
+
+const arrowDeclarator = (name: string) => ({
+  id: { name, type: "Identifier" },
+  init: { type: "ArrowFunctionExpression" },
+});
+
+const arrowDeclaration = (name: string) => ({
+  declarations: [arrowDeclarator(name)],
+  type: "VariableDeclaration",
+});
+
 const importNode = (specifier: ImportSource, importedNames: string[] = []) => ({
   source: { value: specifier },
   specifiers: importedNames.map((name) => ({
@@ -235,134 +282,334 @@ describe("no-size-props", () => {
 describe("one-component-per-file", () => {
   const rule = plugin.rules["one-component-per-file"];
 
-  it("should not report when only one component is exported via FunctionDeclaration", () => {
+  it("should not report when the only component is declared via FunctionDeclaration", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
-    const node = {
-      declaration: { id: { name: "MyComponent" }, type: "FunctionDeclaration" },
-    };
+    const program = moduleBody(exported(functionDeclaration("MyComponent")));
 
     // Act
-    visitors.ExportNamedDeclaration(node);
+    visitors.Program(program);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it("should report on the second exported component when using FunctionDeclaration", () => {
+  it("should report on the second component when both are declared via FunctionDeclaration", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
-    const firstNode = {
-      declaration: { id: { name: "ComponentA" }, type: "FunctionDeclaration" },
-    };
-    const secondNode = {
-      declaration: { id: { name: "ComponentB" }, type: "FunctionDeclaration" },
-    };
+    const program = moduleBody(
+      exported(functionDeclaration("ComponentA")),
+      exported(functionDeclaration("ComponentB"))
+    );
 
     // Act
-    visitors.ExportNamedDeclaration(firstNode);
-    visitors.ExportNamedDeclaration(secondNode);
+    visitors.Program(program);
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it("should not report when only one component is exported via VariableDeclaration with ArrowFunctionExpression", () => {
+  it("should report when the second component is declared without export", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
-    const node = {
-      declaration: {
-        declarations: [
-          {
-            id: { name: "MyComponent", type: "Identifier" },
-            init: { type: "ArrowFunctionExpression" },
-          },
-        ],
-        type: "VariableDeclaration",
-      },
-    };
+    const program = moduleBody(
+      arrowDeclaration("SubmitLabel"),
+      exported(arrowDeclaration("ProfileForm"))
+    );
 
     // Act
-    visitors.ExportNamedDeclaration(node);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should report when second component is exported via VariableDeclaration with ArrowFunctionExpression", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const firstNode = {
-      declaration: {
-        declarations: [
-          {
-            id: { name: "ComponentA", type: "Identifier" },
-            init: { type: "ArrowFunctionExpression" },
-          },
-        ],
-        type: "VariableDeclaration",
-      },
-    };
-    const secondNode = {
-      declaration: {
-        declarations: [
-          {
-            id: { name: "ComponentB", type: "Identifier" },
-            init: { type: "ArrowFunctionExpression" },
-          },
-        ],
-        type: "VariableDeclaration",
-      },
-    };
-
-    // Act
-    visitors.ExportNamedDeclaration(firstNode);
-    visitors.ExportNamedDeclaration(secondNode);
+    visitors.Program(program);
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it("should not report when export has a lowercase name", () => {
+  it("should keep the file's namesake when the intruder is declared first", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/routes/_authed/profile/-components/profile-form/profile-form.tsx"
+    );
+    const visitors = rule.create(context);
+    const intruder = arrowDeclaration("SubmitLabel");
+    const program = moduleBody(
+      intruder,
+      exported(arrowDeclaration("ProfileForm"))
+    );
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report.mock.calls[0]?.[0].node).toBe(intruder);
+  });
+
+  it("should name the intruder as the one to move when it reports", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/routes/_authed/profile/-components/profile-form/profile-form.tsx"
+    );
+    const visitors = rule.create(context);
+    const program = moduleBody(
+      arrowDeclaration("SubmitLabel"),
+      exported(arrowDeclaration("ProfileForm"))
+    );
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report.mock.calls[0]?.[0].message).toBe(
+      "A file declares one component, exported or not. 'SubmitLabel' shares this file with 'ProfileForm'. Move 'SubmitLabel' to a file named after it."
+    );
+  });
+
+  it("should keep the first declaration when the file name names neither", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/shared/components/index.ts");
+    const visitors = rule.create(context);
+    const second = exported(arrowDeclaration("ComponentB"));
+    const program = moduleBody(arrowDeclaration("ComponentA"), second);
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report.mock.calls[0]?.[0].node).toBe(second);
+  });
+
+  it("should not report when the only component is declared via ArrowFunctionExpression", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
-    const node = {
-      declaration: { id: { name: "helperFn" }, type: "FunctionDeclaration" },
-    };
+    const program = moduleBody(exported(arrowDeclaration("MyComponent")));
 
     // Act
-    visitors.ExportNamedDeclaration(node);
+    visitors.Program(program);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it("should not report when export is a hook starting with use", () => {
+  it("should report on the second component when both are declared via ArrowFunctionExpression", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
-    const node = {
+    const program = moduleBody(
+      exported(arrowDeclaration("ComponentA")),
+      exported(arrowDeclaration("ComponentB"))
+    );
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report twice when a third component shares the file", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const program = moduleBody(
+      arrowDeclaration("ComponentA"),
+      arrowDeclaration("ComponentB"),
+      exported(arrowDeclaration("ComponentC"))
+    );
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledTimes(2);
+  });
+
+  it("should report once when one statement declares two components", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const program = moduleBody({
+      declarations: [
+        arrowDeclarator("ComponentA"),
+        arrowDeclarator("ComponentB"),
+      ],
+      type: "VariableDeclaration",
+    });
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when a declaration has a lowercase name", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const program = moduleBody(
+      exported(functionDeclaration("MyComponent")),
+      exported(functionDeclaration("helperFn"))
+    );
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a second declaration is a hook starting with use", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const program = moduleBody(
+      exported(arrowDeclaration("MyComponent")),
+      exported(arrowDeclaration("useMyHook"))
+    );
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a component-named arrow sits inside the only component", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const inner = arrowDeclaration("Inner");
+    const program = moduleBody({
       declaration: {
         declarations: [
           {
-            id: { name: "useMyHook", type: "Identifier" },
-            init: { type: "ArrowFunctionExpression" },
+            id: { name: "Outer", type: "Identifier" },
+            init: { body: moduleBody(inner), type: "ArrowFunctionExpression" },
           },
         ],
         type: "VariableDeclaration",
       },
-    };
+      type: "ExportNamedDeclaration",
+    });
 
     // Act
-    visitors.ExportNamedDeclaration(node);
+    visitors.Program(program);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
+  });
+});
+
+describe("route-imports-its-component", () => {
+  const rule = plugin.rules["route-imports-its-component"];
+
+  it("should report when a route file declares the component it draws", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/index/route.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(moduleBody(arrowDeclaration("HomeComponent")));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should name the component and its destination when it reports a route file", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/index/route.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(moduleBody(arrowDeclaration("HomeComponent")));
+
+    // Assert
+    expect(context.report.mock.calls[0]?.[0].message).toBe(
+      "A route file declares 'Route' and imports what it draws. Move 'HomeComponent' to a '-components/' directory beside this file and import it."
+    );
+  });
+
+  it("should report when the root route file declares its layout", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/__root.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(moduleBody(arrowDeclaration("RootComponent")));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when a route file declares Route alone", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/index/route.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(
+      moduleBody({
+        declarations: [
+          {
+            id: { name: "Route", type: "Identifier" },
+            init: { type: "CallExpression" },
+          },
+        ],
+        type: "VariableDeclaration",
+      })
+    );
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when the component sits in the route's private directory", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/routes/index/-components/home-page.tsx"
+    );
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(moduleBody(arrowDeclaration("HomePage")));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a route file is a test", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/api/-avatars.test.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(moduleBody(arrowDeclaration("Stub")));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when the file sits outside src", () => {
+    // Arrange
+    const context = makeLayerContext();
+    const visitors = rule.create(context);
+
+    // Assert
+    expect(visitors.Program).toBeUndefined();
+  });
+
+  it("should not report when the file sits outside the route layer", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/shared/components/header/header.tsx"
+    );
+    const visitors = rule.create(context);
+
+    // Assert
+    expect(visitors.Program).toBeUndefined();
   });
 });
 
@@ -1491,6 +1738,58 @@ describe("layer-boundaries", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
+  it("should not report when the root route imports the private directory beside it", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/__root.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("./-components/root-layout"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when a nested route imports the root route's private directory", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/login/route.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/routes/-components/not-found"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should name the root route's own level when it reports a reach into it", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/login/route.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/routes/-components/not-found"));
+
+    // Assert
+    expect(context.report.mock.calls[0]?.[0].message).toBe(
+      "A `-` directory is private to the route files directly in `src/routes/`. A second route reaching this module makes it shared, so move it to `src/shared/`."
+    );
+  });
+
+  it("should not report when a module in the root route's private directory imports its sibling", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/routes/-components/root-layout.tsx"
+    );
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("./not-found"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
   it("should not report when a module inside a private directory imports its sibling", () => {
     // Arrange
     const context = makeLayerContext(
@@ -1672,43 +1971,33 @@ describe("no-size-props (defensive branches)", () => {
 describe("one-component-per-file (defensive branches)", () => {
   const rule = plugin.rules["one-component-per-file"];
 
-  it("should report when a default-exported component follows an already-exported one", () => {
+  it("should report when a default-exported component follows an already-declared one", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
-    const named = {
-      declaration: {
-        declarations: [
-          {
-            id: { name: "Card", type: "Identifier" },
-            init: { type: "ArrowFunctionExpression" },
-          },
-        ],
-        type: "VariableDeclaration",
-      },
-    };
-    const defaultExport = {
+    const program = moduleBody(exported(arrowDeclaration("Card")), {
       declaration: { id: { name: "Page" }, type: "FunctionDeclaration" },
-    };
+      type: "ExportDefaultDeclaration",
+    });
 
     // Act
-    visitors.ExportNamedDeclaration(named);
-    visitors.ExportDefaultDeclaration(defaultExport);
+    visitors.Program(program);
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it("should not report when an exported function declaration has no name", () => {
+  it("should not report when a function declaration has no name", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
-    const node = {
+    const program = moduleBody({
       declaration: { id: {}, type: "FunctionDeclaration" },
-    };
+      type: "ExportNamedDeclaration",
+    });
 
     // Act
-    visitors.ExportNamedDeclaration(node);
+    visitors.Program(program);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -1718,37 +2007,45 @@ describe("one-component-per-file (defensive branches)", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
+    const program = moduleBody({
+      declaration: null,
+      type: "ExportNamedDeclaration",
+    });
 
     // Act
-    visitors.ExportNamedDeclaration({ declaration: null });
+    visitors.Program(program);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it("should not report when a named export is a class declaration", () => {
+  it("should not report when a declaration is a class", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
-
-    // Act
-    visitors.ExportNamedDeclaration({
+    const program = moduleBody({
       declaration: { id: { name: "Card" }, type: "ClassDeclaration" },
+      type: "ExportNamedDeclaration",
     });
+
+    // Act
+    visitors.Program(program);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it("should not report when a named export is an anonymous function declaration", () => {
+  it("should not report when a function declaration is anonymous", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
+    const program = moduleBody({
+      declaration: { id: null, type: "FunctionDeclaration" },
+      type: "ExportNamedDeclaration",
+    });
 
     // Act
-    visitors.ExportNamedDeclaration({
-      declaration: { id: null, type: "FunctionDeclaration" },
-    });
+    visitors.Program(program);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -1758,15 +2055,13 @@ describe("one-component-per-file (defensive branches)", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
-    const node = {
-      declaration: {
-        declarations: [{ id: { type: "ObjectPattern" } }],
-        type: "VariableDeclaration",
-      },
-    };
+    const program = moduleBody({
+      declarations: [{ id: { type: "ObjectPattern" } }],
+      type: "VariableDeclaration",
+    });
 
     // Act
-    visitors.ExportNamedDeclaration(node);
+    visitors.Program(program);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -1776,17 +2071,137 @@ describe("one-component-per-file (defensive branches)", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
-    const node = {
-      declaration: {
-        declarations: [
-          { id: { name: "Card", type: "Identifier" }, init: null },
-        ],
-        type: "VariableDeclaration",
-      },
-    };
+    const program = moduleBody({
+      declarations: [{ id: { name: "Card", type: "Identifier" }, init: null }],
+      type: "VariableDeclaration",
+    });
 
     // Act
-    visitors.ExportNamedDeclaration(node);
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when a second component is wrapped in memo", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const program = moduleBody(exported(arrowDeclaration("Probe")), {
+      declarations: [
+        {
+          id: { name: "Inner", type: "Identifier" },
+          init: {
+            arguments: [{ type: "ArrowFunctionExpression" }],
+            callee: { name: "memo", type: "Identifier" },
+            type: "CallExpression",
+          },
+        },
+      ],
+      type: "VariableDeclaration",
+    });
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a second component is wrapped in a namespaced forwardRef", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const program = moduleBody(exported(arrowDeclaration("Probe")), {
+      declarations: [
+        {
+          id: { name: "Inner", type: "Identifier" },
+          init: {
+            arguments: [{ type: "FunctionExpression" }],
+            callee: {
+              property: { name: "forwardRef" },
+              type: "MemberExpression",
+            },
+            type: "CallExpression",
+          },
+        },
+      ],
+      type: "VariableDeclaration",
+    });
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when memo wraps something other than a function", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const program = moduleBody(exported(arrowDeclaration("Probe")), {
+      declarations: [
+        {
+          id: { name: "Inner", type: "Identifier" },
+          init: {
+            arguments: [{ type: "Identifier" }],
+            callee: { name: "memo", type: "Identifier" },
+            type: "CallExpression",
+          },
+        },
+      ],
+      type: "VariableDeclaration",
+    });
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when memo is called with no argument", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const program = moduleBody(exported(arrowDeclaration("Probe")), {
+      declarations: [
+        {
+          id: { name: "Inner", type: "Identifier" },
+          init: {
+            arguments: [],
+            callee: { name: "memo", type: "Identifier" },
+            type: "CallExpression",
+          },
+        },
+      ],
+      type: "VariableDeclaration",
+    });
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a call expression has no callee", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const program = moduleBody(exported(arrowDeclaration("Probe")), {
+      declarations: [
+        {
+          id: { name: "Inner", type: "Identifier" },
+          init: { arguments: [], type: "CallExpression" },
+        },
+      ],
+      type: "VariableDeclaration",
+    });
+
+    // Act
+    visitors.Program(program);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -1796,20 +2211,18 @@ describe("one-component-per-file (defensive branches)", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
-    const node = {
-      declaration: {
-        declarations: [
-          {
-            id: { name: "Card", type: "Identifier" },
-            init: { type: "CallExpression" },
-          },
-        ],
-        type: "VariableDeclaration",
-      },
-    };
+    const program = moduleBody({
+      declarations: [
+        {
+          id: { name: "Card", type: "Identifier" },
+          init: { type: "CallExpression" },
+        },
+      ],
+      type: "VariableDeclaration",
+    });
 
     // Act
-    visitors.ExportNamedDeclaration(node);
+    visitors.Program(program);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -1819,9 +2232,13 @@ describe("one-component-per-file (defensive branches)", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
+    const program = moduleBody({
+      declaration: null,
+      type: "ExportDefaultDeclaration",
+    });
 
     // Act
-    visitors.ExportDefaultDeclaration({ declaration: null });
+    visitors.Program(program);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -1831,11 +2248,13 @@ describe("one-component-per-file (defensive branches)", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
+    const program = moduleBody({
+      declaration: { type: "ArrowFunctionExpression" },
+      type: "ExportDefaultDeclaration",
+    });
 
     // Act
-    visitors.ExportDefaultDeclaration({
-      declaration: { type: "ArrowFunctionExpression" },
-    });
+    visitors.Program(program);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -1845,11 +2264,13 @@ describe("one-component-per-file (defensive branches)", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
+    const program = moduleBody({
+      declaration: { id: null, type: "FunctionExpression" },
+      type: "ExportDefaultDeclaration",
+    });
 
     // Act
-    visitors.ExportDefaultDeclaration({
-      declaration: { id: null, type: "FunctionExpression" },
-    });
+    visitors.Program(program);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -1859,11 +2280,29 @@ describe("one-component-per-file (defensive branches)", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
+    const program = moduleBody({
+      declaration: { id: { name: "helper" }, type: "FunctionDeclaration" },
+      type: "ExportDefaultDeclaration",
+    });
 
     // Act
-    visitors.ExportDefaultDeclaration({
-      declaration: { id: { name: "helper" }, type: "FunctionDeclaration" },
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a statement is neither a declaration nor an export", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const program = moduleBody({
+      source: { value: "react" },
+      type: "ImportDeclaration",
     });
+
+    // Act
+    visitors.Program(program);
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
