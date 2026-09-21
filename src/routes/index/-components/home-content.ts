@@ -4,43 +4,6 @@ mise install                 # Node / Bun / actionlint / shellcheck を mise.tom
 bun run setup                # 依存・git hooks・生成ファイル・.env.local をまとめて用意
 bun run dev`;
 
-export const TREE = `src/
-├── routes/                 # ディレクトリ名が URL セグメント
-│   ├── __root.tsx          # Root route (head, headers, loader)
-│   ├── -components/        # ルートルートだけが描くもの（RootLayout, NotFound）
-│   ├── index/
-│   │   ├── route.tsx       # Home page
-│   │   └── -components/    # このルートだけが描くもの（- 始まりは URL にならない）
-│   ├── login/              # route.tsx と -components/
-│   ├── _authed/
-│   │   ├── route.tsx       # 配下をまとめて守る pathless layout
-│   │   └── profile/        # route.tsx と -components/
-│   ├── auth.auth-code-error/  # OAuth failure landing page（route.tsx と -components/）
-│   └── api/                # API routes (auth catch-all, avatars)
-├── shared/                 # 2 つ以上のルートが使うもの
-│   ├── components/         # 自前で書いたコンポーネント
-│   ├── ui/                 # shadcn/ui primitives
-│   ├── gateway/            # 認可境界と D1 / R2 アクセス
-│   │   └── user/
-│   │       ├── read.ts     # プロフィール読み取り
-│   │       ├── read.fn.ts  # createServerFn（ブラウザに配られる側）
-│   │       ├── update.ts   # 名前とアバターの更新
-│   │       ├── update.fn.ts  # createServerFn（ブラウザに配られる側）
-│   │       ├── index.ts    # 永続化エラーと共通ヘルパー
-│   │       └── avatar/     # アバターの配信とアップロード
-│   └── entities/           # Domain types and schemas
-├── lib/
-│   ├── auth/               # Better Auth 設定
-│   ├── cloudflare/         # CloudflareEnv helper (cloudflare:workers)
-│   ├── drizzle/            # Drizzle ORM スキーマ
-│   ├── storage/            # R2 ストレージ
-│   └── utils.ts
-├── test/                   # Test helpers (router harness, cloudflare:workers stub)
-├── router.tsx              # TanStack Router definition
-├── ssr.tsx                 # Server entry (Cloudflare Worker handler)
-├── test-setup.ts           # Vitest setup
-└── styles.css              # Tailwind v4 tokens`;
-
 interface Spec {
   readonly heading: string;
   readonly rows: readonly { readonly term: string; readonly detail: string }[];
