@@ -2,7 +2,7 @@ import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Option } from "effect";
 import { Camera, Loader2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import {
@@ -45,12 +45,10 @@ const SubmitLabel = ({ isPending }: { readonly isPending: boolean }) => {
 
 export const ProfileForm = ({ user }: ProfileFormProps) => {
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState(() => Option.none<string>());
   const [pendingFile, setPendingFile] = useState(() => Option.none<File>());
 
   // Object URL(外部リソース)の解放を表示中の previewUrl に同期する。
-  // 差し替え時は古い URL の cleanup が走り、アンマウント時も解放される。
   useEffect(
     () => () => {
       if (Option.isSome(previewUrl)) {
@@ -67,18 +65,14 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
     resolver: standardSchemaResolver(UpdateUserSchema),
   });
 
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click();
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) {
       return;
     }
+    // 選択は pendingFile が持つので、同じファイルを選び直しても change が届く。
+    e.target.value = "";
 
-    // Same two reasons the server distinguishes, so the message matches what
-    // actually went wrong rather than blaming size for an empty file.
     const rejection = avatarSizeRejection(file.size);
     if (Option.isSome(rejection)) {
       const reason = rejection.value;
@@ -107,8 +101,6 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
 
   const { mutate: saveProfile, isPending } = useMutation({
     mutationFn: (data: UpdateUser) => submitProfile(data, pendingFile),
-    // `submitProfile` folds a rejection the server shaped into `outcome`, so
-    // what reaches here is the call never completing.
     onError: () => {
       toast.error("Could not save your profile. Please try again.");
     },
@@ -150,23 +142,17 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
               <AvatarImage src={Option.getOrUndefined(avatarUrl)} alt={name} />
               <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
-            <button
-              type="button"
-              onClick={handleAvatarClick}
-              className="absolute right-0 bottom-0 cursor-pointer rounded-full border bg-primary p-2 text-primary-foreground transition-transform hover:scale-110"
-              disabled={isPending}
-              aria-label="Change profile image"
-            >
+            <label className="absolute right-0 bottom-0 cursor-pointer rounded-full border bg-primary p-2 text-primary-foreground transition-transform before:absolute before:-inset-1.5 hover:scale-110 active:scale-100 has-focus-visible:ring-2 has-focus-visible:ring-ring has-disabled:pointer-events-none has-disabled:opacity-50">
               <Camera className="size-4" />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileChange}
-              disabled={isPending}
-            />
+              <span className="sr-only">Change profile image</span>
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={handleFileChange}
+                disabled={isPending}
+              />
+            </label>
           </div>
           <div className="flex flex-1 flex-col gap-2">
             <div>
