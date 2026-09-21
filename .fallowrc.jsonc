@@ -40,18 +40,6 @@
     // of 50 left a row shape copied between modules unreported. This one
     // reaches it.
     "minTokens": 20,
-    // Reviewed and kept. A key pins the clone's content and its instance count,
-    // so an edit to either side makes the group reportable again.
-    "ignoredClones": [
-      // signInWithEmail and signUpWithEmail wrap different Better Auth client
-      // methods in the same error mapping. Taking the method as a parameter
-      // would hide which endpoint each caller reaches.
-      "dup:132eb73c:2",
-      // scripts/smoke.ts writes out the header record instead of importing it,
-      // so a header dropped from one side fails the smoke run. Its declaration
-      // carries the reason.
-      "dup:2cec673b:2",
-    ],
     // shadcn writes this directory, so a clone removed here comes back with the
     // next `shadcn add`.
     "ignore": ["src/shared/ui/**"],
