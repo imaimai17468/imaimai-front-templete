@@ -550,8 +550,9 @@ const privateOwnerOf = (srcPath) => {
  *
  * A deeper owner is one route's directory, and every module under it shares
  * that route. `src/routes` is the URL space rather than a route, so its `-`
- * directories belong to the route files sitting directly in it: `__root.tsx`
- * reads them, and `src/routes/login/route.tsx` is a second route reaching in.
+ * directories are read by the route files sitting directly in it (`__root.tsx`)
+ * and by the modules inside a `-` directory at that level; `src/routes/login/
+ * route.tsx` is a second route reaching in.
  */
 const mayReadPrivate = (importerPath, ownerPath) => {
   if (!importerPath.startsWith(`${ownerPath}/`)) {
