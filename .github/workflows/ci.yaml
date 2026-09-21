@@ -133,9 +133,9 @@ jobs:
 
       # lefthook's pre-push runs this too, and `git push --no-verify` and a
       # clone that never ran `bun run setup` both get past that one. The script
-      # rather than a bare `fallow dupes`: the percentage is taken over the
-      # reported scope, and `tools/oxlint-plugins/style-rules.js` holds enough
-      # clones of its own to put the whole tree over the same threshold.
+      # rather than a bare `fallow dupes`: the scope decides what is reported,
+      # and `tools/oxlint-plugins/style-rules.js` holds clones of its own that
+      # would fail the whole-tree run.
       - name: Detect duplication (fallow)
         run: bun run dupes
 

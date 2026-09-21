@@ -55,11 +55,11 @@ pre-push:
       run: mise exec -- bun run check:shell
       skip:
         - run: "! command -v mise"
-    # Token-level clone detection over src/, failing when the duplicated
-    # percentage passes `duplicates.threshold` in .fallowrc.jsonc. fallow is a
-    # devDependency, so this step runs wherever `bun install` ran, unlike the
-    # cargo binary below. CI runs the same script, which is what decides a pull
-    # request; this copy only moves the failure earlier.
+    # Token-level clone detection over src/, failing on the first clone group
+    # the settings in .fallowrc.jsonc report. fallow is a devDependency, so this
+    # step runs wherever `bun install` ran, unlike the cargo binary below. CI
+    # runs the same script, which is what decides a pull request; this copy only
+    # moves the failure earlier.
     dupes:
       run: bun run dupes
     # Structural similarity between whole functions. The step above runs in

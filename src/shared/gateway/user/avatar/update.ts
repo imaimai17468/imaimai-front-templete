@@ -19,7 +19,13 @@ import {
   isOwnAvatarKey,
 } from "@/lib/storage/avatar-validation";
 import { AvatarBucket, AvatarKeyIds } from ".";
-import { orNone, persistenceEffect, succeeded, UnexpectedRowCount } from "..";
+import {
+  orNone,
+  persistenceEffect,
+  succeeded,
+  writeUserRow,
+  wroteOneRow,
+} from "..";
 import type { UserPersistenceError } from "..";
 
 export class AvatarTypeUnsupported extends Schema.TaggedError<AvatarTypeUnsupported>()(
@@ -53,8 +59,7 @@ export interface AvatarUpdated {
  * The `avatar_key` column of a user's own row.
  *
  * A service rather than a direct query so a test drives the rollback arms
- * without a D1 binding. `set` reports the number of rows it touched, so the
- * caller can reject a write that addressed nobody.
+ * without a D1 binding.
  */
 export class UserAvatarKeys extends Context.Service<
   UserAvatarKeys,
@@ -89,14 +94,7 @@ export class UserAvatarKeys extends Context.Service<
             )
         ),
       set: (userId, avatarKey, updatedAt) =>
-        persistenceEffect(() =>
-          getDb()
-            .update(users)
-            .set({ avatarKey, updatedAt: DateTime.toDateUtc(updatedAt) })
-            .where(eq(users.id, userId))
-            .returning({ id: users.id })
-            .then((rows) => rows.length)
-        ),
+        writeUserRow(userId, { avatarKey }, updatedAt),
     })
   );
 }
@@ -164,19 +162,11 @@ export class AvatarWriter extends Context.Service<
         const publicUrl = avatarUrlForKey(key);
 
         const updatedAt = yield* DateTime.now;
-        const rowsTouched = yield* orNone(
+        const wrote = yield* wroteOneRow(
           "user.setAvatarKey",
           keys.set(userId, key, updatedAt)
         );
-        if (!Option.contains(rowsTouched, 1)) {
-          if (Option.isSome(rowsTouched)) {
-            yield* reportError(
-              "user.setAvatarKey",
-              new UnexpectedRowCount({
-                message: `expected 1 row, got ${String(rowsTouched.value)}`,
-              })
-            );
-          }
+        if (!wrote) {
           const rolledBack = yield* succeeded(
             "user.rollbackUpload",
             bucket.remove(key)
