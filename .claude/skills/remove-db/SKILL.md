@@ -91,10 +91,11 @@ export const Header = () => (
 - Delete the `currentUserQueryOptions` import and the `loader` option.
 - Delete `const { data: user } = useSuspenseQuery(currentUserQueryOptions());` and render `<Header />` without props.
 
-### `src/routes/index/route.tsx`
+### `src/routes/index/-components/home-content.ts`
 
-The sample home page hardcodes the stack. Remove the `Better Auth` and
-`Drizzle ORM` entries from the `STACK` array. Note: the step 7 residual grep
+The sample home page hardcodes the stack. Remove the `認証` and `データ` rows
+from the `同梱されているもの` section of the `SPECS` array, which carry
+`Better Auth` and `Drizzle ORM`. Note: the step 7 residual grep
 will **not** catch these, because `"Better Auth"` has a space and
 `"Drizzle ORM"` is capitalized, so neither matches the `better-auth` /
 `drizzle` (lowercase, case-sensitive) patterns. Fix them here explicitly.
