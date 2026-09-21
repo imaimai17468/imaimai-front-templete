@@ -73,7 +73,7 @@ src/
 │   ├── auth.auth-code-error/ # OAuth failure landing page (route.tsx と -components/)
 │   └── api/                # API routes (auth catch-all, avatars)
 ├── shared/                 # 2 つ以上のルートが使うもの
-│   ├── components/         # header、theme-provider、user-avatar、page-title
+│   ├── components/         # 自前で書いたコンポーネント
 │   ├── ui/                 # shadcn/ui primitives
 │   ├── gateway/            # 認可境界と D1 / R2 アクセス
 │   └── entities/           # Domain types and schemas
