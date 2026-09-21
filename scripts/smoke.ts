@@ -60,8 +60,8 @@ export const ROUTES: readonly Route[] = [
     path: "/auth/auth-code-error",
     status: 200,
   },
-  // The document's `<link rel="icon">` points here, and a build that stops
-  // copying `public/` answers 404 while every rendered route still passes.
+  // A build that stops copying `public/` answers 404 here while every
+  // rendered route still passes.
   {
     headers: {},
     location: null,

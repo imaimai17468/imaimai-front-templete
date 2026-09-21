@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The tab strip follows the OS rather than the page, so the icon does too. -->
   <style>
     rect { fill: #0a0a0a }
     text { fill: #fafafa }

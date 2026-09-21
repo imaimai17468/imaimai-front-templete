@@ -20,8 +20,6 @@ export const Route = createRootRouteWithContext<{
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "imaimai-front-templete" },
     ],
-    // The SVG carries both themes in its own media query, so one file answers
-    // the light and the dark tab strip.
     links: [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
   }),
   headers: () => DOCUMENT_HEADERS,
