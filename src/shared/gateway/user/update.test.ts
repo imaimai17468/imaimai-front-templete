@@ -21,9 +21,8 @@ import {
 
 const TEST_CLOCK_INSTANT = "1970-01-01T00:00:00.000Z";
 
-// similarity-ignore: avatar/update.test.ts の同名ヘルパーと同じ形だが、`vi` は
-// テストファイルの外から import できない（vitest/no-importing-vitest-globals）ので、
-// 共有モジュールに出せない。
+// similarity-ignore: toStrictEqual で丸ごと比較するために、マシンの絶対パスと行番号を
+// 持つ stack を外して ErrorLogRecord の残り 3 フィールドを取り出す。
 type CapturedReport = Pick<ErrorLogRecord, "event" | "message" | "name">;
 
 const captureErrorReports = (): CapturedReport[] => {
