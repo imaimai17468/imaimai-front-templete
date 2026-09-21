@@ -44,10 +44,11 @@
     // shadcn writes this directory, so a clone removed here comes back with the
     // next `shadcn add`.
     "ignore": ["src/shared/ui/**"],
-    // A ceiling rather than `--fail-on-issues`: src/ sits at 3.2% on
-    // 2026-09-21, all of it the two parallel Effect writers under
-    // src/shared/gateway/user/, and a per-clone suppression would go stale on
-    // the next edit to either of them because the fingerprint is content-keyed.
-    "threshold": 4,
+    // src/ reports no clone group at all, so this rejects the first one that
+    // appears: `minLines` 5 over two instances is 10 lines, which is 0.1% of
+    // src/ today and still above this. It is not 0 because 0 turns the ceiling
+    // off, and `--fail-on-issues` does not cover duplication: a run at 1.8%
+    // exits 0 under it.
+    "threshold": 0.01,
   },
 }
