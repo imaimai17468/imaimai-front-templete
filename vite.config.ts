@@ -306,6 +306,7 @@ export default defineConfig({
         // each `shadcn add`.
         files: ["src/shared/ui/**"],
         rules: {
+          "arch-rules/one-component-per-file": "off",
           "effect/noNullish": "off",
           "func-style": "off",
           "react/function-component-definition": "off",

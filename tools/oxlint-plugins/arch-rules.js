@@ -41,61 +41,61 @@ const noSizeProps = {
   },
 };
 
+const isFunctionInit = (init) =>
+  init?.type === "ArrowFunctionExpression" ||
+  init?.type === "FunctionExpression";
+
+/**
+ * The component-named function declarations a module-scope statement holds,
+ * reading through an `export` wrapper to the declaration under it.
+ *
+ * Reading `Program.body` is what reaches a declaration the file never exports.
+ * Visiting `VariableDeclaration` instead would reach those, and every arrow
+ * nested inside a component with it.
+ */
+const componentsDeclaredBy = (statement) => {
+  const declaration =
+    statement.type === "ExportNamedDeclaration" ||
+    statement.type === "ExportDefaultDeclaration"
+      ? statement.declaration
+      : statement;
+  if (!declaration) {
+    return [];
+  }
+  if (
+    declaration.type === "FunctionDeclaration" ||
+    declaration.type === "FunctionExpression"
+  ) {
+    return declaration.id && isComponentName(declaration.id.name)
+      ? [declaration.id.name]
+      : [];
+  }
+  if (declaration.type === "VariableDeclaration") {
+    return declaration.declarations
+      .filter(
+        (declarator) =>
+          declarator.id?.type === "Identifier" &&
+          isComponentName(declarator.id.name) &&
+          isFunctionInit(declarator.init)
+      )
+      .map((declarator) => declarator.id.name);
+  }
+  return [];
+};
+
 const oneComponentPerFile = {
   create(context) {
-    const exportedComponents = [];
-
-    const reportIfSecond = (node) => {
-      exportedComponents.push(node);
-      if (exportedComponents.length > 1) {
-        context.report({
-          message:
-            "Only one component may be exported per file. Found multiple exported components.",
-          node,
-        });
-      }
-    };
-
     return {
-      ExportDefaultDeclaration(node) {
-        const decl = node.declaration;
-        if (!decl) {
-          return;
-        }
-        if (
-          (decl.type === "FunctionDeclaration" ||
-            decl.type === "FunctionExpression") &&
-          decl.id &&
-          isComponentName(decl.id.name)
-        ) {
-          reportIfSecond(node);
-        }
-      },
-      ExportNamedDeclaration(node) {
-        const decl = node.declaration;
-        if (!decl) {
-          return;
-        }
-        if (decl.type === "FunctionDeclaration") {
-          if (decl.id && isComponentName(decl.id.name)) {
-            reportIfSecond(node);
-          }
-          return;
-        }
-        if (decl.type === "VariableDeclaration") {
-          for (const declarator of decl.declarations) {
-            const name =
-              declarator.id?.type === "Identifier" ? declarator.id.name : null;
-            if (!name || !isComponentName(name)) {
-              continue;
-            }
-            const { init } = declarator;
-            if (
-              init &&
-              (init.type === "ArrowFunctionExpression" ||
-                init.type === "FunctionExpression")
-            ) {
-              reportIfSecond(node);
+      Program(node) {
+        const declared = [];
+        for (const statement of node.body) {
+          for (const name of componentsDeclaredBy(statement)) {
+            declared.push(name);
+            if (declared.length > 1) {
+              context.report({
+                message: `A file declares one component, exported or not. '${name}' shares this file with '${declared[0]}'. Move it to a file named after it.`,
+                node: statement,
+              });
             }
           }
         }
