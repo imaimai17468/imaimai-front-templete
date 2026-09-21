@@ -6,7 +6,8 @@ bun run dev`;
 
 export const TREE = `src/
 ├── routes/                 # ディレクトリ名が URL セグメント
-│   ├── __root.tsx          # Root layout (ThemeProvider, Header, Toaster)
+│   ├── __root.tsx          # Root route (head, headers, loader)
+│   ├── -components/        # ルートルートだけが描くもの（RootLayout, NotFound）
 │   ├── index/
 │   │   ├── route.tsx       # Home page
 │   │   └── -components/    # このルートだけが描くもの（- 始まりは URL にならない）
@@ -17,7 +18,7 @@ export const TREE = `src/
 │   ├── auth.auth-code-error/  # OAuth failure landing page（route.tsx と -components/）
 │   └── api/                # API routes (auth catch-all, avatars)
 ├── shared/                 # 2 つ以上のルートが使うもの
-│   ├── components/         # 自前で書いたコンポーネント
+│   ├── components/         # 自前で書いたコンポーネント（2 つ以上のルートが使う）
 │   ├── ui/                 # shadcn/ui primitives
 │   ├── gateway/            # 認可境界と D1 / R2 アクセス
 │   │   └── user/
