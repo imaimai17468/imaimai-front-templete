@@ -11,9 +11,9 @@ import type { ProfileRow } from "./read";
 const AVATAR_KEY = "user-1/avatar.jpg";
 const PROVIDER_IMAGE = "https://images.example.com/from-google.png";
 
-// similarity-ignore: avatar/reader.test.ts の makeFakes とは別のサービス（AvatarReader vs
-// CurrentUserReader）の Layer を組む。CurrentSession を差し替える形が一致しているだけで、
-// 共通化すると片方のサービスの依存が変わるたびにもう片方のテストが動く。
+// similarity-ignore: このファイルがテストする CurrentUserReader の Layer を、依存の
+// CurrentSession と UserProfiles を差し替えて組む。共通化すると、ここが差し替えて
+// いない依存が変わったときにもこのテストを書き換えることになる。
 const makeFakes = (read: CurrentSession["Service"]["read"]) => {
   const findProfile = vi.fn<UserProfiles["Service"]["findProfile"]>();
   const layer = CurrentUserReader.layerNoDeps.pipe(
