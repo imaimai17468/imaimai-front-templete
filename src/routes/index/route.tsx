@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import type { ReactNode } from "react";
 import { CodeBlock } from "./-components/code-block/code-block";
+import { Section } from "./-components/section";
 
 const SETUP = `git clone https://github.com/imaimai17468/imaimai-front-templete.git
 cd imaimai-front-templete
@@ -181,19 +181,6 @@ const LINKS: readonly ExternalLink[] = [
   { name: "Vitest", href: "https://vitest.dev/" },
   { name: "mise", href: "https://mise.jdx.dev/" },
 ];
-
-const Section = ({
-  children,
-  heading,
-}: {
-  readonly children: ReactNode;
-  readonly heading: string;
-}) => (
-  <section className="flex flex-col gap-3">
-    <h2 className="text-base font-medium">{heading}</h2>
-    {children}
-  </section>
-);
 
 const HomeComponent = () => (
   <div className="flex flex-col gap-12 pb-16">

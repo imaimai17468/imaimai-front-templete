@@ -1,32 +1,7 @@
-import type { ReactNode } from "react";
 import type { UserWithEmail } from "@/shared/entities/user";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/card";
 import { ProfileForm } from "./profile-form/profile-form";
 import { formatRegisteredOn } from "./registered-on";
-
-const SectionCard = ({
-  children,
-  description,
-  title,
-}: {
-  readonly children: ReactNode;
-  readonly description: string;
-  readonly title: string;
-}) => (
-  <Card>
-    <CardHeader>
-      <CardTitle>{title}</CardTitle>
-      <CardDescription>{description}</CardDescription>
-    </CardHeader>
-    <CardContent>{children}</CardContent>
-  </Card>
-);
+import { SectionCard } from "./section-card";
 
 export const ProfilePage = ({ user }: { readonly user: UserWithEmail }) => (
   <div className="container mx-auto flex min-h-dvh max-w-2xl flex-col items-center justify-center gap-8">
