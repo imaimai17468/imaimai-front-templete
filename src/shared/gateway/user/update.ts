@@ -1,7 +1,7 @@
 import "@tanstack/react-start/server-only";
 import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
 import type { UpdateUser } from "@/shared/entities/user";
-import { writeUserRow, wroteOneRow } from ".";
+import { dieOnPersistenceError, writeUserRow, wroteOneRow } from ".";
 import type { UserPersistenceError } from ".";
 import { makeRunHandler } from "../runtime";
 import { AvatarWriter } from "./avatar/update";
@@ -173,7 +173,7 @@ export const updateProfileResult: (
         message: "Failed to update profile",
         status: "failed",
       } satisfies UpdateProfileResult),
-    UserPersistenceError: (error) => Effect.die(error.cause),
+    ...dieOnPersistenceError,
   })
 );
 
@@ -207,7 +207,7 @@ export const uploadAvatarResult: (
         message: "Not authenticated",
         status: "failed",
       } satisfies UploadAvatarResult),
-    UserPersistenceError: (error) => Effect.die(error.cause),
+    ...dieOnPersistenceError,
   })
 );
 

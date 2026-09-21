@@ -34,6 +34,18 @@ export const persistenceEffect = <A>(
   });
 
 /**
+ * The catch arm that turns a persistence failure into a defect.
+ *
+ * The tag is named rather than caught with `Effect.orDie`, so a failure added
+ * to an operation later lands in the error channel its caller has to discharge
+ * instead of disappearing here.
+ */
+export const dieOnPersistenceError = {
+  UserPersistenceError: (error: UserPersistenceError) =>
+    Effect.die(error.cause),
+};
+
+/**
  * The columns a profile write sets beside `updatedAt`, which it always sets.
  *
  * Each column is named here, because the helper below takes the row's id as an
