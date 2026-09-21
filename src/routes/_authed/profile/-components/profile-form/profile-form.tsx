@@ -49,7 +49,6 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
   const [pendingFile, setPendingFile] = useState(() => Option.none<File>());
 
   // Object URL(外部リソース)の解放を表示中の previewUrl に同期する。
-  // 差し替え時は古い URL の cleanup が走り、アンマウント時も解放される。
   useEffect(
     () => () => {
       if (Option.isSome(previewUrl)) {
@@ -72,8 +71,6 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
       return;
     }
 
-    // Same two reasons the server distinguishes, so the message matches what
-    // actually went wrong rather than blaming size for an empty file.
     const rejection = avatarSizeRejection(file.size);
     if (Option.isSome(rejection)) {
       const reason = rejection.value;
@@ -102,8 +99,6 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
 
   const { mutate: saveProfile, isPending } = useMutation({
     mutationFn: (data: UpdateUser) => submitProfile(data, pendingFile),
-    // `submitProfile` folds a rejection the server shaped into `outcome`, so
-    // what reaches here is the call never completing.
     onError: () => {
       toast.error("Could not save your profile. Please try again.");
     },
