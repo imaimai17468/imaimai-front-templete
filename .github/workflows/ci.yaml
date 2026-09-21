@@ -79,7 +79,7 @@ jobs:
       # The shell counterpart of the step above, over every tracked `*.sh`: the
       # PreToolUse, Stop and SessionStart hooks and the two setup scripts. It
       # sits here rather than beside "Run Tests" so a finding in a hook fails
-      # ahead of the check, knip, doctor, test and build steps below.
+      # ahead of the check, dead-code, doctor, test and build steps below.
       - name: Lint the shell hooks and scripts (shellcheck)
         run: bun run check:shell
 
@@ -128,8 +128,16 @@ jobs:
       - name: Run format, lint and type checks
         run: bun run check
 
-      - name: Detect unused code (knip)
-        run: bun run knip
+      - name: Detect unused code (fallow)
+        run: bun run dead-code
+
+      # lefthook's pre-push runs this too, and `git push --no-verify` and a
+      # clone that never ran `bun run setup` both get past that one. The script
+      # rather than a bare `fallow dupes`: the percentage is taken over the
+      # reported scope, and `tools/oxlint-plugins/style-rules.js` holds enough
+      # clones of its own to put the whole tree over the same threshold.
+      - name: Detect duplication (fallow)
+        run: bun run dupes
 
       # Whole-tree counterpart of lefthook's pre-commit `--staged` run. `--no-score`
       # keeps the diagnostics off the vendor's score API; the exit code is what gates.

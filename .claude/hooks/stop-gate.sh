@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Stop combined gate:
 # 1. Quality gate — typecheck / lint / format, then the test suite (blocking)
-#    — knip and similarity are not here: their verdict is a property of more
-#      than this turn's diff, so CI runs knip and lefthook's pre-push runs
-#      similarity-ts
+#    — the dead-code and duplication checks are not here: their verdict is a
+#      property of more than this turn's diff, so CI runs `fallow dead-code`
+#      and lefthook's pre-push runs `fallow dupes` and similarity-ts
 #    — runs only when code-relevant files changed (docs-only turns skip it)
 # 2. Markdown link check — blocking; dead relative links are decidable by opening
 #    the path, so they belong here rather than in a reviewer's judgment

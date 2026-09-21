@@ -24,7 +24,7 @@ TanStack Start + TypeScript + Tailwind CSS + shadcn/ui を使用したモダン�
 git clone <your-repo-url>
 cd <your-repo-name>
 mise install                 # Node / Bun / actionlint / shellcheck を mise.toml の版で用意
-cargo install similarity-ts  # lefthook の pre-push が回す重複検出（Rust 製）
+cargo install similarity-ts  # lefthook の pre-push が回す関数単位の類似検出（Rust 製）
 bun run setup                # 依存・git hooks・生成ファイル・.env.local をまとめて用意
 bun run dev
 ```
@@ -33,7 +33,7 @@ bun run dev
 
 `src/routeTree.gen.ts` は `bun run dev` と `bun run build` が生成し、ルートファイルの追加や削除に追従します。`worker-configuration.d.ts` は `bun run dev` が生成し、`wrangler.toml` の編集にも追従します（build は生成しません）。dev を起動せずに `bun run check` や `bun run test` を走らせるときだけ、先に `bun run generate-routes` と `bun run cf-typegen` を叩いてください。
 
-`similarity-ts` が無い環境では、lefthook の pre-push が重複検出（`similarity-ts ./src --fail-on-duplicates`）を飛ばして push を通します。その欠落は SessionStart の env-check がセッション開始時に報告します。
+`similarity-ts` が無い環境では、lefthook の pre-push が関数単位の類似検出（`similarity-ts ./src --fail-on-duplicates`）を飛ばして push を通します。その欠落は SessionStart の env-check がセッション開始時に報告します。トークン単位の重複検出（`bun run dupes`）は devDependency の fallow が回すので、`bun install` が済んでいる環境なら必ず走り、CI にも同じステップがあります。
 
 [mise](https://mise.jdx.dev/) を使わない場合は、`package.json` の `engines.node` を満たす Node と、`mise.toml` が指定する版の Bun を手動で用意してください。Cursor Cloud Agent 環境では `.cursor/environment.json` が `scripts/cloud-agent-install.sh` を自動実行し、mise と依存の導入から `generate-routes` / `cf-typegen` までを済ませます（`bun install` は `--ignore-scripts` なので lefthook の hook は入りません）。shims の PATH 追記は rc ファイルを読むシェルにしか効かないため、rc を読まない非対話シェルからは `mise exec -- <コマンド>` で実行してください。
 
@@ -57,8 +57,8 @@ bun run dev
 - **[oxfmt](https://oxc.rs/docs/guide/usage/formatter)**：Formatter (`vite.config.ts` の `fmt` ブロック)
 - **[portless](https://github.com/vercel-labs/portless)**：dev サーバに名前付き HTTPS URL を割り当てる proxy。`bun run dev` が経由する
 - **[lefthook](https://github.com/evilmartians/lefthook)**：Git hooks (`lefthook.yml`、`bun run setup` が `prepare` スクリプト経由でインストールする)
-- **[knip](https://knip.dev/)**：Unused deps/exports/files detection (`knip.json`)
-- **[similarity-ts](https://github.com/mizchi/similarity)**：Code similarity detector
+- **[fallow](https://github.com/fallow-rs/fallow)**：未使用の依存 / エクスポート / ファイルと、トークン単位の重複の検出 (`.fallowrc.jsonc`)。CI が `bun run dead-code` と `bun run dupes`、lefthook の pre-push が `bun run dupes` を回す
+- **[similarity-ts](https://github.com/mizchi/similarity)**：関数単位の構造的な類似の検出
 - **[actionlint](https://github.com/rhysd/actionlint)**：GitHub Actions workflow checker (`mise.toml` が版を固定)
 - **[shellcheck](https://www.shellcheck.net/)**：tracked な `*.sh` の静的検査。`bun run check:shell` が lefthook の pre-push と CI の両方から呼ぶ (`mise.toml` が版を固定)
 
@@ -102,7 +102,7 @@ src/
 - **[AGENTS.md](./AGENTS.md)**：規約の本体。毎セッション自動でロードされます（`CLAUDE.md` はこれを読み込むだけ）
 - **`.claude/rules/`**：規約の分冊。path scope を持つものは対象ファイルを編集するときだけ、持たないものは毎セッション読み込まれます
 - **`.claude/skills/`**：名前のついた作業の手順。チケット粒度の作業は `ticket-work` が持ち、AGENTS.md はそれを指します
-- **`.claude/hooks/`**：規約を機械的に強制する側。SessionStart で依存の欠落を報告し、Bash 実行前にガードを掛け、Stop ではコードが変わった turn だけ `bun run check`（format / lint / 型検査）と `bun run test` を回します。markdown のリンク切れ検査は変更があれば毎回走ります。ツリー全体を判定する検査は Stop に置かず、knip は CI、`similarity-ts` は lefthook の pre-push が回します。ここまでの検査はどれもビルドの成果物を動かさないので、CI は最後に `bun run smoke` を回します。ビルドした Worker を workerd で起動して 2 本のルートに HTTP リクエストを投げる検査で、ビルドが通ってから全リクエストで例外を投げる Worker はここでしか落ちません
+- **`.claude/hooks/`**：規約を機械的に強制する側。SessionStart で依存の欠落を報告し、Bash 実行前にガードを掛け、Stop ではコードが変わった turn だけ `bun run check`（format / lint / 型検査）と `bun run test` を回します。markdown のリンク切れ検査は変更があれば毎回走ります。ツリー全体を判定する検査は Stop に置かず、`fallow dead-code` は CI、`fallow dupes` は pre-push と CI の両方、`similarity-ts` は pre-push が回します。ここまでの検査はどれもビルドの成果物を動かさないので、CI は最後に `bun run smoke` を回します。ビルドした Worker を workerd で起動して 2 本のルートに HTTP リクエストを投げる検査で、ビルドが通ってから全リクエストで例外を投げる Worker はここでしか落ちません
 - **Cursor**：`.cursor/rules/` は `.claude/rules/` の symlink。skills と agents は `.claude/` をそのまま読む（`.cursor/skills/` や `.cursor/agents/` は置かない）
 
 コミット前のレビューは `code-reviewer` エージェントが担い、PR ブランチへのコミットと push はエージェントが AGENTS.md の規律に従って自分で行います。`main` へは PR 経由でだけ入ります。
@@ -126,5 +126,6 @@ bunx shadcn@latest add [component-name]
 - [oxc (oxlint/oxfmt)](https://oxc.rs/)
 - [oxlint-tailwindcss](https://oxlint-tailwindcss.pages.dev/)
 - [@shadcn/lint](https://github.com/shadcn-ui/lint)
+- [fallow](https://docs.fallow.tools/)
 - [oxlint-plugin-effect](https://github.com/cevr/effect-oxlint)
 - [Vitest](https://vitest.dev/)

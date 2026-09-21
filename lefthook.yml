@@ -55,10 +55,20 @@ pre-push:
       run: mise exec -- bun run check:shell
       skip:
         - run: "! command -v mise"
-    # `similarity-ignore` comments are honoured by similarity-ts itself, and
-    # without --fail-on-duplicates it exits 0 whatever it finds. The skip keeps a
-    # machine that never installed this cargo binary from being unable to push
-    # (AGENTS.md, "Degraded Environments").
+    # Token-level clone detection over src/, failing when the duplicated
+    # percentage passes `duplicates.threshold` in .fallowrc.jsonc. fallow is a
+    # devDependency, so this step runs wherever `bun install` ran, unlike the
+    # cargo binary below. CI runs the same script, which is what decides a pull
+    # request; this copy only moves the failure earlier.
+    dupes:
+      run: bun run dupes
+    # Structural similarity between whole functions. The step above runs in
+    # fallow's default `mild` mode, which compares identifiers literally, so a
+    # copy whose names were changed reaches it as a different token stream.
+    # `similarity-ignore` comments are honoured by similarity-ts itself,
+    # and without --fail-on-duplicates it exits 0 whatever it finds. The skip
+    # keeps a machine that never installed this cargo binary from being unable
+    # to push (AGENTS.md, "Degraded Environments").
     similarity:
       run: similarity-ts ./src --fail-on-duplicates
       skip:

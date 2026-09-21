@@ -117,9 +117,9 @@ REFUTED:
 
 - `external-behaviour`: the candidate turns on how a CLI flag, a config key, or a library
   API behaves, and nothing you can open states that behaviour. A repository document that
-  states it, such as AGENTS.md on what `knip` fails, is such a source and settles the
-  candidate; you have no web tool, so where neither the briefing nor the repository says it,
-  nothing does.
+  states it, such as AGENTS.md on what `fallow dead-code` fails, is such a source and
+  settles the candidate; you have no web tool, so where neither the briefing nor the
+  repository says it, nothing does.
 - `out-of-reach`: settling it needs a caller, a schema, or a generated file you could not
   locate or open in this repository.
 - `unrunnable`: only running something decides it, and this environment cannot produce that
@@ -196,7 +196,7 @@ effort: standard — 4 raised, 1 merged, 1 refuted, 1 abstained, 1 returned
 - **Acceptance:** <the command or the observable that shows it landed>
 
 ## Abstained
-- src/lib/baz.ts:71 — `knip --fix` may delete the re-export · external-behaviour · re-read
+- src/lib/baz.ts:71 — `fallow fix` may delete the re-export · external-behaviour · re-read
   src/lib/baz.ts:64-78 · neither the briefing nor any file here states what that flag removes
 
 ## Refuted

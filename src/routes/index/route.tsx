@@ -4,7 +4,7 @@ import { CodeBlock } from "./-components/code-block/code-block";
 const SETUP = `git clone https://github.com/imaimai17468/imaimai-front-templete.git
 cd imaimai-front-templete
 mise install                 # Node / Bun / actionlint / shellcheck を mise.toml の版で用意
-cargo install similarity-ts  # Stop gate の重複検出（Rust 製）
+cargo install similarity-ts  # pre-push の関数類似検出（Rust 製）
 bun run setup                # 依存・git hooks・生成ファイル・.env.local をまとめて用意
 bun run dev`;
 
@@ -110,12 +110,12 @@ const SPECS: readonly Spec[] = [
       },
       {
         term: "未使用",
-        detail: "knip が未使用の依存とエクスポートとファイルを検出する",
+        detail: "fallow が未使用の依存とエクスポートとファイルを検出する",
       },
       {
         term: "重複",
         detail:
-          "similarity-ts が重複を検出する。無い環境では Stop gate が similarity: SKIPPED と明示する",
+          "fallow がトークン単位の重複を pre-push と CI で、similarity-ts が関数単位の類似を pre-push で検出する",
       },
       {
         term: "React",
@@ -175,7 +175,7 @@ const LINKS: readonly ExternalLink[] = [
   { name: "oxfmt", href: "https://oxc.rs/docs/guide/usage/formatter" },
   { name: "react-doctor", href: "https://github.com/millionco/react-doctor" },
   { name: "lefthook", href: "https://github.com/evilmartians/lefthook" },
-  { name: "knip", href: "https://knip.dev/" },
+  { name: "fallow", href: "https://docs.fallow.tools/" },
   { name: "similarity-ts", href: "https://github.com/mizchi/similarity" },
   { name: "Vitest", href: "https://vitest.dev/" },
   { name: "mise", href: "https://mise.jdx.dev/" },

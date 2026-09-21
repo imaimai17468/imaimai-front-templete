@@ -17,7 +17,7 @@ working the moment this procedure finishes.
 
 What else stays: the app shell, shared UI (`src/shared/ui`, header,
 mode-toggle, theme-provider), the sample home page, and the oxlint / oxfmt /
-tsc / knip / vitest toolchain.
+tsc / fallow / vitest toolchain.
 
 ## Preconditions
 
@@ -148,10 +148,6 @@ carries the component and test-shape rules, `style-rules.js` is untouched by thi
 procedure, and `vite.config.ts` loads both by path under `lint.jsPlugins`, so removing
 either file breaks the lint config for the whole fork.
 
-### `knip.json`
-
-- Remove `"src/lib/cloudflare/env.ts"` from `ignore`.
-
 ## 4. Config files
 
 ### `wrangler.toml`: edit, do not delete
@@ -214,7 +210,7 @@ Remove these scripts: `db:generate`, `db:push`, `db:studio`, `db:pull`,
 Keep everything else, explicitly including `deploy`, `preview`, and
 `cf-typegen`.
 
-After the knip run in step 8, remove any dependencies it now flags as unused.
+After the `bun run dead-code` run in step 8, remove any dependencies it now flags as unused.
 Expected: `@hookform/resolvers` (its last consumer was the profile form).
 `react-hook-form`, `sonner`, and `radix-ui` stay, because
 `src/shared/ui/` still uses them.
@@ -285,7 +281,7 @@ treating them as leftovers is what leads to deleting the deployment by mistake.
 
 ```bash
 grep -rn "better-auth\|BETTER_AUTH\|drizzle\|D1Database\|R2Bucket\|AVATARS_BUCKET\|d1_databases\|r2_buckets" \
-  src scripts tools package.json vite.config.ts vitest.config.mts knip.json wrangler.toml \
+  src scripts tools package.json vite.config.ts vitest.config.mts .fallowrc.jsonc wrangler.toml \
   README.md AGENTS.md .claude/settings.json docs/DEPLOYMENT.md docs/FORKING.md
 ```
 
@@ -319,14 +315,14 @@ bun run generate-routes
 bun run cf-typegen
 bun run check
 bun run test
-bun run knip
+bun run dead-code
 bun run build
 bun run dev      # http://my-app.localhost:1355 (portless)
 bun run preview  # runs the built Worker on http://localhost:4173
 ```
 
 - `typecheck` errors point at imports of deleted modules. Remove them.
-- `knip` findings point at now-unused dependencies/exports. Remove them (see step 5).
+- `dead-code` findings point at now-unused dependencies/exports. Remove them (see step 5).
 - `preview` passing is the signal that the Worker build is still intact. If it
   fails, something in step 1 or 4 removed part of the deployment rather than the
   database.
@@ -340,7 +336,7 @@ Split per the Commits discipline in `AGENTS.md`:
 1. `feat:` remove the auth / profile / DB-access features (`src/` deletions +
    `Header` / `__root` edits)
 2. `chore:` remove the D1 / R2 / Drizzle configuration (wrangler.toml bindings,
-   drizzle.config.ts, vitest alias, knip, the local-DB scripts, the env files,
+   drizzle.config.ts, vitest alias, the local-DB scripts, the env files,
    `scripts/setup.sh` and `scripts/setup.test.ts`, and `docs/DATABASE_SETUP.md`)
 3. `chore:` remove the DB / auth dependencies (package.json / bun.lock)
 4. `docs:` remove DB- and auth-related documentation. Stage every surface
