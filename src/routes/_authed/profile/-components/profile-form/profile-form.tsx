@@ -26,11 +26,6 @@ import {
 import { Input } from "@/shared/ui/input";
 import { submitProfile } from "./submit-profile";
 
-// similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
-interface ProfileFormProps {
-  user: UserWithEmail;
-}
-
 const SubmitLabel = ({ isPending }: { readonly isPending: boolean }) => {
   if (isPending) {
     return (
@@ -43,7 +38,7 @@ const SubmitLabel = ({ isPending }: { readonly isPending: boolean }) => {
   return <>Update Profile</>;
 };
 
-export const ProfileForm = ({ user }: ProfileFormProps) => {
+export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
   const queryClient = useQueryClient();
   const [previewUrl, setPreviewUrl] = useState(() => Option.none<string>());
   const [pendingFile, setPendingFile] = useState(() => Option.none<File>());

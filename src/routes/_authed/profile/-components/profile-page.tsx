@@ -9,12 +9,7 @@ import {
 import { ProfileForm } from "./profile-form/profile-form";
 import { formatRegisteredOn } from "./registered-on";
 
-// similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
-interface ProfilePageProps {
-  user: UserWithEmail;
-}
-
-export const ProfilePage = ({ user }: ProfilePageProps) => (
+export const ProfilePage = ({ user }: { readonly user: UserWithEmail }) => (
   <div className="container mx-auto flex min-h-dvh max-w-2xl flex-col items-center justify-center gap-8">
     <h1 className="text-3xl">Profile</h1>
 
