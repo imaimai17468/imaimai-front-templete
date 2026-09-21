@@ -461,6 +461,116 @@ describe("one-component-per-file", () => {
   });
 });
 
+describe("route-imports-its-component", () => {
+  const rule = plugin.rules["route-imports-its-component"];
+
+  it("should report when a route file declares the component it draws", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/index/route.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(moduleBody(arrowDeclaration("HomeComponent")));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should name the component and its destination when it reports a route file", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/index/route.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(moduleBody(arrowDeclaration("HomeComponent")));
+
+    // Assert
+    expect(context.report.mock.calls[0]?.[0].message).toBe(
+      "A route file declares 'Route' and imports what it draws. Move 'HomeComponent' to a '-components/' directory beside this file and import it."
+    );
+  });
+
+  it("should report when the root route file declares its layout", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/__root.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(moduleBody(arrowDeclaration("RootComponent")));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when a route file declares Route alone", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/index/route.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(
+      moduleBody({
+        declarations: [
+          {
+            id: { name: "Route", type: "Identifier" },
+            init: { type: "CallExpression" },
+          },
+        ],
+        type: "VariableDeclaration",
+      })
+    );
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when the component sits in the route's private directory", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/routes/index/-components/home-page.tsx"
+    );
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(moduleBody(arrowDeclaration("HomePage")));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a route file is a test", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/api/-avatars.test.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.(moduleBody(arrowDeclaration("Stub")));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when the file sits outside src", () => {
+    // Arrange
+    const context = makeLayerContext();
+    const visitors = rule.create(context);
+
+    // Assert
+    expect(visitors.Program).toBeUndefined();
+  });
+
+  it("should not report when the file sits outside the route layer", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/shared/components/header/header.tsx"
+    );
+    const visitors = rule.create(context);
+
+    // Assert
+    expect(visitors.Program).toBeUndefined();
+  });
+});
+
 describe("test-naming-format", () => {
   const rule = plugin.rules["test-naming-format"];
 

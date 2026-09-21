@@ -257,6 +257,30 @@ const singleExpect = {
 
 const SKIP_STEMS = new Set(["index"]);
 
+const TEST_STEM_SUFFIX = /\.(?:test|spec)$/u;
+
+const isTestStem = (stem) => TEST_STEM_SUFFIX.test(stem);
+
+/**
+ * The component name a file's own name calls for, or `null` where the name
+ * yields none: an empty or test stem, `index`, or a stem whose first character
+ * does not upper-case (`__root`).
+ */
+const expectedComponentName = (filename) => {
+  const basename = filename.slice(filename.lastIndexOf("/") + 1);
+  const stem = basename.replace(/\.(?:tsx?|jsx?)$/u, "");
+  if (stem === "" || SKIP_STEMS.has(stem) || isTestStem(stem)) {
+    return null;
+  }
+  const name = stem
+    .split(/[.-]/u)
+    .map((part) =>
+      part.length === 0 ? part : part[0].toUpperCase() + part.slice(1)
+    )
+    .join("");
+  return isComponentName(name) ? name : null;
+};
+
 const componentFileNaming = {
   create(context) {
     const filename = context.filename ?? context.getFilename?.();
@@ -264,24 +288,8 @@ const componentFileNaming = {
       return {};
     }
 
-    const basename = filename.slice(filename.lastIndexOf("/") + 1);
-    const withoutExt = basename.replace(/\.(?:tsx?|jsx?)$/u, "");
-
-    if (
-      withoutExt === "" ||
-      SKIP_STEMS.has(withoutExt) ||
-      withoutExt.endsWith(".test") ||
-      withoutExt.endsWith(".spec")
-    ) {
-      return {};
-    }
-
-    const expectedName = withoutExt
-      .split(/[.-]/u)
-      .map((s) => (s.length === 0 ? s : s[0].toUpperCase() + s.slice(1)))
-      .join("");
-
-    if (!isComponentName(expectedName)) {
+    const expectedName = expectedComponentName(filename);
+    if (expectedName === null) {
       return {};
     }
 
@@ -723,6 +731,38 @@ const serverOnlyMarker = {
   },
 };
 
+/**
+ * A route file declares `Route` and imports the component it draws.
+ *
+ * `one-component-per-file` does not reach this: `export const Route =
+ * createFileRoute(...)({...})` is a declarator whose init is a `CallExpression`,
+ * so a route file holding one inline component counts one, not two.
+ */
+const routeImportsItsComponent = {
+  create(context) {
+    const srcPath = srcPathOf(context);
+    if (
+      srcPath === null ||
+      layerOf(srcPath) !== "route" ||
+      isTestStem(srcPath.replace(/\.(?:tsx?|jsx?)$/u, ""))
+    ) {
+      return {};
+    }
+    return {
+      Program(node) {
+        for (const statement of node.body) {
+          for (const name of componentsDeclaredBy(statement)) {
+            context.report({
+              message: `A route file declares 'Route' and imports what it draws. Move '${name}' to a '-components/' directory beside this file and import it.`,
+              node: statement,
+            });
+          }
+        }
+      },
+    };
+  },
+};
+
 const plugin = {
   meta: { name: "arch-rules" },
   rules: {
@@ -730,6 +770,7 @@ const plugin = {
     "layer-boundaries": layerBoundaries,
     "no-size-props": noSizeProps,
     "one-component-per-file": oneComponentPerFile,
+    "route-imports-its-component": routeImportsItsComponent,
     "server-only-marker": serverOnlyMarker,
     "single-expect": singleExpect,
     "test-naming-format": testNamingFormat,
