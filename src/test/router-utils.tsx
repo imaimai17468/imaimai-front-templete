@@ -36,7 +36,6 @@ export const renderWithRouter = (
   });
 
   const catchAllRoute = createRoute({
-    component: () => null,
     getParentRoute: () => rootRoute,
     path: "$",
   });
