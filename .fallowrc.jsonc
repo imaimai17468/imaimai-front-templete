@@ -2,11 +2,10 @@
   "$schema": "./node_modules/fallow/schema.json",
   // Framework and package.json entries are discovered; these are the ones
   // discovery cannot see. src/routes/ is absent on purpose: the tanstack-router
-  // plugin seeds the 8 route files itself and leaves the `-` directories beside
+  // plugin seeds the route files itself and leaves the `-` directories beside
   // them out, so their exports get checked like any other module. A glob here
-  // would have to name those directories to exclude them, and `!` in this list
-  // does nothing — `fallow list --entry-points` counted the same 50 manual
-  // entries with and without it.
+  // would have to exclude those directories, and `!` in this list does nothing:
+  // `fallow list --entry-points` prints the same entries with and without it.
   "entry": [
     "scripts/**/*.{ts,js}",
     "src/shared/ui/**/*.{ts,tsx}",
@@ -30,13 +29,9 @@
   ],
   "rules": {
     // The rule predicts that a production install omitting devDependencies
-    // breaks an import, and it reports five packages here: the devtools that
-    // src/routes/__root.tsx imports behind a dev guard
-    // (@tanstack/react-devtools, @tanstack/react-query-devtools, react-grab),
-    // vite-plus from src/test-setup.ts and src/test/render.tsx, and yaml from
-    // scripts/claude-frontmatter.ts. `bun run deploy` uploads a bundled Worker,
-    // so no install runs against the deployment at all, and the last two are
-    // reached only from tests and scripts, which no deployment runs.
+    // breaks an import. `bun run deploy` uploads a bundled Worker, so no
+    // install runs against the deployment at all, and what it reports here is
+    // reached from a dev-only guard, a test or a script in any case.
     "dev-dependencies-in-production": "off",
   },
   "duplicates": {
@@ -45,10 +40,10 @@
     // next `shadcn add`.
     "ignore": ["src/shared/ui/**"],
     // src/ reports no clone group at all, so this rejects the first one that
-    // appears: `minLines` 5 over two instances is 10 lines, which is 0.1% of
-    // src/ today and still above this. It is not 0 because 0 turns the ceiling
-    // off, and `--fail-on-issues` does not cover duplication: a run at 1.8%
-    // exits 0 under it.
+    // appears: the smallest group `minLines` allows still covers a larger share
+    // of src/ than this. It is not 0 because 0 turns the ceiling off, and
+    // `--fail-on-issues` does not cover duplication: a run reporting clone
+    // groups exits 0 under it.
     "threshold": 0.01,
   },
 }
