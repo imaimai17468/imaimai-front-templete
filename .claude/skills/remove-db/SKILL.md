@@ -30,7 +30,7 @@ rm -rf src/lib/auth src/lib/cloudflare src/lib/drizzle src/lib/storage
 rm -rf src/shared/entities src/shared/gateway
 rm -rf src/routes/api
 rm -rf src/routes/login src/routes/_authed
-rm -f src/routes/auth.auth-code-error.tsx
+rm -rf src/routes/auth.auth-code-error
 rm -rf src/shared/components/header/auth-navigation src/shared/components/header/user-menu
 rm -f src/test/cloudflare-workers-stub.ts
 ```
