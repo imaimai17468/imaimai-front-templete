@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    rect { fill: #0a0a0a }
+    text { fill: #fafafa }
+    @media (prefers-color-scheme: dark) {
+      rect { fill: #fafafa }
+      text { fill: #0a0a0a }
+    }
+  </style>
+  <rect width="32" height="32" rx="7" />
+  <text
+    x="16"
+    y="16"
+    text-anchor="middle"
+    dominant-baseline="central"
+    font-family="ui-sans-serif, system-ui, sans-serif"
+    font-size="20"
+    font-weight="500"
+    letter-spacing="-1"
+  >im</text>
+</svg>

@@ -190,11 +190,12 @@ describe("smoke", () => {
     ]);
   });
 
-  it("should request every page route when the smoke run boots the Worker", () => {
+  it("should request every page route and the favicon when the smoke run boots the Worker", () => {
     expect(ROUTES.map((route) => route.path)).toStrictEqual([
       "/",
       "/login",
       "/auth/auth-code-error",
+      "/favicon.svg",
       "/profile",
     ]);
   });
