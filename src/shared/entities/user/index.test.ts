@@ -9,10 +9,6 @@ import {
   UserWithEmailSchema,
 } from "./index";
 
-// Exemplar white-box tests (AGENTS.md "Testing"): every exported schema is
-// exercised on both outcomes of each check — boundary values of the length
-// constraints and the exact user-facing messages included.
-
 // The Standard Schema contract lets `validate` answer with the result or with
 // a Promise of it, and this resolves both arms the way react-hook-form's
 // resolver does.
