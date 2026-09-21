@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vite-plus/test";
 import { cn } from "./utils";
 
-// Exemplar test (AGENTS.md "Testing"): colocated `<module>.test.ts`, white-box —
-// each case pins one behavior of the implementation (clsx flattening on one
-// side, twMerge conflict resolution on the other), not just happy-path output.
+const withOptionalClassName = ({
+  className,
+}: {
+  readonly className?: string;
+}) => cn("underline", className);
+
 describe(cn, () => {
   it("should join classes when inputs are independent", () => {
     expect(cn("px-2", "py-1")).toBe("px-2 py-1");
@@ -14,7 +17,11 @@ describe(cn, () => {
   });
 
   it("should drop falsy values when inputs come from conditional expressions", () => {
-    expect(cn("underline", false, undefined, "")).toBe("underline");
+    expect(cn("underline", false, "")).toBe("underline");
+  });
+
+  it("should keep the base class when the caller omits the optional one", () => {
+    expect(withOptionalClassName({})).toBe("underline");
   });
 
   it("should flatten nested inputs when arrays and objects are mixed", () => {
