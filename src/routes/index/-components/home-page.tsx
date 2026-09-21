@@ -1,7 +1,7 @@
 import { PageTitle } from "@/shared/components/page-title/page-title";
-import { CodeBlock } from "./code-block/code-block";
+import { CodeBlock } from "./code-block";
 import { ExternalLink } from "./external-link";
-import { LINKS, SETUP, SPECS, TREE } from "./home-content";
+import { LINKS, SETUP, SPECS } from "./home-content";
 import { Section } from "./section";
 
 export const HomePage = () => (
@@ -40,15 +40,6 @@ export const HomePage = () => (
           .cursor/environment.json
         </code>{" "}
         が同じセットアップを自動実行する。
-      </p>
-    </Section>
-
-    <Section heading="ファイル構成">
-      <CodeBlock label="src ディレクトリの構成" code={TREE} />
-      <p className="max-w-prose text-sm text-muted-foreground">
-        配置と import 方向の規約は{" "}
-        <code className="font-mono text-foreground">AGENTS.md</code> の Rules
-        にある。
       </p>
     </Section>
 

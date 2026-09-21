@@ -376,7 +376,7 @@ export default defineConfig({
         rules: { "vitest/prefer-import-in-mock": "off" },
       },
       {
-        files: ["src/routes/index/-components/code-block/code-block.tsx"],
+        files: ["src/routes/index/-components/code-block.tsx"],
         rules: {
           "jsx-a11y/no-noninteractive-tabindex": [
             "error",
