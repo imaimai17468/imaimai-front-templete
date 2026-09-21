@@ -1586,6 +1586,58 @@ describe("layer-boundaries", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
+  it("should not report when the root route imports the private directory beside it", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/__root.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("./-components/root-layout"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when a nested route imports the root route's private directory", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/login/route.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/routes/-components/not-found"));
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should name the root route's own level when it reports a reach into it", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/login/route.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/routes/-components/not-found"));
+
+    // Assert
+    expect(context.report.mock.calls[0]?.[0].message).toBe(
+      "A `-` directory is private to the route files directly in `src/routes/`. A second route reaching this module makes it shared, so move it to `src/shared/`."
+    );
+  });
+
+  it("should not report when a module in the root route's private directory imports its sibling", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/routes/-components/root-layout.tsx"
+    );
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("./not-found"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
   it("should not report when a module inside a private directory imports its sibling", () => {
     // Arrange
     const context = makeLayerContext(

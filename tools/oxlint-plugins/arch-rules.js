@@ -510,9 +510,11 @@ const resolveImportTarget = (fileSrcDir, specifier) => {
 
 const PRIVATE_DIRECTORY_PREFIX = "-";
 
+const ROUTES_ROOT = "src/routes";
+
 /**
  * The directory that owns the first `-` directory on this path, or `null` when
- * the path holds none. Everything under that directory may import from there.
+ * the path holds none.
  *
  * The last segment is a module name rather than a directory, so a `-` file such
  * as `src/routes/api/-avatars.test.ts` owns nothing.
@@ -523,6 +525,25 @@ const privateOwnerOf = (srcPath) => {
     .slice(0, -1)
     .findIndex((segment) => segment.startsWith(PRIVATE_DIRECTORY_PREFIX));
   return index === -1 ? null : segments.slice(0, index).join("/");
+};
+
+/**
+ * Whether a module at `importerPath` may read one owned by `ownerPath`.
+ *
+ * A deeper owner is one route's directory, and every module under it shares
+ * that route. `src/routes` is the URL space rather than a route, so its `-`
+ * directories belong to the route files sitting directly in it: `__root.tsx`
+ * reads them, and `src/routes/login/route.tsx` is a second route reaching in.
+ */
+const mayReadPrivate = (importerPath, ownerPath) => {
+  if (!importerPath.startsWith(`${ownerPath}/`)) {
+    return false;
+  }
+  if (ownerPath !== ROUTES_ROOT) {
+    return true;
+  }
+  const rest = importerPath.slice(ownerPath.length + 1);
+  return !rest.includes("/") || rest.startsWith(PRIVATE_DIRECTORY_PREFIX);
 };
 
 const layerBoundaries = {
@@ -570,9 +591,13 @@ const layerBoundaries = {
         return;
       }
       const owner = privateOwnerOf(target);
-      if (owner !== null && !srcPath.startsWith(`${owner}/`)) {
+      if (owner !== null && !mayReadPrivate(srcPath, owner)) {
+        const scope =
+          owner === ROUTES_ROOT
+            ? `the route files directly in \`${owner}/\``
+            : `\`${owner}/\``;
         context.report({
-          message: `A \`-\` directory is private to \`${owner}/\`. A second route reaching this module makes it shared, so move it to \`src/shared/\`.`,
+          message: `A \`-\` directory is private to ${scope}. A second route reaching this module makes it shared, so move it to \`src/shared/\`.`,
           node,
         });
       }
