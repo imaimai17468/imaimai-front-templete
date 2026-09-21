@@ -63,19 +63,20 @@ bun run dev
 ```
 src/
 ├── routes/                 # TanStack Router file-based routes
-│   ├── __root.tsx          # Root layout (ThemeProvider, Header, Toaster)
-│   ├── index.tsx           # Home page
-│   ├── login.tsx           # Login page
-│   ├── _authed.tsx         # Pathless layout whose beforeLoad guards its children
-│   ├── _authed/profile.tsx # Profile page
-│   ├── auth.auth-code-error/ # OAuth failure landing page
+│   ├── __root.tsx          # Root route (head, headers, loader)
+│   ├── -components/        # Root route only (RootLayout, NotFound)
+│   ├── index/              # route.tsx と -components/
+│   ├── login/              # route.tsx と -components/
+│   ├── _authed/
+│   │   ├── route.tsx       # 配下をまとめて守る pathless layout
+│   │   └── profile/        # route.tsx と -components/
+│   ├── auth.auth-code-error/ # OAuth failure landing page (route.tsx と -components/)
 │   └── api/                # API routes (auth catch-all, avatars)
-├── gateways/               # createServerFn, its ManagedRuntime wiring, and D1 / R2 persistence
-├── entities/               # Domain types and schemas
-├── components/             # Shared UI components
+├── shared/                 # 2 つ以上のルートが使うもの
+│   ├── components/         # header、theme-provider、user-avatar、page-title
 │   ├── ui/                 # shadcn/ui primitives
-│   ├── shared/             # Cross-page shared components
-│   └── features/           # Feature-specific components
+│   ├── gateway/            # 認可境界と D1 / R2 アクセス
+│   └── entities/           # Domain types and schemas
 ├── lib/
 │   ├── auth/               # Better Auth 設定
 │   ├── cloudflare/         # CloudflareEnv helper (cloudflare:workers)
