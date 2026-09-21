@@ -55,20 +55,10 @@ pre-push:
       run: mise exec -- bun run check:shell
       skip:
         - run: "! command -v mise"
-    # Token-level clone detection over src/, failing on the first clone group
-    # the settings in .fallowrc.jsonc report. fallow is a devDependency, so this
-    # step runs wherever `bun install` ran and carries no skip, unlike the cargo
-    # binary below.
+    # Clone detection over src/, failing on the first clone group the settings
+    # in .fallowrc.jsonc report. Those settings also turn on function-scoped
+    # near-miss detection, which reaches a copy whose identifiers were renamed.
+    # fallow is a devDependency, so this step runs wherever `bun install` ran
+    # and carries no skip.
     dupes:
       run: bun run dupes
-    # Structural similarity between whole functions. The step above runs in
-    # fallow's default `mild` mode, which compares identifiers literally, so a
-    # copy whose names were changed reaches it as a different token stream.
-    # `similarity-ignore` comments are honoured by similarity-ts itself,
-    # and without --fail-on-duplicates it exits 0 whatever it finds. The skip
-    # keeps a machine that never installed this cargo binary from being unable
-    # to push (AGENTS.md, "Degraded Environments").
-    similarity:
-      run: similarity-ts ./src --fail-on-duplicates
-      skip:
-        - run: "! command -v similarity-ts"

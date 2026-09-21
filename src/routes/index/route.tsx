@@ -5,7 +5,6 @@ import { Section } from "./-components/section";
 const SETUP = `git clone https://github.com/imaimai17468/imaimai-front-templete.git
 cd imaimai-front-templete
 mise install                 # Node / Bun / actionlint / shellcheck を mise.toml の版で用意
-cargo install similarity-ts  # pre-push の関数類似検出（Rust 製）
 bun run setup                # 依存・git hooks・生成ファイル・.env.local をまとめて用意
 bun run dev`;
 
@@ -116,7 +115,7 @@ const SPECS: readonly Spec[] = [
       {
         term: "重複",
         detail:
-          "fallow がトークン単位の重複を pre-push と CI で、similarity-ts が関数単位の類似を pre-push で検出する",
+          "fallow が pre-push と CI でコードの複製を検出する。関数単位の near-miss も含み、リネームした写しに届く",
       },
       {
         term: "React",
@@ -177,7 +176,6 @@ const LINKS: readonly ExternalLink[] = [
   { name: "react-doctor", href: "https://github.com/millionco/react-doctor" },
   { name: "lefthook", href: "https://github.com/evilmartians/lefthook" },
   { name: "fallow", href: "https://docs.fallow.tools/" },
-  { name: "similarity-ts", href: "https://github.com/mizchi/similarity" },
   { name: "Vitest", href: "https://vitest.dev/" },
   { name: "mise", href: "https://mise.jdx.dev/" },
 ];

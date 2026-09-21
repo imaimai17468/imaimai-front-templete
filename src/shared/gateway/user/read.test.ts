@@ -11,9 +11,9 @@ import type { ProfileRow } from "./read";
 const AVATAR_KEY = "user-1/avatar.jpg";
 const PROVIDER_IMAGE = "https://images.example.com/from-google.png";
 
-// similarity-ignore: このファイルがテストする CurrentUserReader の Layer を、依存の
-// CurrentSession と UserProfiles を差し替えて組む。共通化すると、ここが差し替えて
-// いない依存が変わったときにもこのテストを書き換えることになる。
+// このファイルがテストする CurrentUserReader の Layer を、依存の CurrentSession と
+// UserProfiles を差し替えて組む。共通化すると、ここが差し替えていない依存が変わった
+// ときにもこのテストを書き換えることになる。
 const makeFakes = (read: CurrentSession["Service"]["read"]) => {
   const findProfile = vi.fn<UserProfiles["Service"]["findProfile"]>();
   const layer = CurrentUserReader.layerNoDeps.pipe(

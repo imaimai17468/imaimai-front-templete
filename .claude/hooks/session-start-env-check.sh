@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # SessionStart hook: environment validation.
 #
-# The enforcement stack assumes tools that not every machine has (similarity-ts
-# binary, node). Gates that silently skip a missing dependency create
-# sessions whose guarantees differ by machine with no signal. This hook makes the
-# degrade visible at session start.
+# The enforcement stack assumes tools that not every machine has (mise, node).
+# Gates that silently skip a missing dependency create sessions whose guarantees
+# differ by machine with no signal. This hook makes the degrade visible at
+# session start.
 #
 set -uo pipefail
 
@@ -31,10 +31,6 @@ CREATED=()
 
 command -v jq >/dev/null 2>&1 || GATE+=("jq (ALL guard hooks parse their input with jq — the gates are effectively OFF)")
 command -v bun >/dev/null 2>&1 || GATE+=("bun (the Stop quality gate, its markdown dead-link check, and lefthook's pre-commit/pre-push checks cannot run)")
-# PATH only, matching the condition lefthook's similarity stage skips on: a
-# binary the hook cannot invoke is absent as far as the gate is concerned, so
-# accepting ~/.cargo/bin here would report a skipped check as present.
-command -v similarity-ts >/dev/null 2>&1 || GATE+=("similarity-ts not on PATH (lefthook pre-push skips structural duplicate-type/function detection; its fallow dupes step still runs; install: cargo install similarity-ts, and put ~/.cargo/bin on PATH)")
 # `mise`, not `actionlint` or `shellcheck`: lefthook runs both static checks
 # through `mise exec --` and skips each on a missing mise, so mise is the
 # condition that decides whether they run. mise.toml pins the versions it
