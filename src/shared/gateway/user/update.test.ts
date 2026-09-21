@@ -21,7 +21,7 @@ import {
 
 const TEST_CLOCK_INSTANT = "1970-01-01T00:00:00.000Z";
 
-// similarity-ignore: toStrictEqual で丸ごと比較するために、マシンの絶対パスと行番号を
+// toStrictEqual で丸ごと比較するために、マシンの絶対パスと行番号を
 // 持つ stack を外して ErrorLogRecord の残り 3 フィールドを取り出す。
 type CapturedReport = Pick<ErrorLogRecord, "event" | "message" | "name">;
 
