@@ -142,7 +142,7 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
               <AvatarImage src={Option.getOrUndefined(avatarUrl)} alt={name} />
               <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
-            <label className="absolute right-0 bottom-0 cursor-pointer rounded-full border bg-primary p-2 text-primary-foreground transition-transform hover:scale-110 has-focus-visible:ring-2 has-focus-visible:ring-ring has-disabled:pointer-events-none has-disabled:opacity-50">
+            <label className="absolute right-0 bottom-0 cursor-pointer rounded-full border bg-primary p-2 text-primary-foreground transition-transform before:absolute before:-inset-1.5 hover:scale-110 active:scale-100 has-focus-visible:ring-2 has-focus-visible:ring-ring has-disabled:pointer-events-none has-disabled:opacity-50">
               <Camera className="size-4" />
               <span className="sr-only">Change profile image</span>
               <input
