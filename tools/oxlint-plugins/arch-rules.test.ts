@@ -30,9 +30,16 @@ const programNode = (
   type: "Program",
 });
 
+interface InitFixture {
+  type: string;
+  body?: unknown;
+  callee?: { name?: string; type?: string; property?: { name: string } };
+  arguments?: { type: string }[];
+}
+
 interface DeclaratorFixture {
   id?: { name?: string; type?: string } | null;
-  init?: { type: string; body?: unknown } | null;
+  init?: InitFixture | null;
 }
 
 /**
@@ -2066,6 +2073,130 @@ describe("one-component-per-file (defensive branches)", () => {
     const visitors = rule.create(context);
     const program = moduleBody({
       declarations: [{ id: { name: "Card", type: "Identifier" }, init: null }],
+      type: "VariableDeclaration",
+    });
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when a second component is wrapped in memo", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const program = moduleBody(exported(arrowDeclaration("Probe")), {
+      declarations: [
+        {
+          id: { name: "Inner", type: "Identifier" },
+          init: {
+            arguments: [{ type: "ArrowFunctionExpression" }],
+            callee: { name: "memo", type: "Identifier" },
+            type: "CallExpression",
+          },
+        },
+      ],
+      type: "VariableDeclaration",
+    });
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a second component is wrapped in a namespaced forwardRef", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const program = moduleBody(exported(arrowDeclaration("Probe")), {
+      declarations: [
+        {
+          id: { name: "Inner", type: "Identifier" },
+          init: {
+            arguments: [{ type: "FunctionExpression" }],
+            callee: {
+              property: { name: "forwardRef" },
+              type: "MemberExpression",
+            },
+            type: "CallExpression",
+          },
+        },
+      ],
+      type: "VariableDeclaration",
+    });
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when memo wraps something other than a function", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const program = moduleBody(exported(arrowDeclaration("Probe")), {
+      declarations: [
+        {
+          id: { name: "Inner", type: "Identifier" },
+          init: {
+            arguments: [{ type: "Identifier" }],
+            callee: { name: "memo", type: "Identifier" },
+            type: "CallExpression",
+          },
+        },
+      ],
+      type: "VariableDeclaration",
+    });
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when memo is called with no argument", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const program = moduleBody(exported(arrowDeclaration("Probe")), {
+      declarations: [
+        {
+          id: { name: "Inner", type: "Identifier" },
+          init: {
+            arguments: [],
+            callee: { name: "memo", type: "Identifier" },
+            type: "CallExpression",
+          },
+        },
+      ],
+      type: "VariableDeclaration",
+    });
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a call expression has no callee", () => {
+    // Arrange
+    const context = makeContext();
+    const visitors = rule.create(context);
+    const program = moduleBody(exported(arrowDeclaration("Probe")), {
+      declarations: [
+        {
+          id: { name: "Inner", type: "Identifier" },
+          init: { arguments: [], type: "CallExpression" },
+        },
+      ],
       type: "VariableDeclaration",
     });
 

@@ -41,9 +41,39 @@ const noSizeProps = {
   },
 };
 
-const isFunctionInit = (init) =>
-  init?.type === "ArrowFunctionExpression" ||
-  init?.type === "FunctionExpression";
+const COMPONENT_WRAPPERS = new Set(["forwardRef", "memo"]);
+
+const wrapperName = (callee) => {
+  if (callee?.type === "Identifier") {
+    return callee.name;
+  }
+  if (callee?.type === "MemberExpression") {
+    return callee.property?.name;
+  }
+  return null;
+};
+
+/**
+ * Whether this initializer produces a component.
+ *
+ * `memo(() => …)` and `forwardRef(() => …)` are components, where every other
+ * call is not, which is what keeps `Route = createFileRoute(...)(...)` out.
+ */
+const isFunctionInit = (init) => {
+  if (
+    init?.type === "ArrowFunctionExpression" ||
+    init?.type === "FunctionExpression"
+  ) {
+    return true;
+  }
+  if (
+    init?.type === "CallExpression" &&
+    COMPONENT_WRAPPERS.has(wrapperName(init.callee))
+  ) {
+    return isFunctionInit(init.arguments?.[0]);
+  }
+  return false;
+};
 
 /**
  * The component-named function declarations a module-scope statement holds,
