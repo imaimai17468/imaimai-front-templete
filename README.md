@@ -68,7 +68,7 @@ src/
 │   ├── login.tsx           # Login page
 │   ├── _authed.tsx         # Pathless layout whose beforeLoad guards its children
 │   ├── _authed/profile.tsx # Profile page
-│   ├── auth.auth-code-error.tsx  # OAuth failure landing page
+│   ├── auth.auth-code-error/ # OAuth failure landing page
 │   └── api/                # API routes (auth catch-all, avatars)
 ├── gateways/               # createServerFn, its ManagedRuntime wiring, and D1 / R2 persistence
 ├── entities/               # Domain types and schemas
