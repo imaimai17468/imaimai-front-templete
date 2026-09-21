@@ -1,7 +1,7 @@
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Option } from "effect";
-import { Camera, Loader2 } from "lucide-react";
+import { Camera } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -24,19 +24,8 @@ import {
   FormMessage,
 } from "@/shared/ui/form";
 import { Input } from "@/shared/ui/input";
+import { SubmitLabel } from "./submit-label";
 import { submitProfile } from "./submit-profile";
-
-const SubmitLabel = ({ isPending }: { readonly isPending: boolean }) => {
-  if (isPending) {
-    return (
-      <>
-        <Loader2 className="mr-2 size-4 motion-safe:animate-spin" />
-        Updating…
-      </>
-    );
-  }
-  return <>Update Profile</>;
-};
 
 export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
   const queryClient = useQueryClient();
