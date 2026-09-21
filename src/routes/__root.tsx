@@ -1,69 +1,14 @@
-import { TanStackDevtools } from "@tanstack/react-devtools";
-import { useSuspenseQuery } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
-import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
-import {
-  HeadContent,
-  Outlet,
-  Scripts,
-  createRootRouteWithContext,
-} from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { createRootRouteWithContext } from "@tanstack/react-router";
 import { DOCUMENT_HEADERS } from "@/lib/response-headers";
-import { Header } from "@/shared/components/header/header";
-import { ThemeProvider } from "@/shared/components/theme-provider/theme-provider";
 import { currentUserQueryOptions } from "@/shared/gateway/user/read.fn";
-import { Toaster } from "@/shared/ui/sonner";
-import { TooltipProvider } from "@/shared/ui/tooltip";
+import { NotFound } from "./-components/not-found";
+import { RootLayout } from "./-components/root-layout";
 import "@/styles.css";
 
 if (import.meta.env.DEV && !import.meta.env.SSR) {
   void import("react-grab");
 }
-
-const RootComponent = () => {
-  const { data: user } = useSuspenseQuery(currentUserQueryOptions());
-  return (
-    <html lang="ja" suppressHydrationWarning>
-      <head>
-        <HeadContent />
-      </head>
-      <body className="antialiased">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
-          <TooltipProvider>
-            <div className="flex min-h-dvh flex-col gap-16">
-              <Header user={user} />
-              <div className="flex w-full flex-1 justify-center px-6 md:px-4">
-                <div className="container">
-                  <Outlet />
-                </div>
-              </div>
-            </div>
-            <Toaster richColors position="top-center" />
-          </TooltipProvider>
-        </ThemeProvider>
-        <TanStackDevtools
-          plugins={[
-            {
-              name: "TanStack Router",
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-            {
-              name: "TanStack Query",
-              render: <ReactQueryDevtoolsPanel />,
-            },
-          ]}
-        />
-        <Scripts />
-      </body>
-    </html>
-  );
-};
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
@@ -77,6 +22,6 @@ export const Route = createRootRouteWithContext<{
     ],
   }),
   headers: () => DOCUMENT_HEADERS,
-  component: RootComponent,
-  notFoundComponent: () => <p>ページが見つかりません</p>,
+  component: RootLayout,
+  notFoundComponent: NotFound,
 });
