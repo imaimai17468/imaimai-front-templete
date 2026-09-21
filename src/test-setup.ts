@@ -10,3 +10,7 @@ class ResizeObserverStub implements ResizeObserver {
 }
 
 globalThis.ResizeObserver = ResizeObserverStub;
+
+// jsdom は scrollTo を実装せず、呼ばれるたびに "Not implemented" を出す。
+// TanStack Router のスクロール復元が遷移ごとに呼ぶ。
+vi.stubGlobal("scrollTo", vi.fn<() => void>());
