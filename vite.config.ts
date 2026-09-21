@@ -128,7 +128,19 @@ export default defineConfig({
       "@typescript-eslint/strict-void-return": "error",
       "unicorn/throw-new-error": "error",
       "import/no-cycle": "error",
-      "import/no-unassigned-import": "off",
+      // A stylesheet, a matcher registration and the marker
+      // `arch-rules/server-only-marker` asks for are all read for what loading
+      // them does, so they are the three specifiers with nothing to bind.
+      "import/no-unassigned-import": [
+        "error",
+        {
+          allow: [
+            "**/*.css",
+            "@tanstack/react-start/server-only",
+            "@testing-library/jest-dom/vitest",
+          ],
+        },
+      ],
       "react/jsx-no-constructed-context-values": "error",
       "vitest/no-conditional-in-test": "error",
       "style-rules/no-loops": "error",
@@ -349,26 +361,6 @@ export default defineConfig({
           "max-classes-per-file": "off",
           "unicorn/throw-new-error": "off",
         },
-      },
-      {
-        // `useRef` takes the value React hands back as `current`, and a ref
-        // attached to a DOM node starts with no node.
-        files: [
-          "src/routes/_authed/profile/-components/profile-form/profile-form.tsx",
-        ],
-        rules: { "effect/noNullish": "off" },
-      },
-      {
-        // A React component renders nothing by returning `null`, which is what
-        // the stub route here does.
-        files: ["src/test/router-utils.tsx"],
-        rules: { "effect/noNullish": "off" },
-      },
-      {
-        // `cn` forwards whatever clsx accepts, and this file asserts that an
-        // `undefined` among its arguments contributes no class.
-        files: ["src/lib/utils.test.ts"],
-        rules: { "effect/noNullish": "off" },
       },
       {
         // The rule asks for `vi.mock(import("./x"), …)`, whose argument
