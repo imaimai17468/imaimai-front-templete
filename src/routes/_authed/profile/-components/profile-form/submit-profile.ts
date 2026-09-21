@@ -21,7 +21,7 @@ export interface SubmitProfileDeps {
  * `avatarUploaded` is on every arm, because a stored avatar followed by a
  * failed name write still clears the pending file.
  */
-export interface ProfileSubmission {
+interface ProfileSubmission {
   readonly avatarUploaded: boolean;
   readonly outcome:
     | { readonly status: "saved" }
