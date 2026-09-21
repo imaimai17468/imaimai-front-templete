@@ -14,7 +14,7 @@ export const TREE = `src/
 │   ├── _authed/
 │   │   ├── route.tsx       # 配下をまとめて守る pathless layout
 │   │   └── profile/        # route.tsx と -components/
-│   ├── auth.auth-code-error.tsx  # OAuth failure landing page
+│   ├── auth.auth-code-error/  # OAuth failure landing page（route.tsx と -components/）
 │   └── api/                # API routes (auth catch-all, avatars)
 ├── shared/                 # 2 つ以上のルートが使うもの
 │   ├── components/         # 自前で書いたコンポーネント
