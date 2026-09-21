@@ -4,12 +4,11 @@ import type { UserWithEmail } from "@/shared/entities/user";
 import { Button } from "@/shared/ui/button";
 import { UserMenu } from "../user-menu/user-menu";
 
-// similarity-ignore: Header と構造が偶然一致するが、認証ナビゲーション固有の Props 契約。
-interface AuthNavigationProps {
-  user: Option.Option<UserWithEmail>;
-}
-
-export const AuthNavigation = ({ user }: AuthNavigationProps) => {
+export const AuthNavigation = ({
+  user,
+}: {
+  readonly user: Option.Option<UserWithEmail>;
+}) => {
   if (Option.isSome(user)) {
     return <UserMenu user={user.value} />;
   }

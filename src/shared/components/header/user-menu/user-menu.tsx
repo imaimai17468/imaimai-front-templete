@@ -14,17 +14,12 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 
-// similarity-ignore: コンポーネント固有の Props 契約。構造が `{ user }` と偶然一致するが責務は別。
-interface UserMenuProps {
-  user: UserWithEmail;
-}
-
 const handleSignOut = (): Promise<void> =>
   signOut().then(() => {
     window.location.reload();
   });
 
-export const UserMenu = ({ user }: UserMenuProps) => {
+export const UserMenu = ({ user }: { readonly user: UserWithEmail }) => {
   const avatarUrl = Option.fromNullOr(user.avatarUrl);
   const name = displayName(Option.fromNullOr(user.name));
   const { email } = user;
