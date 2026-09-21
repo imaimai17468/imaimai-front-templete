@@ -17,7 +17,7 @@ export const TREE = `src/
 │   ├── auth.auth-code-error.tsx  # OAuth failure landing page
 │   └── api/                # API routes (auth catch-all, avatars)
 ├── shared/                 # 2 つ以上のルートが使うもの
-│   ├── components/         # header、theme-provider
+│   ├── components/         # 自前で書いたコンポーネント
 │   ├── ui/                 # shadcn/ui primitives
 │   ├── gateway/            # 認可境界と D1 / R2 アクセス
 │   │   └── user/
