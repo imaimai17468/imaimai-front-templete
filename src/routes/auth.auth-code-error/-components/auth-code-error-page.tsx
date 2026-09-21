@@ -7,7 +7,7 @@ export const AuthCodeErrorPage = () => (
     <div className="flex flex-col items-center gap-4">
       <AlertTriangle className="size-12 text-destructive" />
       <h1 className="text-2xl font-semibold">Authentication Error</h1>
-      <p className="max-w-md text-center text-muted-foreground">
+      <p className="max-w-md text-muted-foreground">
         An error occurred during authentication.
         <br />
         Please try again.
