@@ -1,11 +1,7 @@
 import "@tanstack/react-start/server-only";
-import { eq } from "drizzle-orm";
 import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
-import { getDb } from "@/lib/drizzle/db";
-import { users } from "@/lib/drizzle/schema";
-import { reportError } from "@/lib/report-error";
 import type { UpdateUser } from "@/shared/entities/user";
-import { orNone, persistenceEffect, UnexpectedRowCount } from ".";
+import { writeUserRow, wroteOneRow } from ".";
 import type { UserPersistenceError } from ".";
 import { makeRunHandler } from "../runtime";
 import { AvatarWriter } from "./avatar/update";
@@ -30,9 +26,7 @@ class UserNameUpdateFailed extends Schema.TaggedError<UserNameUpdateFailed>()(
  * The `name` column of a user's own row.
  *
  * A service rather than a direct query so a test drives the failure arm
- * without a D1 binding. `set` reports the number of rows it touched, so the
- * caller can reject a write that addressed nobody, the way the avatar path
- * already does.
+ * without a D1 binding.
  */
 export class UserNames extends Context.Service<
   UserNames,
@@ -48,17 +42,7 @@ export class UserNames extends Context.Service<
     UserNames,
     UserNames.of({
       set: (userId, name, updatedAt) =>
-        persistenceEffect(() =>
-          getDb()
-            .update(users)
-            .set({
-              name: Option.getOrNull(name),
-              updatedAt: DateTime.toDateUtc(updatedAt),
-            })
-            .where(eq(users.id, userId))
-            .returning({ id: users.id })
-            .then((rows) => rows.length)
-        ),
+        writeUserRow(userId, { name: Option.getOrNull(name) }, updatedAt),
     })
   );
 }
@@ -110,19 +94,11 @@ export class ProfileWriter extends Context.Service<
         function* updateProfile(data: UpdateUser) {
           const user = yield* requireUser;
           const updatedAt = yield* DateTime.now;
-          const rowsTouched = yield* orNone(
+          const wrote = yield* wroteOneRow(
             "user.updateName",
             names.set(user.id, Option.some(data.name), updatedAt)
           );
-          if (!Option.contains(rowsTouched, 1)) {
-            if (Option.isSome(rowsTouched)) {
-              yield* reportError(
-                "user.updateName",
-                new UnexpectedRowCount({
-                  message: `expected 1 row, got ${String(rowsTouched.value)}`,
-                })
-              );
-            }
+          if (!wrote) {
             return yield* new UserNameUpdateFailed();
           }
           return yield* Effect.void;
