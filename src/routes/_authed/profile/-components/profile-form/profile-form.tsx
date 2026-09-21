@@ -70,6 +70,8 @@ export const ProfileForm = ({ user }: ProfileFormProps) => {
     if (!file) {
       return;
     }
+    // 選択は pendingFile が持つので、同じファイルを選び直しても change が届く。
+    e.target.value = "";
 
     const rejection = avatarSizeRejection(file.size);
     if (Option.isSome(rejection)) {
