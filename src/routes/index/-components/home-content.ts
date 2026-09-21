@@ -147,12 +147,12 @@ export const SPECS: readonly Spec[] = [
   },
 ];
 
-interface ExternalLink {
+interface ReferenceLink {
   readonly name: string;
   readonly href: string;
 }
 
-export const LINKS: readonly ExternalLink[] = [
+export const LINKS: readonly ReferenceLink[] = [
   { name: "TanStack Start", href: "https://tanstack.com/start/" },
   { name: "TanStack Router", href: "https://tanstack.com/router/" },
   { name: "Tailwind CSS", href: "https://tailwindcss.com/docs" },

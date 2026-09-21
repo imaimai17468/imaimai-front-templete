@@ -1,5 +1,6 @@
 import { PageTitle } from "@/shared/components/page-title/page-title";
 import { CodeBlock } from "./code-block/code-block";
+import { ExternalLink } from "./external-link";
 import { LINKS, SETUP, SPECS, TREE } from "./home-content";
 import { Section } from "./section";
 
@@ -12,15 +13,9 @@ export const HomePage = () => (
         で動かすフルスタックテンプレート。認証とデータベースとストレージは配線済みで、規約は文書だけでなく
         lint プラグインと git hook にも置いてある。
       </p>
-      <a
-        href="https://github.com/imaimai17468/imaimai-front-templete"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="-mx-2 inline-flex min-h-11 items-center rounded-md px-2 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:opacity-70"
-      >
+      <ExternalLink href="https://github.com/imaimai17468/imaimai-front-templete">
         GitHub
-        <span className="sr-only"> (opens in a new tab)</span>
-      </a>
+      </ExternalLink>
     </section>
 
     <Section heading="セットアップ">
@@ -81,15 +76,7 @@ export const HomePage = () => (
       <ul className="grid gap-x-6 sm:grid-cols-2">
         {LINKS.map((link) => (
           <li key={link.href}>
-            <a
-              href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="-mx-2 inline-flex min-h-11 items-center rounded-md px-2 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:opacity-70"
-            >
-              {link.name}
-              <span className="sr-only"> (opens in a new tab)</span>
-            </a>
+            <ExternalLink href={link.href}>{link.name}</ExternalLink>
           </li>
         ))}
       </ul>
