@@ -1,12 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle } from "lucide-react";
+import { PageTitle } from "@/shared/components/page-title/page-title";
 import { Button } from "@/shared/ui/button";
 
 export const AuthCodeErrorPage = () => (
   <div className="flex min-h-dvh flex-col items-center justify-center gap-6">
     <div className="flex flex-col items-center gap-4">
       <AlertTriangle className="size-12 text-destructive" />
-      <h1 className="text-2xl font-semibold">Authentication Error</h1>
+      <PageTitle>Authentication Error</PageTitle>
       <p className="max-w-md text-muted-foreground">
         An error occurred during authentication.
         <br />

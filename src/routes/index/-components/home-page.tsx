@@ -1,3 +1,4 @@
+import { PageTitle } from "@/shared/components/page-title/page-title";
 import { CodeBlock } from "./code-block/code-block";
 import { LINKS, SETUP, SPECS, TREE } from "./home-content";
 import { Section } from "./section";
@@ -5,9 +6,7 @@ import { Section } from "./section";
 export const HomePage = () => (
   <div className="flex flex-col gap-12 pb-16">
     <section className="flex flex-col gap-3">
-      <h1 className="text-2xl font-medium tracking-tight">
-        imaimai-front-templete
-      </h1>
+      <PageTitle>imaimai-front-templete</PageTitle>
       <p className="max-w-prose text-muted-foreground">
         TanStack Start を Cloudflare Workers
         で動かすフルスタックテンプレート。認証とデータベースとストレージは配線済みで、規約は文書だけでなく
