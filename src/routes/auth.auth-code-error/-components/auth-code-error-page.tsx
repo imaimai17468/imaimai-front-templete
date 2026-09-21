@@ -1,8 +1,8 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 
-const AuthCodeErrorComponent = () => (
+export const AuthCodeErrorPage = () => (
   <div className="flex min-h-dvh flex-col items-center justify-center gap-6">
     <div className="flex flex-col items-center gap-4">
       <AlertTriangle className="size-12 text-destructive" />
@@ -23,7 +23,3 @@ const AuthCodeErrorComponent = () => (
     </div>
   </div>
 );
-
-export const Route = createFileRoute("/auth/auth-code-error")({
-  component: AuthCodeErrorComponent,
-});
