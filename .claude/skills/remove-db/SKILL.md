@@ -57,7 +57,8 @@ interface rather than omitting it, which was verified rather than assumed).
 
 ### `src/shared/components/header/header.tsx`
 
-Remove the `user` prop and the `UserWithEmail` / `AuthNavigation` imports:
+Remove the `user` prop and the `Option` / `UserWithEmail` / `AuthNavigation`
+imports:
 
 ```tsx
 import { Link } from "@tanstack/react-router";
