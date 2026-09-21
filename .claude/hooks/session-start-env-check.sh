@@ -34,7 +34,7 @@ command -v bun >/dev/null 2>&1 || GATE+=("bun (the Stop quality gate, its markdo
 # PATH only, matching the condition lefthook's similarity stage skips on: a
 # binary the hook cannot invoke is absent as far as the gate is concerned, so
 # accepting ~/.cargo/bin here would report a skipped check as present.
-command -v similarity-ts >/dev/null 2>&1 || GATE+=("similarity-ts not on PATH (lefthook pre-push skips duplicate-type/function detection; install: cargo install similarity-ts, and put ~/.cargo/bin on PATH)")
+command -v similarity-ts >/dev/null 2>&1 || GATE+=("similarity-ts not on PATH (lefthook pre-push skips structural duplicate-type/function detection; its fallow dupes step still runs; install: cargo install similarity-ts, and put ~/.cargo/bin on PATH)")
 # `mise`, not `actionlint` or `shellcheck`: lefthook runs both static checks
 # through `mise exec --` and skips each on a missing mise, so mise is the
 # condition that decides whether they run. mise.toml pins the versions it
@@ -59,10 +59,8 @@ fi
 # A capability probe, not a version compare: what old node lacks is
 # `module.registerHooks`, which @cloudflare/vite-plugin imports at module top
 # level, so loading vite.config.ts fails wherever it is loaded. Observed on
-# node 22.14: `bun run build` exits 1, while knip prints "Error loading
-# vite.config.ts" and still exits 0 — CI's knip step loses its vite-config
-# analysis with no failing exit code to show for it.
-node -e 'if (typeof require("node:module").registerHooks !== "function") process.exit(1)' >/dev/null 2>&1 || GATE+=("node with module.registerHooks — see engines in package.json (vite build fails; knip still exits 0 but cannot analyze vite.config.ts)")
+# node 22.14: `bun run build` exits 1.
+node -e 'if (typeof require("node:module").registerHooks !== "function") process.exit(1)' >/dev/null 2>&1 || GATE+=("node with module.registerHooks — see engines in package.json (vite build fails)")
 
 # Gitignored, so a fresh checkout has none, and a worktree gets one only where
 # the main checkout already had one. `-L` sits beside `-e` because `-e` follows

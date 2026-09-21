@@ -16,12 +16,12 @@ import type {
 } from "./avatar/update";
 import { CurrentUserReader } from "./read";
 
-export class NotAuthenticated extends Schema.TaggedError<NotAuthenticated>()(
+class NotAuthenticated extends Schema.TaggedError<NotAuthenticated>()(
   "NotAuthenticated",
   {}
 ) {}
 
-export class UserNameUpdateFailed extends Schema.TaggedError<UserNameUpdateFailed>()(
+class UserNameUpdateFailed extends Schema.TaggedError<UserNameUpdateFailed>()(
   "UserNameUpdateFailed",
   {}
 ) {}

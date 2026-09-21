@@ -132,7 +132,7 @@ component が `AvatarGateway` を直接 import する経路は、`src/shared/gat
 | `src/` | 69 ファイル |
 | サーバ処理の全量（テスト除く） | 約 100 行 |
 | HTTP エンドポイント | 2 本 |
-| `src/` パスをハードコードしている設定 | `vitest.config.mts` / `knip.json` / `tsconfig.json` / `wrangler.toml` / `components.json` / `vite.config.ts` |
+| `src/` パスをハードコードしている設定 | `vitest.config.mts` / `.fallowrc.jsonc` / `package.json` / `tsconfig.json` / `wrangler.toml` / `components.json` / `vite.config.ts` |
 | `tools/oxlint-plugins/arch-rules.js` のパス依存 | `"src/` を含む行が 16（2026-09-16 計測。他の行は revert した移行時の記録） |
 
 **エンドポイントの移設コストは本数に比例しない。** ハンドラのロジックが

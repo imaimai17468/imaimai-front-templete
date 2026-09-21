@@ -25,7 +25,8 @@
     "cf-typegen:check": "wrangler types --check --env-interface CloudflareEnv",
     "test": "vp test --run --coverage",
     "smoke": "vp build && bun scripts/smoke.entry.ts",
-    "knip": "knip",
+    "dead-code": "fallow dead-code",
+    "dupes": "fallow dupes ./src",
     "doctor": "react-doctor",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
@@ -76,8 +77,8 @@
     "@vitest/coverage-v8": "4.1.11",
     "dotenv": "17.4.2",
     "drizzle-kit": "0.31.10",
+    "fallow": "3.27.0",
     "jsdom": "30.0.1",
-    "knip": "6.32.2",
     "lefthook": "2.1.10",
     "oxfmt": "0.64.0",
     "oxlint": "1.79.0",
@@ -96,7 +97,9 @@
     "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0",
     "vite-plus": "0.3.0",
     "vitest": "4.1.11",
-    "wrangler": "4.110.0"
+    "wrangler": "4.110.0",
+    "yaml": "2.9.0",
+    "zod": "4.4.3"
   },
   "overrides": {
     "browserslist": "4.28.9",

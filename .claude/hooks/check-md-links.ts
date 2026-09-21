@@ -373,7 +373,7 @@ const isSymlink = (target: string): boolean => {
  * directory. Only components *inside* the repository are inspected; a path the
  * caller passed from outside the repository is the caller's own choice.
  */
-export const reachedViaSymlink = (target: string): boolean => {
+const reachedViaSymlink = (target: string): boolean => {
   if (isSymlink(target)) {
     return true;
   }
@@ -396,7 +396,7 @@ const gitListed = (extra: readonly string[]): Set<string> => {
   return new Set(out.split("\0").filter((entry) => entry !== ""));
 };
 
-export const mdFiles = (argv: readonly string[]): string[] => {
+const mdFiles = (argv: readonly string[]): string[] => {
   if (argv.length > 0) {
     // Resolved without following symlinks, which would defeat the symlink check
     // in main() for explicitly-named files — the path would already be the target

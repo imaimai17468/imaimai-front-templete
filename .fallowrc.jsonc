@@ -1,0 +1,53 @@
+{
+  "$schema": "./node_modules/fallow/schema.json",
+  // Framework and package.json entries are discovered; these are the ones
+  // discovery cannot see. src/routes/ is absent on purpose: the tanstack-router
+  // plugin seeds the 8 route files itself and leaves the `-` directories beside
+  // them out, so their exports get checked like any other module. A glob here
+  // would have to name those directories to exclude them, and `!` in this list
+  // does nothing — `fallow list --entry-points` counted the same 50 manual
+  // entries with and without it.
+  "entry": [
+    "scripts/**/*.{ts,js}",
+    "src/shared/ui/**/*.{ts,tsx}",
+    "src/lib/utils.ts",
+    "src/test/**/*.{ts,tsx}",
+  ],
+  // Vendored skill payloads: nothing in this repository imports them, and the
+  // next update to the skill overwrites whatever a cleanup did to them.
+  "ignorePatterns": [".claude/skills/**"],
+  // Read by the react-doctor binary at startup, which no import graph reaches.
+  "dynamicallyLoaded": ["doctor.config.ts"],
+  "ignoreDependencies": [
+    // Named as strings in the `lint.plugins` block of vite.config.ts, which
+    // fallow reads as configuration data rather than as imports.
+    "@shadcn/lint",
+    "@tanstack/eslint-plugin-query",
+    // peerDependency of @hookform/resolvers, whose standard-schema/dist/*.d.ts
+    // imports StandardSchemaV1 from it. No file here names it, so dropping it
+    // fails the type check rather than the analysis.
+    "@standard-schema/spec",
+  ],
+  "rules": {
+    // The rule predicts that a production install omitting devDependencies
+    // breaks an import, and it reports five packages here: the devtools that
+    // src/routes/__root.tsx imports behind a dev guard
+    // (@tanstack/react-devtools, @tanstack/react-query-devtools, react-grab),
+    // vite-plus from src/test-setup.ts and src/test/render.tsx, and yaml from
+    // scripts/claude-frontmatter.ts. `bun run deploy` uploads a bundled Worker,
+    // so no install runs against the deployment at all, and the last two are
+    // reached only from tests and scripts, which no deployment runs.
+    "dev-dependencies-in-production": "off",
+  },
+  "duplicates": {
+    "near": true,
+    // shadcn writes this directory, so a clone removed here comes back with the
+    // next `shadcn add`.
+    "ignore": ["src/shared/ui/**"],
+    // A ceiling rather than `--fail-on-issues`: src/ sits at 3.2% on
+    // 2026-09-21, all of it the two parallel Effect writers under
+    // src/shared/gateway/user/, and a per-clone suppression would go stale on
+    // the next edit to either of them because the fingerprint is content-keyed.
+    "threshold": 4,
+  },
+}
