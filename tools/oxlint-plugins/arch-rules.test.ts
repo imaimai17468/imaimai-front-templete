@@ -320,13 +320,34 @@ describe("one-component-per-file", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it("should name both components when it reports the second one", () => {
+  it("should keep the file's namesake when the intruder is declared first", () => {
     // Arrange
-    const context = makeContext();
+    const context = makeLayerContext(
+      "/repo/src/routes/_authed/profile/-components/profile-form/profile-form.tsx"
+    );
+    const visitors = rule.create(context);
+    const intruder = arrowDeclaration("SubmitLabel");
+    const program = moduleBody(
+      intruder,
+      exported(arrowDeclaration("ProfileForm"))
+    );
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report.mock.calls[0]?.[0].node).toBe(intruder);
+  });
+
+  it("should name the intruder as the one to move when it reports", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/routes/_authed/profile/-components/profile-form/profile-form.tsx"
+    );
     const visitors = rule.create(context);
     const program = moduleBody(
-      arrowDeclaration("HomeComponent"),
-      exported(arrowDeclaration("Route"))
+      arrowDeclaration("SubmitLabel"),
+      exported(arrowDeclaration("ProfileForm"))
     );
 
     // Act
@@ -334,8 +355,22 @@ describe("one-component-per-file", () => {
 
     // Assert
     expect(context.report.mock.calls[0]?.[0].message).toBe(
-      "A file declares one component, exported or not. 'Route' shares this file with 'HomeComponent'. Move it to a file named after it."
+      "A file declares one component, exported or not. 'SubmitLabel' shares this file with 'ProfileForm'. Move 'SubmitLabel' to a file named after it."
     );
+  });
+
+  it("should keep the first declaration when the file name names neither", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/shared/components/index.ts");
+    const visitors = rule.create(context);
+    const second = exported(arrowDeclaration("ComponentB"));
+    const program = moduleBody(arrowDeclaration("ComponentA"), second);
+
+    // Act
+    visitors.Program(program);
+
+    // Assert
+    expect(context.report.mock.calls[0]?.[0].node).toBe(second);
   });
 
   it("should not report when the only component is declared via ArrowFunctionExpression", () => {

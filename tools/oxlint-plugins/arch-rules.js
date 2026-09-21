@@ -83,21 +83,57 @@ const componentsDeclaredBy = (statement) => {
   return [];
 };
 
+const SKIP_STEMS = new Set(["index"]);
+
+const TEST_STEM_SUFFIX = /\.(?:test|spec)$/u;
+
+const isTestStem = (stem) => TEST_STEM_SUFFIX.test(stem);
+
+/**
+ * The component name a file's own name calls for, or `null` where the name
+ * yields none: an empty or test stem, `index`, or a stem whose first character
+ * does not upper-case (`__root`).
+ */
+const expectedComponentName = (filename) => {
+  const basename = filename.slice(filename.lastIndexOf("/") + 1);
+  const stem = basename.replace(/\.(?:tsx?|jsx?)$/u, "");
+  if (stem === "" || SKIP_STEMS.has(stem) || isTestStem(stem)) {
+    return null;
+  }
+  const name = stem
+    .split(/[.-]/u)
+    .map((part) =>
+      part.length === 0 ? part : part[0].toUpperCase() + part.slice(1)
+    )
+    .join("");
+  return isComponentName(name) ? name : null;
+};
+
 const oneComponentPerFile = {
   create(context) {
+    const filename = context.filename ?? context.getFilename?.();
+    const namesake = filename ? expectedComponentName(filename) : null;
+
     return {
       Program(node) {
-        const declared = [];
-        for (const statement of node.body) {
-          for (const name of componentsDeclaredBy(statement)) {
-            declared.push(name);
-            if (declared.length > 1) {
-              context.report({
-                message: `A file declares one component, exported or not. '${name}' shares this file with '${declared[0]}'. Move it to a file named after it.`,
-                node: statement,
-              });
-            }
+        const declared = node.body.flatMap((statement) =>
+          componentsDeclaredBy(statement).map((name) => ({ name, statement }))
+        );
+        if (declared.length < 2) {
+          return;
+        }
+        // The file's namesake stays, so the report lands on the intruder even
+        // where it was declared first, as `SubmitLabel` was above `ProfileForm`.
+        const keeper =
+          declared.find((entry) => entry.name === namesake) ?? declared[0];
+        for (const entry of declared) {
+          if (entry === keeper) {
+            continue;
           }
+          context.report({
+            message: `A file declares one component, exported or not. '${entry.name}' shares this file with '${keeper.name}'. Move '${entry.name}' to a file named after it.`,
+            node: entry.statement,
+          });
         }
       },
     };
@@ -253,32 +289,6 @@ const singleExpect = {
       },
     };
   },
-};
-
-const SKIP_STEMS = new Set(["index"]);
-
-const TEST_STEM_SUFFIX = /\.(?:test|spec)$/u;
-
-const isTestStem = (stem) => TEST_STEM_SUFFIX.test(stem);
-
-/**
- * The component name a file's own name calls for, or `null` where the name
- * yields none: an empty or test stem, `index`, or a stem whose first character
- * does not upper-case (`__root`).
- */
-const expectedComponentName = (filename) => {
-  const basename = filename.slice(filename.lastIndexOf("/") + 1);
-  const stem = basename.replace(/\.(?:tsx?|jsx?)$/u, "");
-  if (stem === "" || SKIP_STEMS.has(stem) || isTestStem(stem)) {
-    return null;
-  }
-  const name = stem
-    .split(/[.-]/u)
-    .map((part) =>
-      part.length === 0 ? part : part[0].toUpperCase() + part.slice(1)
-    )
-    .join("");
-  return isComponentName(name) ? name : null;
 };
 
 const componentFileNaming = {
