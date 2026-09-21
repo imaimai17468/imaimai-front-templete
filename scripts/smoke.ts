@@ -27,6 +27,7 @@ export interface Route {
  * application's record has to be made on this side too and cannot drop a
  * header silently.
  */
+// fallow-ignore-next-line code-duplication
 export const EXPECTED_DOCUMENT_HEADERS = {
   "Cache-Control": "private, no-store",
   "Content-Security-Policy": "frame-ancestors 'none'",

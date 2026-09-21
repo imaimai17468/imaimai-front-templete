@@ -36,6 +36,10 @@
   },
   "duplicates": {
     "near": true,
+    // A five-field `type` declaration is 20 tokens, so fallow's default floor
+    // of 50 left a row shape copied between modules unreported. This one
+    // reaches it.
+    "minTokens": 20,
     // shadcn writes this directory, so a clone removed here comes back with the
     // next `shadcn add`.
     "ignore": ["src/shared/ui/**"],

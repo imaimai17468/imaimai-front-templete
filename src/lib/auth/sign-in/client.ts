@@ -27,6 +27,9 @@ export const signInWithEmail = (credentials: {
     .email(credentials)
     .then(({ error }) => reportedFailure(error));
 
+// サインインと同じ形で別のエンドポイントを叩く。メソッドを引数にして 1 本に
+// すると、呼び出し側からどちらを叩いているかが消える。
+// fallow-ignore-next-line code-duplication
 export const signUpWithEmail = (account: {
   readonly email: string;
   readonly name: string;

@@ -8,7 +8,7 @@ import { users } from "@/lib/drizzle/schema";
 import { httpsUrl } from "@/lib/https-url";
 import { UserWithEmailSchema } from "@/shared/entities/user";
 import type { UserWithEmail } from "@/shared/entities/user";
-import { persistenceEffect } from ".";
+import { dieOnPersistenceError, persistenceEffect } from ".";
 import type { UserPersistenceError } from ".";
 import { makeRunHandler } from "../runtime";
 
@@ -140,8 +140,7 @@ export class CurrentUserReader extends Context.Service<
  *
  * A row the caller owns either loads or it does not; a D1 failure has no
  * user-facing branch here, so it becomes a defect and the framework answers it
- * the way it answers any other rejection. Naming the tag rather than calling
- * `Effect.orDie` keeps a failure added later out of this arm.
+ * the way it answers any other rejection.
  */
 export const readCurrentUser: Effect.Effect<
   Option.Option<UserWithEmail>,
@@ -150,11 +149,7 @@ export const readCurrentUser: Effect.Effect<
 > = Effect.gen(function* readCurrentUser() {
   const reader = yield* CurrentUserReader;
   return yield* reader.read;
-}).pipe(
-  Effect.catchTags({
-    UserPersistenceError: (error) => Effect.die(error.cause),
-  })
-);
+}).pipe(Effect.catchTags(dieOnPersistenceError));
 
 const runCurrentUserHandler = makeRunHandler(CurrentUserReader.layer);
 

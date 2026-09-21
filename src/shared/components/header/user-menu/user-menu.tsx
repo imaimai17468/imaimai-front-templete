@@ -2,9 +2,9 @@ import { Link } from "@tanstack/react-router";
 import { Option } from "effect";
 import { LogOut, User as UserIcon } from "lucide-react";
 import { signOut } from "@/lib/auth/sign-in";
+import { UserAvatar } from "@/shared/components/user-avatar/user-avatar";
 import { displayName } from "@/shared/entities/user";
 import type { UserWithEmail } from "@/shared/entities/user";
-import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,10 +31,7 @@ export const UserMenu = ({ user }: { readonly user: UserWithEmail }) => {
           type="button"
           className="cursor-pointer rounded-full focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
         >
-          <Avatar>
-            <AvatarImage src={Option.getOrUndefined(avatarUrl)} alt={name} />
-            <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
-          </Avatar>
+          <UserAvatar avatarUrl={avatarUrl} name={name} />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56" sideOffset={16}>

@@ -9,10 +9,10 @@ import {
   avatarSizeRejection,
   MAX_AVATAR_BYTES,
 } from "@/lib/storage/avatar-validation";
+import { UserAvatar } from "@/shared/components/user-avatar/user-avatar";
 import type { UpdateUser, UserWithEmail } from "@/shared/entities/user";
 import { displayName, UpdateUserSchema } from "@/shared/entities/user";
 import { currentUserQueryOptions } from "@/shared/gateway/user/read.fn";
-import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
 import {
   Form,
@@ -133,10 +133,7 @@ export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
       >
         <div className="flex items-center gap-6">
           <div className="relative">
-            <Avatar size="lg">
-              <AvatarImage src={Option.getOrUndefined(avatarUrl)} alt={name} />
-              <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
+            <UserAvatar avatarUrl={avatarUrl} name={name} size="lg" />
             <label className="absolute right-0 bottom-0 cursor-pointer rounded-full border bg-primary p-2 text-primary-foreground transition-transform before:absolute before:-inset-1.5 hover:scale-110 active:scale-100 has-focus-visible:ring-2 has-focus-visible:ring-ring has-disabled:pointer-events-none has-disabled:opacity-50">
               <Camera className="size-4" />
               <span className="sr-only">Change profile image</span>

@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CodeBlock } from "./-components/code-block/code-block";
+import { Section } from "./-components/section";
 
 const SETUP = `git clone https://github.com/imaimai17468/imaimai-front-templete.git
 cd imaimai-front-templete
 mise install                 # Node / Bun / actionlint / shellcheck を mise.toml の版で用意
-cargo install similarity-ts  # pre-push の関数類似検出（Rust 製）
 bun run setup                # 依存・git hooks・生成ファイル・.env.local をまとめて用意
 bun run dev`;
 
@@ -115,7 +115,7 @@ const SPECS: readonly Spec[] = [
       {
         term: "重複",
         detail:
-          "fallow がトークン単位の重複を pre-push と CI で、similarity-ts が関数単位の類似を pre-push で検出する",
+          "fallow が pre-push と CI でコードの複製を検出する。関数単位の near-miss も含み、リネームした写しに届く",
       },
       {
         term: "React",
@@ -176,7 +176,6 @@ const LINKS: readonly ExternalLink[] = [
   { name: "react-doctor", href: "https://github.com/millionco/react-doctor" },
   { name: "lefthook", href: "https://github.com/evilmartians/lefthook" },
   { name: "fallow", href: "https://docs.fallow.tools/" },
-  { name: "similarity-ts", href: "https://github.com/mizchi/similarity" },
   { name: "Vitest", href: "https://vitest.dev/" },
   { name: "mise", href: "https://mise.jdx.dev/" },
 ];
@@ -203,8 +202,7 @@ const HomeComponent = () => (
       </a>
     </section>
 
-    <section className="flex flex-col gap-3">
-      <h2 className="text-base font-medium">セットアップ</h2>
+    <Section heading="セットアップ">
       <CodeBlock label="セットアップコマンド" code={SETUP} />
       <p className="max-w-prose text-sm text-muted-foreground">
         http://my-app.localhost:1355 でアクセスできる（portless が名前付き URL
@@ -227,21 +225,19 @@ const HomeComponent = () => (
         </code>{" "}
         が同じセットアップを自動実行する。
       </p>
-    </section>
+    </Section>
 
-    <section className="flex flex-col gap-3">
-      <h2 className="text-base font-medium">ファイル構成</h2>
+    <Section heading="ファイル構成">
       <CodeBlock label="src ディレクトリの構成" code={TREE} />
       <p className="max-w-prose text-sm text-muted-foreground">
         配置と import 方向の規約は{" "}
         <code className="font-mono text-foreground">AGENTS.md</code> の Rules
         にある。
       </p>
-    </section>
+    </Section>
 
     {SPECS.map((spec) => (
-      <section key={spec.heading} className="flex flex-col gap-3">
-        <h2 className="text-base font-medium">{spec.heading}</h2>
+      <Section key={spec.heading} heading={spec.heading}>
         <dl className="flex flex-col gap-3">
           {spec.rows.map((row) => (
             <div
@@ -257,11 +253,10 @@ const HomeComponent = () => (
             </div>
           ))}
         </dl>
-      </section>
+      </Section>
     ))}
 
-    <section className="flex flex-col gap-3">
-      <h2 className="text-base font-medium">参考リンク</h2>
+    <Section heading="参考リンク">
       <ul className="grid gap-x-6 sm:grid-cols-2">
         {LINKS.map((link) => (
           <li key={link.href}>
@@ -277,7 +272,7 @@ const HomeComponent = () => (
           </li>
         ))}
       </ul>
-    </section>
+    </Section>
 
     <p className="max-w-prose text-sm text-muted-foreground">
       データベースと認証の設定は{" "}

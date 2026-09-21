@@ -6,40 +6,40 @@ import {
 } from "drizzle-orm/sqlite-core";
 import { DateTime } from "effect";
 
+const nowUtc = () => DateTime.toDateUtc(DateTime.nowUnsafe());
+
+const stampedAt = (column: "created_at" | "updated_at") =>
+  integer(column, { mode: "timestamp" }).$defaultFn(nowUtc);
+
 // Better Auth 必須テーブル
 export const users = sqliteTable("users", {
   // The bucket key of an avatar this app uploaded. `image` stays Better Auth's
   // column and holds whatever the social provider supplied, so the two never
   // overwrite each other and the served path is not frozen into a stored URL.
   avatarKey: text("avatar_key"),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => DateTime.toDateUtc(DateTime.nowUnsafe())),
+  createdAt: stampedAt("created_at").notNull(),
   email: text("email").notNull().unique(),
   emailVerified: integer("email_verified", { mode: "boolean" }),
   id: text("id").primaryKey(),
   image: text("image"),
   name: text("name"),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => DateTime.toDateUtc(DateTime.nowUnsafe())),
+  updatedAt: stampedAt("updated_at").notNull(),
 });
 
-export const sessions = sqliteTable("sessions", {
-  createdAt: integer("created_at", { mode: "timestamp" })
+const ownerId = () =>
+  text("user_id")
     .notNull()
-    .$defaultFn(() => DateTime.toDateUtc(DateTime.nowUnsafe())),
+    .references(() => users.id, { onDelete: "cascade" });
+
+export const sessions = sqliteTable("sessions", {
+  createdAt: stampedAt("created_at").notNull(),
   expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
   id: text("id").primaryKey(),
   ipAddress: text("ip_address"),
   token: text("token").notNull().unique(),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => DateTime.toDateUtc(DateTime.nowUnsafe())),
+  updatedAt: stampedAt("updated_at").notNull(),
   userAgent: text("user_agent"),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+  userId: ownerId(),
 });
 
 export const accounts = sqliteTable(
@@ -50,9 +50,7 @@ export const accounts = sqliteTable(
       mode: "timestamp",
     }),
     accountId: text("account_id").notNull(),
-    createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .$defaultFn(() => DateTime.toDateUtc(DateTime.nowUnsafe())),
+    createdAt: stampedAt("created_at").notNull(),
     id: text("id").primaryKey(),
     idToken: text("id_token"),
     issuer: text("issuer").notNull(),
@@ -65,12 +63,8 @@ export const accounts = sqliteTable(
       mode: "timestamp",
     }),
     scope: text("scope"),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
-      .notNull()
-      .$defaultFn(() => DateTime.toDateUtc(DateTime.nowUnsafe())),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    updatedAt: stampedAt("updated_at").notNull(),
+    userId: ownerId(),
   },
   (table) => [
     uniqueIndex("accounts_issuer_account_id_uidx").on(
@@ -81,14 +75,10 @@ export const accounts = sqliteTable(
 );
 
 export const verifications = sqliteTable("verifications", {
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() =>
-    DateTime.toDateUtc(DateTime.nowUnsafe())
-  ),
+  createdAt: stampedAt("created_at"),
   expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
   id: text("id").primaryKey(),
   identifier: text("identifier").notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() =>
-    DateTime.toDateUtc(DateTime.nowUnsafe())
-  ),
+  updatedAt: stampedAt("updated_at"),
   value: text("value").notNull(),
 });
