@@ -183,13 +183,19 @@ describe("smoke", () => {
       ROUTES.filter((route) => route.marker !== null).map(
         (route) => route.headers
       )
-    ).toStrictEqual([EXPECTED_DOCUMENT_HEADERS, EXPECTED_DOCUMENT_HEADERS]);
+    ).toStrictEqual([
+      EXPECTED_DOCUMENT_HEADERS,
+      EXPECTED_DOCUMENT_HEADERS,
+      EXPECTED_DOCUMENT_HEADERS,
+    ]);
   });
 
-  it("should request /, /login and /profile when the smoke run boots the Worker", () => {
+  it("should request every page route and the favicon when the smoke run boots the Worker", () => {
     expect(ROUTES.map((route) => route.path)).toStrictEqual([
       "/",
       "/login",
+      "/auth/auth-code-error",
+      "/favicon.svg",
       "/profile",
     ]);
   });

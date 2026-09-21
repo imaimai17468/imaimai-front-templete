@@ -6,7 +6,8 @@ bun run dev`;
 
 export const TREE = `src/
 ├── routes/                 # ディレクトリ名が URL セグメント
-│   ├── __root.tsx          # Root layout (ThemeProvider, Header, Toaster)
+│   ├── __root.tsx          # Root route (head, headers, loader)
+│   ├── -components/        # ルートルートだけが描くもの（RootLayout, NotFound）
 │   ├── index/
 │   │   ├── route.tsx       # Home page
 │   │   └── -components/    # このルートだけが描くもの（- 始まりは URL にならない）
@@ -146,12 +147,12 @@ export const SPECS: readonly Spec[] = [
   },
 ];
 
-interface ExternalLink {
+interface ReferenceLink {
   readonly name: string;
   readonly href: string;
 }
 
-export const LINKS: readonly ExternalLink[] = [
+export const LINKS: readonly ReferenceLink[] = [
   { name: "TanStack Start", href: "https://tanstack.com/start/" },
   { name: "TanStack Router", href: "https://tanstack.com/router/" },
   { name: "Tailwind CSS", href: "https://tailwindcss.com/docs" },

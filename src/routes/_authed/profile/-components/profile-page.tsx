@@ -1,3 +1,4 @@
+import { PageTitle } from "@/shared/components/page-title/page-title";
 import type { UserWithEmail } from "@/shared/entities/user";
 import { ProfileForm } from "./profile-form/profile-form";
 import { formatRegisteredOn } from "./registered-on";
@@ -5,7 +6,7 @@ import { SectionCard } from "./section-card";
 
 export const ProfilePage = ({ user }: { readonly user: UserWithEmail }) => (
   <div className="container mx-auto flex min-h-dvh max-w-2xl flex-col items-center justify-center gap-8">
-    <h1 className="text-3xl">Profile</h1>
+    <PageTitle>Profile</PageTitle>
 
     <div className="flex flex-col gap-6">
       <SectionCard

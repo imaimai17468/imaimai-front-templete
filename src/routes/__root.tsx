@@ -20,6 +20,7 @@ export const Route = createRootRouteWithContext<{
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "imaimai-front-templete" },
     ],
+    links: [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
   }),
   headers: () => DOCUMENT_HEADERS,
   component: RootLayout,

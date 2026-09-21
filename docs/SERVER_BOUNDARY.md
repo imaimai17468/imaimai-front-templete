@@ -10,8 +10,9 @@
 Cloudflare Worker
 └ src/ssr.tsx           createStartHandler
     ├ routes/           TanStack Router。api/ は 2 本（auth catch-all, avatars）
-    ├ gateways/         認可境界。createServerFn と D1 / R2
-    ├ entities/         Effect Schema
+    ├ shared/
+    │   ├ gateway/      認可境界。createServerFn と D1 / R2
+    │   └ entities/     Effect Schema
     └ lib/              drizzle / auth / storage
 ```
 

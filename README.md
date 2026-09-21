@@ -63,19 +63,20 @@ bun run dev
 ```
 src/
 ├── routes/                 # TanStack Router file-based routes
-│   ├── __root.tsx          # Root layout (ThemeProvider, Header, Toaster)
-│   ├── index.tsx           # Home page
-│   ├── login.tsx           # Login page
-│   ├── _authed.tsx         # Pathless layout whose beforeLoad guards its children
-│   ├── _authed/profile.tsx # Profile page
-│   ├── auth.auth-code-error/ # OAuth failure landing page
+│   ├── __root.tsx          # Root route (head, headers, loader)
+│   ├── -components/        # Root route only (RootLayout, NotFound)
+│   ├── index/              # route.tsx と -components/
+│   ├── login/              # route.tsx と -components/
+│   ├── _authed/
+│   │   ├── route.tsx       # 配下をまとめて守る pathless layout
+│   │   └── profile/        # route.tsx と -components/
+│   ├── auth.auth-code-error/ # OAuth failure landing page (route.tsx と -components/)
 │   └── api/                # API routes (auth catch-all, avatars)
-├── gateways/               # createServerFn, its ManagedRuntime wiring, and D1 / R2 persistence
-├── entities/               # Domain types and schemas
-├── components/             # Shared UI components
+├── shared/                 # 2 つ以上のルートが使うもの
+│   ├── components/         # 自前で書いたコンポーネント
 │   ├── ui/                 # shadcn/ui primitives
-│   ├── shared/             # Cross-page shared components
-│   └── features/           # Feature-specific components
+│   ├── gateway/            # 認可境界と D1 / R2 アクセス
+│   └── entities/           # Domain types and schemas
 ├── lib/
 │   ├── auth/               # Better Auth 設定
 │   ├── cloudflare/         # CloudflareEnv helper (cloudflare:workers)
@@ -98,7 +99,7 @@ src/
 - **[AGENTS.md](./AGENTS.md)**：規約の本体。毎セッション自動でロードされます（`CLAUDE.md` はこれを読み込むだけ）
 - **`.claude/rules/`**：規約の分冊。path scope を持つものは対象ファイルを編集するときだけ、持たないものは毎セッション読み込まれます
 - **`.claude/skills/`**：名前のついた作業の手順。チケット粒度の作業は `ticket-work` が持ち、AGENTS.md はそれを指します
-- **`.claude/hooks/`**：規約を機械的に強制する側。SessionStart で依存の欠落を報告し、Bash 実行前にガードを掛け、Stop ではコードが変わった turn だけ `bun run check`（format / lint / 型検査）と `bun run test` を回します。markdown のリンク切れ検査は変更があれば毎回走ります。ツリー全体を判定する検査は Stop に置かず、`fallow dead-code` は CI、`fallow dupes` は pre-push と CI の両方が回します。ここまでの検査はどれもビルドの成果物を動かさないので、CI は最後に `bun run smoke` を回します。ビルドした Worker を workerd で起動して 2 本のルートに HTTP リクエストを投げる検査で、ビルドが通ってから全リクエストで例外を投げる Worker はここでしか落ちません
+- **`.claude/hooks/`**：規約を機械的に強制する側。SessionStart で依存の欠落を報告し、Bash 実行前にガードを掛け、Stop ではコードが変わった turn だけ `bun run check`（format / lint / 型検査）と `bun run test` を回します。markdown のリンク切れ検査は変更があれば毎回走ります。ツリー全体を判定する検査は Stop に置かず、`fallow dead-code` は CI、`fallow dupes` は pre-push と CI の両方が回します。ここまでの検査はどれもビルドの成果物を動かさないので、CI は最後に `bun run smoke` を回します。ビルドした Worker を workerd で起動して `scripts/smoke.ts` が挙げるパスに HTTP リクエストを投げる検査で、ビルドが通ってから全リクエストで例外を投げる Worker はここでしか落ちません
 - **Cursor**：`.cursor/rules/` は `.claude/rules/` の symlink。skills と agents は `.claude/` をそのまま読む（`.cursor/skills/` や `.cursor/agents/` は置かない）
 
 コミット前のレビューは `code-reviewer` エージェントが担い、PR ブランチへのコミットと push はエージェントが AGENTS.md の規律に従って自分で行います。`main` へは PR 経由でだけ入ります。

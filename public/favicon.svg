@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The tab strip follows the OS rather than the page, so the icon does too. -->
+  <style>
+    .bg { fill: #0a0a0a }
+    .fg { fill: #fafafa }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #fafafa }
+      .fg { fill: #0a0a0a }
+    }
+  </style>
+  <rect class="bg" width="32" height="32" rx="7" />
+  <!-- An "i" drawn as two rects: a rasterizer that resolves no font still
+       renders it, where a <text> glyph at 16px depends on the font stack. -->
+  <rect class="fg" x="13" y="6" width="6" height="6" rx="3" />
+  <rect class="fg" x="13" y="15" width="6" height="11" rx="3" />
+</svg>

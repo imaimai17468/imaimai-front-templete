@@ -53,6 +53,22 @@ export const ROUTES: readonly Route[] = [
     path: "/login",
     status: 200,
   },
+  {
+    headers: EXPECTED_DOCUMENT_HEADERS,
+    location: null,
+    marker: "Authentication Error",
+    path: "/auth/auth-code-error",
+    status: 200,
+  },
+  // A build that stops copying `public/` answers 404 here while every
+  // rendered route still passes.
+  {
+    headers: {},
+    location: null,
+    marker: null,
+    path: "/favicon.svg",
+    status: 200,
+  },
   // Signed out, so the profile route's guard answers with its redirect rather
   // than a page. Nothing else here runs that guard. The framework returns that
   // redirect before it collects the route's headers, so this row names none.
