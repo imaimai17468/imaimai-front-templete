@@ -7,7 +7,7 @@ paths: "**/*.ts, **/*.tsx, **/*.js, **/*.sh"
 
 # Functions
 
-These hold for every function in the repository: a component, a gateway module, a script under `scripts/`, a lint plugin under `tools/`, a shell helper under `.claude/hooks/`. `react.md` states what render demands on top of them, and it demands more than these, because React calls a component again whenever it likes.
+These hold for every function in the repository: a component, a gateway module, a script under `scripts/`, a lint plugin under `tools/`, a shell helper under `.claude/hooks/`.
 
 **Split the function that decides from the code that acts.** Where a function both branches and performs the effect, the branching becomes a function that maps its inputs to a value naming the outcome, and its caller performs what the value names. A discriminated union carries that value, so one arm's data cannot be read off another. The Stop gate is shaped this way: `.claude/hooks/stop-gate-decision.sh` holds `downgrade_cause`, `holds_code_relevant_file`, the assembly of the collected failures and every line the gate prints, while `.claude/hooks/stop-gate.sh` reads the payload, runs the steps and encodes the JSON.
 
