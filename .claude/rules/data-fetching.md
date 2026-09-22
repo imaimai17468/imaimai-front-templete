@@ -58,12 +58,3 @@ A `Schema` decodes a row, rather than a hand-written mapping. Decoding is what t
 
 - The `QueryClient` is built inside `getRouter()` in `src/router.tsx`. Start builds a router per SSR request and the Worker keeps the module between them, so a client at module scope serves one reader's rows in the next reader's HTML.
 - A signed-in area is a pathless layout route (`src/routes/_authed/route.tsx`) whose `beforeLoad` reads the query and fails with `redirect`. That read is served from the cache while it is fresh, so on a client navigation the guard can act on a value up to `staleTime` old; the gateway authorizes every read and write, and this guard decides which page to show rather than what the caller may reach. It returns nothing into the route context: a context value is captured when `beforeLoad` runs and does not follow an invalidation, so a page reading the user from context shows the value it had before the last write.
-
-## Checklist
-
-- [ ] `queryOptions` factory in the `*.fn.ts`, named `<subject>QueryOptions`
-- [ ] Key segments are kebab-case, one per directory level
-- [ ] Loader uses `queryClient.query`, component uses `useSuspenseQuery`
-- [ ] Write is `useMutation`, and `onSuccess` invalidates by passing the factory
-- [ ] Every gateway module that is not a `*.fn.ts` opens with the server-only marker
-- [ ] A row is decoded by a `Schema`, not by hand
