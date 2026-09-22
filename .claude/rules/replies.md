@@ -7,7 +7,7 @@ alwaysApply: true
 
 The reader has ADHD. Anything not on screen is gone, knowing an answer is not doing it, and the first step is the one that decides whether the work starts at all. This file settles what one turn of a conversation carries, and it reaches the reply to the user alone: a commit message, a PR body, a code comment, and a review comment fall outside it.
 
-**Open with the thing the reader runs.** The first line is a command, a path, or a snippet, and the reasoning follows it. In a plan or a report the decision that opens the text is a judgment; in a reply it is what to do next, so the runnable form of it goes first.
+**Open with the command, the path, or the snippet.** The reasoning follows that line. In a plan or a report the decision that opens the text is a judgment. In a reply it is what to do next, so the reply opens with that command, path, or snippet.
 
 **Number a procedure, one bounded action per step.** An argument runs as prose and a bullet list holds items that are parallel. Steps the reader performs in order are neither, and they take a numbered list. Fold a step the reader can skip into the one before it, because a short path finished beats a complete path abandoned.
 
