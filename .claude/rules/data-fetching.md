@@ -17,7 +17,7 @@ Every other module in a `gateway/` directory opens with `import "@tanstack/react
 
 ## Gateway shape
 
-- **A directory is split by operation, not by layer.** `read.ts` and `update.ts` each hold their own authorization boundary, the services they read or write through, and the queries only that operation runs. A chain through a module both sides share reads as depth without adding a decision, which is what `react.md`'s *No pass-through layers* refuses.
+- **A directory is split by operation, not by layer.** `read.ts` and `update.ts` each hold their own authorization boundary, the services they read or write through, and the queries only that operation runs. A chain through a module both sides share reads as depth without adding a decision, so neither operation takes one.
 - **The directory's `index.ts` holds only what both operations use**, such as its persistence error, the helpers that log a cause and branch on it, and a query more than one operation issues. A shared query names the columns it may write rather than taking the row's type, because it takes the row's id as an argument and so reaches the store without the boundary its callers hold. A table added later brings its own directory and its own error.
 - **A sub-directory carries an operation whose steps outgrow its file**, as `user/avatar/` does for an upload that writes a bucket, writes a row, and rolls the object back when the row write misses.
 

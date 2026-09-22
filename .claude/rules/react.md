@@ -54,13 +54,13 @@ Corollaries of "You Might Not Need an Effect" for things that genuinely live out
 
 # Testable Behavior Extraction
 
-When internal state drives a component's behavior or appearance, structure it so every branch is drivable by passing props, which is `functions.md`'s *Every branch is reachable by passing values* in the shape a component takes. Needing a chain of setup interactions on the component itself to reach a code branch means the design hid what should have been an input.
+When internal state drives a component's behavior or appearance, structure it so every branch is drivable from outside, with tests injecting inputs and asserting outputs. Needing a chain of setup interactions on the component itself, or a test-only backdoor, to reach a code branch means the design hid what should have been an input.
 
 - **State transitions → exported pure functions**: Branching transition logic is an exported pure function, and event handlers call it: `setState(transition(state, input))`. Reducer ceremony (action types, dispatch, switch) is not required for this, since "useReducer for stable callbacks" is the reason to reach for `useReducer` rather than transition structure. Tests call the function directly.
 - **Branching render → a component taking the discriminant as props**: When state selects between visuals, each variant is its own component, and the selection itself is a component whose props carry the discriminating state, typed as a discriminated union so one variant cannot receive another's data. Both are pure props → JSX mappings, so tests render each branch by passing the state directly.
 - **What remains in the parent**: `useState`, handlers calling the transition functions, and JSX passing state down. The parent holds no branch worth testing, so its test is a thin wiring check.
 - **What stays internal**: Presentation-local state with no branch worth testing (hover, a tooltip's open flag) stays inside, because externalizing it couples parents to state that is not their concern. The dividing test is whether a test needs to reach a branch on this value. Where it does, extract as above. Where it does not, keep it internal.
-- **An initial-state prop is an API rather than a test hook**: `defaultOpen` is named under "Generic component naming" for the caller who sets it, and that tests can start from any state is a byproduct.
+- **Never expose internals for tests**: no exported setters, no test-only props. An initial-state prop (`defaultOpen`) is a real API under "Generic component naming" rather than a test hook, and that tests can start from any state is a byproduct.
 
 # Module Organization
 
