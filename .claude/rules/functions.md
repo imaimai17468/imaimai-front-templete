@@ -15,4 +15,6 @@ These hold for every function in the repository: a component, a gateway module, 
 
 **Every branch is reachable by passing values.** A test that builds a scratch directory, stubs a binary, or drives a UI to reach a branch pays that price for where the branch sits rather than for the branch. Move the branch into a function that takes what it decides on, and let the test call it. Where the setup is the subject, such as a check that the entry runs its steps in the right order, it stays.
 
+**A name covers everything the module holds.** A module holding a part its name does not cover sends every reader looking for that part somewhere else, and a directory cut along that name freezes the mistake into the path. Grouping a flat directory is where this surfaces, because a module that owns what its name does not name pulls its owners' shared pieces up to a common ancestor they have no reason to sit at. Move the uncovered part out, or rename, before any file moves.
+
 **No path that only a test runs.** A function exports what its callers use. An exported setter, a parameter nothing but a test passes, and a flag that changes behavior under test each put the test on a path production never takes, and the branch it covers then breaks unobserved. A value a caller can genuinely set is an API, and that a test can start from it is a byproduct.
