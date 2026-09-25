@@ -31,12 +31,12 @@ available item. An auth-gated page you cannot reach is recorded as
 
 ## 4. Measure each page
 
-1. `mcp__chrome-devtools__navigate_page`
-2. `mcp__chrome-devtools__lighthouse_audit` with `mode: "navigation"`, once per
+1. `mcp__plugin_chrome-devtools-mcp_chrome-devtools__navigate_page`
+2. `mcp__plugin_chrome-devtools-mcp_chrome-devtools__lighthouse_audit` with `mode: "navigation"`, once per
    `device: "desktop"` and `device: "mobile"`, collecting the accessibility, SEO and
    best-practices scores with their violations
-3. `mcp__chrome-devtools__performance_start_trace` with `reload: true`, `autoStop: true`,
-   then `mcp__chrome-devtools__performance_analyze_insight` on every insight that reported
+3. `mcp__plugin_chrome-devtools-mcp_chrome-devtools__performance_start_trace` with `reload: true`, `autoStop: true`,
+   then `mcp__plugin_chrome-devtools-mcp_chrome-devtools__performance_analyze_insight` on every insight that reported
    findings (`LCPBreakdown`, `DocumentLatency`, `CLSCulprits`, `RenderBlocking`,
    `SlowCSS`), collecting LCP, CLS and INP
 
