@@ -5,7 +5,7 @@ description: A method for improving an agent-facing text instruction (a skill, a
 
 # Empirical Prompt Tuning
 
-A prompt's quality is not visible to the person who wrote it. What the writer reads as clear is where another agent gets stuck. **Have a fresh executor run it, evaluate both sides, and iterate** is the core of this skill. Do not stop before the gains plateau.
+A prompt's quality is not visible to the person who wrote it. What the writer reads as clear is where another agent gets stuck. Have a fresh executor run it, evaluate both sides, and iterate. Workflow step 7 and "Stopping the iteration" settle when that stops.
 
 ## When to use
 
