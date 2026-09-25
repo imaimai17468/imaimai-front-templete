@@ -212,7 +212,7 @@ section says so in one line.
 | Performance | x | x | x | x/x |
 | Multi-Environment | x | x | x | x/x |
 | Other | x | x | x | x/x |
-| **Total** | **x** | **x** | **x** | **x/75** |
+| **Total** | **x** | **x** | **x** | **x/{the number of items in scope}** |
 
 ## Details
 

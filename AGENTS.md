@@ -30,7 +30,7 @@ Two guards read a Bash command's text before the command runs, and each refuses 
 
 ## Design Philosophy
 
-**Extensibility by default.** Every implementation is designed for future expansion: APIs, interfaces, types, data structures. This applies to all work, regardless of stated scope or finality. Code that cannot accommodate growth gets rewritten from scratch.
+**Extensibility by default.** Every implementation is designed for future expansion: APIs, interfaces, types, data structures. A scope stated as "just this once" does not exempt a change from it.
 
 - **Do:** Use an enum where a boolean would suffice today, because a third state is one requirement change away
 - **Do:** Define a trait/interface at a module boundary, even with one implementation now
