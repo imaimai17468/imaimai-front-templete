@@ -146,7 +146,7 @@ For each category in scope, inspect the codebase, configuration, and running app
 |---|------|---------------|
 | 59 | Unnecessary modules are not included in the bundle | Check with a `bundle-analyzer` or similar |
 | 60 | Static files are cached by the CDN | Check `Cache-Control` headers and CDN settings |
-| 61 | Layout shift is prevented | Check that `<img>` has `aspect-ratio` or `width` / `height` set. `.claude/rules/design.md` (Content States) settles the dimensions a loading state holds |
+| 61 | Layout shift is prevented | Check that `<img>` has `aspect-ratio` or `width` / `height` set, and that a skeleton takes the dimensions of the content it stands in for |
 | 62 | Image sizes are optimized | Check there are no images far larger than their display size |
 | 63 | The DB has appropriate indexes | Check the indexes in the schema definition |
 
@@ -160,7 +160,7 @@ measurement. For real LCP / CLS / INP traces run the `page-audit` skill.
 | 64 | The UI does not break at phone / tablet sizes | Check phone and tablet widths with Chrome DevTools MCP `emulate` |
 | 65 | Verified in browsers other than Chrome (Safari, Firefox) | Manual check (note in the report) |
 | 66 | No layout jitter from the scrollbar on Windows | Check the `scrollbar-gutter` setting |
-| 67 | The UI does not break when user input is long | Run the text-container tests in `.claude/rules/design.md` (Dynamic Content) |
+| 67 | The UI does not break when user input is long | Fill each text container with a single character, a long unbroken string, and enough text to wrap several lines, and check that nothing overflows its container |
 
 ### Other
 

@@ -1,5 +1,5 @@
 ---
-description: Design system, covering color roles, typography, spacing, shapes, elevation, interaction, decoration, and composition
+description: Design system, covering color roles, typography, spacing, shapes, elevation, decoration, and composition
 globs: src/**/*.css,src/**/*.tsx
 alwaysApply: false
 paths: src/**/*.css, src/**/*.tsx
@@ -16,9 +16,8 @@ That base is a starting point rather than an identity, so a project that wants a
 palette, a typeface, or a corner treatment of its own replaces the values there
 and leaves the rules below alone.
 
-Keyboard behavior, forms, and hydration sit outside this document's subject.
-Page performance sits outside it too. What an animation here may do is in the
-`motion-craft` skill, under Repository defaults.
+What an animation here may do is in the `motion-craft` skill, under Repository
+defaults.
 
 ## Colors
 
@@ -30,6 +29,8 @@ Page performance sits outside it too. What an animation here may do is in the
 - **accent**: See Accent Color below.
 - **destructive**: Deletion and error actions only. Not for general warnings.
 - **border / input**: Structural separation. Subtle, never dominant.
+
+Use semantic token names in components, never a raw color value.
 
 ### Accent Color
 
@@ -50,35 +51,16 @@ not) reads as inconsistency rather than design.
 - On landing pages, accent also appears in brand visuals (logo, hero,
   illustrations). On app UIs, accent stays on interactive elements only.
 
-### Color Usage Rules
-
-- Never rely on color alone to convey state. Always pair it with shape, icon,
-  or text.
-- When deriving hover/disabled/active variants, verify contrast against
-  WCAG AA (4.5:1 for text, 3:1 for UI elements). Perceptually uniform color
-  spaces do not exempt you from contrast checking.
-- Keep distinguishable gray shades to a minimum, because too many similar
-  grays make contrast between adjacent surfaces indistinguishable.
-- A label on a filled surface clears its fill by a real value gap. A dim tint
-  of the fill color, or ink close in value to the surface behind it, leaves
-  text the reader has to fight for.
-- Use semantic token names in components, never a raw color value.
-- Give a large surface one tone, and put headline emphasis in weight, scale, or
-  a value step.
+Give a large surface one tone, and put headline emphasis in weight, scale, or a
+value step.
 
 ### Dark Mode
 
 Dark mode is a paired color scale rather than a separate system. When adding
-a new token, define both light and dark values together. Never invert hex
-values directly, because that shifts hues. Adjust lightness while preserving
-chroma and hue. Token switching carries the whole scheme, so no component
-branches on the mode.
-
-Pure white on dark backgrounds causes eye strain. Use the off-white
-`--foreground` defined in `src/styles.css`.
-
-Declare `color-scheme` in each mode alongside the tokens, so the browser paints
-the scrollbars, the native controls, and the caret in the same mode.
+a new token, define both light and dark values together, and declare
+`color-scheme` in each mode beside them. Token switching carries the whole
+scheme, so no component branches on the mode. Text on a dark background takes
+the off-white `--foreground` defined in `src/styles.css`.
 
 ### Chart Colors
 
@@ -96,21 +78,14 @@ the monospace family there together, matching stroke weight and proportions.
 
 Where a project takes a display face, choose it for this product and self-host
 it, with one neutral family under it for body text. `system-ui` is a genuine
-neutral, so it belongs under a display face rather than carrying one.
+neutral, so it belongs under a display face rather than carrying one. Beyond
+that pair, take no third typeface.
 
 ### Typographic Rules
 
-- Japanese body text needs wider line-height than Western text, because the
-  characters are taller and denser.
-- Body letter-spacing is slightly open (not solid-set).
-- Heading letter-spacing is tighter (feels more composed at large sizes).
-- Label and caption letter-spacing is wider (for scannability).
-
-### Typographic Pitfalls
-
-- Limit to 2 typefaces max (body + code).
-- Keep body text line length under ~75 characters.
-- Never center-align multi-line paragraphs.
+- Japanese body text takes a wider line-height than Western text.
+- Body letter-spacing is slightly open, headings tighter, labels and captions
+  wider.
 - Build the hierarchy from weight, size, and leading together rather than from
   size alone. Where two text elements look the same weight and size, one of them
   is wrong.
@@ -119,62 +94,24 @@ neutral, so it belongs under a display face rather than carrying one.
 - Give the small text roles different treatments. Where the eyebrow, the button
   label, the caption, and the footer line all wear the same tracked-out caps,
   the screen reads as a template instead of a voice.
-- Set `font-variant-numeric: tabular-nums` where numbers line up for
-  comparison, so the digits keep their columns.
-- Keep a mobile input at 16px or larger, because iOS Safari zooms the page for
-  anything smaller.
-- Type the real characters: `…`, curly quotes, and a non-breaking space inside
-  a measurement or a key combination.
-- Font metrics (ascent/descent) create phantom padding that differs between
-  design tools and browsers.
 
 ## Layout
 
-### Spacing Tiers
+Spacing follows Tailwind's default scale: the smallest tier inside a component,
+the middle tier between components, the largest for page structure.
 
-Spacing follows Tailwind's default scale. Use the right tier for
-the right context: smallest for intra-component gaps, medium for
-inter-component, largest for page structure.
+Space siblings with the parent's `gap` (flex/grid), never with a margin on each
+child, which collapses, doubles up, and has to change when a sibling is removed.
 
-### Spacing Rules
-
-- Use parent `gap` (flex/grid), never per-element `margin`. Per-element
-  margins collapse, double up, and require CSS changes when elements are
-  removed. Inline siblings also pick up a space from the source newlines
-  between them, which `flex` or `grid` on the parent removes.
-- Never mix spacing scales in the same layout.
-- `padding` is internal space, and `margin` is external space. Don't swap
-  them.
-- When line-height contributes to vertical rhythm, account for it in padding
-  calculations, because the visual gap is line-height plus padding rather
-  than padding alone.
-- Respect the safe areas with `env(safe-area-inset-*)` where a fixed or
-  full-bleed element reaches the viewport edge.
-- Don't add padding to a child when the parent already provides it. Read the
-  parent's styles before adding spacing to children. External examples and
-  copy-paste snippets often assume a different parent context.
-
-### Alignment
-
-- Put parallel items on one grid, so the title, the body, and the control share
-  a line across every column. Give the columns equal height, anchor the control
-  to the bottom of each, and hold the slot of a value that is missing in one
-  column. Copy length then stops deciding where a neighbor's content lands.
-- Verify what the design centers rather than eyeballing it. In SVG,
-  `text-anchor: middle` sets the horizontal alone, `dominant-baseline: central`
-  or a measured `dy` sets the vertical, and a rotated, stroked, or padded shape
-  moves where the center is.
-- Give text a gutter from every edge it nears, and keep those gutters equal. A
-  line that reaches the rim of its container reads as overflow.
+Put parallel items on one grid, so the title, the body, and the control share a
+line across every column. Give the columns equal height, anchor the control to
+the bottom of each, and hold the slot of a value that is missing in one column.
+Copy length then stops deciding where a neighbor's content lands.
 
 ## Shapes
 
 Pick the radius tier that matches the element's size, and do not introduce
 values outside the set derived from `--radius`.
-
-Nest radii by subtracting the gap. An inner radius equals the outer radius minus
-the padding between them, and where both take the same value, the two curves
-stop running parallel at the corner.
 
 ## Elevation
 
@@ -201,92 +138,22 @@ blends at every edge. Where the blur bands, the shadow leaks past the shape, or
 the effect jumps on hover, give the element an opaque surface. Never stack one
 translucent surface on another.
 
-Under `prefers-reduced-transparency: reduce`, give the surface a frostier or
-opaque fill, and under `prefers-contrast: more`, a near-solid background with a
-defined border.
-
-```css
-@media (prefers-reduced-transparency: reduce) {
-  .toolbar { background: var(--background); backdrop-filter: none; }
-}
-```
-
 ## Interaction & Content
-
-### Interactive States
-
-Every interactive element must define all five states: default, hover,
-focus-visible, active, and disabled. Never remove the focus indicator.
 
 A hover state changes fill, color, or an icon's position while the element keeps
 its size and place. Reserve any lift for a card, and carry it with a value shift.
 Gate a hover animation behind `@media (hover: hover) and (pointer: fine)`, which
 leaves it out on a device whose pointer cannot hover.
 
-Set `background` explicitly on every button, because the user-agent default
-differs across browsers.
-
-Touch targets must be at least 44px × 44px. If the visual element is smaller,
-expand the hit area with padding or a transparent pseudo-element.
-
 Limit primary actions to one per screen. Require a confirmation step before
 destructive actions. Labels belong outside input fields (no floating labels).
-
-Every control on screen answers a click, confirmed by clicking it. Where
-something is a static prop, give it the form of a label or a figure so nobody
-aims at it.
 
 A control that starts a request keeps its label and adds a spinner, so its width
 holds and the reader can see which action is running.
 
-### Content States
-
-Every data-displaying component must account for: loading, empty (zero
-results), error, and populated states. Loading must show a visible indicator
-rather than a blank screen. A skeleton mirrors the dimensions of the content it
-stands in for, so nothing shifts when the data lands. Error messages must
-identify what went wrong and what the user can do.
-
 Text and controls reach their visible state without JavaScript and without a
 scroll event. Animate what is already on screen, so a reveal that never fires
 costs a transition instead of the content.
-
-### Dynamic Content
-
-Design for variable-length content. User names, titles, descriptions, and
-translations will overflow, truncate, or wrap. Test every text container with:
-- Single-character input
-- Maximum-length input (or a long unbroken string)
-- Multi-line overflow
-
-Containers that accept user-generated text need explicit word-break handling. A
-flex child needs `min-w-0` before `truncate` or `line-clamp-*` takes effect,
-because its default `min-width: auto` refuses to shrink.
-
-## CSS Architecture
-
-### Sizing
-
-Prefer `max-width` and `min-width` over fixed `width`. Prefer `min-height`
-over fixed `height`. Components should flex with content rather than fight it.
-Take `auto-fit` in `repeat()` where the tracks should stretch to fill the row,
-and `auto-fill` where the empty tracks should hold their width.
-
-### Overflow
-
-`overflow: hidden` clips everything: shadows, positioned children, focus
-outlines. Use it only when clipping is the explicit intent, never as a layout
-shortcut.
-
-Where you add a clip, a notch, or a fixed height, pad the content clear of the
-cut by more than the cut removes, then zoom into that edge and read it. Content
-that continues under an overlapping layer stays on the layer that remains
-visible.
-
-### Specificity
-
-Avoid over-targeting selectors. `z-index` only works on positioned, flex,
-or grid children, never on elements in normal flow.
 
 ## Decoration
 
