@@ -121,10 +121,10 @@ When that happens, also remove `"arch-rules/layer-boundaries": "error"` from
 rule ID, so dropping only one half leaves the config pointing at a rule nothing
 supplies.
 
-**Neither file under `tools/oxlint-plugins/` is deleted.** `arch-rules.js` also
-carries the component and test-shape rules, `style-rules.js` is untouched by this
-procedure, and `vite.config.ts` loads both by path under `lint.jsPlugins`, so removing
-either file breaks the lint config for the whole fork.
+**No plugin under `tools/oxlint-plugins/` is deleted.** `arch-rules.js` also
+carries the component and test-shape rules, `style-rules.js` and `start-rules.js`
+are untouched by this procedure, and `vite.config.ts` loads each by path under
+`lint.jsPlugins`, so removing any of them breaks the lint config for the whole fork.
 
 ## 4. Config files
 
