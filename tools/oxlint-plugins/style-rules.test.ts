@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it, vi } from "vite-plus/test";
 import plugin from "./style-rules.js";
 
@@ -574,5 +576,29 @@ describe("no-restyle-shared-ui-at-call-site", () => {
     const messages = run(source, name, attributes);
 
     expect(messages).toStrictEqual([]);
+  });
+});
+
+describe("no-tailwind-palette-color against the pinned Tailwind", () => {
+  const themeCss = fs.readFileSync(
+    path.resolve(
+      import.meta.dirname,
+      "../../node_modules/tailwindcss/theme.css"
+    ),
+    "utf-8"
+  );
+  const palettes = [...themeCss.matchAll(/--color-(?<name>[a-z]+)-500:/gu)].map(
+    (match) => match.groups?.name ?? ""
+  );
+
+  it("should report bg-<name>-500 when name is any palette the installed theme defines", () => {
+    const context = createMockContext();
+    const visitors = plugin.rules["no-tailwind-palette-color"].create(context);
+
+    visitors.JSXAttribute(
+      makeClassNameNode(palettes.map((name) => `bg-${name}-500`).join(" "))
+    );
+
+    expect(context.report).toHaveBeenCalledTimes(palettes.length);
   });
 });
