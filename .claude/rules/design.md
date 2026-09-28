@@ -1,5 +1,5 @@
 ---
-description: Design system, covering color roles, typography, spacing, shapes, composition, animation, and component conventions
+description: Design system, covering color roles, typography, spacing, shapes, elevation, interaction, decoration, and composition
 globs: src/**/*.css,src/**/*.tsx
 alwaysApply: false
 paths: src/**/*.css, src/**/*.tsx
@@ -17,8 +17,8 @@ palette, a typeface, or a corner treatment of its own replaces the values there
 and leaves the rules below alone.
 
 Keyboard behavior, forms, and hydration sit outside this document's subject.
-Page performance sits outside it too, apart from the frame cost of animation,
-which the Animations section below settles.
+Page performance sits outside it too. What an animation here may do is in the
+`motion-craft` skill, under Repository defaults.
 
 ## Colors
 
@@ -287,114 +287,6 @@ visible.
 
 Avoid over-targeting selectors. `z-index` only works on positioned, flex,
 or grid children, never on elements in normal flow.
-
-## Animations
-
-### Frequency
-
-| How often the element is seen | Decision |
-| --- | --- |
-| 100+/day (keyboard shortcuts, command palette) | No animation |
-| Tens/day (hover effects, list navigation) | Remove it, or reduce it |
-| Occasional (modals, drawers, toasts) | Standard animation |
-| Rare or first-time (onboarding, celebrations) | Delight is allowed |
-
-Never animate a keyboard-initiated action.
-
-### Duration
-
-| Element | Duration |
-| --- | --- |
-| Button press feedback | 100-160ms |
-| Tooltips, small popovers | 125-200ms |
-| Dropdowns, selects | 150-250ms |
-| Modals, drawers | 200-500ms |
-| Marketing or explanatory motion | Longer is allowed |
-
-Stay inside the element's row. A longer duration needs a stated reason.
-
-### Easing
-
-Pick the curve from what the element is doing:
-- Entering or exiting: `ease-out`
-- Moving or morphing on screen: `ease-in-out`
-- Hover or a color change: `ease`
-- Constant motion (marquee, progress): `linear`
-- Anything else: `ease-out`
-
-Never `ease-in` on UI. The built-in CSS curves are weak, so define the ones a
-project takes alongside the other tokens in `src/styles.css`:
-
-```css
---ease-out: cubic-bezier(0.23, 1, 0.32, 1);
---ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
---ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);      /* iOS-like drawer */
-```
-
-Find further curves at [easing.dev](https://easing.dev/) or
-[easings.co](https://easings.co/).
-
-### Physicality
-
-Where an entrance scales, it starts between `scale(0.9)` and `scale(0.97)` with
-`opacity: 0`, never at `scale(0)`. An entrance pairs its opacity change with a
-transform rather than fading alone.
-
-A popover, dropdown, or tooltip scales from its trigger. The Radix primitives in
-`src/shared/ui/` publish that point as a CSS variable, which
-`dropdown-menu.tsx` and `tooltip.tsx` read through Tailwind's
-`origin-(--radix-<part>-content-transform-origin)`. A modal keeps
-`transform-origin: center`.
-
-A button's press feedback is `transform: scale(0.97)` on `:active` with
-`transition: transform 160ms ease-out`, and the scale stays between `0.95` and
-`0.98`.
-
-Stagger a group's entrance by 30-80ms per item. A longer delay reads as slow,
-and the stagger never blocks interaction while it plays.
-
-### Properties
-
-Animate `transform` and `opacity` only, because the compositor runs them
-without layout or paint. `padding`, `margin`, `height`, `width`, `top`, and
-`left` run all three steps on every frame.
-
-Name each property in a `transition`, because `transition: all` also animates
-whatever else changes.
-
-Set `transform` on the element that moves. A CSS variable on the parent driving
-a child's transform recalculates the styles of every child.
-
-### Reduced Motion
-
-`prefers-reduced-motion: reduce` asks for gentler motion rather than none.
-Replace a slide or a spring with a short cross-fade, drop the overshoot, and
-keep opacity and color.
-
-```css
-@media (prefers-reduced-motion: reduce) {
-  .sheet { transition: opacity 200ms ease; transform: none !important; }
-}
-```
-
-Leave out a full-viewport moving background, a slow looping oscillation around
-0.2 Hz, and an abrupt brightness jump.
-
-### Interruptibility
-
-A CSS transition retargets from the current value when something interrupts it,
-and `@keyframes` restarts from zero, so anything triggered rapidly takes a
-transition.
-
-`@starting-style` gives an entrance its start value without JavaScript:
-
-```css
-.toast {
-  opacity: 1; transform: translateY(0);
-  transition: opacity 400ms ease, transform 400ms ease;
-  @starting-style { opacity: 0; transform: translateY(100%); }
-}
-```
 
 ## Decoration
 
