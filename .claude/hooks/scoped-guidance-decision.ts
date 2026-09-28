@@ -181,13 +181,15 @@ const escapeRegExp = (text: string): string =>
   text.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`);
 
 /**
- * Whether the command runs the phrase as a command of its own: at the start,
- * or after a separator, and followed by an argument or the end. `git commit`
- * matches `cd x && git commit -m y` and not `echo "no git commits"`.
+ * Whether the command runs the phrase as a command of its own: at the start of
+ * a line, after a separator, a `{`, or a `then`, `do`, `else` or `time`
+ * keyword, past any indentation and `VAR=value` assignments, and followed by
+ * an argument, a separator or the end. `git commit` matches `cd x && git commit -m y` and
+ * `GIT_EDITOR=true git commit`, and not `echo "no git commits"`.
  */
 const runsPhrase = (command: string, phrase: string): boolean =>
   new RegExp(
-    String.raw`(?:^|[;&|(]\s*)${escapeRegExp(phrase)}(?:\s|$)`,
+    String.raw`(?:^|[;&|({]|\b(?:then|do|else|time)\b)\s*(?:\w+=\S*\s+)*${escapeRegExp(phrase)}(?:[\s;&|)}]|$)`,
     "mu"
   ).test(command);
 

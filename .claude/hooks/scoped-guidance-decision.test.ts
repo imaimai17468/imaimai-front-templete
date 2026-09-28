@@ -224,6 +224,26 @@ describe(reachesFor, () => {
       name: "a command the rule names at the start",
     },
     {
+      expected: [{ reason: "ran `git commit`", rule: PROSE }],
+      facts: toolCall({ command: "x\n    git commit -m y" }),
+      name: "a command the rule names on an indented line",
+    },
+    {
+      expected: [{ reason: "ran `git commit`", rule: PROSE }],
+      facts: toolCall({ command: "GIT_EDITOR=true git commit" }),
+      name: "a command the rule names after an assignment",
+    },
+    {
+      expected: [{ reason: "ran `git commit`", rule: PROSE }],
+      facts: toolCall({ command: "if true; then git commit; fi" }),
+      name: "a command the rule names after a keyword",
+    },
+    {
+      expected: [{ reason: "ran `git commit`", rule: PROSE }],
+      facts: toolCall({ command: "{ git commit; }" }),
+      name: "a command the rule names inside a group",
+    },
+    {
       expected: [],
       facts: toolCall({ command: 'echo "no git commits"' }),
       name: "the phrase only inside another word run",
