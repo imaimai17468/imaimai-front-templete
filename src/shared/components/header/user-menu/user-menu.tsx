@@ -48,7 +48,7 @@ export const UserMenu = ({ user }: { readonly user: UserWithEmail }) => {
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link to="/profile" className="cursor-pointer">
-            <UserIcon className="mr-2 size-4" />
+            <UserIcon className="size-4" />
             <span>Profile</span>
           </Link>
         </DropdownMenuItem>
@@ -60,7 +60,7 @@ export const UserMenu = ({ user }: { readonly user: UserWithEmail }) => {
             void handleSignOut();
           }}
         >
-          <LogOut className="mr-2 size-4" />
+          <LogOut className="size-4" />
           <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

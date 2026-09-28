@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it, vi } from "vite-plus/test";
 import plugin from "./style-rules.js";
 
@@ -331,13 +333,17 @@ describe("no-tailwind-arbitrary (defensive branches)", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it("should not report when the className expression is a function call", () => {
+  it("should not report when the className expression calls a function other than cn", () => {
     const context = createMockContext();
     const visitors = rule.create(context);
     const node = {
       name: { name: "className" },
       value: {
-        expression: { type: "CallExpression" },
+        expression: {
+          arguments: [{ type: "Literal", value: "w-[3px] bg-muted/50" }],
+          callee: { name: "clsx", type: "Identifier" },
+          type: "CallExpression",
+        },
         type: "JSXExpressionContainer",
       },
     };
@@ -389,13 +395,17 @@ describe("no-tailwind-opacity (defensive branches)", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it("should not report when the className expression is a function call", () => {
+  it("should not report when the className expression calls a function other than cn", () => {
     const context = createMockContext();
     const visitors = rule.create(context);
     const node = {
       name: { name: "className" },
       value: {
-        expression: { type: "CallExpression" },
+        expression: {
+          arguments: [{ type: "Literal", value: "w-[3px] bg-muted/50" }],
+          callee: { name: "clsx", type: "Identifier" },
+          type: "CallExpression",
+        },
         type: "JSXExpressionContainer",
       },
     };
@@ -430,6 +440,372 @@ describe("no-tailwind-opacity (defensive branches)", () => {
     };
 
     visitors.JSXAttribute(node);
+
+    expect(context.report).not.toHaveBeenCalled();
+  });
+});
+
+describe.each([
+  {
+    allowed: "bg-primary text-muted-foreground border-border",
+    flagged:
+      "bg-red-500 text-white border-x-red-500 border-t-white ring-offset-white inset-shadow-black",
+    matches: [
+      "bg-red-500",
+      "text-white",
+      "border-x-red-500",
+      "border-t-white",
+      "ring-offset-white",
+      "inset-shadow-black",
+    ],
+    rule: "no-tailwind-palette-color",
+  },
+  {
+    allowed: "shadow-none shadow-lifted",
+    flagged:
+      "shadow drop-shadow-md shadow-inner inset-shadow-sm text-shadow-sm",
+    matches: [
+      "shadow",
+      "drop-shadow-md",
+      "shadow-inner",
+      "inset-shadow-sm",
+      "text-shadow-sm",
+    ],
+    rule: "no-tailwind-shadow",
+  },
+  {
+    allowed: "mx-auto -mx-2 my-auto gap-2 m-0 mt-0 space-x-reverse",
+    flagged: "mr-2 mt-0.5 space-y-4 m-px",
+    matches: ["mr-2", "mt-0.5", "space-y-4", "m-px"],
+    rule: "no-tailwind-sibling-margin",
+  },
+  {
+    allowed: "transition-transform transition-colors",
+    flagged: "transition-all",
+    matches: ["transition-all"],
+    rule: "no-tailwind-transition-all",
+  },
+  {
+    allowed: "ease-out ease-in-out",
+    flagged: "ease-in",
+    matches: ["ease-in"],
+    rule: "no-tailwind-ease-in",
+  },
+] as const)("$rule", ({ allowed, flagged, matches, rule }) => {
+  const visitors = () => {
+    const context = createMockContext();
+    return { context, visitors: plugin.rules[rule].create(context) };
+  };
+
+  it("should report each forbidden class when className holds them", () => {
+    const { context, visitors: v } = visitors();
+
+    v.JSXAttribute(makeClassNameNode(flagged));
+
+    expect(
+      context.report.mock.calls.map(([call]) =>
+        matches.find((match) => call.message.includes(`'${match}'`))
+      )
+    ).toStrictEqual(matches);
+  });
+
+  it("should not report when className holds only allowed classes", () => {
+    const { context, visitors: v } = visitors();
+
+    v.JSXAttribute(makeClassNameNode(allowed));
+
+    expect(context.report).not.toHaveBeenCalled();
+  });
+});
+
+const importFrom = (source: string, local: string, imported?: string) => ({
+  source: { value: source },
+  specifiers: [
+    imported === undefined
+      ? { local: { name: local } }
+      : { imported: { name: imported }, local: { name: local } },
+  ],
+});
+
+const element = (
+  name: { name: string; type: string },
+  attributes: readonly unknown[],
+  children: readonly unknown[] = []
+) => ({ children, openingElement: { attributes, name } });
+
+describe("no-restyle-shared-ui-at-call-site", () => {
+  const rule = plugin.rules["no-restyle-shared-ui-at-call-site"];
+
+  const run = (
+    source: string,
+    name: { name: string; type: string },
+    attributes: readonly unknown[],
+    children: readonly unknown[] = []
+  ) => {
+    const context = createMockContext();
+    const visitors = rule.create(context);
+    visitors.ImportDeclaration(importFrom(source, "Button"));
+    visitors.JSXElement(element(name, attributes, children));
+    return context.report.mock.calls.map(([call]) => call.message);
+  };
+
+  const BUTTON = { name: "Button", type: "JSXIdentifier" };
+
+  it("should report each appearance class when a shared/ui primitive receives them", () => {
+    const messages = run("@/shared/ui/button", BUTTON, [
+      {
+        ...makeClassNameNode("w-full hover:bg-muted rounded-lg"),
+        type: "JSXAttribute",
+      },
+    ]);
+
+    expect(messages).toStrictEqual([
+      "'hover:bg-muted' restyles <Button> at its call site. Add a variant to the primitive in src/shared/ui/ and pass the variant; a call site passes only placement classes such as width or grid position.",
+      "'rounded-lg' restyles <Button> at its call site. Add a variant to the primitive in src/shared/ui/ and pass the variant; a call site passes only placement classes such as width or grid position.",
+    ]);
+  });
+
+  it("should report the child's appearance class when the primitive passes asChild", () => {
+    const child = {
+      openingElement: {
+        attributes: [
+          { ...makeClassNameNode("w-full bg-muted"), type: "JSXAttribute" },
+        ],
+        name: { name: "Link", type: "JSXIdentifier" },
+      },
+      type: "JSXElement",
+    };
+
+    const messages = run(
+      "@/shared/ui/button",
+      BUTTON,
+      [{ name: { name: "asChild" }, type: "JSXAttribute", value: null }],
+      [{ type: "JSXText", value: " " }, child]
+    );
+
+    expect(messages).toStrictEqual([
+      "'bg-muted' restyles <Button> at its call site. Add a variant to the primitive in src/shared/ui/ and pass the variant; a call site passes only placement classes such as width or grid position.",
+    ]);
+  });
+
+  it.each([
+    {
+      expected: [],
+      scenario: "the imported component never touches className",
+      source: "@/shared/ui/dropdown-menu",
+    },
+    {
+      expected: [
+        "'bg-muted' restyles <DropdownMenuTrigger> at its call site. Add a variant to the primitive in src/shared/ui/ and pass the variant; a call site passes only placement classes such as width or grid position.",
+      ],
+      scenario: "the shared/ui module cannot be read",
+      source: "@/shared/ui/no-such-module",
+    },
+    {
+      expected: [
+        "'bg-muted' restyles <DropdownMenuTrigger> at its call site. Add a variant to the primitive in src/shared/ui/ and pass the variant; a call site passes only placement classes such as width or grid position.",
+      ],
+      scenario: "the import does not use the @/shared/ui alias",
+      source: "../../shared/ui/dropdown-menu",
+    },
+  ])(
+    "should return $expected.length reports when $scenario",
+    ({ expected, source }) => {
+      const context = createMockContext();
+      const visitors = rule.create(context);
+      visitors.ImportDeclaration(
+        importFrom(source, "DropdownMenuTrigger", "DropdownMenuTrigger")
+      );
+
+      visitors.JSXElement(
+        element({ name: "DropdownMenuTrigger", type: "JSXIdentifier" }, [
+          { ...makeClassNameNode("bg-muted"), type: "JSXAttribute" },
+        ])
+      );
+
+      expect(
+        context.report.mock.calls.map(([call]) => call.message)
+      ).toStrictEqual(expected);
+    }
+  );
+
+  it("should not read the child when the primitive does not pass asChild", () => {
+    const child = {
+      openingElement: {
+        attributes: [
+          { ...makeClassNameNode("bg-muted"), type: "JSXAttribute" },
+        ],
+        name: { name: "Link", type: "JSXIdentifier" },
+      },
+      type: "JSXElement",
+    };
+
+    const messages = run("@/shared/ui/button", BUTTON, [], [child]);
+
+    expect(messages).toStrictEqual([]);
+  });
+
+  it.each([
+    {
+      attributes: [
+        {
+          ...makeClassNameNode("w-full col-span-2 mx-auto"),
+          type: "JSXAttribute",
+        },
+      ],
+      name: BUTTON,
+      scenario: "the primitive receives only placement classes",
+      source: "@/shared/ui/button",
+    },
+    {
+      attributes: [{ ...makeClassNameNode("bg-muted"), type: "JSXAttribute" }],
+      name: BUTTON,
+      scenario: "the component is imported from outside shared/ui",
+      source: "@/shared/components/button",
+    },
+    {
+      attributes: [{ ...makeClassNameNode("bg-muted"), type: "JSXAttribute" }],
+      name: { name: "Card", type: "JSXIdentifier" },
+      scenario: "the element is not an imported primitive",
+      source: "@/shared/ui/button",
+    },
+    {
+      attributes: [{ ...makeClassNameNode("bg-muted"), type: "JSXAttribute" }],
+      name: { name: "Button.Root", type: "JSXMemberExpression" },
+      scenario: "the element name is a member expression",
+      source: "@/shared/ui/button",
+    },
+    {
+      attributes: [{ argument: {}, type: "JSXSpreadAttribute" }],
+      name: BUTTON,
+      scenario: "the only attribute is a spread",
+      source: "@/shared/ui/button",
+    },
+  ])("should not report when $scenario", ({ attributes, name, source }) => {
+    const messages = run(source, name, attributes);
+
+    expect(messages).toStrictEqual([]);
+  });
+});
+
+describe("no-tailwind-palette-color against the pinned Tailwind", () => {
+  const themeCss = fs.readFileSync(
+    path.resolve(
+      import.meta.dirname,
+      "../../node_modules/tailwindcss/theme.css"
+    ),
+    "utf-8"
+  );
+  const palettes = [...themeCss.matchAll(/--color-(?<name>[a-z]+)-500:/gu)].map(
+    (match) => match.groups?.name ?? ""
+  );
+
+  it("should report bg-<name>-500 when name is any palette the installed theme defines", () => {
+    const context = createMockContext();
+    const visitors = plugin.rules["no-tailwind-palette-color"].create(context);
+
+    visitors.JSXAttribute(
+      makeClassNameNode(palettes.map((name) => `bg-${name}-500`).join(" "))
+    );
+
+    expect(context.report).toHaveBeenCalledTimes(palettes.length);
+  });
+});
+
+/** The ESTree shape of the expressions the className reader walks. */
+interface ClassExpression {
+  readonly alternate?: ClassExpression;
+  readonly arguments?: readonly ClassExpression[];
+  readonly callee?: { readonly name?: string; readonly type: string };
+  readonly consequent?: ClassExpression;
+  readonly left?: ClassExpression;
+  readonly name?: string;
+  readonly operator?: string;
+  readonly right?: ClassExpression;
+  readonly test?: ClassExpression;
+  readonly type: string;
+  readonly value?: string;
+}
+
+const expressionNode = (expression: ClassExpression) => ({
+  name: { name: "className" },
+  value: { expression, type: "JSXExpressionContainer" },
+});
+
+const literal = (value: string) => ({ type: "Literal", value });
+
+describe("className strings inside expressions", () => {
+  const rule = plugin.rules["no-tailwind-palette-color"];
+
+  it.each([
+    {
+      expression: {
+        arguments: [literal("bg-red-500"), literal("text-muted-foreground")],
+        callee: { name: "cn", type: "Identifier" },
+        type: "CallExpression",
+      },
+      scenario: "a cn() argument",
+    },
+    {
+      expression: {
+        left: { name: "isActive", type: "Identifier" },
+        operator: "&&",
+        right: literal("bg-red-500"),
+        type: "LogicalExpression",
+      },
+      scenario: "the right arm of &&",
+    },
+    {
+      expression: {
+        alternate: literal("bg-muted"),
+        consequent: literal("bg-red-500"),
+        test: { name: "isActive", type: "Identifier" },
+        type: "ConditionalExpression",
+      },
+      scenario: "an arm of a conditional",
+    },
+    {
+      expression: {
+        arguments: [
+          {
+            left: { name: "isActive", type: "Identifier" },
+            operator: "&&",
+            right: literal("bg-red-500"),
+            type: "LogicalExpression",
+          },
+        ],
+        callee: { name: "cn", type: "Identifier" },
+        type: "CallExpression",
+      },
+      scenario: "a conditional class passed to cn()",
+    },
+  ])(
+    "should report the palette class when it sits in $scenario",
+    ({ expression }) => {
+      const context = createMockContext();
+      const visitors = rule.create(context);
+
+      visitors.JSXAttribute(expressionNode(expression));
+
+      expect(
+        context.report.mock.calls.map(([call]) => call.message)
+      ).toStrictEqual([
+        "Palette color 'bg-red-500' is forbidden in a component. Use a semantic token (primary, muted-foreground, destructive, border…) from src/styles.css.",
+      ]);
+    }
+  );
+
+  it("should not report when the call's callee is a member expression", () => {
+    const context = createMockContext();
+    const visitors = rule.create(context);
+
+    visitors.JSXAttribute(
+      expressionNode({
+        arguments: [literal("bg-red-500")],
+        callee: { type: "MemberExpression" },
+        type: "CallExpression",
+      })
+    );
 
     expect(context.report).not.toHaveBeenCalled();
   });
