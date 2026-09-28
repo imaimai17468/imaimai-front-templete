@@ -83,7 +83,7 @@ const PALETTE =
 
 const noTailwindPaletteColor = classNameRule(
   new RegExp(
-    String.raw`(?<![\w-])(?:bg|text|border|ring|fill|stroke|from|via|to|outline|decoration|divide|placeholder|caret|accent|shadow)-(?:${PALETTE})(?:-\d+)?(?![\w-])`,
+    String.raw`(?<![\w-])(?:bg|text|border(?:-[xytrblse])?|ring(?:-offset)?|inset-ring|inset-shadow|text-shadow|fill|stroke|from|via|to|outline|decoration|divide|placeholder|caret|accent|shadow)-(?:${PALETTE})(?:-\d+)?(?![\w-])`,
     "gu"
   ),
   (match) =>

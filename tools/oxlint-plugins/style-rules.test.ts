@@ -440,8 +440,16 @@ describe("no-tailwind-opacity (defensive branches)", () => {
 describe.each([
   {
     allowed: "bg-primary text-muted-foreground border-border",
-    flagged: "bg-red-500 text-white",
-    matches: ["bg-red-500", "text-white"],
+    flagged:
+      "bg-red-500 text-white border-x-red-500 border-t-white ring-offset-white inset-shadow-black",
+    matches: [
+      "bg-red-500",
+      "text-white",
+      "border-x-red-500",
+      "border-t-white",
+      "ring-offset-white",
+      "inset-shadow-black",
+    ],
     rule: "no-tailwind-palette-color",
   },
   {
