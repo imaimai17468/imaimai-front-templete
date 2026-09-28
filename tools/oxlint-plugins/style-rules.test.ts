@@ -434,3 +434,145 @@ describe("no-tailwind-opacity (defensive branches)", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 });
+
+describe.each([
+  {
+    allowed: "bg-primary text-muted-foreground border-border",
+    flagged: "bg-red-500 text-white",
+    matches: ["bg-red-500", "text-white"],
+    rule: "no-tailwind-palette-color",
+  },
+  {
+    allowed: "shadow-none shadow-lifted",
+    flagged: "shadow drop-shadow-md shadow-inner",
+    matches: ["shadow", "drop-shadow-md", "shadow-inner"],
+    rule: "no-tailwind-shadow",
+  },
+  {
+    allowed: "mx-auto -mx-2 my-auto gap-2",
+    flagged: "mr-2 mt-0.5 space-y-4 m-px",
+    matches: ["mr-2", "mt-0.5", "space-y-4", "m-px"],
+    rule: "no-tailwind-sibling-margin",
+  },
+  {
+    allowed: "transition-transform transition-colors",
+    flagged: "transition-all",
+    matches: ["transition-all"],
+    rule: "no-tailwind-transition-all",
+  },
+  {
+    allowed: "ease-out ease-in-out",
+    flagged: "ease-in",
+    matches: ["ease-in"],
+    rule: "no-tailwind-ease-in",
+  },
+] as const)("$rule", ({ allowed, flagged, matches, rule }) => {
+  const visitors = () => {
+    const context = createMockContext();
+    return { context, visitors: plugin.rules[rule].create(context) };
+  };
+
+  it("should report each forbidden class when className holds them", () => {
+    const { context, visitors: v } = visitors();
+
+    v.JSXAttribute(makeClassNameNode(flagged));
+
+    expect(
+      context.report.mock.calls.map(([call]) =>
+        matches.some((match) => call.message.includes(`'${match}'`))
+      )
+    ).toStrictEqual(matches.map(() => true));
+  });
+
+  it("should not report when className holds only allowed classes", () => {
+    const { context, visitors: v } = visitors();
+
+    v.JSXAttribute(makeClassNameNode(allowed));
+
+    expect(context.report).not.toHaveBeenCalled();
+  });
+});
+
+const importFrom = (source: string, local: string) => ({
+  source: { value: source },
+  specifiers: [{ local: { name: local } }],
+});
+
+const element = (
+  name: { name: string; type: string },
+  attributes: readonly unknown[]
+) => ({ attributes, name });
+
+describe("no-restyle-shared-ui-at-call-site", () => {
+  const rule = plugin.rules["no-restyle-shared-ui-at-call-site"];
+
+  const run = (
+    source: string,
+    name: { name: string; type: string },
+    attributes: readonly unknown[]
+  ) => {
+    const context = createMockContext();
+    const visitors = rule.create(context);
+    visitors.ImportDeclaration(importFrom(source, "Button"));
+    visitors.JSXOpeningElement(element(name, attributes));
+    return context.report.mock.calls.map(([call]) => call.message);
+  };
+
+  const BUTTON = { name: "Button", type: "JSXIdentifier" };
+
+  it("should report each appearance class when a shared/ui primitive receives them", () => {
+    const messages = run("@/shared/ui/button", BUTTON, [
+      {
+        ...makeClassNameNode("w-full hover:bg-muted rounded-lg"),
+        type: "JSXAttribute",
+      },
+    ]);
+
+    expect(messages).toStrictEqual([
+      "'hover:bg-muted' restyles <Button> at its call site. Add a variant to the primitive in src/shared/ui/ and pass the variant; a call site passes only placement classes such as width or grid position.",
+      "'rounded-lg' restyles <Button> at its call site. Add a variant to the primitive in src/shared/ui/ and pass the variant; a call site passes only placement classes such as width or grid position.",
+    ]);
+  });
+
+  it.each([
+    {
+      attributes: [
+        {
+          ...makeClassNameNode("w-full col-span-2 mx-auto"),
+          type: "JSXAttribute",
+        },
+      ],
+      name: BUTTON,
+      scenario: "the primitive receives only placement classes",
+      source: "@/shared/ui/button",
+    },
+    {
+      attributes: [{ ...makeClassNameNode("bg-muted"), type: "JSXAttribute" }],
+      name: BUTTON,
+      scenario: "the component is imported from outside shared/ui",
+      source: "@/shared/components/button",
+    },
+    {
+      attributes: [{ ...makeClassNameNode("bg-muted"), type: "JSXAttribute" }],
+      name: { name: "Card", type: "JSXIdentifier" },
+      scenario: "the element is not an imported primitive",
+      source: "@/shared/ui/button",
+    },
+    {
+      attributes: [{ ...makeClassNameNode("bg-muted"), type: "JSXAttribute" }],
+      name: { name: "Button.Root", type: "JSXMemberExpression" },
+      scenario: "the element name is a member expression",
+      source: "@/shared/ui/button",
+    },
+    {
+      attributes: [{ argument: {}, type: "JSXSpreadAttribute" }],
+      name: BUTTON,
+      scenario: "the only attribute is a spread",
+      source: "@/shared/ui/button",
+    },
+  ])("should not report when $scenario", ({ attributes, name, source }) => {
+    const messages = run(source, name, attributes);
+
+    expect(messages).toStrictEqual([]);
+  });
+});
