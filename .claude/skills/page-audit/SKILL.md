@@ -74,6 +74,6 @@ In priority order: render-blocking resources (defer or async-load), LCP (preload
 element, cut server response time, optimize images), CLS (explicit dimensions, nothing
 inserted above the fold), long tasks and INP (split the tasks, debounce handlers,
 `startTransition` for non-urgent updates). Where the shift arrives as data lands,
-`.claude/rules/design.md` (Content States) settles the dimensions the skeleton holds.
+give the skeleton the dimensions of the content it stands in for.
 Rebuild and restart the preview server before re-measuring, and add the after-fix numbers
 to the same report.

@@ -157,8 +157,8 @@ not the position the gesture reached.
 - **Enter and exit along the same path.** A panel that slides in from the right
   must dismiss to the right.
 - **Anchor interactions to their source.** A menu or popover originates from
-  the element that triggered it, and `.claude/rules/design.md` (Animations)
-  sets how.
+  the element that triggered it, and Repository defaults (Physicality, in
+  Part 2) sets how.
 - **Mirror the easing on reversible transitions** with the inverse
   cubic-bezier.
 
@@ -195,7 +195,7 @@ function rubberband(overshoot, dimension, constant = 0.55) {
 - For very fast motion, a subtle **motion blur / stretch** reads better than a
   hard sharp streak.
 - `requestAnimationFrame` is the web's display-synced clock. Which properties
-  may animate is settled in `.claude/rules/design.md` (Animations).
+  may animate is settled in Repository defaults (Properties, in Part 2).
 
 ## 12. Materials & depth
 
@@ -228,14 +228,13 @@ Three rules for combining visual + sound + haptic:
 
 ## 14. Reduced motion & accessibility
 
-`.claude/rules/design.md` sets what this repository does under
-`prefers-reduced-motion` (Animations), and under
-`prefers-reduced-transparency` and `prefers-contrast` (Elevation).
+Repository defaults (Reduced Motion, in Part 2) sets what this repository does
+under `prefers-reduced-motion`.
 
 ## 15. Typography — optical sizing, tracking, leading
 
 - **Tracking and hierarchy.** Both are settled in `.claude/rules/design.md`
-  (Typographic Rules, Typographic Pitfalls).
+  (Typographic Rules).
 - **Leading tracks size inversely.** Tight on large headings, looser on body.
 - **Respect the user's text-size setting.** Scale layout with `rem`/`em`.
 
@@ -281,8 +280,116 @@ Three rules for combining visual + sound + haptic:
 
 Precise values, curves, and techniques. Cite these in code and reviews.
 Distilled from Emil Kowalski's design engineering philosophy (animations.dev).
-What this repository's CSS and TSX must do is settled in
-`.claude/rules/design.md` (Animations); this part is the reference behind it.
+Repository defaults, the first section below, is what this repository's CSS
+and TSX must do, and the sections after it are the reference behind it.
+
+## Repository defaults
+
+### Frequency
+
+| How often the element is seen | Decision |
+| --- | --- |
+| 100+/day (keyboard shortcuts, command palette) | No animation |
+| Tens/day (hover effects, list navigation) | Remove it, or reduce it |
+| Occasional (modals, drawers, toasts) | Standard animation |
+| Rare or first-time (onboarding, celebrations) | Delight is allowed |
+
+Never animate a keyboard-initiated action.
+
+### Duration
+
+| Element | Duration |
+| --- | --- |
+| Button press feedback | 100-160ms |
+| Tooltips, small popovers | 125-200ms |
+| Dropdowns, selects | 150-250ms |
+| Modals, drawers | 200-500ms |
+| Marketing or explanatory motion | Longer is allowed |
+
+Stay inside the element's row. A longer duration needs a stated reason.
+
+### Easing
+
+Pick the curve from what the element is doing:
+- Entering or exiting: `ease-out`
+- Moving or morphing on screen: `ease-in-out`
+- Hover or a color change: `ease`
+- Constant motion (marquee, progress): `linear`
+- Anything else: `ease-out`
+
+Never `ease-in` on UI. The built-in CSS curves are weak, so define the ones a
+project takes alongside the other tokens in `src/styles.css`:
+
+```css
+--ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+--ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+--ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);      /* iOS-like drawer */
+```
+
+Find further curves at [easing.dev](https://easing.dev/) or
+[easings.co](https://easings.co/).
+
+### Physicality
+
+Where an entrance scales, it starts between `scale(0.9)` and `scale(0.97)` with
+`opacity: 0`, never at `scale(0)`. An entrance pairs its opacity change with a
+transform rather than fading alone.
+
+A popover, dropdown, or tooltip scales from its trigger. The Radix primitives in
+`src/shared/ui/` publish that point as a CSS variable, which
+`dropdown-menu.tsx` and `tooltip.tsx` read through Tailwind's
+`origin-(--radix-<part>-content-transform-origin)`. A modal keeps
+`transform-origin: center`.
+
+A button's press feedback is `transform: scale(0.97)` on `:active` with
+`transition: transform 160ms ease-out`, and the scale stays between `0.95` and
+`0.98`.
+
+Stagger a group's entrance by 30-80ms per item. A longer delay reads as slow,
+and the stagger never blocks interaction while it plays.
+
+### Properties
+
+Animate `transform` and `opacity` only, because the compositor runs them
+without layout or paint. `padding`, `margin`, `height`, `width`, `top`, and
+`left` run all three steps on every frame.
+
+Name each property in a `transition`, because `transition: all` also animates
+whatever else changes.
+
+Set `transform` on the element that moves. A CSS variable on the parent driving
+a child's transform recalculates the styles of every child.
+
+### Reduced Motion
+
+`prefers-reduced-motion: reduce` asks for gentler motion rather than none.
+Replace a slide or a spring with a short cross-fade, drop the overshoot, and
+keep opacity and color.
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  .sheet { transition: opacity 200ms ease; transform: none !important; }
+}
+```
+
+Leave out a full-viewport moving background, a slow looping oscillation around
+0.2 Hz, and an abrupt brightness jump.
+
+### Interruptibility
+
+A CSS transition retargets from the current value when something interrupts it,
+and `@keyframes` restarts from zero, so anything triggered rapidly takes a
+transition.
+
+`@starting-style` gives an entrance its start value without JavaScript:
+
+```css
+.toast {
+  opacity: 1; transform: translateY(0);
+  transition: opacity 400ms ease, transform 400ms ease;
+  @starting-style { opacity: 0; transform: translateY(100%); }
+}
+```
 
 ## Springs
 
@@ -310,7 +417,7 @@ Slow where the user is deciding, fast where the system responds.
 
 ## Performance
 
-- **Animated properties.** `.claude/rules/design.md` (Animations) settles which
+- **Animated properties.** Repository defaults (Properties) settles which
   properties may animate.
 - **Motion (Framer Motion) shorthands `x`/`y`/`scale` are NOT
   hardware-accelerated.** They run on the main thread via rAF and drop frames
@@ -335,7 +442,7 @@ Slow where the user is deciding, fast where the system responds.
 - **3D**: `rotateX/Y` + `transform-style: preserve-3d` for depth/orbit/flip.
 - **`clip-path: inset(t r b l)`** drives a hold-to-delete overlay, a seamless
   tab color transition, and a comparison slider. A reveal gated on scroll is
-  ruled out by `.claude/rules/design.md` (Content States).
+  ruled out by `.claude/rules/design.md` (Interaction & Content).
 
 ## Gestures & drag
 
@@ -351,7 +458,7 @@ Safari).
 
 ## Stagger
 
-`.claude/rules/design.md` (Animations) sets the delay between items and what a
+Repository defaults (Physicality) sets the delay between items and what a
 stagger may not hold up.
 
 ```css
@@ -362,7 +469,7 @@ stagger may not hold up.
 
 ## Accessibility (implementation)
 
-`.claude/rules/design.md` (Interactive States) gates hover animation and bounds
+`.claude/rules/design.md` (Interaction & Content) gates hover animation and bounds
 what a hover may change.
 
 ```css
@@ -400,27 +507,27 @@ Every animation in the diff is measured against these. A violation is a finding.
    jarring change. "It looks cool" on a frequently-seen element is a block.
 
 2. **Frequency-appropriate.** Measured against the frequency table in
-   `.claude/rules/design.md` (Animations).
+   Repository defaults.
 
 3. **Responsive easing.** Measured against the curve order in
-   `.claude/rules/design.md` (Animations).
+   Repository defaults.
 
 4. **Duration within range.** Measured against the duration table in
-   `.claude/rules/design.md` (Animations).
+   Repository defaults.
 
 5. **Origin & physical correctness.** Measured against the physicality rules in
-   `.claude/rules/design.md` (Animations).
+   Repository defaults.
 
-6. **Interruptibility.** Measured against `.claude/rules/design.md`
-   (Animations) for CSS, and against Part 1 section 3 for gesture-driven
+6. **Interruptibility.** Measured against Repository defaults
+   (Interruptibility) for CSS, and against Part 1 section 3 for gesture-driven
    motion.
 
-7. **GPU-only properties.** Measured against `.claude/rules/design.md`
-   (Animations). Motion's `x`/`y`/`scale` shorthands run on the main thread, so
+7. **GPU-only properties.** Measured against Repository defaults
+   (Properties). Motion's `x`/`y`/`scale` shorthands run on the main thread, so
    they are a finding on motion that plays while the page is busy.
 
-8. **Accessibility.** Measured against `.claude/rules/design.md`: reduced
-   motion in Animations, hover in Interactive States.
+8. **Accessibility.** Measured against Repository defaults (Reduced Motion)
+   and the hover paragraph of `.claude/rules/design.md` (Interaction & Content).
 
 9. **Asymmetric enter/exit.** Measured against Part 2's Asymmetric timing.
    Symmetric timing on a press-and-release is a finding.
@@ -474,8 +581,7 @@ Group by impact tier, highest first. Omit empty tiers.
 5. **Origin, physicality & cohesion**
 6. **Accessibility**
 
-Cite `file:line`. Pull exact values from `.claude/rules/design.md` and Part 2
-rather than approximating.
+Cite `file:line`. Pull exact values from Part 2 rather than approximating.
 
 ---
 
