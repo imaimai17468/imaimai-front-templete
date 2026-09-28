@@ -15,8 +15,12 @@
   // Vendored skill payloads: nothing in this repository imports them, and the
   // next update to the skill overwrites whatever a cleanup did to them.
   "ignorePatterns": [".claude/skills/**"],
-  // Read by the react-doctor binary at startup, which no import graph reaches.
-  "dynamicallyLoaded": ["doctor.config.ts"],
+  // Read by the react-doctor binary at startup, and run by
+  // .claude/hooks/scoped-rules.sh, neither of which an import graph reaches.
+  "dynamicallyLoaded": [
+    "doctor.config.ts",
+    ".claude/hooks/scoped-rules.entry.ts",
+  ],
   "ignoreDependencies": [
     // Named as strings in the `lint.plugins` block of vite.config.ts, which
     // fallow reads as configuration data rather than as imports.
