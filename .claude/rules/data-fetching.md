@@ -40,19 +40,17 @@ A `Schema` decodes a row, rather than a hand-written mapping. Decoding is what t
 
 ## Reading
 
-- A route loader calls `context.queryClient.query(options)`. `ensureQueryData` and `fetchQuery` are deprecated in `@tanstack/react-query` 5.102 and their type-aware lint error fails `bun run check`.
+- A route loader calls `context.queryClient.query(options)`.
 - The component reads the same factory with `useSuspenseQuery`, so the loader has already filled the cache and the component does not suspend on its own.
 - `useQuery` does not run on the server. It fetches after hydration, so data that has to be in the SSR HTML goes through the loader and `useSuspenseQuery`.
 - Two independent reads in one component are one `useSuspenseQueries`. Two `useSuspenseQuery` calls side by side suspend on the first, so the second fetch starts only after the first resolves.
 - Where a component reads rows only to hand them to a child, the child calls the factory itself. The cache dedupes by key, so the request still goes out once and the child stops depending on which parent rendered it. Three or more query hooks in one component is where this shows; `useSuspenseQueries` covers the reads that component renders itself.
-- A read that should fail without taking the page down is `useQuery` + `isError` with an inline message. `useSuspenseQuery` throws to the nearest Error Boundary, which has to be an ancestor of the component calling the hook: a boundary that component renders as its own child never catches it, and the throw walks up to the layout and takes the whole page. Wrap the call site, or move the hook into a child inside the boundary.
-- A conditional read is `useQuery({ ...options(req), enabled })`. `useSuspenseQuery` has no `enabled`.
+- A read that should fail without taking the page down is `useQuery` + `isError` with an inline message.
 
 ## Writing
 
 - A write is `useMutation({ mutationFn })` at the call site, and the `mutationFn` is the exported function that performs it.
 - Invalidate in `onSuccess` by passing the same factory: `queryClient.invalidateQueries(currentUserQueryOptions())`. A write that leaves a row changed on any arm invalidates on every arm.
-- Where a refetch would be wasteful for a one-field change, `cancelQueries` first and then `setQueryData`. Skipping the cancel lets an in-flight fetch land after the write and overwrite it.
 
 ## The client and the guard
 
