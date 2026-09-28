@@ -68,9 +68,11 @@ Leave the rest of the markup as it is.
 
 ### `src/routes/index/-components/home-content.ts`
 
-The sample home page hardcodes the stack. Remove the `認証` and `データ` rows
+The sample home page hardcodes the stack. Remove the `認証`, `データ` and `ファイル` rows
 from the `同梱されているもの` section of the `SPECS` array, which carry
-`Better Auth` and `Drizzle ORM`. Note: the step 7 residual grep
+`Better Auth`, `Drizzle ORM` and Cloudflare R2, drop D1 and R2 from the
+Workers row's detail, and remove the Better Auth, Cloudflare D1 and
+Cloudflare R2 entries from `LINKS`. Note: the step 7 residual grep
 will **not** catch these, because `"Better Auth"` has a space and
 `"Drizzle ORM"` is capitalized, so neither matches the `better-auth` /
 `drizzle` (lowercase, case-sensitive) patterns. Fix them here explicitly.
