@@ -5,7 +5,7 @@ description: "Hand a ticket's mechanical implementation to the Codex CLI (`codex
 
 # Codex delegation
 
-What a Claude worker spends on one ticket is the counter AGENTS.md's dispatch bullet measures. The part of a ticket a gate can accept or reject does not need this repository's judgment, so it goes to Codex, and the worker keeps the ticket.
+What a Claude worker spends on one ticket counts against the usage windows AGENTS.md's dispatch bullet reads. The part of a ticket a gate can accept or reject does not need this repository's judgment, so it goes to Codex, and the worker keeps the ticket.
 
 ## What Codex is handed
 
