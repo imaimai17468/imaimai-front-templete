@@ -76,7 +76,7 @@ const classNameRule = (pattern, describe) => ({
       JSXAttribute(node) {
         for (const str of classNameStrings(node)) {
           for (const match of str.match(pattern) ?? []) {
-            context.report({ message: describe(match.trim()), node });
+            context.report({ message: describe(match), node });
           }
         }
       },
