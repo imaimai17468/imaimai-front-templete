@@ -6,12 +6,11 @@
  * runs a command its `commands` name, or fires an event its `events` list.
  * scoped-guidance.sh runs it for PreToolUse, PostToolUse and UserPromptSubmit.
  *
- * Nothing else loads these files: Claude Code reads `.claude/rules/`, which
- * this repository no longer has. Before a call, the paths and the command the
- * call names decide; after a Bash call, the files git lists as changed decide,
- * which covers a write whose command named no path. Every judgment on those paths is
- * in scoped-guidance-decision.ts, and this file reads the payload, the rules,
- * git and the markers.
+ * Before a call, the paths and the command the call names decide; after a
+ * Bash call, the files git lists as changed decide, which covers a write whose
+ * command named no path. Every judgment on those paths is in
+ * scoped-guidance-decision.ts, and this file reads the payload, the rules, git
+ * and the markers.
  *
  * The context is advisory, so every failure here exits 0 and prints nothing: a
  * hook that cannot decide must not stand between the model and its call.
