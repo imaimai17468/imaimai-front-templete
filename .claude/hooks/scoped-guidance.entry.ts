@@ -31,6 +31,7 @@ import {
   pointerContext,
   projectRelative,
   reachesFor,
+  rulesCountedForCompletion,
   ruleMarker,
   ToolInput,
 } from "./scoped-guidance-decision";
@@ -136,11 +137,12 @@ const claimsFirstReach = (prefix: string | undefined, rule: ScopedRule) => {
 
 const markCompleteWhenAllReached = (
   prefix: string | undefined,
-  ruleFiles: RuleFiles
+  ruleFiles: RuleFiles,
+  agentId: string
 ): void => {
   if (
     prefix !== undefined &&
-    ruleFiles.rules.every((rule) =>
+    rulesCountedForCompletion(ruleFiles.rules, agentId).every((rule) =>
       fs.existsSync(ruleMarker(prefix, rule.name))
     )
   ) {
@@ -164,7 +166,7 @@ const run = (
   const reachedFirst = reaches.filter((reach) =>
     claimsFirstReach(prefix, reach.rule)
   );
-  markCompleteWhenAllReached(prefix, ruleFiles);
+  markCompleteWhenAllReached(prefix, ruleFiles, payload.agent_id);
   if (reachedFirst.length === 0) {
     return "";
   }

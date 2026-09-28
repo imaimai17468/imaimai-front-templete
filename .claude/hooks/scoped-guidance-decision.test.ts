@@ -18,6 +18,7 @@ import {
   projectRelative,
   reachesFor,
   ruleMarker,
+  rulesCountedForCompletion,
 } from "./scoped-guidance-decision";
 
 const REACT: ScopedRule = {
@@ -280,5 +281,30 @@ describe(pointerContext, () => {
     expect(context).toBe(
       ".claude/hooks/guidance/react.md applies because this session reached src/b.tsx. Read .claude/hooks/guidance/react.md completely before continuing. This hook names it once per session.\n.claude/hooks/guidance/prose.md applies because this session ran `git commit`. Read .claude/hooks/guidance/prose.md completely before continuing. This hook names it once per session."
     );
+  });
+});
+
+describe(rulesCountedForCompletion, () => {
+  it.each([
+    { agent: "", expected: [REACT, PROSE, REPLIES] },
+    { agent: "a1", expected: [REACT, PROSE] },
+  ])(
+    "should return $expected.length rules when the agent is '$agent'",
+    ({ agent, expected }) => {
+      const counted = rulesCountedForCompletion([REACT, PROSE, REPLIES], agent);
+
+      expect(counted).toStrictEqual(expected);
+    }
+  );
+
+  it("should keep a prompt rule for a subagent when it also lists another event", () => {
+    const rule: ScopedRule = {
+      ...REPLIES,
+      events: ["UserPromptSubmit", "PostToolUse"],
+    };
+
+    const counted = rulesCountedForCompletion([rule], "a1");
+
+    expect(counted).toStrictEqual([rule]);
   });
 });

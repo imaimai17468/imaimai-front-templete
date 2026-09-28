@@ -371,6 +371,19 @@ describe("scoped-guidance", () => {
     expect(printed).toStrictEqual({});
   });
 
+  it("should mark a subagent complete when it reaches every rule but a prompt-only one", async () => {
+    const project = makeProject("subagent-complete");
+    addRule(project, "replies.md", REPLIES_RULE);
+    const marker = path.join(
+      project,
+      "tmp/claude-scoped-guidance-s1-a1.complete-3"
+    );
+
+    await printedBy(project, { ...bashNaming("src/a.tsx"), agentId: "a1" });
+
+    expect(fs.existsSync(marker)).toBeTruthy();
+  });
+
   it.each([
     { input: "not json", name: "stdin is not JSON" },
     {

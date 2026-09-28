@@ -253,6 +253,24 @@ export const completeMarker = (prefix: string, ruleFileCount: number): string =>
   `${prefix}.complete-${ruleFileCount}`;
 
 /**
+ * The rules a session has to reach before it counts as complete. A subagent
+ * receives no prompt of its own, so a rule that only a `UserPromptSubmit`
+ * brings in would hold its count open forever and keep bun starting on every
+ * one of its tool calls.
+ */
+export const rulesCountedForCompletion = (
+  rules: readonly ScopedRule[],
+  agentId: string
+): ScopedRule[] =>
+  rules.filter(
+    (rule) =>
+      agentId === "" ||
+      rule.patterns.length > 0 ||
+      rule.commands.length > 0 ||
+      rule.events.some((event) => event !== "UserPromptSubmit")
+  );
+
+/**
  * The additionalContext that sends the model to each rule. It names the file
  * rather than carrying its text, because Claude Code saves a long
  * additionalContext to a file and shows a 2 KB preview: the three rules a
