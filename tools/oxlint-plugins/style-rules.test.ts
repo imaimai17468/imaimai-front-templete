@@ -504,9 +504,9 @@ describe.each([
 
     expect(
       context.report.mock.calls.map(([call]) =>
-        matches.some((match) => call.message.includes(`'${match}'`))
+        matches.find((match) => call.message.includes(`'${match}'`))
       )
-    ).toStrictEqual(matches.map(() => true));
+    ).toStrictEqual(matches);
   });
 
   it("should not report when className holds only allowed classes", () => {
