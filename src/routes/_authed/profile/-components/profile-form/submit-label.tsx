@@ -4,7 +4,7 @@ export const SubmitLabel = ({ isPending }: { readonly isPending: boolean }) => {
   if (isPending) {
     return (
       <>
-        <Loader2 className="mr-2 size-4 motion-safe:animate-spin" />
+        <Loader2 className="size-4 motion-safe:animate-spin" />
         Updating…
       </>
     );
