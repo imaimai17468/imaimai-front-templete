@@ -57,34 +57,9 @@ interface rather than omitting it, which was verified rather than assumed).
 
 ### `src/shared/components/header/header.tsx`
 
-Remove the `user` prop and the `Option` / `UserWithEmail` / `AuthNavigation`
-imports:
-
-```tsx
-import { Link } from "@tanstack/react-router";
-import { ModeToggle } from "./mode-toggle/mode-toggle";
-
-export const Header = () => (
-  <header className="sticky top-0 z-50 bg-transparent backdrop-blur-md">
-    <div className="flex items-center justify-between px-6 py-6">
-      <div>
-        <h1 className="font-medium text-2xl">
-          <Link to="/">Title</Link>
-        </h1>
-      </div>
-      <div className="flex items-center gap-5">
-        <Link to="/" className="text-gray-400 text-sm">
-          Link1
-        </Link>
-        <Link to="/" className="text-gray-400 text-sm">
-          Link2
-        </Link>
-        <ModeToggle />
-      </div>
-    </div>
-  </header>
-);
-```
+Delete the `user` prop and its type, the `Option` / `UserWithEmail` /
+`AuthNavigation` imports, and the `<AuthNavigation user={user} />` element.
+Leave the rest of the markup as it is.
 
 ### `src/routes/__root.tsx`
 
@@ -93,9 +68,11 @@ export const Header = () => (
 
 ### `src/routes/index/-components/home-content.ts`
 
-The sample home page hardcodes the stack. Remove the `認証` and `データ` rows
+The sample home page hardcodes the stack. Remove the `認証`, `データ` and `ファイル` rows
 from the `同梱されているもの` section of the `SPECS` array, which carry
-`Better Auth` and `Drizzle ORM`. Note: the step 7 residual grep
+`Better Auth`, `Drizzle ORM` and Cloudflare R2, drop D1 and R2 from the
+Workers row's detail, and remove the Better Auth, Cloudflare D1 and
+Cloudflare R2 entries from `LINKS`. Note: the step 7 residual grep
 will **not** catch these, because `"Better Auth"` has a space and
 `"Drizzle ORM"` is capitalized, so neither matches the `better-auth` /
 `drizzle` (lowercase, case-sensitive) patterns. Fix them here explicitly.
@@ -144,10 +121,10 @@ When that happens, also remove `"arch-rules/layer-boundaries": "error"` from
 rule ID, so dropping only one half leaves the config pointing at a rule nothing
 supplies.
 
-**Neither file under `tools/oxlint-plugins/` is deleted.** `arch-rules.js` also
-carries the component and test-shape rules, `style-rules.js` is untouched by this
-procedure, and `vite.config.ts` loads both by path under `lint.jsPlugins`, so removing
-either file breaks the lint config for the whole fork.
+**No plugin under `tools/oxlint-plugins/` is deleted.** `arch-rules.js` also
+carries the component and test-shape rules, `style-rules.js` and `start-rules.js`
+are untouched by this procedure, and `vite.config.ts` loads each by path under
+`lint.jsPlugins`, so removing any of them breaks the lint config for the whole fork.
 
 ## 4. Config files
 
@@ -343,7 +320,7 @@ Split per the Commits discipline in `AGENTS.md`:
 4. `docs:` remove DB- and auth-related documentation. Stage every surface
    step 6 touched, each by its explicit path as that discipline requires:
    `README.md`, `docs/DEPLOYMENT.md`, `docs/FORKING.md`,
-   `.claude/settings.json`, `.env.local.example` and `wrangler.toml`. A surface
+   and `.claude/settings.json`. A surface
    missing from this list is a surface left uncommitted.
 
 Intermediate commits are not individually buildable (e.g. commit 1 deletes the

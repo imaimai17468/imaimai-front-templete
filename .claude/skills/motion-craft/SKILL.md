@@ -109,10 +109,10 @@ Apple's two designer-friendly parameters:
 import { animate } from 'motion';
 
 // Critically damped default (no overshoot)
-animate(el, { y: 0 }, { type: 'spring', bounce: 0, duration: 0.4 });
+animate(el, { transform: 'translateY(0px)' }, { type: 'spring', bounce: 0, duration: 0.4 });
 
 // Momentum interaction — a little bounce, only because a flick preceded it
-animate(el, { y: target }, { type: 'spring', bounce: 0.2, duration: 0.4 });
+animate(el, { transform: `translateY(${target}px)` }, { type: 'spring', bounce: 0.2, duration: 0.4 });
 ```
 
 ## 5. Velocity handoff

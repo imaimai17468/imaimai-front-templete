@@ -78,7 +78,7 @@ first idea for the fix, a severity of critical / major / minor, and the rule it 
 where one applies.
 
 Coverage-first applies fully to logic, state, integrity and rules. For cleanup, reuse,
-efficiency, altitude and style, calibrate: a behaviour-identical change (a rename, a
+efficiency and altitude, calibrate: a behaviour-identical change (a rename, a
 constant extraction, a doc reword) carrying no critical or major finding should draw few
 or no comments, so raise one only when it is material.
 
@@ -105,7 +105,7 @@ from the `refuted` one Stage C produces. Count what you folded away.
 
 Try to kill each candidate by re-deriving it from the actual code. Verdict per finding:
 CONFIRMED (traced in real code), PLAUSIBLE (credible, not fully traced), REFUTED,
-ABSTAINED. Default to REFUTED when uncertain. You may regrade severity. Add nothing Stage A
+ABSTAINED. You may regrade severity. Add nothing Stage A
 did not raise.
 
 **ABSTAINED says you could not reach what would settle the candidate.** REFUTED closes a
