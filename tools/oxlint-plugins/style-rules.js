@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+
 const noLoops = {
   create(context) {
     const report = (node) =>
@@ -115,15 +118,71 @@ const noTailwindEaseIn = classNameRule(
 );
 
 const SHARED_UI_SOURCE = /(?:^|\/)shared\/ui\//u;
+const SHARED_UI_ALIAS = /^@\/shared\/ui\/(?<module>[\w-]+)$/u;
+const FUNCTION_COMPONENT =
+  /^function (?<name>[A-Z]\w*)\((?<body>[\s\S]*?)^\}$/gmu;
+
+/**
+ * The components a shadcn module declares that never touch `className`, such
+ * as `DropdownMenuTrigger` or `TooltipTrigger`: they carry behavior alone, so a
+ * class passed to them, or to the child they render through `asChild`, styles
+ * that child rather than restyling the primitive.
+ */
+const unstyledComponents = (source) =>
+  new Set(
+    [...source.matchAll(FUNCTION_COMPONENT)]
+      .filter((match) => !match.groups.body.includes("className"))
+      .map((match) => match.groups.name)
+  );
+
+/**
+ * The unstyled components of the module an `@/shared/ui/<module>` import
+ * names, read from the checkout the lint runs in. An import spelled another
+ * way, or a module that cannot be read, yields none, so every component it
+ * brings stays checked.
+ */
+const unstyledComponentsOf = (importSource) => {
+  const module = SHARED_UI_ALIAS.exec(importSource)?.groups.module;
+  if (module === undefined) {
+    return new Set();
+  }
+  try {
+    return unstyledComponents(
+      fs.readFileSync(
+        path.join(process.cwd(), "src/shared/ui", `${module}.tsx`),
+        "utf-8"
+      )
+    );
+  } catch {
+    return new Set();
+  }
+};
 
 const APPEARANCE_CLASS =
   /(?<![\w-])(?:[\w-]+:)*(?:bg|text|font|tracking|leading|rounded|border|ring|shadow|opacity|p[xytblrse]?|gap|space-[xy]|transition|duration|ease|animate|decoration|underline|italic|uppercase|lowercase|capitalize)(?:-[\w.-]+)?(?![\w-])/gu;
 
+const jsxAttributes = (opening) =>
+  opening.attributes.filter((attribute) => attribute.type === "JSXAttribute");
+
 /**
- * A call site of a `src/shared/ui/` primitive passes only the classes that
- * place it. Its color, type, spacing, shape, effects and motion belong to the
- * primitive's variants, so a screen that needs a new treatment adds a variant
- * every other screen can take.
+ * Whether the primitive renders its child in its own place, which Radix's
+ * `asChild` does by merging the child's className into the primitive's.
+ */
+const passesClassesToChild = (opening) =>
+  jsxAttributes(opening).some((attribute) => attribute.name.name === "asChild");
+
+const firstChildOpening = (element) =>
+  element.children
+    .filter((child) => child.type === "JSXElement")
+    .slice(0, 1)
+    .map((child) => child.openingElement);
+
+/**
+ * A call site of a `src/shared/ui/` primitive, and the child an `asChild`
+ * primitive renders in its place, passes only the classes that place it. Its
+ * color, type, spacing, shape, effects and motion belong to the primitive's
+ * variants, so a screen that needs a new treatment adds a variant every other
+ * screen can take.
  */
 const noRestyleSharedUiAtCallSite = {
   create(context) {
@@ -133,27 +192,34 @@ const noRestyleSharedUiAtCallSite = {
         if (!SHARED_UI_SOURCE.test(String(node.source.value))) {
           return;
         }
+        const unstyled = unstyledComponentsOf(String(node.source.value));
         for (const specifier of node.specifiers) {
-          primitives.add(specifier.local.name);
+          if (!unstyled.has(specifier.imported?.name)) {
+            primitives.add(specifier.local.name);
+          }
         }
       },
-      JSXOpeningElement(node) {
+      JSXElement(node) {
+        const opening = node.openingElement;
         if (
-          node.name.type !== "JSXIdentifier" ||
-          !primitives.has(node.name.name)
+          opening.name.type !== "JSXIdentifier" ||
+          !primitives.has(opening.name.name)
         ) {
           return;
         }
-        const attributes = node.attributes.filter(
-          (attribute) => attribute.type === "JSXAttribute"
-        );
-        for (const attribute of attributes) {
-          for (const str of classNameStrings(attribute)) {
-            for (const match of str.match(APPEARANCE_CLASS) ?? []) {
-              context.report({
-                message: `'${match}' restyles <${node.name.name}> at its call site. Add a variant to the primitive in src/shared/ui/ and pass the variant; a call site passes only placement classes such as width or grid position.`,
-                node: attribute,
-              });
+        const primitive = opening.name.name;
+        const styledOpenings = passesClassesToChild(opening)
+          ? [opening, ...firstChildOpening(node)]
+          : [opening];
+        for (const styled of styledOpenings) {
+          for (const attribute of jsxAttributes(styled)) {
+            for (const str of classNameStrings(attribute)) {
+              for (const match of str.match(APPEARANCE_CLASS) ?? []) {
+                context.report({
+                  message: `'${match}' restyles <${primitive}> at its call site. Add a variant to the primitive in src/shared/ui/ and pass the variant; a call site passes only placement classes such as width or grid position.`,
+                  node: attribute,
+                });
+              }
             }
           }
         }

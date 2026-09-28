@@ -510,15 +510,20 @@ describe.each([
   });
 });
 
-const importFrom = (source: string, local: string) => ({
+const importFrom = (source: string, local: string, imported?: string) => ({
   source: { value: source },
-  specifiers: [{ local: { name: local } }],
+  specifiers: [
+    imported === undefined
+      ? { local: { name: local } }
+      : { imported: { name: imported }, local: { name: local } },
+  ],
 });
 
 const element = (
   name: { name: string; type: string },
-  attributes: readonly unknown[]
-) => ({ attributes, name });
+  attributes: readonly unknown[],
+  children: readonly unknown[] = []
+) => ({ children, openingElement: { attributes, name } });
 
 describe("no-restyle-shared-ui-at-call-site", () => {
   const rule = plugin.rules["no-restyle-shared-ui-at-call-site"];
@@ -526,12 +531,13 @@ describe("no-restyle-shared-ui-at-call-site", () => {
   const run = (
     source: string,
     name: { name: string; type: string },
-    attributes: readonly unknown[]
+    attributes: readonly unknown[],
+    children: readonly unknown[] = []
   ) => {
     const context = createMockContext();
     const visitors = rule.create(context);
     visitors.ImportDeclaration(importFrom(source, "Button"));
-    visitors.JSXOpeningElement(element(name, attributes));
+    visitors.JSXElement(element(name, attributes, children));
     return context.report.mock.calls.map(([call]) => call.message);
   };
 
@@ -549,6 +555,86 @@ describe("no-restyle-shared-ui-at-call-site", () => {
       "'hover:bg-muted' restyles <Button> at its call site. Add a variant to the primitive in src/shared/ui/ and pass the variant; a call site passes only placement classes such as width or grid position.",
       "'rounded-lg' restyles <Button> at its call site. Add a variant to the primitive in src/shared/ui/ and pass the variant; a call site passes only placement classes such as width or grid position.",
     ]);
+  });
+
+  it("should report the child's appearance class when the primitive passes asChild", () => {
+    const child = {
+      openingElement: {
+        attributes: [
+          { ...makeClassNameNode("w-full bg-muted"), type: "JSXAttribute" },
+        ],
+        name: { name: "Link", type: "JSXIdentifier" },
+      },
+      type: "JSXElement",
+    };
+
+    const messages = run(
+      "@/shared/ui/button",
+      BUTTON,
+      [{ name: { name: "asChild" }, type: "JSXAttribute", value: null }],
+      [{ type: "JSXText", value: " " }, child]
+    );
+
+    expect(messages).toStrictEqual([
+      "'bg-muted' restyles <Button> at its call site. Add a variant to the primitive in src/shared/ui/ and pass the variant; a call site passes only placement classes such as width or grid position.",
+    ]);
+  });
+
+  it.each([
+    {
+      expected: [],
+      scenario: "the imported component never touches className",
+      source: "@/shared/ui/dropdown-menu",
+    },
+    {
+      expected: [
+        "'bg-muted' restyles <DropdownMenuTrigger> at its call site. Add a variant to the primitive in src/shared/ui/ and pass the variant; a call site passes only placement classes such as width or grid position.",
+      ],
+      scenario: "the shared/ui module cannot be read",
+      source: "@/shared/ui/no-such-module",
+    },
+    {
+      expected: [
+        "'bg-muted' restyles <DropdownMenuTrigger> at its call site. Add a variant to the primitive in src/shared/ui/ and pass the variant; a call site passes only placement classes such as width or grid position.",
+      ],
+      scenario: "the import does not use the @/shared/ui alias",
+      source: "../../shared/ui/dropdown-menu",
+    },
+  ])(
+    "should return $expected.length reports when $scenario",
+    ({ expected, source }) => {
+      const context = createMockContext();
+      const visitors = rule.create(context);
+      visitors.ImportDeclaration(
+        importFrom(source, "DropdownMenuTrigger", "DropdownMenuTrigger")
+      );
+
+      visitors.JSXElement(
+        element({ name: "DropdownMenuTrigger", type: "JSXIdentifier" }, [
+          { ...makeClassNameNode("bg-muted"), type: "JSXAttribute" },
+        ])
+      );
+
+      expect(
+        context.report.mock.calls.map(([call]) => call.message)
+      ).toStrictEqual(expected);
+    }
+  );
+
+  it("should not read the child when the primitive does not pass asChild", () => {
+    const child = {
+      openingElement: {
+        attributes: [
+          { ...makeClassNameNode("bg-muted"), type: "JSXAttribute" },
+        ],
+        name: { name: "Link", type: "JSXIdentifier" },
+      },
+      type: "JSXElement",
+    };
+
+    const messages = run("@/shared/ui/button", BUTTON, [], [child]);
+
+    expect(messages).toStrictEqual([]);
   });
 
   it.each([
