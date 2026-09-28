@@ -466,7 +466,7 @@ describe.each([
     rule: "no-tailwind-shadow",
   },
   {
-    allowed: "mx-auto -mx-2 my-auto gap-2",
+    allowed: "mx-auto -mx-2 my-auto gap-2 m-0 mt-0 space-x-reverse",
     flagged: "mr-2 mt-0.5 space-y-4 m-px",
     matches: ["mr-2", "mt-0.5", "space-y-4", "m-px"],
     rule: "no-tailwind-sibling-margin",

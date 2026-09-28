@@ -97,7 +97,7 @@ const noTailwindShadow = classNameRule(
 );
 
 const noTailwindSiblingMargin = classNameRule(
-  /(?<![\w-])(?:m[xytblrse]?-(?:\d+(?:\.\d+)?|px)|space-[xy]-[\w.]+)(?![\w-])/gu,
+  /(?<![\w-])(?:m[xytblrse]?-(?:(?!0(?![\d.]))\d+(?:\.\d+)?|px)|space-[xy]-(?:\d+(?:\.\d+)?|px))(?![\w-])/gu,
   (match) =>
     `'${match}' spaces siblings with a margin. Put \`gap-*\` on the flex or grid parent instead; \`mx-auto\` and negative margins stay allowed.`
 );
