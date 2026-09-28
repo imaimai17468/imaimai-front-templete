@@ -28,6 +28,10 @@ defaults.
 - **destructive**: Deletion and error actions only. Not for general warnings.
 - **border / input**: Structural separation. Subtle, never dominant.
 
+Outside a `className` string, in an inline `style` or a stylesheet other than
+`src/styles.css`, reach a color through `var(--token)` and never write a raw
+value; `style-rules/no-tailwind-palette-color` reads class strings alone.
+
 ### Accent Color
 
 Accent is one hue applied consistently to a chosen category of elements.
