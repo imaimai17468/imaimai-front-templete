@@ -20,35 +20,50 @@ const noLoops = {
 };
 
 /**
- * The string parts of one `className` attribute: a string literal, a string
- * inside `{}`, or each static piece of a template literal. An expression
- * computed at runtime has no text to read, so it yields nothing.
+ * The class strings an expression can evaluate to: a string literal, each
+ * static piece of a template literal, both arms of `a && b`, `a || b` and
+ * `c ? a : b`, and every argument of a `cn(...)` call. Anything computed at
+ * runtime has no text to read, so it yields nothing.
  */
-const classNameStrings = (node) => {
-  if (node.name.name !== "className") {
-    return [];
-  }
-  const val = node.value;
-  if (!val) {
-    return [];
-  }
-  if (val.type === "Literal" || val.type === "StringLiteral") {
-    return [String(val.value)];
-  }
-  if (val.type !== "JSXExpressionContainer") {
-    return [];
-  }
-  const expr = val.expression;
-  if (expr.type === "TemplateLiteral") {
-    return expr.quasis.map((quasi) => quasi.value.raw);
-  }
+const classStringsIn = (expr) => {
   if (
     (expr.type === "Literal" || expr.type === "StringLiteral") &&
     typeof expr.value === "string"
   ) {
     return [expr.value];
   }
+  if (expr.type === "TemplateLiteral") {
+    return expr.quasis.map((quasi) => quasi.value.raw);
+  }
+  if (expr.type === "LogicalExpression") {
+    return [...classStringsIn(expr.left), ...classStringsIn(expr.right)];
+  }
+  if (expr.type === "ConditionalExpression") {
+    return [
+      ...classStringsIn(expr.consequent),
+      ...classStringsIn(expr.alternate),
+    ];
+  }
+  if (
+    expr.type === "CallExpression" &&
+    expr.callee.type === "Identifier" &&
+    expr.callee.name === "cn"
+  ) {
+    return expr.arguments.flatMap(classStringsIn);
+  }
   return [];
+};
+
+/** The class strings one `className` attribute can carry. */
+const classNameStrings = (node) => {
+  if (node.name.name !== "className" || !node.value) {
+    return [];
+  }
+  const val = node.value;
+  if (val.type === "JSXExpressionContainer") {
+    return classStringsIn(val.expression);
+  }
+  return classStringsIn(val);
 };
 
 /**

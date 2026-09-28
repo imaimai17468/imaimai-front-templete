@@ -333,13 +333,17 @@ describe("no-tailwind-arbitrary (defensive branches)", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it("should not report when the className expression is a function call", () => {
+  it("should not report when the className expression calls a function other than cn", () => {
     const context = createMockContext();
     const visitors = rule.create(context);
     const node = {
       name: { name: "className" },
       value: {
-        expression: { type: "CallExpression" },
+        expression: {
+          arguments: [{ type: "Literal", value: "w-[3px] bg-muted/50" }],
+          callee: { name: "clsx", type: "Identifier" },
+          type: "CallExpression",
+        },
         type: "JSXExpressionContainer",
       },
     };
@@ -391,13 +395,17 @@ describe("no-tailwind-opacity (defensive branches)", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it("should not report when the className expression is a function call", () => {
+  it("should not report when the className expression calls a function other than cn", () => {
     const context = createMockContext();
     const visitors = rule.create(context);
     const node = {
       name: { name: "className" },
       value: {
-        expression: { type: "CallExpression" },
+        expression: {
+          arguments: [{ type: "Literal", value: "w-[3px] bg-muted/50" }],
+          callee: { name: "clsx", type: "Identifier" },
+          type: "CallExpression",
+        },
         type: "JSXExpressionContainer",
       },
     };
@@ -701,5 +709,104 @@ describe("no-tailwind-palette-color against the pinned Tailwind", () => {
     );
 
     expect(context.report).toHaveBeenCalledTimes(palettes.length);
+  });
+});
+
+/** The ESTree shape of the expressions the className reader walks. */
+interface ClassExpression {
+  readonly alternate?: ClassExpression;
+  readonly arguments?: readonly ClassExpression[];
+  readonly callee?: { readonly name?: string; readonly type: string };
+  readonly consequent?: ClassExpression;
+  readonly left?: ClassExpression;
+  readonly name?: string;
+  readonly operator?: string;
+  readonly right?: ClassExpression;
+  readonly test?: ClassExpression;
+  readonly type: string;
+  readonly value?: string;
+}
+
+const expressionNode = (expression: ClassExpression) => ({
+  name: { name: "className" },
+  value: { expression, type: "JSXExpressionContainer" },
+});
+
+const literal = (value: string) => ({ type: "Literal", value });
+
+describe("className strings inside expressions", () => {
+  const rule = plugin.rules["no-tailwind-palette-color"];
+
+  it.each([
+    {
+      expression: {
+        arguments: [literal("bg-red-500"), literal("text-muted-foreground")],
+        callee: { name: "cn", type: "Identifier" },
+        type: "CallExpression",
+      },
+      scenario: "a cn() argument",
+    },
+    {
+      expression: {
+        left: { name: "isActive", type: "Identifier" },
+        operator: "&&",
+        right: literal("bg-red-500"),
+        type: "LogicalExpression",
+      },
+      scenario: "the right arm of &&",
+    },
+    {
+      expression: {
+        alternate: literal("bg-muted"),
+        consequent: literal("bg-red-500"),
+        test: { name: "isActive", type: "Identifier" },
+        type: "ConditionalExpression",
+      },
+      scenario: "an arm of a conditional",
+    },
+    {
+      expression: {
+        arguments: [
+          {
+            left: { name: "isActive", type: "Identifier" },
+            operator: "&&",
+            right: literal("bg-red-500"),
+            type: "LogicalExpression",
+          },
+        ],
+        callee: { name: "cn", type: "Identifier" },
+        type: "CallExpression",
+      },
+      scenario: "a conditional class passed to cn()",
+    },
+  ])(
+    "should report the palette class when it sits in $scenario",
+    ({ expression }) => {
+      const context = createMockContext();
+      const visitors = rule.create(context);
+
+      visitors.JSXAttribute(expressionNode(expression));
+
+      expect(
+        context.report.mock.calls.map(([call]) => call.message)
+      ).toStrictEqual([
+        "Palette color 'bg-red-500' is forbidden in a component. Use a semantic token (primary, muted-foreground, destructive, border…) from src/styles.css.",
+      ]);
+    }
+  );
+
+  it("should not report when the call's callee is a member expression", () => {
+    const context = createMockContext();
+    const visitors = rule.create(context);
+
+    visitors.JSXAttribute(
+      expressionNode({
+        arguments: [literal("bg-red-500")],
+        callee: { type: "MemberExpression" },
+        type: "CallExpression",
+      })
+    );
+
+    expect(context.report).not.toHaveBeenCalled();
   });
 });
