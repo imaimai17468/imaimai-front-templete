@@ -1,7 +1,7 @@
 # shellcheck shell=bash
 # What the reply-open gate judges: which line of the reply is its first visible
 # one, whether that line opens with something the reader runs, whether the user
-# turned .claude/rules/replies.md off for the session, and the refusal the gate
+# turned .claude/hooks/guidance/replies.md off for the session, and the refusal the gate
 # prints. Reading the Stop payload, reading the transcript and choosing the exit
 # status stay in reply-open-gate.sh, which sources this file, so the cases in
 # reply-open-gate.test.ts reach every judgment below in one bash process,
@@ -16,7 +16,7 @@ set -uo pipefail
 # procedure whose first step is the command reads as opening on that command.
 REPLY_OPEN_LIST_MARKER='^([-*+]|[0-9]+[.)])[[:space:]]+'
 
-# The two phrases .claude/rules/replies.md hands the user for turning itself off
+# The two phrases .claude/hooks/guidance/replies.md hands the user for turning itself off
 # for the session. Both are matched anywhere in what the user typed, because
 # they arrive as a message of their own or inside a longer one.
 REPLY_OPEN_MODE_STOP_PHRASES="stop adhd mode
@@ -148,7 +148,7 @@ holds_mode_stop_phrase() { # $1 = everything the user typed this session
 refusal_message() { # $1 = the first visible line the reply opened with
   printf '%s\n%s\n\n    %s\n\n%s\n' \
     "⛔ Stop block: this reply opens with prose." \
-    ".claude/rules/replies.md puts what the reader runs on the first line: a command or a snippet in backticks, or a path. The line this reply opened with was:" \
+    ".claude/hooks/guidance/replies.md puts what the reader runs on the first line: a command or a snippet in backticks, or a path. The line this reply opened with was:" \
     "$1" \
     "Send the reply again with that first line replaced by the command, the path or the snippet it is about, and the reasoning under it. Where the reader asked to be walked through something, or where this turn leaves them nothing to run or open, say that in the reply and send it as it stands: this gate judges a turn once, so the next reply ends the turn whatever it opens with."
 }

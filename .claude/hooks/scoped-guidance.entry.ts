@@ -1,16 +1,17 @@
 #!/usr/bin/env bun
 
 /**
- * Point the model at a path-scoped rule from `.claude/rules/` once per
- * session, as additionalContext, when a tool call reaches a file its `paths`
- * cover. scoped-rules.sh runs it for PreToolUse and PostToolUse.
+ * Point the model at a rule from `.claude/hooks/guidance/` once per session,
+ * as additionalContext, when the session reaches a file its `paths` cover,
+ * runs a command its `commands` name, or fires an event its `events` list.
+ * scoped-guidance.sh runs it for PreToolUse, PostToolUse and UserPromptSubmit.
  *
- * Claude Code loads such a rule when the Read tool opens a matching file, and a
- * session that reads and writes through Bash can go without that load. Before a
- * call, the paths the call names decide; after a Bash call, the files git
- * lists as changed decide, which covers a write whose command named no path.
- * Every judgment on those paths is in scoped-rules-decision.ts, and this file
- * reads the payload, the rules, git, the transcript and the markers.
+ * Nothing else loads these files: Claude Code reads `.claude/rules/`, which
+ * this repository no longer has. Before a call, the paths and the command the
+ * call names decide; after a Bash call, the files git lists as changed decide,
+ * which covers a write whose command named no path. Every judgment on those paths is
+ * in scoped-guidance-decision.ts, and this file reads the payload, the rules,
+ * git and the markers.
  *
  * The context is advisory, so every failure here exits 0 and prints nothing: a
  * hook that cannot decide must not stand between the model and its call.
@@ -23,41 +24,38 @@ import path from "node:path";
 import { text } from "node:stream/consumers";
 import { z } from "zod";
 import {
+  HOOK_EVENTS,
   completeMarker,
-  loadsNatively,
   markerPrefix,
   namedPaths,
   parseScopedRule,
   pointerContext,
   projectRelative,
   reachesFor,
-  readsTranscript,
   ruleMarker,
   ToolInput,
-  transcriptHoldsRule,
-} from "./scoped-rules-decision";
-import type { ScopedRule } from "./scoped-rules-decision";
+} from "./scoped-guidance-decision";
+import type { CallFacts, ScopedRule } from "./scoped-guidance-decision";
 
 const HookPayloadSchema = z.object({
   agent_id: z.string().default(""),
   cwd: z.string(),
-  hook_event_name: z.enum(["PreToolUse", "PostToolUse"]),
+  hook_event_name: z.enum(HOOK_EVENTS),
   session_id: z.string().default(""),
   tool_input: ToolInput.default({}),
-  tool_name: z.string(),
-  transcript_path: z.string().default(""),
+  tool_name: z.string().default(""),
 });
 
 type HookPayload = z.infer<typeof HookPayloadSchema>;
 
-/** The `.md` files under `.claude/rules/`, and the scoped rules among them. */
+/** The `.md` files under `.claude/hooks/guidance/`, and the scoped rules among them. */
 interface RuleFiles {
   readonly count: number;
   readonly rules: readonly ScopedRule[];
 }
 
 const readRuleFiles = (projectDir: string): RuleFiles => {
-  const dir = path.join(projectDir, ".claude/rules");
+  const dir = path.join(projectDir, ".claude/hooks/guidance");
   const names = fs
     .readdirSync(dir)
     .filter((name) => name.endsWith(".md"))
@@ -105,6 +103,22 @@ const reachedPaths = (payload: HookPayload, projectDir: string): string[] => {
 };
 
 /**
+ * A prompt names no path and runs no command, so only a rule's `events` can
+ * bring it in; a tool call is read for all three.
+ */
+const callFacts = (payload: HookPayload, projectDir: string): CallFacts => {
+  if (payload.hook_event_name === "UserPromptSubmit") {
+    return { command: "", event: payload.hook_event_name, paths: [] };
+  }
+  return {
+    command:
+      payload.tool_name === "Bash" ? (payload.tool_input.command ?? "") : "",
+    event: payload.hook_event_name,
+    paths: reachedPaths(payload, projectDir),
+  };
+};
+
+/**
  * `mkdir` both tests and claims the marker in one step, so of several calls
  * Claude Code issued together exactly one points at the rule, and it refuses
  * an existing path, so a marker another user created is not followed.
@@ -135,17 +149,6 @@ const markCompleteWhenAllReached = (
   }
 };
 
-const readTranscript = (payload: HookPayload): string => {
-  if (!readsTranscript(payload.agent_id)) {
-    return "";
-  }
-  try {
-    return fs.readFileSync(payload.transcript_path, "utf-8");
-  } catch {
-    return "";
-  }
-};
-
 const run = (
   stdin: string,
   projectDir: string | undefined,
@@ -154,7 +157,7 @@ const run = (
   const payload = HookPayloadSchema.parse(JSON.parse(stdin));
   const root = projectDir ?? payload.cwd;
   const ruleFiles = readRuleFiles(root);
-  const reaches = reachesFor(ruleFiles.rules, reachedPaths(payload, root));
+  const reaches = reachesFor(ruleFiles.rules, callFacts(payload, root));
   if (reaches.length === 0) {
     return "";
   }
@@ -163,19 +166,12 @@ const run = (
     claimsFirstReach(prefix, reach.rule)
   );
   markCompleteWhenAllReached(prefix, ruleFiles);
-  if (reachedFirst.length === 0 || loadsNatively(payload.tool_name)) {
-    return "";
-  }
-  const transcript = readTranscript(payload);
-  const unloaded = reachedFirst.filter(
-    (reach) => !transcriptHoldsRule(transcript, reach.rule.name)
-  );
-  if (unloaded.length === 0) {
+  if (reachedFirst.length === 0) {
     return "";
   }
   return JSON.stringify({
     hookSpecificOutput: {
-      additionalContext: pointerContext(unloaded),
+      additionalContext: pointerContext(reachedFirst),
       hookEventName: payload.hook_event_name,
     },
   });
@@ -185,7 +181,7 @@ try {
   const printed = run(
     await text(process.stdin),
     process.env.CLAUDE_PROJECT_DIR,
-    process.env.SCOPED_RULES_TMP ?? os.tmpdir()
+    process.env.SCOPED_GUIDANCE_TMP ?? os.tmpdir()
   );
   if (printed !== "") {
     console.log(printed);

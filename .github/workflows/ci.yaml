@@ -117,9 +117,6 @@ jobs:
       - name: Check markdown links
         run: bun .claude/hooks/check-md-links.ts
 
-      - name: Check the Cursor rule mirrors
-        run: bun scripts/check-cursor-rule-mirrors.entry.ts
-
       - name: Check Claude frontmatter parses
         run: bun scripts/check-claude-frontmatter.entry.ts
 

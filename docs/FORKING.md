@@ -38,10 +38,8 @@ Better Auth はリクエストの origin を base URL にするので、環境�
 規約は文書だけに書かれているわけではないので、強制側を置いていくと規約が黙って
 効かなくなる。
 
-個別に注意が要るのは 2 つだけ:
+個別に注意が要るのは 1 つだけ:
 
-- `.cursor/rules/` — `.claude/rules/` へのファイル単位 symlink。
-  実体を置かないこと — コピーはドリフトする
 - `.claude/settings.json` — 権限境界。プロジェクト固有のコマンドを
   足す場合は `allow` の広さが境界の一部であることに注意
 
@@ -50,7 +48,7 @@ Better Auth はリクエストの origin を base URL にするので、環境�
 ができる）。フォーク先には関係しない。
 
 このテンプレートは意思決定記録を別立てで持たない。ある判断が「なぜ今こうなって
-いるか」は、規約そのもの（AGENTS.md / `.claude/rules/`）と `git log` にある。
+いるか」は、規約そのもの（AGENTS.md / `.claude/hooks/guidance/`）と `git log` にある。
 
 ## 4. 削除するアプリ機能
 
@@ -60,4 +58,4 @@ Better Auth はリクエストの origin を base URL にするので、環境�
 `/remove-db` スキルの手順を確認する。
 
 新しい機能を追加するときのディレクトリ判断は AGENTS.md の `Rules` 節
-と `.claude/rules/react.md` に従う。
+と `.claude/hooks/guidance/react.md` に従う。

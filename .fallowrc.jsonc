@@ -16,10 +16,10 @@
   // next update to the skill overwrites whatever a cleanup did to them.
   "ignorePatterns": [".claude/skills/**"],
   // Read by the react-doctor binary at startup, and run by
-  // .claude/hooks/scoped-rules.sh, neither of which an import graph reaches.
+  // .claude/hooks/scoped-guidance.sh, neither of which an import graph reaches.
   "dynamicallyLoaded": [
     "doctor.config.ts",
-    ".claude/hooks/scoped-rules.entry.ts",
+    ".claude/hooks/scoped-guidance.entry.ts",
   ],
   "ignoreDependencies": [
     // Named as strings in the `lint.plugins` block of vite.config.ts, which

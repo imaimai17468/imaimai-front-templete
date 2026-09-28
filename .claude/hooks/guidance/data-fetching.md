@@ -1,7 +1,5 @@
 ---
 description: Reads and writes end to end — gateway module shape, the server-only marker, query options and keys, loaders, mutations, and what decodes a row
-globs: src/**/*.ts,src/**/*.tsx
-alwaysApply: false
 paths: src/**/*.ts, src/**/*.tsx
 ---
 

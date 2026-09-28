@@ -201,7 +201,7 @@ function rubberband(overshoot, dimension, constant = 0.55) {
 
 Apple uses translucent materials as a floating functional layer. On the web,
 approximate with `backdrop-filter`. Which surfaces here may be translucent, and
-where a shadow is allowed at all, is settled in `.claude/rules/design.md`
+where a shadow is allowed at all, is settled in `.claude/hooks/guidance/design.md`
 (Elevation), which carries hierarchy on background color, border, backdrop dim,
 spacing, and typography instead.
 
@@ -233,7 +233,7 @@ under `prefers-reduced-motion`.
 
 ## 15. Typography — optical sizing, tracking, leading
 
-- **Tracking and hierarchy.** Both are settled in `.claude/rules/design.md`
+- **Tracking and hierarchy.** Both are settled in `.claude/hooks/guidance/design.md`
   (Typographic Rules).
 - **Leading tracks size inversely.** Tight on large headings, looser on body.
 - **Respect the user's text-size setting.** Scale layout with `rem`/`em`.
@@ -442,7 +442,7 @@ Slow where the user is deciding, fast where the system responds.
 - **3D**: `rotateX/Y` + `transform-style: preserve-3d` for depth/orbit/flip.
 - **`clip-path: inset(t r b l)`** drives a hold-to-delete overlay, a seamless
   tab color transition, and a comparison slider. A reveal gated on scroll is
-  ruled out by `.claude/rules/design.md` (Interaction & Content).
+  ruled out by `.claude/hooks/guidance/design.md` (Interaction & Content).
 
 ## Gestures & drag
 
@@ -469,7 +469,7 @@ stagger may not hold up.
 
 ## Accessibility (implementation)
 
-`.claude/rules/design.md` (Interaction & Content) gates hover animation and bounds
+`.claude/hooks/guidance/design.md` (Interaction & Content) gates hover animation and bounds
 what a hover may change.
 
 ```css
@@ -527,7 +527,7 @@ Every animation in the diff is measured against these. A violation is a finding.
    they are a finding on motion that plays while the page is busy.
 
 8. **Accessibility.** Measured against Repository defaults (Reduced Motion)
-   and the hover paragraph of `.claude/rules/design.md` (Interaction & Content).
+   and the hover paragraph of `.claude/hooks/guidance/design.md` (Interaction & Content).
 
 9. **Asymmetric enter/exit.** Measured against Part 2's Asymmetric timing.
    Symmetric timing on a press-and-release is a finding.

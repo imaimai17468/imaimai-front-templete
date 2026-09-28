@@ -1,7 +1,5 @@
 ---
 description: What an effect is for, component props and splitting, testable shape, and module organization
-globs: src/**/*.ts,src/**/*.tsx
-alwaysApply: false
 paths: src/**/*.ts, src/**/*.tsx
 ---
 

@@ -23,7 +23,7 @@ const validTree = (): string => {
   const root = fs.mkdtempSync(path.join(WORK, "case-"));
   write(
     root,
-    ".claude/rules/alpha.md",
+    ".claude/hooks/guidance/alpha.md",
     `---
 description: "scoped rule: with a colon"
 alwaysApply: true
@@ -100,7 +100,7 @@ description: work: clarify
 
     expect(frontmatterReport(root)).toStrictEqual({
       files: [
-        ".claude/rules/alpha.md",
+        ".claude/hooks/guidance/alpha.md",
         ".claude/agents/reviewer.md",
         ".claude/skills/ticket-work/SKILL.md",
       ],
@@ -121,11 +121,11 @@ description: work: clarify
 
   it("should list only markdown skill files when a skill folder also holds notes", () => {
     const root = validTree();
-    write(root, ".claude/rules/notes.txt", "plain text\n");
+    write(root, ".claude/hooks/guidance/notes.txt", "plain text\n");
     write(root, ".claude/agents/config.json", "{}\n");
 
     expect(frontmatterReport(root).files).toStrictEqual([
-      ".claude/rules/alpha.md",
+      ".claude/hooks/guidance/alpha.md",
       ".claude/agents/reviewer.md",
       ".claude/skills/ticket-work/SKILL.md",
     ]);
@@ -142,12 +142,12 @@ description: work: clarify
 
   it("should skip a subdirectory it cannot read when collecting rule files", () => {
     const root = validTree();
-    const unreadable = path.join(root, ".claude/rules/private");
+    const unreadable = path.join(root, ".claude/hooks/guidance/private");
     fs.mkdirSync(unreadable);
     fs.chmodSync(unreadable, 0);
     try {
       expect(frontmatterReport(root).files).toStrictEqual([
-        ".claude/rules/alpha.md",
+        ".claude/hooks/guidance/alpha.md",
         ".claude/agents/reviewer.md",
         ".claude/skills/ticket-work/SKILL.md",
       ]);
@@ -165,7 +165,7 @@ description: work: clarify
     const root = validTree();
     write(
       root,
-      ".claude/rules/broken.md",
+      ".claude/hooks/guidance/broken.md",
       `---
 description: broken: value
 ---
@@ -176,7 +176,7 @@ description: broken: value
       {
         detail:
           "Nested mappings are not allowed in compact mappings at line 1, column 14:",
-        entry: ".claude/rules/broken.md",
+        entry: ".claude/hooks/guidance/broken.md",
       },
     ]);
   });
@@ -185,7 +185,7 @@ description: broken: value
     const root = validTree();
     write(
       root,
-      ".claude/rules/broken.md",
+      ".claude/hooks/guidance/broken.md",
       `---
 description: broken: value
 ---

@@ -1,5 +1,5 @@
 /**
- * Exercise every branch of scoped-rules-decision.ts by passing values, with no
+ * Exercise every branch of scoped-guidance-decision.ts by passing values, with no
  * payload, no file and no fork.
  *
  * `coverage.include` in vitest.config.mts covers `src/**`, `tools/**` and
@@ -8,30 +8,45 @@
  */
 
 import { describe, expect, it } from "vite-plus/test";
-import type { ScopedRule } from "./scoped-rules-decision";
+import type { CallFacts, ScopedRule } from "./scoped-guidance-decision";
 import {
   completeMarker,
-  loadsNatively,
   markerPrefix,
-  pointerContext,
-  reachesFor,
-  readsTranscript,
-  ruleMarker,
   namedPaths,
   parseScopedRule,
+  pointerContext,
   projectRelative,
-  transcriptHoldsRule,
-} from "./scoped-rules-decision";
+  reachesFor,
+  ruleMarker,
+} from "./scoped-guidance-decision";
 
 const REACT: ScopedRule = {
+  commands: [],
+  events: [],
   name: "react.md",
   patterns: ["src/**/*.ts", "src/**/*.tsx"],
 };
 
-const DESIGN: ScopedRule = {
-  name: "design.md",
-  patterns: ["src/**/*.css", "src/**/*.tsx"],
+const PROSE: ScopedRule = {
+  commands: ["git commit", "gh pr create"],
+  events: [],
+  name: "prose.md",
+  patterns: ["**/*.md"],
 };
+
+const REPLIES: ScopedRule = {
+  commands: [],
+  events: ["UserPromptSubmit"],
+  name: "replies.md",
+  patterns: [],
+};
+
+const toolCall = (facts: Partial<CallFacts>): CallFacts => ({
+  command: "",
+  event: "PreToolUse",
+  paths: [],
+  ...facts,
+});
 
 describe(parseScopedRule, () => {
   it.each([
@@ -49,7 +64,7 @@ describe(parseScopedRule, () => {
     },
     {
       name: "a block list followed by another key",
-      text: '---\npaths:\n  - "src/**/*.ts"\n  - src/**/*.tsx\nalwaysApply: false\n---\n# React',
+      text: '---\npaths:\n  - "src/**/*.ts"\n  - src/**/*.tsx\ndescription: x\n---\n# React',
     },
     {
       name: "a block list closing the frontmatter",
@@ -65,17 +80,38 @@ describe(parseScopedRule, () => {
     expect(rule).toStrictEqual(REACT);
   });
 
+  it("should read commands beside paths when both are given", () => {
+    const text =
+      '---\npaths: "**/*.md"\ncommands: git commit, gh pr create\n---\n# Prose';
+
+    const rule = parseScopedRule("prose.md", text);
+
+    expect(rule).toStrictEqual(PROSE);
+  });
+
+  it("should keep only the events this hook answers when events lists others", () => {
+    const text = "---\nevents: UserPromptSubmit, SessionStart\n---\n# Replies";
+
+    const rule = parseScopedRule("replies.md", text);
+
+    expect(rule).toStrictEqual(REPLIES);
+  });
+
   it.each([
     { name: "no frontmatter opens the file", text: "# Prose\n" },
     { name: "the frontmatter never closes", text: "---\npaths: src/**\n# X" },
     {
-      name: "the frontmatter has no paths",
-      text: "---\nalwaysApply: true\n---\n# X",
+      name: "the frontmatter names no trigger",
+      text: "---\ndescription: x\n---\n# X",
     },
     { name: "paths is an empty string", text: '---\npaths: ""\n---\n# X' },
     { name: "paths has no list under it", text: "---\npaths:\n---\n# X" },
+    {
+      name: "events names only events this hook does not answer",
+      text: "---\nevents: SessionStart\n---\n# X",
+    },
   ])("should return no rule when $name", ({ text }) => {
-    const rule = parseScopedRule("prose.md", text);
+    const rule = parseScopedRule("x.md", text);
 
     expect(rule).toBeUndefined();
   });
@@ -137,83 +173,11 @@ describe(projectRelative, () => {
   );
 });
 
-describe(reachesFor, () => {
-  it("should pair each rule with the first path it covers when several paths are covered", () => {
-    const paths = ["README.md", "src/a.css", "src/b.tsx"];
-
-    const reaches = reachesFor([REACT, DESIGN], paths);
-
-    expect(reaches).toStrictEqual([
-      { matchedPath: "src/b.tsx", rule: REACT },
-      { matchedPath: "src/a.css", rule: DESIGN },
-    ]);
-  });
-
-  it("should return nothing when no path is covered", () => {
-    const paths = ["README.md", "scripts/x.sh"];
-
-    const reaches = reachesFor([REACT, DESIGN], paths);
-
-    expect(reaches).toStrictEqual([]);
-  });
-});
-
-describe(transcriptHoldsRule, () => {
-  it.each([
-    {
-      expected: true,
-      line: '{"attachment":{"type":"nested_memory","path":"/r/.claude/rules/react.md","displayPath":".claude/rules/react.md"}}',
-    },
-    {
-      expected: false,
-      line: '{"message":{"content":"\\"displayPath\\":\\".claude/rules/react.md\\""}}',
-    },
-    {
-      expected: false,
-      line: '{"attachment":{"type":"nested_memory","displayPath":".claude/rules/design.md"}}',
-    },
-  ])(
-    "should return $expected when the transcript holds $line",
-    ({ expected, line }) => {
-      const holds = transcriptHoldsRule(line, "react.md");
-
-      expect(holds).toBe(expected);
-    }
-  );
-});
-
-describe(pointerContext, () => {
-  it("should name each rule, its scope and the path on its own line when two rules are reached", () => {
-    const reaches = [
-      { matchedPath: "src/b.tsx", rule: REACT },
-      { matchedPath: "src/a.css", rule: DESIGN },
-    ];
-
-    const context = pointerContext(reaches);
-
-    expect(context).toBe(
-      "This session just reached src/b.tsx, which .claude/rules/react.md covers (src/**/*.ts, src/**/*.tsx). Read .claude/rules/react.md completely before continuing. This hook names it once per session.\nThis session just reached src/a.css, which .claude/rules/design.md covers (src/**/*.css, src/**/*.tsx). Read .claude/rules/design.md completely before continuing. This hook names it once per session."
-    );
-  });
-});
-
-describe(loadsNatively, () => {
-  it.each([
-    { expected: true, tool: "Read" },
-    { expected: false, tool: "Bash" },
-    { expected: false, tool: "Edit" },
-  ])("should return $expected when the tool is $tool", ({ expected, tool }) => {
-    const native = loadsNatively(tool);
-
-    expect(native).toBe(expected);
-  });
-});
-
 describe(markerPrefix, () => {
   it.each([
-    { agent: "", expected: "/t/claude-scoped-rules-s1-", session: "s1" },
-    { agent: "a1", expected: "/t/claude-scoped-rules-s1-a1", session: "s1" },
-    { agent: "", expected: "/t/claude-scoped-rules-s1-", session: "../s/1" },
+    { agent: "", expected: "/t/claude-scoped-guidance-s1-", session: "s1" },
+    { agent: "a1", expected: "/t/claude-scoped-guidance-s1-a1", session: "s1" },
+    { agent: "", expected: "/t/claude-scoped-guidance-s1-", session: "../s/1" },
     { agent: "", expected: undefined, session: "" },
     { agent: "", expected: undefined, session: "../" },
   ])(
@@ -242,16 +206,59 @@ describe(completeMarker, () => {
   });
 });
 
-describe(readsTranscript, () => {
+describe(reachesFor, () => {
   it.each([
-    { agent: "", expected: true },
-    { agent: "a1", expected: false },
+    {
+      expected: [{ reason: "reached src/b.tsx", rule: REACT }],
+      facts: toolCall({ paths: ["README.ts.bak", "src/b.tsx"] }),
+      name: "a path the rule covers",
+    },
+    {
+      expected: [{ reason: "ran `git commit`", rule: PROSE }],
+      facts: toolCall({ command: "cd x && git commit -m y" }),
+      name: "a command the rule names after a separator",
+    },
+    {
+      expected: [{ reason: "ran `gh pr create`", rule: PROSE }],
+      facts: toolCall({ command: "gh pr create --draft" }),
+      name: "a command the rule names at the start",
+    },
+    {
+      expected: [],
+      facts: toolCall({ command: 'echo "no git commits"' }),
+      name: "the phrase only inside another word run",
+    },
+    {
+      expected: [{ reason: "fired UserPromptSubmit", rule: REPLIES }],
+      facts: toolCall({ event: "UserPromptSubmit" }),
+      name: "an event the rule lists",
+    },
+    {
+      expected: [],
+      facts: toolCall({ command: "bun run check", paths: ["scripts/x.sh"] }),
+      name: "nothing any rule names",
+    },
   ])(
-    "should return $expected when the agent is $agent",
-    ({ agent, expected }) => {
-      const reads = readsTranscript(agent);
+    "should return $expected when the call carries $name",
+    ({ expected, facts }) => {
+      const reaches = reachesFor([REACT, PROSE, REPLIES], facts);
 
-      expect(reads).toBe(expected);
+      expect(reaches).toStrictEqual(expected);
     }
   );
+});
+
+describe(pointerContext, () => {
+  it("should name each rule and why it applies on its own line when two rules are reached", () => {
+    const reaches = [
+      { reason: "reached src/b.tsx", rule: REACT },
+      { reason: "ran `git commit`", rule: PROSE },
+    ];
+
+    const context = pointerContext(reaches);
+
+    expect(context).toBe(
+      ".claude/hooks/guidance/react.md applies because this session reached src/b.tsx. Read .claude/hooks/guidance/react.md completely before continuing. This hook names it once per session.\n.claude/hooks/guidance/prose.md applies because this session ran `git commit`. Read .claude/hooks/guidance/prose.md completely before continuing. This hook names it once per session."
+    );
+  });
 });

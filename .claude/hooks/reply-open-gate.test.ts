@@ -88,7 +88,7 @@ const openingCase = (
 const PROSE_LINE = "まず Stop フックの入力を確認します。";
 
 const REFUSAL = `⛔ Stop block: this reply opens with prose.
-.claude/rules/replies.md puts what the reader runs on the first line: a command or a snippet in backticks, or a path. The line this reply opened with was:
+.claude/hooks/guidance/replies.md puts what the reader runs on the first line: a command or a snippet in backticks, or a path. The line this reply opened with was:
 
     ${PROSE_LINE}
 

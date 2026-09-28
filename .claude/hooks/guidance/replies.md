@@ -1,6 +1,6 @@
 ---
 description: "How a reply to the user is shaped so it can be acted on: what the first line holds, when a procedure is numbered, the progress line, the closing action, time estimates, handing a decision back, and what makes the shape give way"
-alwaysApply: true
+events: UserPromptSubmit
 ---
 
 # Replies

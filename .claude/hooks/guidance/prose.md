@@ -1,6 +1,7 @@
 ---
 description: "How a sentence is built and what a document carries, in comments, instruction documents, commit messages, PR bodies, and replies, in English and Japanese: plain words, what a sentence is allowed to be about, precision, where the decision sits, format, and the generated-text patterns to keep out"
-alwaysApply: true
+paths: "**/*.md"
+commands: git commit, gh pr create, gh pr edit, gh pr comment, gh pr review, gh issue create, gh issue comment, gh issue edit, gh api
 ---
 
 # Prose

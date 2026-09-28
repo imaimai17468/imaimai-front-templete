@@ -1,22 +1,43 @@
 import path from "node:path";
 import { z } from "zod";
 
-/** A `.claude/rules/` file whose frontmatter scopes it with `paths`. */
+/** The hook events this hook answers. */
+export const HOOK_EVENTS = [
+  "PreToolUse",
+  "PostToolUse",
+  "UserPromptSubmit",
+] as const;
+
+export type HookEvent = (typeof HOOK_EVENTS)[number];
+
+/**
+ * A `.claude/hooks/guidance/` file and what brings it into a session: a file
+ * its `paths` cover, a command its `commands` name, or an event its `events`
+ * list.
+ */
 export interface ScopedRule {
+  readonly commands: readonly string[];
+  readonly events: readonly HookEvent[];
   readonly name: string;
   readonly patterns: readonly string[];
 }
 
-/** A scoped rule, and the path that brought it into scope. */
+/** A rule a call brought into scope, and what the session did to bring it. */
 export interface Reach {
-  readonly matchedPath: string;
+  readonly reason: string;
   readonly rule: ScopedRule;
+}
+
+/** What one hook call did, as far as a rule's triggers read it. */
+export interface CallFacts {
+  readonly command: string;
+  readonly event: HookEvent;
+  readonly paths: readonly string[];
 }
 
 const OPEN = "---\n";
 const CLOSE = "\n---\n";
 
-const PATHS_KEY = "paths:";
 const LIST_ITEM = /^\s+-\s+/u;
 const QUOTED = /^(?<quote>["'])(?<inner>.*)\k<quote>$/u;
 
@@ -25,38 +46,49 @@ const unquote = (value: string): string => {
   return QUOTED.exec(trimmed)?.groups?.inner ?? trimmed;
 };
 
+const blockItems = (after: readonly string[]): string[] => {
+  const end = after.findIndex((line) => !LIST_ITEM.test(line));
+  return after
+    .slice(0, end === -1 ? after.length : end)
+    .map((line) => unquote(line.replace(LIST_ITEM, "")));
+};
+
+const inlineItems = (inline: string): string[] => {
+  const flow = inline.startsWith("[") && inline.endsWith("]");
+  return (flow ? inline.slice(1, -1) : unquote(inline)).split(",").map(unquote);
+};
+
 /**
- * The patterns under `paths`, in the three spellings Claude Code accepts: one
- * comma-separated string, a flow list, and a block list. Only this key is
+ * The items under one frontmatter key, in three spellings: one
+ * comma-separated string, a flow list, and a block list. Only these keys are
  * read, so the `yaml` package stays out of a hook that runs around every tool
  * call, where loading it cost about 130 ms. Frontmatter that YAML itself would
  * refuse is `bun scripts/check-claude-frontmatter.entry.ts`'s to reject.
  */
-const readPaths = (frontmatter: string): string[] => {
+const readList = (frontmatter: string, key: string): string[] => {
+  const prefix = `${key}:`;
   const lines = frontmatter.split("\n");
-  const at = lines.findIndex((line) => line.startsWith(PATHS_KEY));
+  const at = lines.findIndex((line) => line.startsWith(prefix));
   if (at === -1) {
     return [];
   }
   const inline = lines
     .slice(at, at + 1)
     .join("")
-    .slice(PATHS_KEY.length)
+    .slice(prefix.length)
     .trim();
-  if (inline === "") {
-    const after = lines.slice(at + 1);
-    const end = after.findIndex((line) => !LIST_ITEM.test(line));
-    return after
-      .slice(0, end === -1 ? after.length : end)
-      .map((line) => unquote(line.replace(LIST_ITEM, "")));
-  }
-  const flow = inline.startsWith("[") && inline.endsWith("]");
-  return (flow ? inline.slice(1, -1) : unquote(inline)).split(",").map(unquote);
+  const items =
+    inline === "" ? blockItems(lines.slice(at + 1)) : inlineItems(inline);
+  return items.flatMap((item) => (item === "" ? [] : [item]));
 };
 
+const isHookEvent = (value: string): value is HookEvent =>
+  HOOK_EVENTS.some((event) => event === value);
+
 /**
- * The rule a file holds, or `undefined` where it carries no `paths`, which
- * Claude Code loads at launch and which leaves this hook nothing to point at.
+ * The rule a file holds, or `undefined` where its frontmatter names no
+ * trigger, which leaves this hook nothing to point at. An event name this hook
+ * does not answer is dropped rather than read as a trigger.
  */
 export const parseScopedRule = (
   name: string,
@@ -66,16 +98,17 @@ export const parseScopedRule = (
   if (!text.startsWith(OPEN) || close === -1) {
     return undefined;
   }
-  const patterns = readPaths(text.slice(OPEN.length, close)).flatMap(
-    (pattern) => {
-      const trimmed = pattern.trim();
-      return trimmed === "" ? [] : [trimmed];
-    }
-  );
-  if (patterns.length === 0) {
+  const frontmatter = text.slice(OPEN.length, close);
+  const rule = {
+    commands: readList(frontmatter, "commands"),
+    events: readList(frontmatter, "events").filter(isHookEvent),
+    name,
+    patterns: readList(frontmatter, "paths"),
+  };
+  if (rule.commands.length + rule.events.length + rule.patterns.length === 0) {
     return undefined;
   }
-  return { name, patterns };
+  return rule;
 };
 
 /**
@@ -144,27 +177,45 @@ export const projectRelative = (
   return relative;
 };
 
-/**
- * Each rule one of the paths brings into scope, paired with the first such
- * path, in the order the rules arrived.
- */
-export const reachesFor = (
-  rules: readonly ScopedRule[],
-  paths: readonly string[]
-): Reach[] =>
-  rules.flatMap((rule) => {
-    const matchedPath = paths.find((candidate) =>
-      rule.patterns.some((pattern) => path.matchesGlob(candidate, pattern))
-    );
-    return matchedPath === undefined ? [] : [{ matchedPath, rule }];
-  });
+const escapeRegExp = (text: string): string =>
+  text.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`);
 
 /**
- * Whether Claude Code loads the rules a call reaches on its own. It does for
- * Read, so a Read that reaches a rule first counts the rule as reached and
- * prints nothing, and a later Bash call on the same path stays quiet.
+ * Whether the command runs the phrase as a command of its own: at the start,
+ * or after a separator, and followed by an argument or the end. `git commit`
+ * matches `cd x && git commit -m y` and not `echo "no git commits"`.
  */
-export const loadsNatively = (toolName: string): boolean => toolName === "Read";
+const runsPhrase = (command: string, phrase: string): boolean =>
+  new RegExp(
+    String.raw`(?:^|[;&|(]\s*)${escapeRegExp(phrase)}(?:\s|$)`,
+    "mu"
+  ).test(command);
+
+const reasonFor = (rule: ScopedRule, facts: CallFacts): string | undefined => {
+  if (rule.events.includes(facts.event)) {
+    return `fired ${facts.event}`;
+  }
+  const matchedPath = facts.paths.find((candidate) =>
+    rule.patterns.some((pattern) => path.matchesGlob(candidate, pattern))
+  );
+  if (matchedPath !== undefined) {
+    return `reached ${matchedPath}`;
+  }
+  const phrase = rule.commands.find((candidate) =>
+    runsPhrase(facts.command, candidate)
+  );
+  return phrase === undefined ? undefined : `ran \`${phrase}\``;
+};
+
+/** Each rule the call brings into scope, in the order the rules arrived. */
+export const reachesFor = (
+  rules: readonly ScopedRule[],
+  facts: CallFacts
+): Reach[] =>
+  rules.flatMap((rule) => {
+    const reason = reasonFor(rule, facts);
+    return reason === undefined ? [] : [{ reason, rule }];
+  });
 
 /** Only the characters a file name takes, so an id names no path elsewhere. */
 const fileNameSafe = (id: string): string => id.replaceAll(/[^\w-]/gu, "");
@@ -184,7 +235,7 @@ export const markerPrefix = (
   if (session === "" && agent === "") {
     return undefined;
   }
-  return path.join(tmpDir, `claude-scoped-rules-${session}-${agent}`);
+  return path.join(tmpDir, `claude-scoped-guidance-${session}-${agent}`);
 };
 
 /** The marker that records a session reaching one rule. */
@@ -192,42 +243,24 @@ export const ruleMarker = (prefix: string, ruleName: string): string =>
   `${prefix}-${fileNameSafe(ruleName)}`;
 
 /**
- * The marker scoped-rules.sh looks for before starting bun. It carries the
- * count of `.md` files under `.claude/rules/`, which the shell counts the same
+ * The marker scoped-guidance.sh looks for before starting bun. It carries the
+ * count of `.md` files under `.claude/hooks/guidance/`, which the shell counts the same
  * way, so a rule added mid-session changes the name and bun runs again.
  */
 export const completeMarker = (prefix: string, ruleFileCount: number): string =>
   `${prefix}.complete-${ruleFileCount}`;
 
 /**
- * Whether the transcript is read for Claude Code's own loads. A subagent's
- * payload is not known to name the subagent's own transcript, so it reads
- * none, and a rule pointed at twice there costs one line.
- */
-export const readsTranscript = (agentId: string): boolean => agentId === "";
-
-/**
- * Whether Claude Code has already loaded the rule into this transcript, which
- * it records as a `nested_memory` attachment carrying the rule's display path.
- * Inside a string field the same text has its quotes escaped, so a message
- * that quotes this line does not match it.
- */
-export const transcriptHoldsRule = (
-  transcript: string,
-  name: string
-): boolean => transcript.includes(`"displayPath":".claude/rules/${name}"`);
-
-/**
  * The additionalContext that sends the model to each rule. It names the file
- * rather than carrying its text, because Claude Code saves a hook's
- * additionalContext to a file and shows a 2 KB preview once it runs long: the
- * three rules a `.tsx` file reaches came to 43.1 KB and arrived cut, while a
- * Read of each file returns it whole.
+ * rather than carrying its text, because Claude Code saves a long
+ * additionalContext to a file and shows a 2 KB preview: the three rules a
+ * `.tsx` file reaches came to 43.1 KB and arrived cut, while a Read of each
+ * file returns it whole.
  */
 export const pointerContext = (reaches: readonly Reach[]): string =>
   reaches
     .map(
-      ({ matchedPath, rule }) =>
-        `This session just reached ${matchedPath}, which .claude/rules/${rule.name} covers (${rule.patterns.join(", ")}). Read .claude/rules/${rule.name} completely before continuing. This hook names it once per session.`
+      ({ reason, rule }) =>
+        `.claude/hooks/guidance/${rule.name} applies because this session ${reason}. Read .claude/hooks/guidance/${rule.name} completely before continuing. This hook names it once per session.`
     )
     .join("\n");

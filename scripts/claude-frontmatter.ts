@@ -1,5 +1,5 @@
 /**
- * Report `.claude/rules/*.md`, `.claude/agents/*.md`, and each
+ * Report `.claude/hooks/guidance/*.md`, `.claude/agents/*.md`, and each
  * `.claude/skills/.../SKILL.md` file whose YAML frontmatter does not parse.
  */
 
@@ -11,7 +11,11 @@ const REPO = path.resolve(import.meta.dirname, "..");
 
 const FRONTMATTER = /^---\r?\n(?<body>[\s\S]*?)\r?\n---/u;
 
-const TARGETS = [".claude/rules", ".claude/agents", ".claude/skills"] as const;
+const TARGETS = [
+  ".claude/hooks/guidance",
+  ".claude/agents",
+  ".claude/skills",
+] as const;
 
 export interface FrontmatterProblem {
   readonly detail: string;

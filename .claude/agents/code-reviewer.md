@@ -68,8 +68,8 @@ would have survived.
   sequentially, work added to startup or to a hot path
 - **altitude**: a symptom patched where the root cause sits deeper, a special case layered
   on shared infrastructure where changing the mechanism would remove the special case
-- **rules**: read `AGENTS.md`, `.claude/rules/prose.md`, and every path-scoped file under
-  `.claude/rules/` whose scope matches the diff, whichever of them is not already in your
+- **rules**: read `AGENTS.md`, `.claude/hooks/guidance/prose.md`, and every path-scoped file under
+  `.claude/hooks/guidance/` whose scope matches the diff, whichever of them is not already in your
   context. Set `rule` to the one violated. Invent no rule beyond those files, and never
   dismiss a finding as pre-existing when the file is in the diff.
 
@@ -190,7 +190,7 @@ effort: standard — 4 raised, 1 merged, 1 refuted, 1 abstained, 1 returned
 
 ## CONFIRMED · major · src/lib/foo.ts:42 — the retry loop can double-charge
 - **Breaks:** <the failure scenario, concretely>
-- **Rule:** <AGENTS.md or .claude/rules/… section, when one is violated>
+- **Rule:** <AGENTS.md or .claude/hooks/guidance/… section, when one is violated>
 - **Verified at:** src/lib/foo.ts:38-47 — <what re-reading showed>
 - **Fix:** <which file, what it says instead, why that shape>
 - **Acceptance:** <the command or the observable that shows it landed>
@@ -238,7 +238,7 @@ of them, in the same pass that writes the sentence, and a count you write is one
 counted. A finding whose defect is real and whose supporting sentence is false costs the
 parent a disproof it should never have had to run.
 
-`.claude/rules/prose.md` binds it too, and its rule on sweeping quantifiers is one a review
+`.claude/hooks/guidance/prose.md` binds it too, and its rule on sweeping quantifiers is one a review
 report has to keep. A report also sweeps in the opposite direction, with `only`, `none` and
 `no other`, which that rule does not name: an unchecked "the only caller" claims as much as
 an unchecked "every caller". Run the sweep either way, or narrow the sentence to what you
