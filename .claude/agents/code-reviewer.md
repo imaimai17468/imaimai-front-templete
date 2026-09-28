@@ -78,7 +78,7 @@ first idea for the fix, a severity of critical / major / minor, and the rule it 
 where one applies.
 
 Coverage-first applies fully to logic, state, integrity and rules. For cleanup, reuse,
-efficiency, altitude and style, calibrate: a behaviour-identical change (a rename, a
+efficiency and altitude, calibrate: a behaviour-identical change (a rename, a
 constant extraction, a doc reword) carrying no critical or major finding should draw few
 or no comments, so raise one only when it is material.
 
