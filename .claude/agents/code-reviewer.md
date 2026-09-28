@@ -105,7 +105,7 @@ from the `refuted` one Stage C produces. Count what you folded away.
 
 Try to kill each candidate by re-deriving it from the actual code. Verdict per finding:
 CONFIRMED (traced in real code), PLAUSIBLE (credible, not fully traced), REFUTED,
-ABSTAINED. Default to REFUTED when uncertain. You may regrade severity. Add nothing Stage A
+ABSTAINED. You may regrade severity. Add nothing Stage A
 did not raise.
 
 **ABSTAINED says you could not reach what would settle the candidate.** REFUTED closes a
