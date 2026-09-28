@@ -7,6 +7,7 @@ import { afterAll, describe, expect, it } from "vite-plus/test";
 import {
   frontmatterReport,
   frontmatterText,
+  guidanceTriggerProblem,
   main,
   yamlParseErrorDetail,
 } from "./claude-frontmatter";
@@ -26,7 +27,7 @@ const validTree = (): string => {
     ".claude/hooks/guidance/alpha.md",
     `---
 description: "scoped rule: with a colon"
-alwaysApply: true
+paths: "src/**"
 ---
 
 # Alpha
@@ -79,7 +80,7 @@ describe("claude-frontmatter", () => {
 description: "work: clarify"
 ---
 `)
-    ).toStrictEqual({ ok: true });
+    ).toStrictEqual({ data: { description: "work: clarify" }, ok: true });
   });
 
   it("should report a parse error when the description contains an unquoted colon", () => {
@@ -177,6 +178,43 @@ description: broken: value
         detail:
           "Nested mappings are not allowed in compact mappings at line 1, column 14:",
         entry: ".claude/hooks/guidance/broken.md",
+      },
+    ]);
+  });
+
+  it.each([
+    { data: { paths: "src/**" }, expected: undefined },
+    { data: { commands: ["git commit"] }, expected: undefined },
+    { data: { events: "UserPromptSubmit" }, expected: undefined },
+    {
+      data: { events: "UserPromptSubmitt" },
+      expected:
+        "events names UserPromptSubmitt, which scoped-guidance.sh does not answer (PreToolUse, PostToolUse, UserPromptSubmit)",
+    },
+    {
+      data: { description: "x", paths: " , " },
+      expected: "names no trigger: give it paths, commands or events",
+    },
+    {
+      data: { paths: 3 },
+      expected:
+        "paths, commands and events must each be a string or a list of strings",
+    },
+  ])(
+    "should return $expected when a guidance file's frontmatter is $data",
+    ({ data, expected }) => {
+      expect(guidanceTriggerProblem(data)).toBe(expected);
+    }
+  );
+
+  it("should report a guidance file that names no trigger when the report runs", () => {
+    const root = validTree();
+    write(root, ".claude/hooks/guidance/idle.md", "---\ndescription: x\n---\n");
+
+    expect(frontmatterReport(root).problems).toStrictEqual([
+      {
+        detail: "names no trigger: give it paths, commands or events",
+        entry: ".claude/hooks/guidance/idle.md",
       },
     ]);
   });
