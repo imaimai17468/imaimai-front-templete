@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# PreToolUse and PostToolUse entry for scoped-rules.entry.ts. Starting bun
-# costs about 100 ms, and this hook runs around every Read, Edit, Write and
-# Bash call, so once that file has marked this session complete for the rule
-# files on disk now, the call is answered here with nothing to print.
+# PreToolUse, PostToolUse and UserPromptSubmit entry for
+# scoped-guidance.entry.ts. Starting bun costs about 100 ms, and this hook runs
+# around every Read, Edit, Write and Bash call and every prompt, so once that
+# file has marked this session complete for the rule files on disk now, the
+# call is answered here with nothing to print.
 #
 # The context is advisory, so every failure here exits 0 and prints nothing.
 
@@ -17,24 +18,24 @@ INPUT=$(cat)
   .session_id // "",
   .agent_id // ""' 2>/dev/null)
 
-# The same characters scoped-rules-decision.ts keeps when it names a marker.
+# The same characters scoped-guidance-decision.ts keeps when it names a marker.
 SESSION=$(printf '%s' "${SESSION:-}" | tr -cd 'A-Za-z0-9_-')
 AGENT=$(printf '%s' "${AGENT:-}" | tr -cd 'A-Za-z0-9_-')
 
 # Handed to bun so the marker directory is decided on this side alone: bun's
 # own os.tmpdir() also reads TMP, which this line does not.
 TMP_DIR=${TMPDIR:-/tmp}
-export SCOPED_RULES_TMP=${TMP_DIR%/}
+export SCOPED_GUIDANCE_TMP=${TMP_DIR%/}
 
 # Counted as completeMarker counts them, so a rule file added mid-session
 # names a marker that does not exist yet.
 shopt -s nullglob
-RULE_FILES=("${CLAUDE_PROJECT_DIR:-$PWD}"/.claude/rules/*.md)
+RULE_FILES=("${CLAUDE_PROJECT_DIR:-$PWD}"/.claude/hooks/guidance/*.md)
 
-COMPLETE="$SCOPED_RULES_TMP/claude-scoped-rules-${SESSION}-${AGENT}.complete-${#RULE_FILES[@]}"
+COMPLETE="$SCOPED_GUIDANCE_TMP/claude-scoped-guidance-${SESSION}-${AGENT}.complete-${#RULE_FILES[@]}"
 if [ -n "$SESSION$AGENT" ] && [ -d "$COMPLETE" ]; then
   exit 0
 fi
 
-printf '%s' "$INPUT" | bun "${0%/*}/scoped-rules.entry.ts"
+printf '%s' "$INPUT" | bun "${0%/*}/scoped-guidance.entry.ts"
 exit 0

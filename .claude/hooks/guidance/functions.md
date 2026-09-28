@@ -1,7 +1,5 @@
 ---
 description: "The shape a function takes so its branches can be reached: the decision separated from the effect, values the outside world owns arriving as arguments, and no path that only a test runs"
-globs: "**/*.ts,**/*.tsx,**/*.js,**/*.sh"
-alwaysApply: false
 paths: "**/*.ts, **/*.tsx, **/*.js, **/*.sh"
 ---
 

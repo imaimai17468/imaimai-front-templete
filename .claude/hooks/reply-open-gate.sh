@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Stop entry: read the line this turn's reply opens with, and stop the turn
 # where that line is prose instead of the command, the path or the snippet
-# .claude/rules/replies.md puts there. The reply arrives in the payload's
+# .claude/hooks/guidance/replies.md puts there. The reply arrives in the payload's
 # `last_assistant_message`, which carries the turn's final assistant text; the
 # transcript file is written asynchronously and can still be short of it.
 #

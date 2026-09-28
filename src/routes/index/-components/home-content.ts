@@ -92,9 +92,9 @@ export const SPECS: readonly Spec[] = [
           "規約の本体。毎セッション読み込まれる（CLAUDE.md はこれを読み込むだけ）",
       },
       {
-        term: ".claude/rules/",
+        term: ".claude/hooks/guidance/",
         detail:
-          "規約の分冊。path scope を持つものは対象ファイルを編集するときだけ読み込まれる",
+          "規約の分冊。対象のファイルやコマンドに触れたとき、フックがそのファイルを読むよう指示する",
       },
       {
         term: ".claude/skills/",

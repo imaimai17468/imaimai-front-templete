@@ -107,9 +107,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/scoped-rules.sh",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/scoped-guidance.sh",
             "timeout": 15,
-            "statusMessage": "Scoped rules: load a path-scoped rule the call reaches..."
+            "statusMessage": "Scoped guidance: point at the guidance the call reaches..."
           }
         ]
       }
@@ -120,9 +120,21 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/scoped-rules.sh",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/scoped-guidance.sh",
             "timeout": 15,
-            "statusMessage": "Scoped rules: load a path-scoped rule a changed file falls under..."
+            "statusMessage": "Scoped guidance: point at the guidance a changed file falls under..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/scoped-guidance.sh",
+            "timeout": 15,
+            "statusMessage": "Scoped guidance: point at the guidance a prompt brings in..."
           }
         ]
       }

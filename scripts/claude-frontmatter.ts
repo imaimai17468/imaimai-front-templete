@@ -1,17 +1,24 @@
 /**
- * Report `.claude/rules/*.md`, `.claude/agents/*.md`, and each
- * `.claude/skills/.../SKILL.md` file whose YAML frontmatter does not parse.
+ * Report `.claude/hooks/guidance/*.md`, `.claude/agents/*.md`, and each
+ * `.claude/skills/.../SKILL.md` file whose YAML frontmatter does not parse,
+ * and each guidance file whose triggers would never reach a session.
  */
 
 import fs from "node:fs";
 import path from "node:path";
 import { parse } from "yaml";
+import { z } from "zod";
+import { HOOK_EVENTS } from "../.claude/hooks/scoped-guidance-decision";
 
 const REPO = path.resolve(import.meta.dirname, "..");
 
 const FRONTMATTER = /^---\r?\n(?<body>[\s\S]*?)\r?\n---/u;
 
-const TARGETS = [".claude/rules", ".claude/agents", ".claude/skills"] as const;
+const TARGETS = [
+  ".claude/hooks/guidance",
+  ".claude/agents",
+  ".claude/skills",
+] as const;
 
 export interface FrontmatterProblem {
   readonly detail: string;
@@ -68,18 +75,66 @@ export const yamlParseErrorDetail = (error: unknown): string => {
 
 export const frontmatterText = (
   content: string
-): { ok: true } | { detail: string; ok: false } => {
+): { data: unknown; ok: true } | { detail: string; ok: false } => {
   const match = FRONTMATTER.exec(content);
   const body = match?.groups?.body;
   if (body === undefined) {
     return { detail: "missing opening --- frontmatter block", ok: false };
   }
   try {
-    parse(body);
-    return { ok: true };
+    return { data: parse(body), ok: true };
   } catch (error) {
     return { detail: yamlParseErrorDetail(error), ok: false };
   }
+};
+
+const GUIDANCE_DIR = ".claude/hooks/guidance/";
+
+const TriggerList = z
+  .union([z.string().transform((list) => list.split(",")), z.array(z.string())])
+  .default([])
+  .transform((items) =>
+    items.flatMap((item) => (item.trim() === "" ? [] : [item.trim()]))
+  );
+
+const GuidanceTriggers = z.object({
+  commands: TriggerList,
+  events: TriggerList,
+  paths: TriggerList,
+});
+
+/**
+ * Why a guidance file would never reach a session, or `undefined` where it
+ * would. scoped-guidance.sh drops an event name it does not answer and skips a
+ * file that names no trigger without a word, so this check is where either
+ * mistake is reported.
+ */
+export const guidanceTriggerProblem = (data: unknown): string | undefined => {
+  const triggers = GuidanceTriggers.safeParse(data);
+  if (!triggers.success) {
+    return "paths, commands and events must each be a string or a list of strings";
+  }
+  const { commands, events, paths } = triggers.data;
+  const unanswered = events.filter(
+    (event) => !HOOK_EVENTS.some((answered) => answered === event)
+  );
+  if (unanswered.length > 0) {
+    return `events names ${unanswered.join(", ")}, which scoped-guidance.sh does not answer (${HOOK_EVENTS.join(", ")})`;
+  }
+  if (commands.length + events.length + paths.length === 0) {
+    return "names no trigger: give it paths, commands or events";
+  }
+  return undefined;
+};
+
+const problemFor = (entry: string, content: string): string | undefined => {
+  const parsed = frontmatterText(content);
+  if (!parsed.ok) {
+    return parsed.detail;
+  }
+  return entry.startsWith(GUIDANCE_DIR)
+    ? guidanceTriggerProblem(parsed.data)
+    : undefined;
 };
 
 export interface FrontmatterReport {
@@ -91,9 +146,8 @@ export const frontmatterReport = (root: string): FrontmatterReport => {
   const files = frontmatterFiles(root);
   const problems = files.flatMap((entry) => {
     const absolute = path.join(root, entry);
-    const content = fs.readFileSync(absolute, "utf-8");
-    const parsed = frontmatterText(content);
-    return parsed.ok ? [] : [{ detail: parsed.detail, entry }];
+    const detail = problemFor(entry, fs.readFileSync(absolute, "utf-8"));
+    return detail === undefined ? [] : [{ detail, entry }];
   });
   return { files, problems };
 };
@@ -103,10 +157,10 @@ export const main = (argv: readonly string[]): number => {
   if (problems.length > 0) {
     console.log(
       [
-        `Claude frontmatter parse errors: ${problems.length}`,
+        `Claude frontmatter problems: ${problems.length}`,
         ...problems.map(({ detail, entry }) => `  ${entry}: ${detail}`),
         "",
-        "Quote description values that contain ': ' or wrap them in a block scalar.",
+        "Quote description values that contain ': ' or wrap them in a block scalar, and give each guidance file a trigger scoped-guidance.sh answers.",
       ].join("\n")
     );
     return 1;

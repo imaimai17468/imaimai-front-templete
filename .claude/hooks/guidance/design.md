@@ -1,7 +1,5 @@
 ---
 description: Design system, covering color roles, typography, spacing, shapes, elevation, decoration, and composition
-globs: src/**/*.css,src/**/*.tsx
-alwaysApply: false
 paths: src/**/*.css, src/**/*.tsx
 ---
 
