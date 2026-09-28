@@ -320,7 +320,7 @@ Split per the Commits discipline in `AGENTS.md`:
 4. `docs:` remove DB- and auth-related documentation. Stage every surface
    step 6 touched, each by its explicit path as that discipline requires:
    `README.md`, `docs/DEPLOYMENT.md`, `docs/FORKING.md`,
-   `.claude/settings.json`, `.env.local.example` and `wrangler.toml`. A surface
+   and `.claude/settings.json`. A surface
    missing from this list is a surface left uncommitted.
 
 Intermediate commits are not individually buildable (e.g. commit 1 deletes the
