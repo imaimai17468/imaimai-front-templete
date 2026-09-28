@@ -317,7 +317,7 @@ Pick the curve from what the element is doing:
 - Constant motion (marquee, progress): `linear`
 - Anything else: `ease-out`
 
-Never `ease-in` on UI. The built-in CSS curves are weak, so define the ones a
+The built-in CSS curves are weak, so define the ones a
 project takes alongside the other tokens in `src/styles.css`:
 
 ```css
@@ -353,9 +353,6 @@ and the stagger never blocks interaction while it plays.
 Animate `transform` and `opacity` only, because the compositor runs them
 without layout or paint. `padding`, `margin`, `height`, `width`, `top`, and
 `left` run all three steps on every frame.
-
-Name each property in a `transition`, because `transition: all` also animates
-whatever else changes.
 
 Set `transform` on the element that moves. A CSS variable on the parent driving
 a child's transform recalculates the styles of every child.

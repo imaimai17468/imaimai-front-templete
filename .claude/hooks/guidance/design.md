@@ -28,8 +28,6 @@ defaults.
 - **destructive**: Deletion and error actions only. Not for general warnings.
 - **border / input**: Structural separation. Subtle, never dominant.
 
-Use semantic token names in components, never a raw color value.
-
 ### Accent Color
 
 Accent is one hue applied consistently to a chosen category of elements.
@@ -97,9 +95,6 @@ that pair, take no third typeface.
 
 Spacing follows Tailwind's default scale: the smallest tier inside a component,
 the middle tier between components, the largest for page structure.
-
-Space siblings with the parent's `gap` (flex/grid), never with a margin on each
-child, which collapses, doubles up, and has to change when a sibling is removed.
 
 Put parallel items on one grid, so the title, the body, and the control share a
 line across every column. Give the columns equal height, anchor the control to
@@ -197,9 +192,3 @@ unchanged. Decide that first, then build the sections from it.
 - Build on the primitives in `src/shared/ui/` and restyle what you take.
   Taking a prebuilt block's behavior costs nothing, and taking its styling
   costs the identity.
-- Restyle a primitive by changing its variants in `src/shared/ui/`, not by
-  passing appearance classes at the call site. A call site passes the classes
-  that place the element, such as its width or its position in a grid or flex
-  parent. Color, typography, spacing, shape, effects, and motion belong to the
-  primitive, so a screen that needs a new treatment gets a new variant that
-  every other screen can then take.
