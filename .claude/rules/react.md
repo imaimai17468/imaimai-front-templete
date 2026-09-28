@@ -1,50 +1,24 @@
 ---
-description: Purity and the calling rules from the Rules of React, then effects, component splitting, testable shape, and module organization
+description: What an effect is for, component props and splitting, testable shape, and module organization
 globs: src/**/*.ts,src/**/*.tsx
 alwaysApply: false
 paths: src/**/*.ts, src/**/*.tsx
 ---
 
-# React Purity
-
-Render must be a pure computation. The three principles below are independent, and violating any one breaks purity.
-
-- **Idempotent**: Components and hooks must return the same result for the same inputs, regardless of how many times or when they are called. Never produce values during render that depend on call count or timing. e.g. `new Date()`, `Math.random()`, `crypto.randomUUID()`, direct `fetch()`, incrementing an ID counter.
-- **No side effects in render**: Render only computes JSX, so it must not observe or change the outside world. Side effects belong in `useEffect` or event handlers. e.g. `document.title = ...`, `window.scrollTo()`, observational `console.log()`, writes to a global store. The memoization-cache exception under "No mutation of non-local values" applies here equally.
-- **No mutation of non-local values**: Only values created within the current render call may be mutated. Module-scope and shared objects are off-limits. e.g. `push` into a module-scope array, incrementing a counter declared outside the function, mutating properties of an argument object. The single exception is a semantically transparent memoization cache: module-scope, keyed purely by the function's inputs, written idempotently (same key always yields the same value), and observable by nothing but the memoized function itself. Mutating one during render changes no rendered output, so idempotence is preserved.
-
-# React Calls Components and Hooks
-
-- **Never pass hooks as values**: Don't pass hooks as props, arguments, or return values. A hook must be called directly and statically inside the component or hook that uses it. e.g. `<Button useData={useDataWithLogging} />`, returning a hook from a factory function, storing a hook in a variable and calling it conditionally.
-- **Never create higher-order hooks**: Don't wrap or compose hooks dynamically at call time. Inline the logic into a new named hook instead. Given `const useDataWithLogging = withLogging(useData)`, write a `useDataWithLogging` hook that calls `useData` and the logging directly.
-
-# You Might Not Need an Effect
-
-The deciding question: is this code running because the user did something (event), or because the component appeared on screen (sync with external system)? Only the latter justifies `useEffect`.
-
-- **Derived values**: Never `useEffect` + `setState` to transform props/state into another state. Compute inline or `useMemo` for expensive calculations.
-- **State reset on prop change**: Don't `useEffect(() => setX(initial), [prop])`. Give the component a `key={prop}` so React remounts it with fresh state.
-- **Partial state adjustment on prop change**: Derive the value from existing state/props instead of syncing with an effect. e.g. store `selectedId` instead of `selectedItem`, and derive the item via `items.find()`.
-- **Effect chains**: Multiple effects where each sets state that triggers the next is a sign that the logic belongs in a single event handler that batches all state updates at once.
-- **Notifying parent of state change**: Don't `useEffect(() => onChange(value), [value])`. Call `onChange` directly in the same event handler that calls `setValue`.
-- **useEffect is not componentDidMount**: Don't think of `useEffect(() => {}, [])` as "run once on mount." An effect synchronizes with external systems whenever its reactive dependencies change. Mount and update are a single unified lifecycle. When you want "skip on initial render," reframe: the real need is usually an early return based on state value (e.g. `if (roomId === null) return;`), never a ref-based "first render" flag.
-
 # Synchronizing with External Systems
 
-Corollaries of "You Might Not Need an Effect" for things that genuinely live outside React (fonts, observers, canvas, storage).
+`useEffect` runs because the component appeared on screen and has to synchronize with a system outside React, never because the user did something, which belongs in an event handler. For what genuinely lives outside React (fonts, observers, canvas, storage):
 
-- **useSyncExternalStore for external readiness**: When "is X ready?" comes from an external system (font loading, media queries, storage), don't mirror it with `useState` + effect. Keep a module-level store (subscribe / snapshot) and read it with `useSyncExternalStore`. Its server snapshot (`() => false`) doubles as the SSR/hydration guard, replacing the `mounted`-flag pattern.
 - **Module scope for app initialization**: Once-per-page-load work (injecting a stylesheet link, kicking off an initial resource load) runs at module level behind an `import.meta.env.SSR` guard, never in a `[]` effect. Once per app is not once per mount.
 - **Event handlers trigger resource loads**: When a user choice requires loading an external resource, start the load in the change handler that made the choice. If the handler needs the post-patch state, predict it by calling the pure transition function (`transition(state, patch)`). Never add an effect that watches the state to react to it.
 - **Transition functions own state invariants**: When one field constrains another (the selected option must remain valid for the newly chosen group), enforce it inside the pure transition function (a reducer or a plain exported function) on every patch, rather than re-clamping at every read site.
-- **Expensive derivation is still derivation**: A computation that uses the DOM as a calculator (offscreen-canvas text measurement) belongs in `useMemo` during render when it is idempotent and memoized. The module-level cache (keyed by inputs) shares results across component instances and remounts, while `useMemo` avoids redundant cache lookups within a single instance's re-renders, so both layers are needed. Gate the computation on the external readiness snapshot so it never runs during SSR.
+- **Expensive derivation is still derivation**: A computation that uses the DOM as a calculator (offscreen-canvas text measurement) belongs in `useMemo` during render when it is idempotent and memoized. The module-level cache (keyed by inputs) shares results across component instances and remounts, while `useMemo` avoids redundant cache lookups within a single instance's re-renders, so both layers are needed. Gate the computation on a `useSyncExternalStore` readiness snapshot whose server snapshot is `() => false`, so it never runs during SSR.
 - **Callback refs with cleanup for element observers (React 19)**: Attach ResizeObserver / IntersectionObserver to an element in a callback ref that returns a cleanup, never in a mount effect. Read measurements procedurally at use time (`el.clientWidth` at draw time) instead of mirroring them into state when the consumer is imperative anyway.
 - **Latest-ref for callbacks that outlive renders**: A subscription that must run "the current logic" calls `latestRef.current()`, and the sync effect updates the ref each render. This avoids re-subscribing per render and stale closures.
 - **The last effect standing must read as a sentence**: After the above, every remaining `useEffect` should read as "synchronize [external system] with [rendered value]" (e.g. paint the canvas from the computed layout). An effect that doesn't fit that sentence has a better home.
 
 # Component Splitting
 
-- **Re-render boundaries**: A component boundary is also a re-render boundary. When parts of a UI update at different frequencies, split them into separate components so expensive subtrees don't re-render unnecessarily. When a library offers both a hook API and a render-props/component API, prefer the one that isolates re-renders to the smallest scope.
 - **Generic component naming**: Props of generic/reusable components should follow standard HTML attribute and platform conventions to minimize mental mapping cost. e.g. `<MyImage src={url} />` rather than `<MyImage imageUrl={url} />`. For controlled/uncontrolled patterns, follow the Radix convention: `open`/`onOpenChange`/`defaultOpen` rather than `isVisible`/`onToggle`.
 - **Transparent native wrappers**: UI-library-level components wrapping a native element (`input`, `button`, `a`) should accept all native attributes via `ComponentPropsWithoutRef<"input">` and spread them. Don't restrict props to a handpicked subset, because that blocks a11y attributes and makes the wrapper worse than the raw element.
 - **Event handler props name intent, not mechanism**: Callback props represent what the component communicates, not how the user interacts. Naming after the DOM event (`onClickPlay`) couples the interface to a specific interaction, breaking when the trigger changes to keyboard, gesture, or programmatic call. e.g. `onPlayMovie` rather than `onClickPlayMovie`.
@@ -65,8 +39,6 @@ When internal state drives a component's behavior or appearance, structure it so
 # Module Organization
 
 - **A component's home is decided by how many routes draw it**: one route takes it into that route's `-components/` directory under `src/routes/`, and two or more take it to `src/shared/components/<name>/`. The root route's own components take `src/routes/-components/`, which `__root.tsx` alone reads; a second route reaching in is a second route, so that component goes to `src/shared/components/<name>/` like any other. `src/shared/ui/` holds the shadcn CLI output, which `components.json` addresses by that path.
-- **A file declares one component**: the one its name spells, exported or not, and `memo` or `forwardRef` around it changes nothing. A second component in the file, such as the label a button swaps on a pending state, takes a file named after it beside the first. `arch-rules/one-component-per-file` reports it, and `src/shared/ui/` is exempt in `vite.config.ts` because the shadcn CLI writes `Card` and `CardHeader` into one file.
-- **A route file declares `Route` and imports what it draws**: `arch-rules/route-imports-its-component` reports a component declared in one. `one-component-per-file` does not reach this on its own, because `export const Route = createFileRoute(...)({...})` is an initializer call rather than a component, so a route file holding one inline component counts one.
 - **No pass-through layers**: Don't create components that only receive props and forward them to a child. A component that adds no logic, layout, or abstraction is an intermediate layer that deepens the dependency chain and obscures data flow. Keep the tree flat where possible.
 - **Colocation over classification**: Don't organize by technical role (`hooks/`, `atoms/`, `utils/`). Place modules next to where they're used. Colocation limits scope by default, because a module in a route's `-components/` directory is implicitly private to that route. Classification directories force everything to be "potentially reusable." Only generic modules (no domain knowledge, so they could ship as a library) belong in shared directories. A small domain-specific component belongs with the route that draws it, rather than in a shared directory because of its size. Classify by purpose (data fetching, domain types and schemas). A single concern (e.g. "posts API") often exports a type, a query factory, an async function, and a hook. Keep them together in one directory.
 - **Small for complexity, not reuse**: The purpose of extracting a module is to reduce complexity and limit its scope of usage, rather than to make it reusable. A module used in exactly one place is fine, provided it has a single, well-defined responsibility.
