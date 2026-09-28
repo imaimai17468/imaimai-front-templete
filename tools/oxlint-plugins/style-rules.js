@@ -91,7 +91,7 @@ const noTailwindPaletteColor = classNameRule(
 );
 
 const noTailwindShadow = classNameRule(
-  /(?<![\w-])(?:drop-)?shadow(?:-(?:2xs|xs|sm|md|lg|xl|2xl|inner))?(?![\w-])/gu,
+  /(?<![\w-])(?:drop-|inset-|text-)?shadow(?:-(?:2xs|xs|sm|md|lg|xl|2xl|inner))?(?![\w-])/gu,
   (match) =>
     `Tailwind's shadow scale '${match}' is forbidden. Hierarchy comes from surface, border, spacing and type; the two cases .claude/hooks/guidance/design.md allows (a dragged element, a sticky header over scrolled content) take a shadow token defined in src/styles.css.`
 );

@@ -454,8 +454,15 @@ describe.each([
   },
   {
     allowed: "shadow-none shadow-lifted",
-    flagged: "shadow drop-shadow-md shadow-inner",
-    matches: ["shadow", "drop-shadow-md", "shadow-inner"],
+    flagged:
+      "shadow drop-shadow-md shadow-inner inset-shadow-sm text-shadow-sm",
+    matches: [
+      "shadow",
+      "drop-shadow-md",
+      "shadow-inner",
+      "inset-shadow-sm",
+      "text-shadow-sm",
+    ],
     rule: "no-tailwind-shadow",
   },
   {
