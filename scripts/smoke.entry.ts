@@ -167,8 +167,10 @@ const migrate = async (stateDir: string): Promise<boolean> => {
     ],
     { stdio: ["ignore", "inherit", "inherit"] }
   );
-  await once(child, "close");
-  return child.exitCode === 0;
+  return await once(child, "close").then(
+    () => child.exitCode === 0,
+    () => false
+  );
 };
 
 /**
@@ -202,19 +204,10 @@ const signInStatuses = async (
     ? answered
     : await signInStatuses(baseUrl, [...answered, await signInStatus(baseUrl)]);
 
-const run = async (): Promise<number> => {
-  const leftover = leftoverSecretsFailure(
-    LOCAL_SECRETS_PATH,
-    existsSync(LOCAL_SECRETS_PATH)
-  );
-  if (leftover !== null) {
-    console.error(`[smoke] ${leftover}`);
-    return 1;
-  }
-  const stateDir = await mkdtemp(path.join(tmpdir(), "app-smoke-"));
+/** Migrates the local D1 under `stateDir`, then boots the Worker on it. */
+const smokeOn = async (stateDir: string): Promise<number> => {
   if (!(await migrate(stateDir))) {
     console.error("[smoke] the D1 migrations did not apply to the local state");
-    await rm(stateDir, { force: true, recursive: true });
     return 1;
   }
   const child = spawn(
@@ -263,6 +256,22 @@ const run = async (): Promise<number> => {
     return 0;
   } finally {
     await stop(child);
+  }
+};
+
+const run = async (): Promise<number> => {
+  const leftover = leftoverSecretsFailure(
+    LOCAL_SECRETS_PATH,
+    existsSync(LOCAL_SECRETS_PATH)
+  );
+  if (leftover !== null) {
+    console.error(`[smoke] ${leftover}`);
+    return 1;
+  }
+  const stateDir = await mkdtemp(path.join(tmpdir(), "app-smoke-"));
+  try {
+    return await smokeOn(stateDir);
+  } finally {
     await rm(stateDir, { force: true, recursive: true });
   }
 };
