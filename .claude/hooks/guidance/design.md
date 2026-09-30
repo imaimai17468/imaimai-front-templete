@@ -35,8 +35,8 @@ value; `style-rules/no-tailwind-palette-color` reads class strings alone.
 ### Accent Color
 
 Accent is one hue applied consistently to a chosen category of elements.
-Pick which element types carry accent, then apply it to ALL instances of
-that type, never selectively. Mixing strategies (some links colored, some
+Pick which element types carry accent, then apply it to every instance of
+that type. Mixing strategies (some links colored, some
 not) reads as inconsistency rather than design.
 
 - Match the accent's undertone to the neutral palette. Cool neutrals pair
