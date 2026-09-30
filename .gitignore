@@ -50,6 +50,9 @@ worker-configuration.d.ts
 # typescript
 *.tsbuildinfo
 
+# vitest reports and attachments
+.vitest/
+
 *storybook.log
 storybook-static
 
