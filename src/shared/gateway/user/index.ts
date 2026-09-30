@@ -1,5 +1,6 @@
 import "@tanstack/react-start/server-only";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import { DateTime, Effect, Option, Schema } from "effect";
 import { getDb } from "@/lib/drizzle/db";
 import { users } from "@/lib/drizzle/schema";
@@ -59,17 +60,22 @@ type UserRowUpdate = Partial<
 /**
  * Writes `columns` onto one user's row and reports how many rows the store
  * touched, so a caller can reject a write that addressed nobody.
+ *
+ * Each of `stillHolds` is and-ed with the id match, so it can only narrow the
+ * write to a row that still holds what the caller read, never reach another
+ * user's row. A write whose condition no longer holds touches zero rows.
  */
 export const writeUserRow = (
   userId: string,
   columns: UserRowUpdate,
-  updatedAt: DateTime.Utc
+  updatedAt: DateTime.Utc,
+  ...stillHolds: SQL[]
 ): Effect.Effect<number, UserPersistenceError> =>
   persistenceEffect(() =>
     getDb()
       .update(users)
       .set({ ...columns, updatedAt: DateTime.toDateUtc(updatedAt) })
-      .where(eq(users.id, userId))
+      .where(and(eq(users.id, userId), ...stillHolds))
       .returning({ id: users.id })
       .then((rows) => rows.length)
   );

@@ -139,8 +139,9 @@ describe("AvatarWriter.replace", () => {
           removeCalls: remove.mock.calls,
           result,
           updateCalls: setAvatarKey.mock.calls.map(
-            ([userId, avatarKey, updatedAt]) => [
+            ([userId, previousKey, avatarKey, updatedAt]) => [
               userId,
+              previousKey,
               avatarKey,
               DateTime.formatIso(updatedAt),
             ]
@@ -149,7 +150,9 @@ describe("AvatarWriter.replace", () => {
         }).toStrictEqual({
           removeCalls: [[OLD_KEY]],
           result: { avatarUrl: NEW_URL, cleanup: "complete" },
-          updateCalls: [["user-1", NEW_KEY, TEST_CLOCK_INSTANT]],
+          updateCalls: [
+            ["user-1", Option.some(OLD_KEY), NEW_KEY, TEST_CLOCK_INSTANT],
+          ],
           uploadKey: NEW_KEY,
         });
       }
@@ -351,17 +354,102 @@ describe("AvatarWriter.replace", () => {
     );
   });
 
-  it("should skip cleanup when the row holds no prior avatar", () => {
-    const { findAvatarKey, remove, runOrFailure } = makeFakes();
+  it("should require the row to hold no key when the row held no prior avatar", () => {
+    const { findAvatarKey, remove, runOrFailure, setAvatarKey } = makeFakes();
     findAvatarKey.mockReturnValue(Effect.succeed(Option.some(Option.none())));
 
     return runOrFailure((writer) => writer.replace("user-1", validPng())).then(
       (result) => {
-        expect({ removeCalls: remove.mock.calls, result }).toStrictEqual({
+        expect({
+          previousKeys: setAvatarKey.mock.calls.map(
+            ([, previousKey]) => previousKey
+          ),
+          removeCalls: remove.mock.calls,
+          result,
+        }).toStrictEqual({
+          previousKeys: [Option.none()],
           removeCalls: [],
           result: { avatarUrl: NEW_URL, cleanup: "complete" },
         });
       }
     );
   });
+});
+
+const PNG_KEY = NEW_KEY;
+const GIF_KEY = `user-1/avatars/${AVATAR_UUID}.gif`;
+
+const validGif = () =>
+  imageFile("image/gif", [0x47, 0x49, 0x46, 0x38, 0x39, 0x61]);
+
+/**
+ * A row and a bucket that the fakes read and write, so two uploads that both
+ * read `OLD_KEY` before either writes meet the same compare-and-set a D1
+ * `where avatar_key = ?` performs.
+ */
+const makeSharedStore = () => {
+  const fakes = makeFakes();
+  const store = {
+    objects: new Set([OLD_KEY]),
+    row: Option.some(OLD_KEY),
+  };
+  fakes.upload.mockImplementation((key) =>
+    Effect.sync(() => {
+      store.objects.add(key);
+    })
+  );
+  fakes.remove.mockImplementation((key) =>
+    Effect.sync(() => {
+      store.objects.delete(key);
+    })
+  );
+  fakes.setAvatarKey.mockImplementation((_userId, previousKey, avatarKey) =>
+    Effect.sync(() => {
+      if (Option.getOrNull(store.row) !== Option.getOrNull(previousKey)) {
+        return 0;
+      }
+      store.row = Option.some(avatarKey);
+      return 1;
+    })
+  );
+  return { ...fakes, store };
+};
+
+const raceCases = [
+  ["the PNG upload writes first", validPng, validGif, PNG_KEY, GIF_KEY],
+  ["the GIF upload writes first", validGif, validPng, GIF_KEY, PNG_KEY],
+] satisfies [string, () => File, () => File, string, string][];
+
+describe("AvatarWriter.replace racing another upload", () => {
+  it.each(raceCases)(
+    "should leave only the winner's object and the row naming it when %s",
+    (_label, firstFile, secondFile, winnerKey, loserKey) => {
+      const { remove, runOrFailure, store } = makeSharedStore();
+      const reported = captureErrorReports();
+
+      return runOrFailure((writer) =>
+        Effect.all([
+          writer.replace("user-1", firstFile()),
+          writer.replace("user-1", secondFile()).pipe(Effect.flip),
+        ])
+      ).then((results) => {
+        expect({
+          objects: [...store.objects],
+          removeCalls: remove.mock.calls,
+          reportedEvents: reported.map(({ event }) => event),
+          results,
+          row: store.row,
+        }).toStrictEqual({
+          objects: [winnerKey],
+          removeCalls: [[OLD_KEY], [loserKey]],
+          reportedEvents: ["user.setAvatarKey"],
+          results: [
+            { avatarUrl: avatarUrlForKey(winnerKey), cleanup: "complete" },
+            new AvatarUploadFailed(),
+          ],
+          row: Option.some(winnerKey),
+        });
+      });
+    }
+  );
 });
