@@ -10,18 +10,22 @@
  * command in this repository runs what the build produced.
  *
  * Exits non-zero naming every route that answered differently from what
- * `ROUTES` states, or did not answer.
+ * `ROUTES` states, or did not answer, and before booting where the build left
+ * a local secrets file beside the Worker config.
  */
 
 import { spawn } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
 import { once } from "node:events";
+import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { setTimeout as delay } from "node:timers/promises";
+import { LOCAL_SECRETS_FILE } from "../tools/vite-plugins/drop-local-secrets-plugin";
 import {
+  leftoverSecretsFailure,
   report,
   messageOf,
   missedBy,
@@ -32,6 +36,10 @@ import {
 import type { Route, RouteResult } from "./smoke";
 
 const WORKER_CONFIG = "dist/server/wrangler.json";
+const LOCAL_SECRETS_PATH = path.join(
+  path.dirname(WORKER_CONFIG),
+  LOCAL_SECRETS_FILE
+);
 
 /**
  * Text bindings for the secrets the Worker requires before it answers a
@@ -136,6 +144,14 @@ const request = async (baseUrl: string, route: Route): Promise<RouteResult> => {
 };
 
 const run = async (): Promise<number> => {
+  const leftover = leftoverSecretsFailure(
+    LOCAL_SECRETS_PATH,
+    existsSync(LOCAL_SECRETS_PATH)
+  );
+  if (leftover !== null) {
+    console.error(`[smoke] ${leftover}`);
+    return 1;
+  }
   const stateDir = await mkdtemp(path.join(tmpdir(), "app-smoke-"));
   const child = spawn(
     "bunx",

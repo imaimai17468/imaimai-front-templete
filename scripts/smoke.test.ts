@@ -8,6 +8,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
   EXPECTED_DOCUMENT_HEADERS,
+  leftoverSecretsFailure,
   messageOf,
   missedBy,
   missingFrom,
@@ -67,6 +68,16 @@ describe("smoke", () => {
 
   it("should give no address when the text holds no ready line", () => {
     expect(readyUrlIn("⎔ Starting local server...\n")).toBeNull();
+  });
+
+  it("should name the file when the build left local secrets beside the Worker config", () => {
+    expect(leftoverSecretsFailure("dist/server/.dev.vars", true)).toBe(
+      "the build wrote dist/server/.dev.vars, which carries local secret values into dist/"
+    );
+  });
+
+  it("should report nothing when the build left no local secrets file", () => {
+    expect(leftoverSecretsFailure("dist/server/.dev.vars", false)).toBeNull();
   });
 
   it("should give the message when an Error was thrown", () => {

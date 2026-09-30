@@ -143,7 +143,13 @@ jobs:
       - name: Run Tests
         run: bun run test
 
-      # Builds, then boots the built Worker under workerd and requests two
-      # routes.
+      # Builds, then boots the built Worker under workerd and requests the
+      # routes scripts/smoke.ts names.
       - name: Build the app and request its routes (smoke)
         run: bun run smoke
+        # The Cloudflare plugin writes dist/server/.dev.vars only for a
+        # `[secrets] required` name it finds a value for, and CI holds none.
+        # This value gives it one, so smoke's check that the build left no such
+        # file fails here once the file comes back.
+        env:
+          BETTER_AUTH_SECRET: ci-build-probe
