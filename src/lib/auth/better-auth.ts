@@ -14,6 +14,7 @@ const buildAuth = () =>
         provider: "sqlite",
         schema: {
           account: schema.accounts,
+          rateLimit: schema.rateLimits,
           session: schema.sessions,
           user: schema.users,
           verification: schema.verifications,
