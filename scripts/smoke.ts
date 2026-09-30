@@ -126,6 +126,18 @@ export const missedBy = (
   ...missingHeaders(headers, route),
 ];
 
+/**
+ * What the run reports where the build left a local secrets file beside the
+ * Worker config, or null where it left none.
+ */
+export const leftoverSecretsFailure = (
+  secretsPath: string,
+  exists: boolean
+): string | null =>
+  exists
+    ? `the build wrote ${secretsPath}, which carries local secret values into dist/`
+    : null;
+
 export const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
