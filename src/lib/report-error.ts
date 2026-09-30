@@ -1,3 +1,4 @@
+import { DrizzleQueryError } from "drizzle-orm/errors";
 import type { Effect } from "effect";
 import { Console, Option, Predicate, Schema } from "effect";
 
@@ -26,7 +27,39 @@ const errorLogRecord = (report: ErrorReport): ErrorLogRecord => ({
   stack: Option.getOrNull(report.stack),
 });
 
+// Drizzle's class leaves `name` at the inherited "Error".
+const FAILED_QUERY_NAME = "DrizzleQueryError";
+
+/**
+ * A failed query as Workers Logs may keep it.
+ *
+ * Drizzle's own message and stack end in `params:` and the bound values, which
+ * are the caller's data, so the record takes the SQL text, whose values are
+ * placeholders, and the driver's error that Drizzle wrapped.
+ */
+const failedQueryReport = (
+  event: string,
+  error: DrizzleQueryError
+): ErrorReport => {
+  const driverError = Option.liftPredicate(error.cause, Predicate.isError);
+  const driverMessage = driverError.pipe(
+    Option.map((driver) => `\n${driver.name}: ${driver.message}`),
+    Option.getOrElse(() => "")
+  );
+  return {
+    event,
+    message: `Failed query: ${error.query}${driverMessage}`,
+    name: Option.some(FAILED_QUERY_NAME),
+    stack: driverError.pipe(
+      Option.flatMap((driver) => Option.fromUndefinedOr(driver.stack))
+    ),
+  };
+};
+
 export const errorReport = (event: string, cause: unknown): ErrorReport => {
+  if (cause instanceof DrizzleQueryError) {
+    return failedQueryReport(event, cause);
+  }
   if (Predicate.isError(cause)) {
     return {
       event,

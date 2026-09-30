@@ -139,8 +139,8 @@ export class CurrentUserReader extends Context.Service<
  * The reader's result with its error channel discharged.
  *
  * A row the caller owns either loads or it does not; a D1 failure has no
- * user-facing branch here, so it becomes a defect and the framework answers it
- * the way it answers any other rejection.
+ * user-facing branch here, so it becomes a defect, which the handler's runtime
+ * logs and answers with a fixed message.
  */
 export const readCurrentUser: Effect.Effect<
   Option.Option<UserWithEmail>,

@@ -1,3 +1,4 @@
+import { DrizzleQueryError } from "drizzle-orm/errors";
 import { Effect, Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { ABSENT_FIELD } from "@/test/absent-field";
@@ -15,6 +16,20 @@ const failureWithStack = (): DriverFailed => {
 const failureWithoutStack = (): DriverFailed => {
   const error = new DriverFailed({ message: "D1 failed" });
   Reflect.deleteProperty(error, "stack");
+  return error;
+};
+
+const UPDATE_QUERY =
+  'update "users" set "name" = ?, "updated_at" = ? where "users"."id" = ?';
+const PARAMS = ["Probe Person Name", 0, "user-123"];
+const DRIVER_STACK = "DriverFailed: D1_ERROR: probe\n    at d1.ts:1:1";
+
+const driverFailure = (): DriverFailed => {
+  const error = new DriverFailed({ message: "D1_ERROR: probe" });
+  Object.defineProperty(error, "stack", {
+    configurable: true,
+    value: DRIVER_STACK,
+  });
   return error;
 };
 
@@ -38,6 +53,32 @@ describe("report-error", () => {
         event: "user.updateName",
         message: "D1 failed",
         name: Option.some("DriverFailed"),
+        stack: Option.none(),
+      });
+    });
+
+    it("should keep the SQL text and the driver's error but not the parameters when a query fails", () => {
+      const error = new DrizzleQueryError(
+        UPDATE_QUERY,
+        PARAMS,
+        driverFailure()
+      );
+
+      expect(errorReport("user.updateName", error)).toStrictEqual({
+        event: "user.updateName",
+        message: `Failed query: ${UPDATE_QUERY}\nDriverFailed: D1_ERROR: probe`,
+        name: Option.some("DrizzleQueryError"),
+        stack: Option.some(DRIVER_STACK),
+      });
+    });
+
+    it("should report the SQL text alone when a failed query wraps no driver error", () => {
+      const error = new DrizzleQueryError(UPDATE_QUERY, PARAMS);
+
+      expect(errorReport("user.updateName", error)).toStrictEqual({
+        event: "user.updateName",
+        message: `Failed query: ${UPDATE_QUERY}`,
+        name: Option.some("DrizzleQueryError"),
         stack: Option.none(),
       });
     });
