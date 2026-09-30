@@ -143,7 +143,7 @@ jobs:
       - name: Run Tests
         run: bun run test
 
-      # Builds, then boots the built Worker under workerd and requests two
-      # routes.
+      # Builds, then boots the built Worker under workerd and requests the
+      # routes scripts/smoke.ts names.
       - name: Build the app and request its routes (smoke)
         run: bun run smoke
