@@ -40,35 +40,13 @@ jobs:
       - name: Generate Cloudflare env types
         run: bun run cf-typegen
 
-      # Fails only on vulnerabilities in direct dependencies. Transitive ones are
-      # printed without blocking: patching them needs `overrides`, which add
-      # template debt, so direct deps are the audit boundary and the rest waits for
-      # upstream. `bun audit` is allowed to fail so a network or registry error does
-      # not read as "no vulnerabilities".
+      # Fails on vulnerabilities in direct dependencies, and fails when `bun audit`
+      # prints no JSON advisory report, which is what a registry or network error
+      # leaves. Transitive advisories are printed without blocking: patching them
+      # needs `overrides`, which add template debt, so direct deps are the audit
+      # boundary and the rest waits for upstream.
       - name: Audit direct dependencies for known vulnerabilities
-        shell: bash
-        run: |
-          set -euo pipefail
-          DIRECT=$(jq -r '((.dependencies // {}) + (.devDependencies // {})) | keys | .[]' package.json | sort -u)
-          VULN_JSON=$(bun audit --json 2>/dev/null || true)
-          VULN_PKGS=$(printf '%s' "$VULN_JSON" | jq -r 'keys | .[]' | sort -u)
-          if [ -z "$VULN_PKGS" ]; then
-            echo "✅ No vulnerabilities found."
-            exit 0
-          fi
-          DIRECT_VULNS=$(comm -12 <(printf '%s\n' "$DIRECT") <(printf '%s\n' "$VULN_PKGS") || true)
-          if [ -n "$DIRECT_VULNS" ]; then
-            echo "⛔ Vulnerabilities in direct dependencies:"
-            printf '%s\n' "$DIRECT_VULNS"
-            echo ""
-            echo "Full audit output:"
-            bun audit || true
-            exit 1
-          fi
-          echo "ℹ️  Transitive-only vulnerabilities (not blocking):"
-          printf '%s\n' "$VULN_PKGS" | sed 's/^/  - /'
-          echo ""
-          echo "✅ No direct-dependency vulnerabilities."
+        run: bun scripts/audit-dependencies.entry.ts
 
       # Type-checks workflow expressions and validates action inputs, which YAML
       # syntax checking alone does not reach. With no arguments it walks
