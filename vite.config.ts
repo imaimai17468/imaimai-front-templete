@@ -3,6 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
+import type { DummyRuleMap } from "oxlint";
 import antiSlop from "ultracite/oxlint/anti-slop";
 import core from "ultracite/oxlint/core";
 import ultraciteReact from "ultracite/oxlint/react";
@@ -305,7 +306,7 @@ export default defineConfig({
           "@typescript-eslint/promise-function-async": "off",
           "promise/prefer-await-to-then": "off",
           "promise/prefer-await-to-callbacks": "off",
-        },
+        } satisfies DummyRuleMap,
       },
       {
         // shadcn CLI output. These are the rules the CLI's own files trip,

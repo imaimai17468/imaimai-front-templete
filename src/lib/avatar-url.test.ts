@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { AVATAR_ROUTE_PATH, avatarUrlForKey } from "./avatar-url";
 
 describe(avatarUrlForKey, () => {

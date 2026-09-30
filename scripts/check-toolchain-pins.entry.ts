@@ -25,7 +25,7 @@ interface Pin {
 const exactVersionOf = (spec: string | undefined): string | undefined =>
   spec?.replace(/^=/u, "");
 
-const declaredAliasOf = (spec: string | undefined): string | undefined =>
+const coreVersionOf = (spec: string | undefined): string | undefined =>
   spec?.replace(`npm:${CORE}@`, "");
 
 const { dependencies: bundled, version: bundledVersion } = vitePlus;
@@ -33,13 +33,13 @@ const { devDependencies: declared, overrides } = manifest;
 
 const PINS: readonly Pin[] = [
   {
-    bundled: exactVersionOf(bundled[CORE]),
-    declared: declaredAliasOf(declared.vite),
+    bundled: coreVersionOf(bundled.vite),
+    declared: coreVersionOf(declared.vite),
     label: "devDependencies.vite (alias to vite-plus core)",
   },
   {
-    bundled: exactVersionOf(bundled[CORE]),
-    declared: declaredAliasOf(overrides.vite),
+    bundled: coreVersionOf(bundled.vite),
+    declared: coreVersionOf(overrides.vite),
     label: "overrides.vite (alias to vite-plus core)",
   },
   {
