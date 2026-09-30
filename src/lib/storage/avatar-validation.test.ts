@@ -2,6 +2,7 @@ import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import {
   avatarContentMatchesMime,
+  avatarContentTypeForKey,
   avatarExtensionForMime,
   avatarSizeRejection,
   isOwnAvatarKey,
@@ -157,4 +158,29 @@ describe(avatarContentMatchesMime, () => {
       avatarContentMatchesMime(imageFile(mimeType, bytes))
     ).resolves.toBeFalsy()
   );
+});
+
+describe(avatarContentTypeForKey, () => {
+  it.each([
+    ["user-1/avatars/123e4567-e89b-42d3-a456-426614174000.png", "image/png"],
+    ["user-1/avatar.jpg", "image/jpeg"],
+    ["user-1/avatar.jpeg", "image/jpeg"],
+    ["user-1/avatar.JPEG", "image/jpeg"],
+    ["user-1/avatar.webp", "image/webp"],
+    ["user-1/avatar.gif", "image/gif"],
+  ])(
+    "should return the type the extension names when the key is %s",
+    (key, type) => {
+      expect(avatarContentTypeForKey(key)).toStrictEqual(Option.some(type));
+    }
+  );
+
+  it.each([
+    "user-1/avatar.html",
+    "user-1/avatar.svg",
+    "user-1/avatar",
+    "../user-1/avatar.png",
+  ])("should return a None when the key %s names no avatar", (key) => {
+    expect(avatarContentTypeForKey(key)).toStrictEqual(Option.none());
+  });
 });

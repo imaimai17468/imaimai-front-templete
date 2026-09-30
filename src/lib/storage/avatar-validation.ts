@@ -8,12 +8,21 @@
 
 import { Option } from "effect";
 
-const AVATAR_MIME_TO_EXTENSION = new Map([
+/** The image types an avatar is stored and served as. */
+export type AvatarContentType =
+  | "image/gif"
+  | "image/jpeg"
+  | "image/png"
+  | "image/webp";
+
+const AVATAR_FORMATS: readonly (readonly [AvatarContentType, string])[] = [
   ["image/png", "png"],
   ["image/jpeg", "jpg"],
   ["image/webp", "webp"],
   ["image/gif", "gif"],
-]);
+];
+
+const AVATAR_MIME_TO_EXTENSION = new Map<string, string>(AVATAR_FORMATS);
 
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 const JPEG_SIGNATURE = [0xff, 0xd8, 0xff];
@@ -61,17 +70,17 @@ export const avatarContentMatchesMime = (file: File): Promise<boolean> =>
     .arrayBuffer()
     .then((buffer) => matchesSignature(file.type, new Uint8Array(buffer)));
 
-// Read-side extension tolerance. The write path always normalizes to the
-// canonical lowercase extensions above, but avatar objects written before
-// this hardening took the extension straight from the client filename, so
-// legacy keys may carry ".jpeg" or uppercase variants. The extension is not
-// security-relevant on read — the served Content-Type comes from R2
-// httpMetadata and is neutralized by nosniff/CSP — so tolerating those
-// variants (case-insensitively) keeps existing avatars serving without
-// widening the actual attack surface.
-const AVATAR_READ_EXTENSIONS = new Set([
-  ...AVATAR_MIME_TO_EXTENSION.values(),
-  "jpeg",
+// The served type is read off the key's extension, so nothing stored beside
+// the object (such as R2's `httpMetadata.contentType`, which objects written
+// before the MIME allow-list took from the client) decides what a browser is
+// told the bytes are. Those older keys may carry ".jpeg" or uppercase
+// variants, so the lookup is case-insensitive and admits "jpeg".
+const AVATAR_TYPE_FOR_KEY_EXTENSION = new Map<string, AvatarContentType>([
+  ...AVATAR_FORMATS.map(
+    ([type, extension]) =>
+      [extension, type] satisfies readonly [string, AvatarContentType]
+  ),
+  ["jpeg", "image/jpeg"],
 ]);
 
 const AVATAR_KEY_PATTERN =
@@ -86,10 +95,25 @@ const parseAvatarKey = (
     ownerId: Option.fromUndefinedOr(groups?.ownerId),
   }).pipe(
     Option.filter(({ extension }) =>
-      AVATAR_READ_EXTENSIONS.has(extension.toLowerCase())
+      AVATAR_TYPE_FOR_KEY_EXTENSION.has(extension.toLowerCase())
     )
   );
 };
+
+/**
+ * The type an avatar under `key` is served as, from its extension, or `None`
+ * when the key is not a well-formed avatar key.
+ */
+export const avatarContentTypeForKey = (
+  key: string
+): Option.Option<AvatarContentType> =>
+  parseAvatarKey(key).pipe(
+    Option.flatMap(({ extension }) =>
+      Option.fromUndefinedOr(
+        AVATAR_TYPE_FOR_KEY_EXTENSION.get(extension.toLowerCase())
+      )
+    )
+  );
 
 /**
  * Returns the storage extension for an allow-listed image MIME type, or a

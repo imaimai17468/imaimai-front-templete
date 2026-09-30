@@ -2,6 +2,7 @@ import { Effect, Layer, Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { AVATAR_ROUTE_PATH } from "@/lib/avatar-url";
 import type { FileRouteTypes } from "@/routeTree.gen";
+import { AvatarObject } from "@/shared/gateway/user/avatar";
 import {
   AvatarInvalidKey,
   AvatarNotFound,
@@ -50,11 +51,6 @@ const errorCases = [
   string,
 ][];
 
-const servedTypeCases = [
-  ["carries a stored content type", Option.some("image/webp"), "image/webp"],
-  ["carries no content type", Option.none(), "image/png"],
-] satisfies [string, Option.Option<string>, string][];
-
 describe(getAvatarResponse, () => {
   it.each(errorCases)(
     "should return the expected JSON error when authorization rejects the request",
@@ -72,37 +68,33 @@ describe(getAvatarResponse, () => {
     }
   );
 
-  it.each(servedTypeCases)(
-    "should return hardened headers and the served type when the stored object %s",
-    (_label, contentType, expectedContentType) => {
-      const { read, respond } = makeFakes();
-      read.mockReturnValue(Effect.succeed({ body: avatarBody(), contentType }));
+  it("should return the object's own response when the authorization boundary returns an avatar", () => {
+    const { read, respond } = makeFakes();
+    read.mockReturnValue(
+      Effect.succeed(new AvatarObject(avatarBody(), "image/webp"))
+    );
 
-      return respond(request())
-        .then((response) =>
-          response.text().then((body) => ({
-            body,
-            cacheControl: response.headers.get("Cache-Control"),
-            contentSecurityPolicy: response.headers.get(
-              "Content-Security-Policy"
-            ),
-            contentType: response.headers.get("Content-Type"),
-            noSniff: response.headers.get("X-Content-Type-Options"),
-            status: response.status,
-          }))
-        )
-        .then((received) => {
-          expect(received).toStrictEqual({
-            body: "avatar-body",
-            cacheControl: "private, max-age=31536000, immutable",
-            contentSecurityPolicy: "default-src 'none'",
-            contentType: expectedContentType,
-            noSniff: "nosniff",
-            status: 200,
-          });
+    return respond(request())
+      .then((response) =>
+        response.text().then((body) => ({
+          body,
+          headers: Object.fromEntries(response.headers),
+          status: response.status,
+        }))
+      )
+      .then((received) => {
+        expect(received).toStrictEqual({
+          body: "avatar-body",
+          headers: {
+            "cache-control": "private, max-age=31536000, immutable",
+            "content-security-policy": "default-src 'none'",
+            "content-type": "image/webp",
+            "x-content-type-options": "nosniff",
+          },
+          status: 200,
         });
-    }
-  );
+      });
+  });
 
   it("should pass the query string's key to the authorization boundary when the request carries one", () => {
     const { read, respond } = makeFakes();

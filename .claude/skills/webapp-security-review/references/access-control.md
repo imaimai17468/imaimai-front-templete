@@ -26,7 +26,7 @@ The `_authed` layout route (`src/routes/_authed/route.tsx`) redirects a signed-o
 
 **The decision denies by default.** Each boundary answers the signed-out case first and allows only what it has matched, as the three above do. A check phrased as "deny when X", with everything else passing through, opens a hole each time a new role, state or entrance is added.
 
-**A response only its caller may see is not stored by a shared cache.** `src/routes/api/avatars.ts` sends `Cache-Control: private` for this reason. A new session-gated response without it can be answered from a shared cache in front of the Worker to a different reader, without the check running at all.
+**A response only its caller may see is not stored by a shared cache.** `AvatarObject.response` in `src/shared/gateway/user/avatar/index.ts`, the only way `/api/avatars` reaches an object's bytes, sends `Cache-Control: private` for this reason. A new session-gated response without it can be answered from a shared cache in front of the Worker to a different reader, without the check running at all.
 
 **Choose between 403 and 404 once per kind of object.** A 404 hides whether the object exists and a 403 admits it; either is a choice to record, and the page and the API answer the same object alike. A 404 still leaks existence where a listing, a response length or the timing differs. `/api/avatars` answers 400 to a key it does not tie to the caller, before it reads the bucket, so that answer says nothing about whether the object exists; a new kind of object records its own status the same way.
 

@@ -1,28 +1,55 @@
 import "@tanstack/react-start/server-only";
 import { Context, Effect, Layer, Option } from "effect";
 import { getCloudflareEnv } from "@/lib/cloudflare/env";
+import { avatarContentTypeForKey } from "@/lib/storage/avatar-validation";
+import type { AvatarContentType } from "@/lib/storage/avatar-validation";
 import { persistenceEffect } from "..";
 import type { UserPersistenceError } from "..";
 
-export interface AvatarObject {
-  readonly body: R2ObjectBody["body"];
-  readonly contentType: Option.Option<string>;
+/**
+ * An avatar object as it leaves the bucket.
+ *
+ * The bytes are private, and `response()` is the only way to them, so a route
+ * that serves an avatar cannot leave out the headers that keep uploaded bytes
+ * inert. The bytes can be anything the bucket holds, HTML after an image
+ * signature included; the fixed image type and `nosniff` keep a browser from
+ * treating them as a document, and `default-src 'none'` keeps anything it does render from
+ * loading or running a resource. `private` keeps a shared cache from storing a
+ * response the session check gated.
+ */
+export class AvatarObject {
+  readonly #body: R2ObjectBody["body"];
+  readonly #contentType: AvatarContentType;
+
+  constructor(body: R2ObjectBody["body"], contentType: AvatarContentType) {
+    this.#body = body;
+    this.#contentType = contentType;
+  }
+
+  response(): Response {
+    return new Response(this.#body, {
+      headers: {
+        "Cache-Control": "private, max-age=31536000, immutable",
+        "Content-Security-Policy": "default-src 'none'",
+        "Content-Type": this.#contentType,
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  }
 }
 
 /**
- * The stored object as this gateway hands it on.
- *
- * R2 reports a missing content type as an absent property, and the route that
- * serves the object picks its own default, so the absence has to survive as an
- * `Option` rather than become one here.
+ * The object stored under `key`, typed by the key's extension, or `None` for a
+ * key no avatar is served under. What R2 recorded as the content type is not
+ * read.
  */
-export const avatarObjectFrom = (stored: {
-  body: R2ObjectBody["body"];
-  httpMetadata?: { contentType?: string };
-}): AvatarObject => ({
-  body: stored.body,
-  contentType: Option.fromUndefinedOr(stored.httpMetadata?.contentType),
-});
+export const avatarObjectFrom = (
+  key: string,
+  body: R2ObjectBody["body"]
+): Option.Option<AvatarObject> =>
+  avatarContentTypeForKey(key).pipe(
+    Option.map((contentType) => new AvatarObject(body, contentType))
+  );
 
 /**
  * The `AVATARS_BUCKET` binding, reached by key.
@@ -50,7 +77,9 @@ export class AvatarBucket extends Context.Service<
       get: (key) =>
         Effect.promise(() => getCloudflareEnv().AVATARS_BUCKET.get(key)).pipe(
           Effect.map((stored) =>
-            Option.fromNullOr(stored).pipe(Option.map(avatarObjectFrom))
+            Option.fromNullOr(stored).pipe(
+              Option.flatMap(({ body }) => avatarObjectFrom(key, body))
+            )
           )
         ),
       put: (key, file, contentType) =>
