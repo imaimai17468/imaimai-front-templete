@@ -12,6 +12,7 @@ import ultraciteVitest from "ultracite/oxlint/vitest";
 import { defineConfig } from "vite-plus";
 import { effectRules } from "./oxlint.effect.ts";
 import reactDoctor from "./oxlint.react-doctor.ts";
+import { dropLocalSecrets } from "./tools/vite-plugins/drop-local-secrets-plugin";
 import { wranglerTypes } from "./tools/vite-plugins/wrangler-types-plugin";
 
 const CONFIG_FILES = "*.config.{js,ts,mjs,mts}";
@@ -436,6 +437,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     cloudflare({ viteEnvironment: { name: "ssr" } }),
+    dropLocalSecrets(),
     wranglerTypes(),
   ],
 });
