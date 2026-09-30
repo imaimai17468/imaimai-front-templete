@@ -1,6 +1,6 @@
 ---
 name: react-doctor
-description: Use when finishing a feature, fixing a bug, before committing React code, or when the user types `/doctor`, asks to scan, triage, or clean up React diagnostics. Covers lint, accessibility, bundle size, architecture. Includes a regression check and a full local-triage workflow that fetches the tool's remote playbook.
+description: Use when finishing a feature, fixing a bug, before committing React code, or when the user asks to run React Doctor or to scan, triage, or clean up React diagnostics. Covers lint, accessibility, bundle size, architecture. Includes a regression check and a full local-triage workflow that fetches the tool's remote playbook.
 version: "1.1.0"
 ---
 
@@ -18,9 +18,9 @@ If the score dropped, fix the regressions before committing.
 
 Run `bun run doctor --verbose` (without `--scope changed`) to scan the full codebase. Fix issues by severity, errors first and then warnings.
 
-## /doctor: full local triage workflow
+## Full local triage workflow
 
-When the user types `/doctor`, says "run react doctor", or asks for a full triage / cleanup pass (not just a regression check), fetch the local-triage playbook:
+When the user says "run react doctor" or asks for a full triage / cleanup pass (not just a regression check), fetch the local-triage playbook:
 
 ```bash
 curl --fail --silent --show-error \
