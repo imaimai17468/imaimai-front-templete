@@ -1,5 +1,6 @@
 import "@tanstack/react-start/server-only";
 import { eq, isNull } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import {
   Context,
   DateTime,
@@ -56,6 +57,16 @@ export interface AvatarUpdated {
 }
 
 /**
+ * The condition that the row still holds `previousKey`. SQL's `=` never
+ * matches a null, so a row read with no key is matched with `is null`.
+ */
+export const avatarKeyStillHeld = (previousKey: Option.Option<string>): SQL =>
+  Option.match(previousKey, {
+    onNone: () => isNull(users.avatarKey),
+    onSome: (read) => eq(users.avatarKey, read),
+  });
+
+/**
  * The `avatar_key` column of a user's own row.
  *
  * A service rather than a direct query so a test drives the rollback arms
@@ -104,10 +115,7 @@ export class UserAvatarKeys extends Context.Service<
           userId,
           { avatarKey },
           updatedAt,
-          Option.match(previousKey, {
-            onNone: () => isNull(users.avatarKey),
-            onSome: (read) => eq(users.avatarKey, read),
-          })
+          avatarKeyStillHeld(previousKey)
         ),
     })
   );

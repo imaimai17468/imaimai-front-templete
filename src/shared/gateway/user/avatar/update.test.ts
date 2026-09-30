@@ -1,3 +1,4 @@
+import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
 import { DateTime, Effect, Layer, Option } from "effect";
 import { TestClock } from "effect/testing";
 import { describe, expect, it, vi } from "vite-plus/test";
@@ -7,6 +8,7 @@ import { DriverFailed } from "@/test/defect";
 import { AvatarBucket, AvatarKeyIds } from ".";
 import { UserPersistenceError } from "..";
 import {
+  avatarKeyStillHeld,
   AvatarTypeUnsupported,
   AvatarUploadFailed,
   AvatarWriter,
@@ -450,6 +452,30 @@ describe("AvatarWriter.replace racing another upload", () => {
           row: Option.some(winnerKey),
         });
       });
+    }
+  );
+});
+
+describe(avatarKeyStillHeld, () => {
+  it.each([
+    [
+      "the row held a key",
+      Option.some(OLD_KEY),
+      { params: [OLD_KEY], sql: '"users"."avatar_key" = ?' },
+    ],
+    [
+      "the row held no key",
+      Option.none(),
+      { params: [], sql: '"users"."avatar_key" is null' },
+    ],
+  ])(
+    "should match only a row still holding what was read when %s",
+    (_label, previousKey, expected) => {
+      const { params, sql } = new SQLiteSyncDialect().sqlToQuery(
+        avatarKeyStillHeld(previousKey)
+      );
+
+      expect({ params, sql }).toStrictEqual(expected);
     }
   );
 });
