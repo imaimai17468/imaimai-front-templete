@@ -1,15 +1,18 @@
+import { DrizzleQueryError } from "drizzle-orm/errors";
 import { DateTime, Effect, Layer, Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { CurrentSession } from "@/lib/auth/session";
 import { avatarUrlForKey } from "@/lib/avatar-url";
 import { ABSENT_FIELD } from "@/test/absent-field";
-import { DriverFailed } from "@/test/defect";
 import { UserPersistenceError } from ".";
+import { makeRunHandler } from "../runtime";
 import { CurrentUserReader, readCurrentUser, UserProfiles } from "./read";
 import type { ProfileRow } from "./read";
 
 const AVATAR_KEY = "user-1/avatar.jpg";
 const PROVIDER_IMAGE = "https://images.example.com/from-google.png";
+const PROFILE_QUERY =
+  'select "id", "name" from "users" where "users"."id" = ? limit ?';
 
 // このファイルがテストする CurrentUserReader の Layer を、依存の CurrentSession と
 // UserProfiles を差し替えて組む。共通化すると、ここが差し替えていない依存が変わった
@@ -26,6 +29,7 @@ const makeFakes = (read: CurrentSession["Service"]["read"]) => {
   );
 
   return {
+    answer: () => makeRunHandler(layer)(readCurrentUser),
     findProfile,
     readCurrentUser: () =>
       Effect.runPromise(readCurrentUser.pipe(Effect.provide(layer))),
@@ -36,6 +40,20 @@ const authenticatedCaller = Option.some({
   email: "user-1@example.com",
   id: "user-1",
 });
+
+// A read whose Drizzle error carries a parameter only this fixture holds, so
+// a record or an answer that still quotes it fails the assertion.
+const failingProfileRead = () => {
+  const fakes = makeFakes(Effect.succeed(authenticatedCaller));
+  fakes.findProfile.mockReturnValue(
+    Effect.fail(
+      new UserPersistenceError({
+        cause: new DrizzleQueryError(PROFILE_QUERY, ["user-1-marker"]),
+      })
+    )
+  );
+  return fakes;
+};
 
 const profileRow = (overrides: Partial<ProfileRow> = {}): ProfileRow => ({
   avatarKey: Option.none(),
@@ -167,20 +185,36 @@ describe("CurrentUserReader.read", () => {
     return expect(result).rejects.toThrow("session failed");
   });
 
-  it("should propagate the cause as a defect when the profile read fails", () => {
-    const { findProfile, readCurrentUser: read } = makeFakes(
-      Effect.succeed(authenticatedCaller)
-    );
-    findProfile.mockReturnValue(
-      Effect.fail(
-        new UserPersistenceError({
-          cause: new DriverFailed({ message: "D1 failed" }),
-        })
-      )
-    );
+  it("should answer with the fixed message rather than the query when the profile read fails", () => {
+    vi.spyOn(console, "error").mockImplementation((): void => {});
+    const { answer } = failingProfileRead();
 
-    const result = read();
+    const result = answer();
 
-    return expect(result).rejects.toThrow("D1 failed");
+    return expect(result).rejects.toThrow(
+      /^The request could not be completed$/u
+    );
+  });
+
+  it("should log the query without its parameters when the profile read fails", () => {
+    const errorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation((): void => {});
+    const { answer } = failingProfileRead();
+
+    return answer()
+      .catch((): void => {})
+      .then(() => {
+        expect(errorSpy.mock.calls).toStrictEqual([
+          [
+            {
+              event: "gateway.handlerDefect",
+              message: `Failed query: ${PROFILE_QUERY}`,
+              name: "DrizzleQueryError",
+              stack: ABSENT_FIELD,
+            },
+          ],
+        ]);
+      });
   });
 });
