@@ -28,13 +28,8 @@ that worktree. Where a chain comes back refused, send those commands one per cal
 on, rather than rewording the chain until it passes: auto mode pauses you after three
 refusals in a row.
 
-The saving is the response you do not spend, so it holds only while the commands are ones
-you were going to run anyway. Widening a read to fill a call costs more than it saves: every
-later response re-reads what a call returned, and the median run spends 25 responses, so
-bytes taken in early are paid for by every response after them, where the merged response is
-saved once. List what a stage needs, then run that list. A `Read` cannot join a chain, so
-where a stage needs several of them, such as the untracked files above, issue those calls in
-one response.
+Run only the commands a stage needs. A `Read` cannot join a chain, so where a stage needs
+several of them, such as the untracked files above, issue those calls in one response.
 
 The stages are sequential and their standards differ. Do not blend them.
 
@@ -147,9 +142,7 @@ The three fields and the numbering both matter. A two-field `file:line` leaves `
 `end` equal, printing one line while reading as a window, and `verification` and every Stage
 D heading quote a line number that the printed text has to carry.
 
-The median whole-file open ran 4.8 kB and the median window 2.1 kB, across 48 reviews of
-this repository, 2026-09-15, and every later response pays those bytes again, so reserve a
-whole-file `Read` for a file you need end to end.
+Reserve a whole-file `Read` for a file you need end to end.
 
 A candidate whose defect reading leaves credible, with only the trace incomplete, is
 PLAUSIBLE, and the parent carries it from there. So is one whose defect reading leaves
