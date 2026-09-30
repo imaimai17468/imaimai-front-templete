@@ -1,8 +1,7 @@
 import { Effect, Layer, Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { CurrentSession } from "@/lib/auth/session";
-import { AvatarBucket } from ".";
-import type { AvatarObject } from ".";
+import { AvatarBucket, AvatarObject } from ".";
 import {
   AvatarInvalidKey,
   AvatarNotFound,
@@ -101,16 +100,16 @@ describe("AvatarReader.read", () => {
     const { fetchAvatar, readAvatarOrFailure } = makeFakes(
       Effect.succeed(signedInAs("user-1"))
     );
-    const avatar = {
-      body: new ReadableStream<Uint8Array>(),
-      contentType: Option.some("image/png"),
-    } satisfies AvatarObject;
+    const avatar = new AvatarObject(new ReadableStream(), "image/png");
     fetchAvatar.mockReturnValue(Effect.succeed(Option.some(avatar)));
 
     return readAvatarOrFailure(ownKey).then((result) => {
-      expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
+      expect({
+        fetchCalls: fetchAvatar.mock.calls,
+        sameObject: result === avatar,
+      }).toStrictEqual({
         fetchCalls: [["user-1/avatar.png"]],
-        result: avatar,
+        sameObject: true,
       });
     });
   });

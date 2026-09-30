@@ -1,5 +1,6 @@
 import "@tanstack/react-start/server-only";
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import {
   Context,
   DateTime,
@@ -56,6 +57,16 @@ export interface AvatarUpdated {
 }
 
 /**
+ * The condition that the row still holds `previousKey`. SQL's `=` never
+ * matches a null, so a row read with no key is matched with `is null`.
+ */
+export const avatarKeyStillHeld = (previousKey: Option.Option<string>): SQL =>
+  Option.match(previousKey, {
+    onNone: () => isNull(users.avatarKey),
+    onSome: (read) => eq(users.avatarKey, read),
+  });
+
+/**
  * The `avatar_key` column of a user's own row.
  *
  * A service rather than a direct query so a test drives the rollback arms
@@ -70,8 +81,14 @@ export class UserAvatarKeys extends Context.Service<
       Option.Option<Option.Option<string>>,
       UserPersistenceError
     >;
+    /**
+     * Points the row at `avatarKey` only while it still holds `previousKey`,
+     * the key `find` returned, and reports the rows touched: zero once another
+     * write has replaced that key in between.
+     */
     readonly set: (
       userId: string,
+      previousKey: Option.Option<string>,
       avatarKey: string,
       updatedAt: DateTime.Utc
     ) => Effect.Effect<number, UserPersistenceError>;
@@ -93,8 +110,13 @@ export class UserAvatarKeys extends Context.Service<
               )
             )
         ),
-      set: (userId, avatarKey, updatedAt) =>
-        writeUserRow(userId, { avatarKey }, updatedAt),
+      set: (userId, previousKey, avatarKey, updatedAt) =>
+        writeUserRow(
+          userId,
+          { avatarKey },
+          updatedAt,
+          avatarKeyStillHeld(previousKey)
+        ),
     })
   );
 }
@@ -104,7 +126,10 @@ export class UserAvatarKeys extends Context.Service<
  *
  * The previous object is removed only after the row update has reported one
  * touched row, so a failure between the two leaves an unreferenced object
- * rather than a row referencing a deleted one.
+ * rather than a row referencing a deleted one. The update applies only while
+ * the row still holds the key this call read, so of two uploads that read the
+ * same key one wins, and the other removes its own new object and answers
+ * `AvatarUploadFailed` through the same rollback as any other missed write.
  */
 export class AvatarWriter extends Context.Service<
   AvatarWriter,
@@ -164,7 +189,7 @@ export class AvatarWriter extends Context.Service<
         const updatedAt = yield* DateTime.now;
         const wrote = yield* wroteOneRow(
           "user.setAvatarKey",
-          keys.set(userId, key, updatedAt)
+          keys.set(userId, previousKey, key, updatedAt)
         );
         if (!wrote) {
           const rolledBack = yield* succeeded(

@@ -19,23 +19,7 @@ export const getAvatarResponse: (
       Option.fromNullOr(new URL(request.url).searchParams.get("key"))
     );
   },
-  Effect.map(
-    (avatar) =>
-      new Response(avatar.body, {
-        headers: {
-          "Content-Type": avatar.contentType.pipe(
-            Option.getOrElse(() => "image/png")
-          ),
-          // `private`: the response is session-gated — shared caches must
-          // not store it (an edge/proxy hit would bypass the auth check).
-          "Cache-Control": "private, max-age=31536000, immutable",
-          // Uploads are MIME allow-listed, but never let a browser sniff or
-          // script anything served from the bucket (stored-XSS hardening).
-          "X-Content-Type-Options": "nosniff",
-          "Content-Security-Policy": "default-src 'none'",
-        },
-      })
-  ),
+  Effect.map((avatar) => avatar.response()),
   Effect.catchTags({
     AvatarInvalidKey: () => Effect.succeed(jsonError(400, "Invalid key")),
     AvatarNotFound: () => Effect.succeed(jsonError(404, "Not found")),

@@ -1,43 +1,75 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { avatarObjectFrom } from ".";
+import { AvatarObject, avatarObjectFrom } from ".";
 
-const body = new ReadableStream();
+const bodyOf = (text: string) =>
+  new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode(text));
+      controller.close();
+    },
+  });
 
-describe(avatarObjectFrom, () => {
-  it("should carry the stored content type when R2 reports one", () => {
+const served = (response: Response) =>
+  response.text().then((body) => ({
+    body,
+    headers: Object.fromEntries(response.headers),
+    status: response.status,
+  }));
+
+describe("AvatarObject.response", () => {
+  it("should keep the image type, nosniff and a closed policy when the bytes read as HTML", () => {
     // Arrange
-    const stored = { body, httpMetadata: { contentType: "image/png" } };
+    const avatar = new AvatarObject(bodyOf("<html>"), "image/png");
 
     // Act
-    const avatar = avatarObjectFrom(stored);
+    const received = served(avatar.response());
 
     // Assert
-    expect(avatar).toStrictEqual({
-      body,
-      contentType: Option.some("image/png"),
+    return expect(received).resolves.toStrictEqual({
+      body: "<html>",
+      headers: {
+        "cache-control": "private, max-age=31536000, immutable",
+        "content-security-policy": "default-src 'none'",
+        "content-type": "image/png",
+        "x-content-type-options": "nosniff",
+      },
+      status: 200,
     });
   });
+});
 
-  it("should report an absent content type when R2 carries no metadata", () => {
-    // Arrange
-    const stored = { body };
+describe(avatarObjectFrom, () => {
+  it.each([
+    ["user-1/avatars/123e4567-e89b-42d3-a456-426614174000.webp", "image/webp"],
+    ["user-1/avatar.JPEG", "image/jpeg"],
+  ])(
+    "should serve the object as the type its key's extension names when the key is %s",
+    (key, contentType) => {
+      // Arrange
+      const body = bodyOf("avatar");
 
-    // Act
-    const avatar = avatarObjectFrom(stored);
+      // Act
+      const type = Option.map(avatarObjectFrom(key, body), (avatar) =>
+        avatar.response().headers.get("Content-Type")
+      );
 
-    // Assert
-    expect(avatar).toStrictEqual({ body, contentType: Option.none() });
-  });
+      // Assert
+      expect(type).toStrictEqual(Option.some(contentType));
+    }
+  );
 
-  it("should report an absent content type when the metadata omits it", () => {
-    // Arrange
-    const stored = { body, httpMetadata: {} };
+  it.each(["user-1/avatar.html", "../user-1/avatar.png"])(
+    "should serve nothing when the key %s names no avatar",
+    (key) => {
+      // Arrange
+      const body = bodyOf("avatar");
 
-    // Act
-    const avatar = avatarObjectFrom(stored);
+      // Act
+      const avatar = avatarObjectFrom(key, body);
 
-    // Assert
-    expect(avatar).toStrictEqual({ body, contentType: Option.none() });
-  });
+      // Assert
+      expect(avatar).toStrictEqual(Option.none());
+    }
+  );
 });
