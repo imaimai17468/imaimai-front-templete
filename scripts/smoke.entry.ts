@@ -5,13 +5,17 @@
  * bun run smoke   # builds, then runs this
  * ```
  *
- * Boots `dist/` under workerd and requests the routes `smoke.ts` names, so a
- * Worker that builds and then throws on every request fails here. No other
- * command in this repository runs what the build produced.
+ * Applies the D1 migrations to a fresh local state, boots `dist/` under
+ * workerd on it, requests the routes `smoke.ts` names, then sends the sign-in
+ * burst `SIGN_IN_BURST` names. A Worker that builds and then throws on every
+ * request fails here, and so does an auth rate limiter that is off or whose
+ * table the migrations do not create. No other command in this repository
+ * runs what the build produced.
  *
  * Exits non-zero naming every route that answered differently from what
- * `ROUTES` states, or did not answer, and before booting where the build left
- * a local secrets file beside the Worker config.
+ * `ROUTES` states, or did not answer, where the burst was not limited as
+ * `signInBurstFailure` expects, where the migrations did not apply, and before
+ * booting where the build left a local secrets file beside the Worker config.
  */
 
 import { spawn } from "node:child_process";
@@ -32,6 +36,8 @@ import {
   readyUrlIn,
   ROUTES,
   served,
+  SIGN_IN_BURST,
+  signInBurstFailure,
 } from "./smoke";
 import type { Route, RouteResult } from "./smoke";
 
@@ -143,6 +149,59 @@ const request = async (baseUrl: string, route: Route): Promise<RouteResult> => {
   }
 };
 
+/** Whether `wrangler d1 migrations apply` left the local D1 migrated. */
+const migrate = async (stateDir: string): Promise<boolean> => {
+  const child = spawn(
+    "bunx",
+    [
+      "wrangler",
+      "d1",
+      "migrations",
+      "apply",
+      "DB",
+      "--local",
+      "-c",
+      WORKER_CONFIG,
+      "--persist-to",
+      stateDir,
+    ],
+    { stdio: ["ignore", "inherit", "inherit"] }
+  );
+  await once(child, "close");
+  return child.exitCode === 0;
+};
+
+/**
+ * One sign-in from the burst's address, answered with its status alone. It
+ * carries no body, so the handler answers 415 once the limiter lets it through:
+ * the local `wrangler dev` answered some 429s to requests with a body as 503
+ * `Your worker restarted mid-request`, and never one without.
+ */
+const signInStatus = async (baseUrl: string): Promise<number> => {
+  const response = await fetch(new URL(SIGN_IN_BURST.path, baseUrl), {
+    headers: {
+      "cf-connecting-ip": "203.0.113.7",
+      origin: new URL(baseUrl).origin,
+    },
+    method: "POST",
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+  await response.body?.cancel();
+  return response.status;
+};
+
+/**
+ * The statuses of the burst, one past the limit. Each sign-in waits for the
+ * one before it, so the limiter counts them in the order they are listed.
+ */
+const signInStatuses = async (
+  baseUrl: string,
+  answered: readonly number[]
+): Promise<readonly number[]> =>
+  answered.length > SIGN_IN_BURST.allowed
+    ? answered
+    : await signInStatuses(baseUrl, [...answered, await signInStatus(baseUrl)]);
+
 const run = async (): Promise<number> => {
   const leftover = leftoverSecretsFailure(
     LOCAL_SECRETS_PATH,
@@ -153,6 +212,11 @@ const run = async (): Promise<number> => {
     return 1;
   }
   const stateDir = await mkdtemp(path.join(tmpdir(), "app-smoke-"));
+  if (!(await migrate(stateDir))) {
+    console.error("[smoke] the D1 migrations did not apply to the local state");
+    await rm(stateDir, { force: true, recursive: true });
+    return 1;
+  }
   const child = spawn(
     "bunx",
     [
@@ -178,13 +242,25 @@ const run = async (): Promise<number> => {
       console.log(`[smoke] ${report(result)}`);
     });
     const failed = results.filter((result) => !served(result));
-    if (failed.length === 0) {
-      return 0;
+    if (failed.length > 0) {
+      console.error(
+        `[smoke] the built Worker did not serve: ${failed.map((result) => result.path).join(", ")}`
+      );
+      return 1;
     }
-    console.error(
-      `[smoke] the built Worker did not serve: ${failed.map((result) => result.path).join(", ")}`
+    const burstFailure = await signInStatuses(baseUrl, []).then(
+      signInBurstFailure,
+      (error: unknown) =>
+        `${SIGN_IN_BURST.path} -> no response (${messageOf(error)})`
     );
-    return 1;
+    if (burstFailure !== null) {
+      console.error(`[smoke] ${burstFailure}`);
+      return 1;
+    }
+    console.log(
+      `[smoke] ${SIGN_IN_BURST.path} -> limited after ${SIGN_IN_BURST.allowed}`
+    );
+    return 0;
   } finally {
     await stop(child);
     await rm(stateDir, { force: true, recursive: true });
