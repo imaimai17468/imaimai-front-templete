@@ -67,6 +67,13 @@ const localEnvBody = (dir: string): string | null => {
   return fs.existsSync(file) ? fs.readFileSync(file, "utf-8") : null;
 };
 
+const runHook = async (dir: string) =>
+  await runBash(HOOK, {
+    cwd: dir,
+    env: { ...process.env, CLAUDE_PROJECT_DIR: dir },
+    input: "",
+  });
+
 describe("session-start-env-check.sh", () => {
   let scratchRoot = "";
 
@@ -91,13 +98,6 @@ describe("session-start-env-check.sh", () => {
     fs.writeFileSync(path.join(dir, EXAMPLE), EXAMPLE_BODY);
     return dir;
   };
-
-  const runHook = async (dir: string) =>
-    await runBash(HOOK, {
-      cwd: dir,
-      env: { ...process.env, CLAUDE_PROJECT_DIR: dir },
-      input: "",
-    });
 
   it("should copy the example into place and report the creation rather than a setup issue when the local env file is absent", async () => {
     const dir = scratchCheckout();

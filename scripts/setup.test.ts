@@ -74,6 +74,14 @@ interface SetupRun {
 const setupLines = (output: string): string[] =>
   output.split("\n").filter((line) => line.startsWith("[setup] "));
 
+/** What the checkout's local env file holds, or null where the path holds no regular file. */
+const localEnvBody = (dir: string): string | null => {
+  const file = path.join(dir, LOCAL_ENV);
+  return statSync(file, { throwIfNoEntry: false })?.isFile() === true
+    ? readFileSync(file, "utf-8")
+    : null;
+};
+
 describe("setup.sh", () => {
   let scratchRoot = "";
 
@@ -123,14 +131,6 @@ describe("setup.sh", () => {
       status: result.status,
       steps: setupLines(result.stdout),
     };
-  };
-
-  /** What the checkout's local env file holds, or null where the path holds no regular file. */
-  const localEnvBody = (dir: string): string | null => {
-    const file = path.join(dir, LOCAL_ENV);
-    return statSync(file, { throwIfNoEntry: false })?.isFile() === true
-      ? readFileSync(file, "utf-8")
-      : null;
   };
 
   it("should trust mise.toml before the remaining steps when mise is on PATH", () => {
