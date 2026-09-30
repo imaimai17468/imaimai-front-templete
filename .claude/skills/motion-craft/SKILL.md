@@ -510,7 +510,9 @@ When proposing fixes, prefer earlier moves over later ones:
 
 ## Review Output Format
 
-### Verdict (REQUIRED)
+Every review carries these three parts, in this order.
+
+### Verdict
 
 The report's first line is the decision, followed by the finding that decided
 it.
@@ -520,14 +522,14 @@ it.
 - **Approve** — no feel-breaking regressions, durations and easing within
   bounds, interruptibility handled, reduced-motion respected.
 
-### Findings table (REQUIRED)
+### Findings table
 
 | Before | After | Why |
 | --- | --- | --- |
 | `transition: all 300ms` | `transition: transform 200ms ease-out` | `all` animates unintended properties off-GPU |
 | `transform: scale(0)` | `transform: scale(0.95); opacity: 0` | Nothing appears from nothing |
 
-### Findings by impact tier (REQUIRED)
+### Findings by impact tier
 
 Group by impact tier, highest first. Omit empty tiers.
 
