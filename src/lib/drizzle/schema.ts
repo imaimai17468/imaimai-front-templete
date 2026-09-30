@@ -1,4 +1,5 @@
 import {
+  index,
   integer,
   sqliteTable,
   text,
@@ -82,3 +83,18 @@ export const verifications = sqliteTable("verifications", {
   updatedAt: stampedAt("updated_at"),
   value: text("value").notNull(),
 });
+
+// Better Auth の rateLimit モデル（`rateLimit.storage: "database"`）。
+// `key` は `<IP>|<パス>`、`last_request` はミリ秒のエポック時刻。
+export const rateLimits = sqliteTable(
+  "rate_limits",
+  {
+    count: integer("count").notNull(),
+    id: text("id").primaryKey(),
+    key: text("key").notNull().unique(),
+    lastRequest: integer("last_request").notNull(),
+  },
+  // Better Auth prunes rows older than its longest window with
+  // `DELETE ... WHERE last_request < ?` inside the request that reset a window.
+  (table) => [index("rate_limits_last_request_idx").on(table.lastRequest)]
+);
