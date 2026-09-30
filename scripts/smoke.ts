@@ -81,6 +81,39 @@ export const ROUTES: readonly Route[] = [
   },
 ];
 
+/**
+ * The sign-in burst the run sends from one address after the routes.
+ * better-auth limits `/sign-in` paths to three requests per ten seconds unless
+ * `rateLimit.customRules` says otherwise. Written out here rather than read
+ * from `src/`, as the document headers are, so a change to the limit has to be
+ * made on this side too.
+ */
+export const SIGN_IN_BURST = {
+  allowed: 3,
+  path: "/api/auth/sign-in/email",
+};
+
+/**
+ * What the run reports where the burst's answers show the limiter off or
+ * broken, or null where it limited as configured. Every answer within the limit
+ * has to be below 500 and other than 429, and the one after it 429: a missing
+ * `rate_limits` table answers 500 throughout, a table the adapter cannot read
+ * back answers 429 from the second request, and a limiter that is off never
+ * answers 429.
+ */
+export const signInBurstFailure = (
+  statuses: readonly number[]
+): string | null => {
+  const withinLimit = statuses.slice(0, SIGN_IN_BURST.allowed);
+  const overLimit = statuses[SIGN_IN_BURST.allowed];
+  const limited =
+    withinLimit.every((status) => status < 500 && status !== 429) &&
+    overLimit === 429;
+  return limited
+    ? null
+    : `${SIGN_IN_BURST.path} answered ${statuses.join(" ")} to ${SIGN_IN_BURST.allowed + 1} sign-ins from one address, where ${SIGN_IN_BURST.allowed} answers below 500 other than 429 and then a 429 were expected`;
+};
+
 export type RouteResult =
   | {
       readonly expectedStatus: number;

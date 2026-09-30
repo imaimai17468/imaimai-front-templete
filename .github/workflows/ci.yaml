@@ -121,8 +121,9 @@ jobs:
       - name: Run Tests
         run: bun run test
 
-      # Builds, then boots the built Worker under workerd and requests the
-      # routes scripts/smoke.ts names.
+      # Builds, applies the D1 migrations to a fresh local state, boots the
+      # built Worker under workerd on it, requests the routes scripts/smoke.ts
+      # names, and sends its sign-in burst.
       - name: Build the app and request its routes (smoke)
         run: bun run smoke
         # The Cloudflare plugin writes dist/server/.dev.vars only for a

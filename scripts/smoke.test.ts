@@ -17,6 +17,7 @@ import {
   report,
   ROUTES,
   served,
+  signInBurstFailure,
 } from "./smoke";
 import type { Route, RouteResult } from "./smoke";
 
@@ -209,5 +210,19 @@ describe("smoke", () => {
       "/favicon.svg",
       "/profile",
     ]);
+  });
+
+  it.each([
+    ["the table is missing", [500, 500, 500, 500]],
+    ["the table cannot read back its row", [400, 429, 429, 429]],
+    ["the limiter is off", [400, 400, 400, 400]],
+  ])("should report the burst when %s", (_label, statuses) => {
+    expect(signInBurstFailure(statuses)).toBe(
+      `/api/auth/sign-in/email answered ${statuses.join(" ")} to 4 sign-ins from one address, where 3 answers below 500 other than 429 and then a 429 were expected`
+    );
+  });
+
+  it("should report nothing when the fourth sign-in is the first one limited", () => {
+    expect(signInBurstFailure([400, 400, 400, 429])).toBeNull();
   });
 });
