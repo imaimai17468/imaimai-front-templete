@@ -22,19 +22,6 @@ on-screen value, inherits the user's velocity, projects momentum forward, and
 can be grabbed and reversed at any instant.** Springs make this natural because
 they are inherently interruptible and velocity-aware.
 
-## The Core Idea
-
-> "When we align the interface to the way we think and move, something magical
-> happens — it stops feeling like a computer and starts feeling like a seamless
-> extension of us."
-
-An interface is fluid when it behaves like the physical world: things respond
-instantly, move continuously, carry momentum, resist at boundaries, and can be
-redirected mid-motion.
-
-Apple frames design as serving four human needs: **safety/predictability,
-understanding, achievement, and joy.**
-
 ## 1. Response — kill latency
 
 The moment lag appears, the feeling of directness "falls off a cliff."
@@ -246,33 +233,6 @@ under `prefers-reduced-motion`.
   font-optical-sizing: auto;
 }
 ```
-
-## 16. Design foundations — Apple's eight principles
-
-1. **Purpose.** Make with intention; decide what *not* to build.
-2. **Agency.** Keep people in control: offer choices, easy undo.
-3. **Responsibility.** Privacy: ask at the right moment, only for what's needed.
-4. **Familiarity.** Build on what people already know. Things that look the same
-   must behave the same.
-5. **Flexibility.** Design for different contexts, devices, and abilities.
-6. **Simplicity — not minimalism.** Strip the unnecessary so the core purpose
-   shines; hiding everything in one place isn't simple.
-7. **Craft.** Uncompromising attention to detail builds trust. Every spacing,
-   timing, and alignment value is a deliberate choice.
-8. **Delight.** The result of getting the other seven right, not confetti tacked
-   on top.
-
-## 17. Process
-
-- **Prototype interactively — an interactive demo is worth "a million static
-  designs."** You discover the interface by building and playing with it; a
-  working prototype sets a concrete bar that prevents a mediocre final
-  implementation.
-- **Design interaction and visuals together.** "You shouldn't be able to tell
-  where one ends and the other begins." Motion is not a layer added after the
-  pixels.
-- **Test with real people in real context.** Part 2's Debugging section says
-  how to review the motion itself.
 
 ---
 
