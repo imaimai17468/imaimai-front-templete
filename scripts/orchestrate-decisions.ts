@@ -244,8 +244,8 @@ export const formatRemainingBudget = (
 
 /**
  * The fields of `gh pr list --head <branch> --json headRefOid,mergeable,state`
- * both commands read. The watch reads `state` and `mergeable`, the cleanup
- * `state` and `headRefOid`.
+ * both commands read. The watch reads all three, the cleanup `state` and
+ * `headRefOid`.
  */
 export interface PullRequest {
   readonly headRefOid: string;
@@ -294,20 +294,71 @@ export interface BranchPullRequest {
   readonly pullRequest: PullRequest | undefined;
 }
 
+/**
+ * A branch of the run as one poll found it, with how many polls in a row before
+ * this one found its pull request at the same head and in the same state.
+ */
+export interface WatchedBranch extends BranchPullRequest {
+  readonly unchangedPolls: number;
+}
+
+/** How long the watch waits between two rounds of `gh pr list`. */
+export const POLL_MS = 60_000;
+
+/**
+ * How long a waiting branch may go unchanged before the watch hands it to the
+ * orchestrator. An hour is a choice rather than a measurement, kept under the
+ * two hours a background command is allowed so that the watch reports a stall
+ * before its timeout ends it.
+ */
+const STALLED_AFTER_MS = 60 * 60_000;
+
+const STALLED_AFTER_POLLS = STALLED_AFTER_MS / POLL_MS;
+
+/**
+ * A worker moves its pull request by opening it, pushing a commit, or merging
+ * it, so `mergeable` stays out: GitHub recomputes it whenever `main` moves.
+ */
+const sameProgress = (
+  before: PullRequest | undefined,
+  now: PullRequest | undefined
+): boolean =>
+  before?.state === now?.state && before?.headRefOid === now?.headRefOid;
+
+/** This poll's branches, each counted on from what the previous poll found. */
+export const watchedBranches = (
+  previous: readonly WatchedBranch[],
+  resolved: readonly BranchPullRequest[]
+): readonly WatchedBranch[] =>
+  resolved.map((entry) => {
+    const before = previous.find((watched) => watched.branch === entry.branch);
+    return {
+      ...entry,
+      unchangedPolls:
+        before !== undefined &&
+        sameProgress(before.pullRequest, entry.pullRequest)
+          ? before.unchangedPolls + 1
+          : 0,
+    };
+  });
+
 export type WatchEvent =
   | { readonly kind: "all-closed" }
-  | { readonly kind: "conflict"; readonly branches: readonly string[] };
+  | {
+      readonly kind: "conflict" | "stalled";
+      readonly branches: readonly string[];
+    };
 
 /**
  * What the watch reports back, or undefined while nothing needs the
  * orchestrator. A branch whose pull request is undefined is one whose worker
  * has not opened it yet, and it holds the watch for the same reason an open
- * pull request does.
+ * pull request does, until it has stayed that way for STALLED_AFTER_POLLS.
  */
 export const watchEvent = (
-  resolved: readonly BranchPullRequest[]
+  watched: readonly WatchedBranch[]
 ): WatchEvent | undefined => {
-  const conflicting = resolved
+  const conflicting = watched
     .filter(
       (entry) =>
         entry.pullRequest?.state === "OPEN" &&
@@ -317,18 +368,26 @@ export const watchEvent = (
   if (conflicting.length > 0) {
     return { branches: conflicting, kind: "conflict" };
   }
-  const waiting = resolved.filter(
+  const waiting = watched.filter(
     (entry) =>
       entry.pullRequest === undefined || entry.pullRequest.state === "OPEN"
   );
-  return waiting.length === 0 ? { kind: "all-closed" } : undefined;
+  if (waiting.length === 0) {
+    return { kind: "all-closed" };
+  }
+  const stalled = waiting
+    .filter((entry) => entry.unchangedPolls >= STALLED_AFTER_POLLS)
+    .map((entry) => entry.branch);
+  return stalled.length > 0
+    ? { branches: stalled, kind: "stalled" }
+    : undefined;
 };
 
 /** The one line the watch prints before exiting. */
 export const formatEvent = (event: WatchEvent): string =>
   event.kind === "all-closed"
     ? "all-closed"
-    : `conflict ${event.branches.join(" ")}`;
+    : `${event.kind} ${event.branches.join(" ")}`;
 
 /**
  * A name that can carry a branch. `--head` takes the next argument as its value

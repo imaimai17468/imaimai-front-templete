@@ -15,6 +15,7 @@ import {
   remainingBudget,
   strandedAgentBranches,
   watchEvent,
+  watchedBranches,
   worktreeProbe,
   worktreeVerdict,
 } from "./orchestrate-decisions";
@@ -679,9 +680,17 @@ describe(prListing, () => {
 describe(watchEvent, () => {
   it("should name every branch when its open pull request is CONFLICTING", () => {
     const event = watchEvent([
-      { branch: "feat/a", pullRequest: pullRequest("OPEN", "CONFLICTING") },
-      { branch: "feat/b", pullRequest: pullRequest("OPEN") },
-      { branch: "feat/c", pullRequest: pullRequest("OPEN", "CONFLICTING") },
+      {
+        branch: "feat/a",
+        pullRequest: pullRequest("OPEN", "CONFLICTING"),
+        unchangedPolls: 0,
+      },
+      { branch: "feat/b", pullRequest: pullRequest("OPEN"), unchangedPolls: 0 },
+      {
+        branch: "feat/c",
+        pullRequest: pullRequest("OPEN", "CONFLICTING"),
+        unchangedPolls: 0,
+      },
     ]);
 
     expect(event).toStrictEqual({
@@ -692,8 +701,16 @@ describe(watchEvent, () => {
 
   it("should report all-closed when every branch's pull request is finished", () => {
     const event = watchEvent([
-      { branch: "feat/a", pullRequest: pullRequest("MERGED", "UNKNOWN") },
-      { branch: "feat/b", pullRequest: pullRequest("CLOSED", "UNKNOWN") },
+      {
+        branch: "feat/a",
+        pullRequest: pullRequest("MERGED", "UNKNOWN"),
+        unchangedPolls: 0,
+      },
+      {
+        branch: "feat/b",
+        pullRequest: pullRequest("CLOSED", "UNKNOWN"),
+        unchangedPolls: 0,
+      },
     ]);
 
     expect(event).toStrictEqual({ kind: "all-closed" });
@@ -701,7 +718,11 @@ describe(watchEvent, () => {
 
   it("should report all-closed when a finished pull request is CONFLICTING", () => {
     const event = watchEvent([
-      { branch: "feat/a", pullRequest: pullRequest("CLOSED", "CONFLICTING") },
+      {
+        branch: "feat/a",
+        pullRequest: pullRequest("CLOSED", "CONFLICTING"),
+        unchangedPolls: 0,
+      },
     ]);
 
     expect(event).toStrictEqual({ kind: "all-closed" });
@@ -709,8 +730,12 @@ describe(watchEvent, () => {
 
   it("should return undefined when a branch has no pull request yet", () => {
     const event = watchEvent([
-      { branch: "feat/a", pullRequest: NO_PULL_REQUEST },
-      { branch: "feat/b", pullRequest: pullRequest("MERGED", "UNKNOWN") },
+      { branch: "feat/a", pullRequest: NO_PULL_REQUEST, unchangedPolls: 0 },
+      {
+        branch: "feat/b",
+        pullRequest: pullRequest("MERGED", "UNKNOWN"),
+        unchangedPolls: 0,
+      },
     ]);
 
     expect(event).toBeUndefined();
@@ -718,10 +743,150 @@ describe(watchEvent, () => {
 
   it("should return undefined when a branch's pull request is open and mergeable", () => {
     const event = watchEvent([
-      { branch: "feat/a", pullRequest: pullRequest("OPEN") },
+      { branch: "feat/a", pullRequest: pullRequest("OPEN"), unchangedPolls: 0 },
     ]);
 
     expect(event).toBeUndefined();
+  });
+
+  it("should name every waiting branch when it has gone unchanged for an hour", () => {
+    const event = watchEvent([
+      {
+        branch: "feat/a",
+        pullRequest: pullRequest("OPEN"),
+        unchangedPolls: 60,
+      },
+      {
+        branch: "feat/b",
+        pullRequest: pullRequest("OPEN"),
+        unchangedPolls: 59,
+      },
+      { branch: "feat/c", pullRequest: NO_PULL_REQUEST, unchangedPolls: 60 },
+    ]);
+
+    expect(event).toStrictEqual({
+      branches: ["feat/a", "feat/c"],
+      kind: "stalled",
+    });
+  });
+
+  it("should report the conflict rather than the stall when a stalled pull request is CONFLICTING", () => {
+    const event = watchEvent([
+      {
+        branch: "feat/a",
+        pullRequest: pullRequest("OPEN", "CONFLICTING"),
+        unchangedPolls: 60,
+      },
+    ]);
+
+    expect(event).toStrictEqual({ branches: ["feat/a"], kind: "conflict" });
+  });
+
+  it("should report all-closed when a finished pull request has gone unchanged for an hour", () => {
+    const event = watchEvent([
+      {
+        branch: "feat/a",
+        pullRequest: pullRequest("MERGED", "UNKNOWN"),
+        unchangedPolls: 60,
+      },
+    ]);
+
+    expect(event).toStrictEqual({ kind: "all-closed" });
+  });
+});
+
+describe(watchedBranches, () => {
+  it("should start every branch at zero when no poll came before", () => {
+    const watched = watchedBranches(
+      [],
+      [{ branch: "feat/a", pullRequest: pullRequest("OPEN") }]
+    );
+
+    expect(watched).toStrictEqual([
+      { branch: "feat/a", pullRequest: pullRequest("OPEN"), unchangedPolls: 0 },
+    ]);
+  });
+
+  it("should count on when the pull request kept its head and state", () => {
+    const watched = watchedBranches(
+      [
+        {
+          branch: "feat/a",
+          pullRequest: pullRequest("OPEN", "UNKNOWN"),
+          unchangedPolls: 4,
+        },
+      ],
+      [{ branch: "feat/a", pullRequest: pullRequest("OPEN") }]
+    );
+
+    expect(watched).toStrictEqual([
+      { branch: "feat/a", pullRequest: pullRequest("OPEN"), unchangedPolls: 5 },
+    ]);
+  });
+
+  it("should count on when the branch still has no pull request", () => {
+    const watched = watchedBranches(
+      [{ branch: "feat/a", pullRequest: NO_PULL_REQUEST, unchangedPolls: 4 }],
+      [{ branch: "feat/a", pullRequest: NO_PULL_REQUEST }]
+    );
+
+    expect(watched).toStrictEqual([
+      { branch: "feat/a", pullRequest: NO_PULL_REQUEST, unchangedPolls: 5 },
+    ]);
+  });
+
+  it("should restart at zero when a new commit moved the head", () => {
+    const pushed: PullRequest = {
+      ...pullRequest("OPEN"),
+      headRefOid: "9f1b3d2",
+    };
+
+    const watched = watchedBranches(
+      [
+        {
+          branch: "feat/a",
+          pullRequest: pullRequest("OPEN"),
+          unchangedPolls: 4,
+        },
+      ],
+      [{ branch: "feat/a", pullRequest: pushed }]
+    );
+
+    expect(watched).toStrictEqual([
+      { branch: "feat/a", pullRequest: pushed, unchangedPolls: 0 },
+    ]);
+  });
+
+  it("should restart at zero when the state changed", () => {
+    const watched = watchedBranches(
+      [
+        {
+          branch: "feat/a",
+          pullRequest: pullRequest("OPEN"),
+          unchangedPolls: 4,
+        },
+      ],
+      [{ branch: "feat/a", pullRequest: pullRequest("MERGED") }]
+    );
+
+    expect(watched).toStrictEqual([
+      {
+        branch: "feat/a",
+        pullRequest: pullRequest("MERGED"),
+        unchangedPolls: 0,
+      },
+    ]);
+  });
+
+  it("should restart at zero when the worker opened the pull request", () => {
+    const watched = watchedBranches(
+      [{ branch: "feat/a", pullRequest: NO_PULL_REQUEST, unchangedPolls: 4 }],
+      [{ branch: "feat/a", pullRequest: pullRequest("OPEN") }]
+    );
+
+    expect(watched).toStrictEqual([
+      { branch: "feat/a", pullRequest: pullRequest("OPEN"), unchangedPolls: 0 },
+    ]);
   });
 });
 
@@ -739,6 +904,12 @@ describe(formatEvent, () => {
     });
 
     expect(line).toBe("conflict feat/a feat/c");
+  });
+
+  it("should print stalled followed by the branches when the event is a stall", () => {
+    const line = formatEvent({ branches: ["feat/b"], kind: "stalled" });
+
+    expect(line).toBe("stalled feat/b");
   });
 });
 

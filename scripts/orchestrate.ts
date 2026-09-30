@@ -24,8 +24,10 @@
  * `watch-prs` resolves each branch's pull request with `gh pr list --head` once
  * a minute and exits with a single line: `conflict <branch> ...` when an open
  * pull request of the run turns CONFLICTING, `all-closed` once no branch of the
- * run is waiting on one, or `gh-failed <message>` when `gh` itself failed. Run
- * it in the background and start it again after acting on the line.
+ * run is waiting on one, `stalled <branch> ...` when a waiting branch has shown
+ * the same pull request head and state, or no pull request, for an hour, or
+ * `gh-failed <message>` when `gh` itself failed. Run it in the background and
+ * start it again after acting on the line.
  *
  * `clean-worktrees` prints one line per agent worktree saying whether it was
  * removed or why it was kept. It removes only the worktrees of the branches
@@ -46,6 +48,7 @@ import {
   MAIN_BRANCH,
   MAIN_REF,
   MAIN_REMOTE,
+  POLL_MS,
   formatBranch,
   formatEvent,
   formatRemainingBudget,
@@ -58,6 +61,7 @@ import {
   remainingBudget,
   strandedAgentBranches,
   watchEvent,
+  watchedBranches,
   worktreeProbe,
   worktreeVerdict,
 } from "./orchestrate-decisions";
@@ -66,12 +70,11 @@ import type {
   MainFetch,
   PullRequest,
   RateLimitsFile,
+  WatchedBranch,
   Worktree,
   WorktreeFacts,
   WorktreeVerdict,
 } from "./orchestrate-decisions";
-
-const POLL_MS = 60_000;
 
 const run = (file: string, args: readonly string[]): string =>
   execFileSync(file, args, { encoding: "utf-8" });
@@ -181,37 +184,47 @@ const prOf = (branch: string): PullRequest | undefined =>
   branchPr(branch, "open") ?? branchPr(branch, "all");
 
 /**
- * One poll's line and exit code, or undefined while the run needs no attention.
- * The pull requests stay inside this call, so the `watchPrs` frame awaiting the
- * next poll holds the branch names alone however long the run lasts.
+ * One poll's line and exit code, or the branches it found while the run needs
+ * no attention, which the next poll counts on from.
  */
-interface PollResult {
-  readonly exitCode: number;
-  readonly line: string;
-}
+type Poll =
+  | { readonly exitCode: number; readonly kind: "exit"; readonly line: string }
+  | { readonly kind: "wait"; readonly watched: readonly WatchedBranch[] };
 
-const pollResult = (branches: readonly string[]): PollResult | undefined => {
+const poll = (
+  branches: readonly string[],
+  previous: readonly WatchedBranch[]
+): Poll => {
   try {
-    const event = watchEvent(
+    const watched = watchedBranches(
+      previous,
       branches.map((branch) => ({ branch, pullRequest: prOf(branch) }))
     );
+    const event = watchEvent(watched);
     return event === undefined
-      ? undefined
-      : { exitCode: 0, line: formatEvent(event) };
+      ? { kind: "wait", watched }
+      : { exitCode: 0, kind: "exit", line: formatEvent(event) };
   } catch (error) {
-    return { exitCode: 1, line: `gh-failed ${commandMessage(error)}` };
+    return {
+      exitCode: 1,
+      kind: "exit",
+      line: `gh-failed ${commandMessage(error)}`,
+    };
   }
 };
 
-const watchPrs = async (branches: readonly string[]): Promise<void> => {
-  const result = pollResult(branches);
-  if (result !== undefined) {
+const watchPrs = async (
+  branches: readonly string[],
+  previous: readonly WatchedBranch[]
+): Promise<void> => {
+  const result = poll(branches, previous);
+  if (result.kind === "exit") {
     console.log(result.line);
     process.exitCode = result.exitCode;
     return;
   }
   await delay(POLL_MS);
-  await watchPrs(branches);
+  await watchPrs(branches, result.watched);
 };
 
 const isDirty = (worktreePath: string): boolean =>
@@ -426,7 +439,7 @@ if (command === "free-gib") {
   if (branches === undefined) {
     usage("usage: bun scripts/orchestrate.ts watch-prs <branch>...");
   }
-  await watchPrs(branches);
+  await watchPrs(branches, []);
 } else if (command === "clean-worktrees") {
   const branches = branchNames(rest);
   if (branches === undefined) {
