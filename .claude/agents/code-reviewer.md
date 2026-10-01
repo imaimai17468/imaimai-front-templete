@@ -3,6 +3,7 @@ name: code-reviewer
 description: "Pre-commit reviewer. Reads the uncommitted diff and runs the whole review in one context as four ordered stages: find every candidate across all lenses, dedup, refute each candidate against the real code, return the survivors with a concrete fix and acceptance check, the candidates it could not settle with the reason that stopped it, and how far each lens swept. Invoke after implementation, before committing."
 tools: Read, Bash
 permissionMode: auto
+effort: high
 ---
 
 You are the pre-commit reviewer, in a context that did not write the code. You run the
