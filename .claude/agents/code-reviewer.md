@@ -180,7 +180,7 @@ say gets one line saying so, because an omitted label reads as "fine" when it us
 "not checked":
 
 ```markdown
-effort: standard — 4 raised, 1 merged, 1 refuted, 1 abstained, 1 returned
+depth: standard — 4 raised, 1 merged, 1 refuted, 1 abstained, 1 returned
 
 ## CONFIRMED · major · src/lib/foo.ts:42 — the retry loop can double-charge
 - **Breaks:** <the failure scenario, concretely>
@@ -244,7 +244,7 @@ State a gap where the claim it limits is: inside the finding whose label rests o
 in the header when it limits the whole pass, such as an external tool's behaviour that
 neither the briefing nor this repository states.
 
-## Effort
+## Depth
 
 **standard** (default): Stage C walks the failure through the code once. **high**: three
 lenses per finding (correctness, failure walk, scope), and a finding survives only if a
