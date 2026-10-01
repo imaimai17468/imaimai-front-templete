@@ -18,6 +18,7 @@ bun run deploy
 
 - `bun run check` と `bun run test` が通っている
 - 本番の秘密情報が `wrangler secret` に登録済み（下記）
+- `src/lib/drizzle/migrations/` の新しいマイグレーションが、リモート D1 に反映済み（`bun run db:push`、[DATABASE_SETUP.md](./DATABASE_SETUP.md) の手順5）。Better Auth はリクエストのたびに `rate_limits` テーブルを読むので、これが無い D1 にデプロイすると `/api/auth/` 以下がすべて 500 を返す
 - Google OAuth のリダイレクト URI が本番オリジンを含んでいる
 
 ## デプロイ状況の確認
