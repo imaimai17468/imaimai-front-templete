@@ -1,6 +1,6 @@
 ---
 name: empirical-prompt-tuning
-description: A method for improving an agent-facing text instruction (a skill, a slash command, a task prompt, a CLAUDE.md section, a code-generation prompt) by having a fresh executor run it, evaluating both sides (the executor's self-report plus the caller's metrics), and iterating until the gains plateau. Use right after creating or heavily revising a prompt or skill, or when an agent does not behave as expected and you want to look for the cause in the instruction's ambiguity.
+description: "Improve an agent-facing instruction (a skill, a slash command, a task or subagent prompt, an AGENTS.md or CLAUDE.md section) by having a fresh executor run it and iterating on what it got stuck on. Use right after writing or heavily revising one of those, when the user asks to tune, test, or harden a prompt or skill, or when an agent or worker did not do what its instruction said and the cause may be ambiguity in the instruction. Skip a one-off throwaway prompt."
 ---
 
 # Empirical Prompt Tuning
