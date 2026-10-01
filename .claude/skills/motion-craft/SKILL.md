@@ -1,6 +1,6 @@
 ---
 name: motion-craft
-description: Unified animation and motion skill — Apple-style fluid interface design, Emil Kowalski's craft standards, and an animation vocabulary glossary. Use when designing, building, or reviewing any animation, transition, gesture, or motion effect. Covers springs, easing, gestures, interruptibility, performance, accessibility, and a reverse-lookup glossary for naming effects.
+description: "How motion in this app should feel and be built, with this repository's duration, easing, and reduced-motion defaults and a glossary that names effects. Use when adding, changing, or reviewing an animation, a transition, hover or press feedback, an enter or exit effect, a drag or swipe gesture, a spring, or an easing curve, when the user asks for something to feel smoother, snappier, or less janky, or when they describe an effect and ask what it is called."
 ---
 
 # Motion Craft
