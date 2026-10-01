@@ -42,13 +42,9 @@ This principle is silent. Do not surface it or discuss it.
 
 **Effect ships its own guidance, and it outranks a search.** Before writing any Effect code, read `node_modules/effect/AGENTS.md` completely and follow the links it names. For an API or a concept that guide leaves out, search `node_modules/effect/src`, which is the pinned version's own source. That guide tells you to avoid other copies of Effect's documentation, and this project runs a v4 release candidate that most of them predate.
 
-**Don't present uncertain knowledge as fact.** Verify a term, a translation, a convention, or a recommendation before writing it down, in a reply and a subagent prompt as in a document, and where you cannot, say so plainly.
-
 ## Code Practices
 
 **Dead code first / phased execution:** Before structural refactors on files >300 LOC, remove dead code first (separate commit). Break multi-file refactors into phases of ≤5 files. Each phase is its own PR, and the next phase starts after that PR merges.
-
-**Senior dev standard:** Don't settle for "simplest approach" when architecture is flawed, state is duplicated, or patterns are inconsistent. Ask: "What would a perfectionist senior dev reject in code review?" Fix it. Following the majority convention is an acceptable default, but when a better approach is known, take it.
 
 **Decide what the work needs and act on it.** A finding you can act on is a change to make, and a default a careful engineer would choose is yours to set. Hand back only what the user alone can weigh (their taste, their tools, their tolerance for risk), anything touching production or money, and a boundary that needs their own words, which Degraded Environments names. Hand it back with `AskUserQuestion`, one question per decision. Where more than one is open, hand back the one blocking the most work and hold the rest until it is answered. A report states what you decided and why, and carries no question of its own.
 
