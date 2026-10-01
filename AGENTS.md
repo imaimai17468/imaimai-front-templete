@@ -42,8 +42,6 @@ This principle is silent. Do not surface it or discuss it.
 
 **Effect ships its own guidance, and it outranks a search.** Before writing any Effect code, read `node_modules/effect/AGENTS.md` completely and follow the links it names. For an API or a concept that guide leaves out, search `node_modules/effect/src`, which is the pinned version's own source. That guide tells you to avoid other copies of Effect's documentation, and this project runs a v4 release candidate that most of them predate.
 
-**Don't present uncertain knowledge as fact.** Verify a term, a translation, a convention, or a recommendation before writing it down, in a reply and a subagent prompt as in a document, and where you cannot, say so plainly.
-
 ## Code Practices
 
 **Dead code first / phased execution:** Before structural refactors on files >300 LOC, remove dead code first (separate commit). Break multi-file refactors into phases of ≤5 files. Each phase is its own PR, and the next phase starts after that PR merges.
