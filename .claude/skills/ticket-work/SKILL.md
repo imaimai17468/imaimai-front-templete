@@ -1,6 +1,6 @@
 ---
 name: ticket-work
-description: "The seven-step sequence for ticket-granularity work: implementing a component, fixing a non-trivial bug, refactoring a module, adding a feature. Invoke at the start of such work."
+description: "Seven steps that carry one ticket from clarifying the request to a merged pull request. Use at the start of a request to implement a component, page, or route, add or change a feature, fix a bug that needs more than a one-line change, or refactor a module, including when the user only says to add, build, fix, or refactor something and names no workflow. Skip a one-line fix, a single config value, or a docs-only change."
 ---
 
 # Ticket work
