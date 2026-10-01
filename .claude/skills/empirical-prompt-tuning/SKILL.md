@@ -26,9 +26,11 @@ When not to use:
    - Example: the description says "navigation / form filling / data extraction" while the body holds only a CLI reference for `npx playwright test`
    - Skip this and the subagent reinterprets the body to match the description, so the accuracy comes out high while the skill does not meet the requirement (a false positive)
 
-1. **Baseline**: fix the target prompt and prepare two things.
-   - **Evaluation scenarios**, 2 to 3 (1 typical + 1 to 2 edge). Tasks that can happen in practice, where the target prompt actually applies.
-   - **Requirement checklist** (to compute accuracy). For each scenario, list 3 to 7 items the deliverable must satisfy. accuracy % = items met / all items. Fix it in advance and do not move it afterwards.
+1. **Baseline**: fix the target prompt and prepare two things, then check them on baseline runs made as steps 2 to 4 describe.
+   - **Evaluation scenarios**, 3 to 4: 2 to 3 training scenarios (1 typical + 1 to 2 edge) and 1 held-out scenario. Tasks that can happen in practice, where the target prompt actually applies. Choose the held-out one now, before iter 1, and run it every iteration alongside the others. A fresh grader subagent, given the held-out deliverable and its checklist alone, scores it and returns the ○ / × / partial per item. From that run read only those verdicts and the usage meta's numbers, never the deliverable or the self-report. A fix shaped by what the held-out executor wrote would make it a training scenario, and the overfitting check in "Stopping the iteration" would then measure nothing.
+   - **Requirement checklist** (to compute accuracy). For each scenario, list 3 to 7 items the deliverable must satisfy. accuracy % = items met / all items. Fix it in advance. After the grading check below, it changes only through the stall sort in "Stopping the iteration", which then takes a new baseline.
+   - **Check the grading before fixing the checklist.** Score one baseline deliverable per scenario twice, by two fresh grader subagents given the deliverable and the checklist alone. An item whose verdict differs between the two is worded too loosely to judge, so rewrite it until both scorings agree.
+   - **Measure the noise before iter 1.** Run every scenario twice on the unchanged prompt, each run by a fresh executor, and take the noise as the largest accuracy difference between a scenario's two runs. A fix whose gain is smaller than that cannot be told from chance. Where the noise is larger than the smallest gain you would act on, run each scenario k times per iteration and compare the k-run averages, raising k until two averages on the unchanged prompt differ by less than that gain.
 2. **Bias-free read**: have a "blank slate" executor read the instruction. Dispatch a fresh subagent with the Agent tool. Do not settle for re-reading it yourself (judging text you wrote a moment ago from the outside is structurally impossible). To run several scenarios in parallel, put several Agent calls in one message. For an environment where dispatch is not possible, see the "Environment constraints" section.
 3. **Run**: hand the subagent a prompt that follows the subagent launch contract below and have it run the scenario. The executor produces the implementation or output and returns a self-report at the end.
 4. **Two-sided evaluation**: record the following from what comes back.
@@ -43,7 +45,8 @@ When not to use:
    - The requirement checklist holds at least one `[critical]` item (with zero, the success judgment is vacuous). Do not add or remove [critical] after the fact.
 5. **Apply the diff**: put the smallest fix that closes the ambiguity into the prompt. One theme per iteration (several related fixes are fine, an unrelated fix waits for the next one). Mixing themes loses which fix worked.
    - **Before the fix, state which requirement-checklist item or which criterion wording it satisfies** (a fix guessed from an axis name often fails to land, see the "How a fix lands" section below).
-6. **Re-evaluate**: run 2 through 5 again with a new subagent (never reuse the same agent: it has learned the previous fixes). Raise the parallelism where the gains keep coming as the iterations go on.
+   - **Write the rule the executor lacked, in the prompt's own vocabulary.** A self-report shows where the executor got stuck. State the general rule that would have decided that point, and keep the scenario's names, paths, and the executor's wording in the report. A prompt that quotes a scenario's failure teaches that scenario rather than the class of task it stands for.
+6. **Re-evaluate**: run 2 through 5 again with a new subagent (never reuse the same agent: it has learned the previous fixes), the held-out scenario included. Revert the fix where any scenario, the held-out one included, falls by more than the noise step 1 measured. Training scenarios gaining while the held-out one stays flat is the early sign of overfitting, but one held-out scenario also stays flat when the fix closed an ambiguity it never meets, so keep the fix and record the gap in the iteration's report for the overfitting check. Raise the parallelism where the gains keep coming as the iterations go on.
 7. **Convergence check**: stop once the convergence condition in "Stopping the iteration" is met.
 
 ## Evaluation axes
@@ -131,8 +134,10 @@ Where a fresh subagent cannot be dispatched (already running as a subagent, the 
   - Accuracy gain over the previous iteration: +3 points or less (a saturation such as 5% → 8%)
   - Step count change over the previous iteration: within ±10%
   - Duration change over the previous iteration: within ±15%
-  - **Overfitting check**: at the convergence check, add one hold-out scenario not used so far and evaluate it. Accuracy falling 15 points or more below the recent average is overfitting. Go back to the baseline scenario design and add an edge.
-- **Divergence (suspect the design)**: new ambiguities that do not fall after 3 or more iterations → the prompt's design may itself be wrong. Stop repairing it with patches and rewrite the structure
+  - No training scenario still fails a `[critical]` item, or the stall sort below has already run on that failure
+  - **Overfitting check**: the held-out scenario's accuracy, from the iterations being counted, sits within 15 points of the training scenarios' average. Falling 15 points or more below it is overfitting. Go back to the baseline scenario design and add an edge, and choose a new held-out scenario, since reading why the old one fell has made it a training scenario.
+- **Stall (sort the failures before another fix)**: accuracy has not moved for 2 iterations (3 for a high-stakes prompt) while checklist items still fail, or no single fix could gain more than the noise step 1 measured. Make no edit that iteration. Read each remaining failure of the training scenarios and sort it by cause: the prompt, the scenario (it asks for something its own text never states, or it fails on every run whatever the prompt says), the checklist item (its wording contradicts the scenario), or the run itself (the executor timed out, hit a rate limit, or was cut off). Only failures caused by the prompt go into further iterations. Rewrite a scenario or an item caught here, then take a new baseline under the new wording, because scores from before the rewrite measured a different task.
+- **Divergence (suspect the design)**: new ambiguities that do not fall after 3 or more iterations, with the stall sort above already done → the prompt's design may itself be wrong. Stop repairing it with patches and rewrite the structure
 - **Resource stop**: stop once the importance no longer matches the cost of improving (the call to ship at 80 points)
 
 ## Reporting format
@@ -150,6 +155,7 @@ Record each iteration in the form below and present it to the user:
 |---|---|---|---|---|---|
 | A | ○ | 90% | 4 | 20s | 0 |
 | B | × | 60% | 9 | 41s | 2 |
+| H (held-out, grader verdicts and usage meta only) | ○ | 80% | 5 | 25s | - |
 
 ### Ambiguities (new this time)
 - <scenario B>: [critical] item N is ×: <why it fell, one line>   # always added on a failure
@@ -169,7 +175,7 @@ Record each iteration in the form below and present it to the user:
 
 | The rationalization that comes up | The reality |
 |---|---|
-| "One scenario is enough" | One scenario overfits. 2 at minimum, 3 where possible. |
-| "The scenario is too hard, let's loosen it" | Loosening only makes the ambiguities look gone, and the instruction is unchanged. Keep the scenario fixed and fix the instruction. |
+| "One scenario is enough" | One scenario overfits. 2 training scenarios at minimum, 3 where possible, plus the held-out one. |
+| "The scenario is too hard, let's loosen it" | Loosening only makes the ambiguities look gone, and the instruction is unchanged. Keep the scenario fixed and fix the instruction. A scenario changes only where the stall sort in "Stopping the iteration" traced a failure to the scenario's own text. |
 | "The metrics are good, so ignore the qualitative feedback" | A shorter time is also a sign of thinning out. Qualitative is primary. |
-| "Rewriting is faster" | Right once ambiguities have not fallen for 3 iterations. Before that stage it is an escape. |
+| "Rewriting is faster" | Right once ambiguities have not fallen for 3 iterations and the stall sort has found the prompt to be the cause. Before that stage it is an escape. |
