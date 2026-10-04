@@ -5,6 +5,7 @@ import { CurrentSession } from "@/lib/auth/session";
 import { avatarUrlForKey } from "@/lib/avatar-url";
 import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";
+import { rejectionOf } from "@/test/rejection";
 import { UserPersistenceError } from ".";
 import { makeRunHandler } from "../runtime";
 import { CurrentUserReader, readCurrentUser, UserProfiles } from "./read";
@@ -212,26 +213,33 @@ describe("CurrentUserReader.read", () => {
     })
   );
 
-  it("should answer with the fixed message rather than the query when the profile read fails", () => {
-    vi.spyOn(console, "error").mockImplementation((): void => {});
-    const { answer } = failingProfileRead();
+  it.effect(
+    "should answer with the fixed message rather than the query when the profile read fails",
+    () =>
+      Effect.gen(function* answerWithTheFixedMessage() {
+        vi.spyOn(console, "error").mockImplementation((): void => {});
+        const { answer } = failingProfileRead();
 
-    const result = answer();
+        const rejection = yield* rejectionOf(answer);
 
-    return expect(result).rejects.toThrow(
-      /^The request could not be completed$/u
-    );
-  });
+        expect(rejection).toHaveProperty(
+          "message",
+          "The request could not be completed"
+        );
+      })
+  );
 
-  it("should log the query without its parameters when the profile read fails", () => {
-    const errorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation((): void => {});
-    const { answer } = failingProfileRead();
+  it.effect(
+    "should log the query without its parameters when the profile read fails",
+    () =>
+      Effect.gen(function* logTheQueryWithoutItsParameters() {
+        const errorSpy = vi
+          .spyOn(console, "error")
+          .mockImplementation((): void => {});
+        const { answer } = failingProfileRead();
 
-    return answer()
-      .catch((): void => {})
-      .then(() => {
+        yield* rejectionOf(answer);
+
         expect(errorSpy.mock.calls).toStrictEqual([
           [
             {
@@ -242,6 +250,6 @@ describe("CurrentUserReader.read", () => {
             },
           ],
         ]);
-      });
-  });
+      })
+  );
 });

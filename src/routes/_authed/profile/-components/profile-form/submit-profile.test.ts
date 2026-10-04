@@ -1,5 +1,5 @@
-import { Option } from "effect";
-import { describe, expect, it, vi } from "vite-plus/test";
+import { describe, expect, it, vi } from "@effect/vitest";
+import { Effect, Option } from "effect";
 import type { UpdateUser } from "@/shared/entities/user";
 import { createSubmitProfile } from "./submit-profile";
 import type { SubmitProfileDeps } from "./submit-profile";
@@ -29,83 +29,113 @@ const makeFakes = () => {
 };
 
 describe("submitProfile", () => {
-  it("should save the name and leave the avatar alone when no file is pending", () => {
-    const { submitProfile, updateProfile, uploadAvatar } = makeFakes();
+  it.effect(
+    "should save the name and leave the avatar alone when no file is pending",
+    () =>
+      Effect.gen(function* saveTheNameAndLeaveTheAvatarAlone() {
+        const { submitProfile, updateProfile, uploadAvatar } = makeFakes();
 
-    return submitProfile(DATA, Option.none()).then((submission) => {
-      expect({
-        submission,
-        submittedName: updateProfile.mock.calls[0]?.[0].get("name"),
-        uploadCalls: uploadAvatar.mock.calls,
-      }).toStrictEqual({
-        submission: { avatarUploaded: false, outcome: { status: "saved" } },
-        submittedName: "New Name",
-        uploadCalls: [],
-      });
-    });
-  });
+        const submission = yield* Effect.promise(() =>
+          submitProfile(DATA, Option.none())
+        );
 
-  it("should report the name failure when no file is pending and the write is rejected", () => {
-    const { submitProfile, updateProfile } = makeFakes();
-    updateProfile.mockResolvedValue({
-      message: "Failed to update profile",
-      status: "failed",
-    });
+        expect({
+          submission,
+          submittedName: updateProfile.mock.calls[0]?.[0].get("name"),
+          uploadCalls: uploadAvatar.mock.calls,
+        }).toStrictEqual({
+          submission: { avatarUploaded: false, outcome: { status: "saved" } },
+          submittedName: "New Name",
+          uploadCalls: [],
+        });
+      })
+  );
 
-    return submitProfile(DATA, Option.none()).then((submission) => {
-      expect(submission).toStrictEqual({
-        avatarUploaded: false,
-        outcome: { message: "Failed to update profile", status: "failed" },
-      });
-    });
-  });
+  it.effect(
+    "should report the name failure when no file is pending and the write is rejected",
+    () =>
+      Effect.gen(function* reportTheNameFailure() {
+        const { submitProfile, updateProfile } = makeFakes();
+        updateProfile.mockResolvedValue({
+          message: "Failed to update profile",
+          status: "failed",
+        });
 
-  it("should leave the name unwritten when the pending avatar fails to upload", () => {
-    const { submitProfile, updateProfile, uploadAvatar } = makeFakes();
-    uploadAvatar.mockResolvedValue({
-      message: "Failed to upload avatar",
-      status: "failed",
-    });
+        const submission = yield* Effect.promise(() =>
+          submitProfile(DATA, Option.none())
+        );
 
-    return submitProfile(DATA, Option.some(AVATAR)).then((submission) => {
-      expect({
-        submission,
-        updateCalls: updateProfile.mock.calls,
-        uploadedFile: uploadAvatar.mock.calls[0]?.[0].get("avatar"),
-      }).toStrictEqual({
-        submission: {
+        expect(submission).toStrictEqual({
           avatarUploaded: false,
-          outcome: { message: "Failed to upload avatar", status: "failed" },
-        },
-        updateCalls: [],
-        uploadedFile: AVATAR,
-      });
-    });
-  });
+          outcome: { message: "Failed to update profile", status: "failed" },
+        });
+      })
+  );
 
-  it("should report the avatar as uploaded when both the upload and the name write succeed", () => {
-    const { submitProfile } = makeFakes();
+  it.effect(
+    "should leave the name unwritten when the pending avatar fails to upload",
+    () =>
+      Effect.gen(function* leaveTheNameUnwritten() {
+        const { submitProfile, updateProfile, uploadAvatar } = makeFakes();
+        uploadAvatar.mockResolvedValue({
+          message: "Failed to upload avatar",
+          status: "failed",
+        });
 
-    return submitProfile(DATA, Option.some(AVATAR)).then((submission) => {
-      expect(submission).toStrictEqual({
-        avatarUploaded: true,
-        outcome: { status: "saved" },
-      });
-    });
-  });
+        const submission = yield* Effect.promise(() =>
+          submitProfile(DATA, Option.some(AVATAR))
+        );
 
-  it("should report the avatar as uploaded when the upload succeeds and the name write is rejected", () => {
-    const { submitProfile, updateProfile } = makeFakes();
-    updateProfile.mockResolvedValue({
-      message: "Failed to update profile",
-      status: "failed",
-    });
+        expect({
+          submission,
+          updateCalls: updateProfile.mock.calls,
+          uploadedFile: uploadAvatar.mock.calls[0]?.[0].get("avatar"),
+        }).toStrictEqual({
+          submission: {
+            avatarUploaded: false,
+            outcome: { message: "Failed to upload avatar", status: "failed" },
+          },
+          updateCalls: [],
+          uploadedFile: AVATAR,
+        });
+      })
+  );
 
-    return submitProfile(DATA, Option.some(AVATAR)).then((submission) => {
-      expect(submission).toStrictEqual({
-        avatarUploaded: true,
-        outcome: { message: "Failed to update profile", status: "failed" },
-      });
-    });
-  });
+  it.effect(
+    "should report the avatar as uploaded when both the upload and the name write succeed",
+    () =>
+      Effect.gen(function* reportTheAvatarAsUploaded() {
+        const { submitProfile } = makeFakes();
+
+        const submission = yield* Effect.promise(() =>
+          submitProfile(DATA, Option.some(AVATAR))
+        );
+
+        expect(submission).toStrictEqual({
+          avatarUploaded: true,
+          outcome: { status: "saved" },
+        });
+      })
+  );
+
+  it.effect(
+    "should report the avatar as uploaded when the upload succeeds and the name write is rejected",
+    () =>
+      Effect.gen(function* reportTheAvatarAsUploadedDespiteTheNameFailure() {
+        const { submitProfile, updateProfile } = makeFakes();
+        updateProfile.mockResolvedValue({
+          message: "Failed to update profile",
+          status: "failed",
+        });
+
+        const submission = yield* Effect.promise(() =>
+          submitProfile(DATA, Option.some(AVATAR))
+        );
+
+        expect(submission).toStrictEqual({
+          avatarUploaded: true,
+          outcome: { message: "Failed to update profile", status: "failed" },
+        });
+      })
+  );
 });

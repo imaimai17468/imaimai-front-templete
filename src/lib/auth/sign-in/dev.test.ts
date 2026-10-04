@@ -1,5 +1,5 @@
-import { Option } from "effect";
-import { describe, expect, it, vi } from "vite-plus/test";
+import { describe, expect, it, vi } from "@effect/vitest";
+import { Effect, Option } from "effect";
 import { DriverFailed } from "@/test/defect";
 import type { DevSignInDeps } from "./dev";
 import { createDevSignIn, DEV_USER } from "./dev";
@@ -17,75 +17,101 @@ const makeFakes = () => {
 };
 
 describe("devSignIn", () => {
-  it("should sign in without creating a user when the account already exists", () => {
-    const { devSignIn, signIn, signUp } = makeFakes();
-    signIn.mockResolvedValue(Option.none());
+  it.effect(
+    "should sign in without creating a user when the account already exists",
+    () =>
+      Effect.gen(function* signInWithoutCreatingAUser() {
+        const { devSignIn, signIn, signUp } = makeFakes();
+        signIn.mockResolvedValue(Option.none());
 
-    return devSignIn(DEV_USER).then((outcome) => {
-      expect({ outcome, signUpCalls: signUp.mock.calls }).toStrictEqual({
-        outcome: { kind: "signed-in" },
-        signUpCalls: [],
-      });
-    });
-  });
+        const outcome = yield* Effect.promise(() => devSignIn(DEV_USER));
 
-  it("should create the account and reach a session when the first sign-in is rejected", () => {
-    const { devSignIn, signIn, signUp } = makeFakes();
-    signIn.mockResolvedValue(reported("invalid credentials"));
-    signUp.mockResolvedValue(Option.none());
+        expect({ outcome, signUpCalls: signUp.mock.calls }).toStrictEqual({
+          outcome: { kind: "signed-in" },
+          signUpCalls: [],
+        });
+      })
+  );
 
-    return devSignIn(DEV_USER).then((outcome) => {
-      expect({ outcome, signUpCalls: signUp.mock.calls }).toStrictEqual({
-        outcome: { kind: "signed-in" },
-        signUpCalls: [[DEV_USER]],
-      });
-    });
-  });
+  it.effect(
+    "should create the account and reach a session when the first sign-in is rejected",
+    () =>
+      Effect.gen(function* createTheAccountAndReachASession() {
+        const { devSignIn, signIn, signUp } = makeFakes();
+        signIn.mockResolvedValue(reported("invalid credentials"));
+        signUp.mockResolvedValue(Option.none());
 
-  it("should fail with the recovery step when the sign-up is rejected", () => {
-    const { devSignIn, signIn, signUp } = makeFakes();
-    signIn.mockResolvedValue(reported("invalid credentials"));
-    signUp.mockResolvedValue(reported("User already exists."));
+        const outcome = yield* Effect.promise(() => devSignIn(DEV_USER));
 
-    return devSignIn(DEV_USER).then((outcome) => {
-      expect(outcome).toStrictEqual({
-        kind: "failed",
-        message: `User already exists. ${RECOVERY}`,
-      });
-    });
-  });
+        expect({ outcome, signUpCalls: signUp.mock.calls }).toStrictEqual({
+          outcome: { kind: "signed-in" },
+          signUpCalls: [[DEV_USER]],
+        });
+      })
+  );
 
-  it("should name the sign-up when the rejection carries no message", () => {
-    const { devSignIn, signIn, signUp } = makeFakes();
-    signIn.mockResolvedValue(reported("invalid credentials"));
-    signUp.mockResolvedValue(Option.some({ message: Option.none() }));
+  it.effect(
+    "should fail with the recovery step when the sign-up is rejected",
+    () =>
+      Effect.gen(function* failWithTheRecoveryStep() {
+        const { devSignIn, signIn, signUp } = makeFakes();
+        signIn.mockResolvedValue(reported("invalid credentials"));
+        signUp.mockResolvedValue(reported("User already exists."));
 
-    return devSignIn(DEV_USER).then((outcome) => {
-      expect(outcome).toStrictEqual({
-        kind: "failed",
-        message: `sign-up failed ${RECOVERY}`,
-      });
-    });
-  });
+        const outcome = yield* Effect.promise(() => devSignIn(DEV_USER));
 
-  it("should fail with the thrown message when the request never reaches the server", () => {
-    const { devSignIn, signIn } = makeFakes();
-    signIn.mockRejectedValue(new DriverFailed({ message: "Failed to fetch" }));
+        expect(outcome).toStrictEqual({
+          kind: "failed",
+          message: `User already exists. ${RECOVERY}`,
+        });
+      })
+  );
 
-    return devSignIn(DEV_USER).then((outcome) => {
-      expect(outcome).toStrictEqual({
-        kind: "failed",
-        message: "Failed to fetch",
-      });
-    });
-  });
+  it.effect(
+    "should name the sign-up when the rejection carries no message",
+    () =>
+      Effect.gen(function* nameTheSignUp() {
+        const { devSignIn, signIn, signUp } = makeFakes();
+        signIn.mockResolvedValue(reported("invalid credentials"));
+        signUp.mockResolvedValue(Option.some({ message: Option.none() }));
 
-  it("should fail with the recovery step when the thrown value is not an error", () => {
-    const { devSignIn, signIn } = makeFakes();
-    signIn.mockRejectedValue("offline");
+        const outcome = yield* Effect.promise(() => devSignIn(DEV_USER));
 
-    return devSignIn(DEV_USER).then((outcome) => {
-      expect(outcome).toStrictEqual({ kind: "failed", message: RECOVERY });
-    });
-  });
+        expect(outcome).toStrictEqual({
+          kind: "failed",
+          message: `sign-up failed ${RECOVERY}`,
+        });
+      })
+  );
+
+  it.effect(
+    "should fail with the thrown message when the request never reaches the server",
+    () =>
+      Effect.gen(function* failWithTheThrownMessage() {
+        const { devSignIn, signIn } = makeFakes();
+        signIn.mockRejectedValue(
+          new DriverFailed({ message: "Failed to fetch" })
+        );
+
+        const outcome = yield* Effect.promise(() => devSignIn(DEV_USER));
+
+        expect(outcome).toStrictEqual({
+          kind: "failed",
+          message: "Failed to fetch",
+        });
+      })
+  );
+
+  it.effect(
+    "should fail with the recovery step when the thrown value is not an error",
+    () =>
+      Effect.gen(function* failWithTheRecoveryStepForANonError() {
+        const { devSignIn, signIn } = makeFakes();
+        signIn.mockRejectedValue("offline");
+
+        const outcome = yield* Effect.promise(() => devSignIn(DEV_USER));
+
+        expect(outcome).toStrictEqual({ kind: "failed", message: RECOVERY });
+      })
+  );
 });

@@ -1,6 +1,7 @@
+import { describe, expect, it, vi } from "@effect/vitest";
 import { Effect, Layer } from "effect";
-import { describe, expect, it, vi } from "vite-plus/test";
 import { DriverFailed } from "@/test/defect";
+import { rejectionOf } from "@/test/rejection";
 import { makeRunHandler } from "./runtime";
 
 const STACK = "DriverFailed: marker-secret\n    at runtime.test.ts:1:1";
@@ -18,7 +19,7 @@ const loggedRecord = {
   stack: STACK,
 };
 
-const FIXED_MESSAGE = /^The request could not be completed$/u;
+const FIXED_MESSAGE = "The request could not be completed";
 
 const silenceConsoleError = () =>
   vi.spyOn(console, "error").mockImplementation((): void => {});
@@ -26,39 +27,53 @@ const silenceConsoleError = () =>
 const dyingLayer = () => Layer.effectDiscard(Effect.die(defectWithStack()));
 
 describe(makeRunHandler, () => {
-  it("should resolve with the handler's value when the handler succeeds", () => {
-    const run = makeRunHandler(Layer.empty);
+  it.effect(
+    "should resolve with the handler's value when the handler succeeds",
+    () =>
+      Effect.gen(function* resolveWithTheHandlerValue() {
+        const run = makeRunHandler(Layer.empty);
 
-    const answer = run(Effect.succeed("value"));
+        const answer = yield* Effect.promise(() =>
+          run(Effect.succeed("value"))
+        );
 
-    return expect(answer).resolves.toBe("value");
-  });
+        expect(answer).toBe("value");
+      })
+  );
 
-  it("should log nothing when the handler succeeds", () => {
-    const errorSpy = silenceConsoleError();
-    const run = makeRunHandler(Layer.empty);
+  it.effect("should log nothing when the handler succeeds", () =>
+    Effect.gen(function* logNothing() {
+      const errorSpy = silenceConsoleError();
+      const run = makeRunHandler(Layer.empty);
 
-    return run(Effect.succeed("value")).then(() => {
+      yield* Effect.promise(() => run(Effect.succeed("value")));
+
       expect(errorSpy.mock.calls).toStrictEqual([]);
-    });
-  });
+    })
+  );
 
-  it("should log the finalizer's defect beside the handler's when both die", () => {
-    const errorSpy = silenceConsoleError();
-    const run = makeRunHandler(Layer.empty);
-    const finalizerDefect = new DriverFailed({ message: "finalizer-secret" });
-    Object.defineProperty(finalizerDefect, "stack", {
-      configurable: true,
-      value: "DriverFailed: finalizer-secret",
-    });
+  it.effect(
+    "should log the finalizer's defect beside the handler's when both die",
+    () =>
+      Effect.gen(function* logTheFinalizerDefectBesideTheHandlers() {
+        const errorSpy = silenceConsoleError();
+        const run = makeRunHandler(Layer.empty);
+        const finalizerDefect = new DriverFailed({
+          message: "finalizer-secret",
+        });
+        Object.defineProperty(finalizerDefect, "stack", {
+          configurable: true,
+          value: "DriverFailed: finalizer-secret",
+        });
 
-    return run(
-      Effect.die(defectWithStack()).pipe(
-        Effect.ensuring(Effect.die(finalizerDefect))
-      )
-    )
-      .catch((): void => {})
-      .then(() => {
+        yield* rejectionOf(() =>
+          run(
+            Effect.die(defectWithStack()).pipe(
+              Effect.ensuring(Effect.die(finalizerDefect))
+            )
+          )
+        );
+
         expect(errorSpy.mock.calls).toStrictEqual([
           [loggedRecord],
           [
@@ -69,66 +84,86 @@ describe(makeRunHandler, () => {
             },
           ],
         ]);
-      });
-  });
+      })
+  );
 
-  it("should reject with the fixed message when the handler is interrupted", () => {
-    silenceConsoleError();
-    const run = makeRunHandler(Layer.empty);
+  it.effect(
+    "should reject with the fixed message when the handler is interrupted",
+    () =>
+      Effect.gen(function* rejectWithTheFixedMessageOnInterrupt() {
+        silenceConsoleError();
+        const run = makeRunHandler(Layer.empty);
 
-    const answer = run(Effect.interrupt);
+        const rejection = yield* rejectionOf(() => run(Effect.interrupt));
 
-    return expect(answer).rejects.toThrow(FIXED_MESSAGE);
-  });
+        expect(rejection).toHaveProperty("message", FIXED_MESSAGE);
+      })
+  );
 
-  it("should log one record when the handler is interrupted", () => {
-    const errorSpy = silenceConsoleError();
-    const run = makeRunHandler(Layer.empty);
+  it.effect("should log one record when the handler is interrupted", () =>
+    Effect.gen(function* logOneRecord() {
+      const errorSpy = silenceConsoleError();
+      const run = makeRunHandler(Layer.empty);
 
-    return run(Effect.interrupt)
-      .catch((): void => {})
-      .then(() => {
-        expect(errorSpy).toHaveBeenCalledOnce();
-      });
-  });
+      yield* rejectionOf(() => run(Effect.interrupt));
 
-  it("should reject with the fixed message rather than the defect's when the handler dies", () => {
-    silenceConsoleError();
-    const run = makeRunHandler(Layer.empty);
+      expect(errorSpy).toHaveBeenCalledOnce();
+    })
+  );
 
-    const answer = run(Effect.die(defectWithStack()));
+  it.effect(
+    "should reject with the fixed message rather than the defect's when the handler dies",
+    () =>
+      Effect.gen(function* rejectWithTheFixedMessageOnHandlerDefect() {
+        silenceConsoleError();
+        const run = makeRunHandler(Layer.empty);
 
-    return expect(answer).rejects.toThrow(FIXED_MESSAGE);
-  });
+        const rejection = yield* rejectionOf(() =>
+          run(Effect.die(defectWithStack()))
+        );
 
-  it("should log the defect under the handler event when the handler dies", () => {
-    const errorSpy = silenceConsoleError();
-    const run = makeRunHandler(Layer.empty);
+        expect(rejection).toHaveProperty("message", FIXED_MESSAGE);
+      })
+  );
 
-    return run(Effect.die(defectWithStack()))
-      .catch((): void => {})
-      .then(() => {
+  it.effect(
+    "should log the defect under the handler event when the handler dies",
+    () =>
+      Effect.gen(function* logTheHandlerDefect() {
+        const errorSpy = silenceConsoleError();
+        const run = makeRunHandler(Layer.empty);
+
+        yield* rejectionOf(() => run(Effect.die(defectWithStack())));
+
         expect(errorSpy.mock.calls).toStrictEqual([[loggedRecord]]);
-      });
-  });
+      })
+  );
 
-  it("should reject with the fixed message rather than the defect's when building the layer dies", () => {
-    silenceConsoleError();
-    const run = makeRunHandler(dyingLayer());
+  it.effect(
+    "should reject with the fixed message rather than the defect's when building the layer dies",
+    () =>
+      Effect.gen(function* rejectWithTheFixedMessageOnLayerDefect() {
+        silenceConsoleError();
+        const run = makeRunHandler(dyingLayer());
 
-    const answer = run(Effect.succeed("value"));
+        const rejection = yield* rejectionOf(() =>
+          run(Effect.succeed("value"))
+        );
 
-    return expect(answer).rejects.toThrow(FIXED_MESSAGE);
-  });
+        expect(rejection).toHaveProperty("message", FIXED_MESSAGE);
+      })
+  );
 
-  it("should log the defect under the handler event when building the layer dies", () => {
-    const errorSpy = silenceConsoleError();
-    const run = makeRunHandler(dyingLayer());
+  it.effect(
+    "should log the defect under the handler event when building the layer dies",
+    () =>
+      Effect.gen(function* logTheLayerDefect() {
+        const errorSpy = silenceConsoleError();
+        const run = makeRunHandler(dyingLayer());
 
-    return run(Effect.succeed("value"))
-      .catch((): void => {})
-      .then(() => {
+        yield* rejectionOf(() => run(Effect.succeed("value")));
+
         expect(errorSpy.mock.calls).toStrictEqual([[loggedRecord]]);
-      });
-  });
+      })
+  );
 });
