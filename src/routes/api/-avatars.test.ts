@@ -50,7 +50,7 @@ const errorCases = [
   status: number;
 }[];
 
-describe(getAvatarResponse, () => {
+describe("GET /api/avatars", () => {
   it.effect.each(errorCases)(
     "should answer $status with $error when authorization rejects the request",
     ({ error, failure, status }) =>
