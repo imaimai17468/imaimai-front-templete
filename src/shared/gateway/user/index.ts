@@ -7,13 +7,10 @@ import { users } from "@/lib/drizzle/schema";
 import { reportError } from "@/lib/report-error";
 
 /**
- * A D1 row read or write, or an R2 object write on a user's behalf, that did
- * not complete.
+ * A D1 row read or write, or an R2 object read or write on a user's behalf,
+ * that did not complete.
  *
- * One type covers both stores because nothing above discriminates them. The
- * write paths send it through `orNone` or `succeeded`, which log the cause and
- * branch on the result, and the read path leaves it in the error channel for
- * its caller to discharge.
+ * One type covers both stores because nothing above discriminates them.
  */
 export class UserPersistenceError extends Schema.TaggedError<UserPersistenceError>()(
   "UserPersistenceError",
