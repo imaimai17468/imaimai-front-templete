@@ -44,8 +44,11 @@ const STAGE = `git ${["st", "age"].join("")}`;
  *
  * The answer is assigned before it is printed, because an assignment takes the
  * substitution's exit status where `printf "$(...)"` takes printf's. Under the
- * `set -e` the decision file carries, a `guard_refusal` that died would then
- * end the driver, and the answers run short of the commands.
+ * driver's `set -e`, a `guard_refusal` that died would then end the driver,
+ * and the answers run short of the commands.
+ *
+ * The driver sets the options pre-bash-guard.sh sets, so the guards run under
+ * the same ones there and here.
  *
  * `guard_refusal` reads from /dev/null because the commands still queued on
  * the driver's own stdin would otherwise be there for a guard that forks
@@ -53,6 +56,7 @@ const STAGE = `git ${["st", "age"].join("")}`;
  * already been read to EOF by the time the same call runs.
  */
 const DRIVER = `
+set -euo pipefail
 . "$1"
 while IFS= read -r -d '' COMMAND; do
   REFUSAL=$(guard_refusal "$COMMAND" </dev/null)
