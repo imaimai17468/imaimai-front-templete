@@ -131,7 +131,7 @@ const CASES: readonly Case[] = [
     answer: "",
     file: "package.json",
     name: "should say nothing when the path is a JSON file naming Effect",
-    text: '"effect": "4.0.0-rc.112"',
+    text: '"effect": "4.0.0"',
     tool: "Edit",
   },
   {
