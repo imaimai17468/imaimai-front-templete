@@ -6,6 +6,7 @@ import { AvatarObject } from "@/shared/gateway/user/avatar";
 import {
   AvatarInvalidKey,
   AvatarNotFound,
+  AvatarReadFailed,
   AvatarReader,
   AvatarUnauthorized,
 } from "@/shared/gateway/user/avatar/read";
@@ -44,15 +45,20 @@ const errorCases = [
   { error: "Unauthorized", failure: new AvatarUnauthorized(), status: 401 },
   { error: "Invalid key", failure: new AvatarInvalidKey(), status: 400 },
   { error: "Not found", failure: new AvatarNotFound(), status: 404 },
+  {
+    error: "Failed to read avatar",
+    failure: new AvatarReadFailed(),
+    status: 500,
+  },
 ] satisfies {
   error: string;
-  failure: AvatarInvalidKey | AvatarNotFound | AvatarUnauthorized;
+  failure: Effect.Error<ReturnType<AvatarReader["Service"]["read"]>>;
   status: number;
 }[];
 
 describe("GET /api/avatars", () => {
   it.effect.each(errorCases)(
-    "should answer $status with $error when authorization rejects the request",
+    "should answer $status with $error when the authorization boundary fails with $failure._tag",
     ({ error, failure, status }) =>
       Effect.gen(function* answerTheRejection() {
         const { read, respond } = makeFakes();
@@ -126,7 +132,7 @@ describe("GET /api/avatars", () => {
   );
 
   it.effect(
-    "should propagate the defect when the authorization boundary fails",
+    "should propagate the defect when the authorization boundary dies",
     () =>
       Effect.gen(function* propagateTheDefect() {
         const { read, respond } = makeFakes();

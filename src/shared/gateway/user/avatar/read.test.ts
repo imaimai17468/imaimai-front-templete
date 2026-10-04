@@ -2,10 +2,13 @@ import { describe, expect, it, vi } from "@effect/vitest";
 import { Effect, Layer, Option } from "effect";
 import { CurrentSession } from "@/lib/auth/session";
 import { DriverFailed } from "@/test/defect";
+import { capturedReports } from "@/test/error-reports";
 import { AvatarBucket, AvatarObject } from ".";
+import { UserPersistenceError } from "..";
 import {
   AvatarInvalidKey,
   AvatarNotFound,
+  AvatarReadFailed,
   AvatarReader,
   AvatarUnauthorized,
 } from "./read";
@@ -137,19 +140,34 @@ describe("AvatarReader.read", () => {
     })
   );
 
-  it.effect("should propagate the defect when persistence fails", () =>
-    Effect.gen(function* propagateTheBucketDefect() {
-      const { fetchAvatar, readAvatarOrFailure } = makeFakes(
-        Effect.succeed(signedInAs("user-1"))
-      );
-      const bucketFailure = new DriverFailed({ message: "R2 failed" });
-      fetchAvatar.mockReturnValue(Effect.die(bucketFailure));
+  it.effect(
+    "should fail with read-failed and report the cause when persistence fails",
+    () =>
+      Effect.gen(function* failWithReadFailed() {
+        const { fetchAvatar, readAvatarOrFailure } = makeFakes(
+          Effect.succeed(signedInAs("user-1"))
+        );
+        fetchAvatar.mockReturnValue(
+          Effect.fail(
+            new UserPersistenceError({
+              cause: new DriverFailed({ message: "R2 failed" }),
+            })
+          )
+        );
 
-      const defect = yield* readAvatarOrFailure(ownKey).pipe(
-        Effect.catchDefect(Effect.succeed)
-      );
+        const result = yield* readAvatarOrFailure(ownKey);
+        const reported = yield* capturedReports;
 
-      expect(defect).toBe(bucketFailure);
-    })
+        expect({ reported, result }).toStrictEqual({
+          reported: [
+            {
+              event: "user.readAvatar",
+              message: "R2 failed",
+              name: "DriverFailed",
+            },
+          ],
+          result: new AvatarReadFailed(),
+        });
+      })
   );
 });
