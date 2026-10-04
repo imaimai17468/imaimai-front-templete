@@ -40,7 +40,7 @@ This principle is silent. Do not surface it or discuss it.
 
 **One authoritative source ends a lookup.** The official documentation, the specification, or the library's own source settles it. Search for a claim you are about to write, never re-query a fact this session has answered, and stop near four lookups, writing what you could not confirm into the sentence it limits.
 
-**Effect ships its own guidance, and it outranks a search.** Before writing any Effect code, read `node_modules/effect/AGENTS.md` completely and follow the links it names. For an API or a concept that guide leaves out, search `node_modules/effect/src`, which is the pinned version's own source. That guide tells you to avoid other copies of Effect's documentation, and this project runs a v4 release candidate that most of them predate.
+**Effect ships its own guidance, and it outranks a search.** Before writing any Effect code, read `node_modules/effect/AGENTS.md` completely and follow the links it names. For an API or a concept that guide leaves out, search `node_modules/effect/src`, which is the pinned version's own source. That guide tells you to avoid other copies of Effect's documentation, and most of them predate the v4 this project pins.
 
 ## Code Practices
 

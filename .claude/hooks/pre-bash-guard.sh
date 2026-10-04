@@ -58,8 +58,16 @@ esac
 # takes the deny. `dirname` would fork a process on a hook that runs before
 # every Bash call.
 HOOK_DIR=${0%/*}
+# Bash 3.2, the one macOS ships, exits under `set -e` when `source` fails even
+# inside `if !`, which ends the hook with status 1 and no output before the
+# deny below, and Claude Code passes a command on that status to the
+# permission flow unchecked by this guard.
+set +e
 # shellcheck source=.claude/hooks/pre-bash-guard-decision.sh
-if ! source "$HOOK_DIR/pre-bash-guard-decision.sh" 2>/dev/null; then
+source "$HOOK_DIR/pre-bash-guard-decision.sh" 2>/dev/null
+DECISION_FILE_STATUS=$?
+set -e
+if (( DECISION_FILE_STATUS != 0 )); then
   deny "PreToolUse(Bash): the guard could not load ${HOOK_DIR}/pre-bash-guard-decision.sh, so nothing checked this command. Put that file back beside pre-bash-guard.sh, or run the hook by a path that names its directory."
   exit 0
 fi
