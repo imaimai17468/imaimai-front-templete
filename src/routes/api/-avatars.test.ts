@@ -41,19 +41,19 @@ const avatarBody = () =>
   });
 
 const errorCases = [
-  [new AvatarUnauthorized(), 401, "Unauthorized"],
-  [new AvatarInvalidKey(), 400, "Invalid key"],
-  [new AvatarNotFound(), 404, "Not found"],
-] satisfies [
-  AvatarInvalidKey | AvatarNotFound | AvatarUnauthorized,
-  number,
-  string,
-][];
+  { error: "Unauthorized", failure: new AvatarUnauthorized(), status: 401 },
+  { error: "Invalid key", failure: new AvatarInvalidKey(), status: 400 },
+  { error: "Not found", failure: new AvatarNotFound(), status: 404 },
+] satisfies {
+  error: string;
+  failure: AvatarInvalidKey | AvatarNotFound | AvatarUnauthorized;
+  status: number;
+}[];
 
 describe(getAvatarResponse, () => {
   it.effect.each(errorCases)(
-    "should return the expected JSON error when authorization rejects the request",
-    ([failure, status, error]) =>
+    "should answer $status with $error when authorization rejects the request",
+    ({ error, failure, status }) =>
       Effect.gen(function* answerTheRejection() {
         const { read, respond } = makeFakes();
         read.mockReturnValue(Effect.fail(failure));
