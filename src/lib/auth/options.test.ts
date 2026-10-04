@@ -1,7 +1,7 @@
+import { describe, expect, it } from "@effect/vitest";
 import { betterAuth } from "better-auth";
 import { memoryAdapter } from "better-auth/adapters/memory";
 import { Effect } from "effect";
-import { describe, expect, it } from "vite-plus/test";
 import { authOptions } from "./options";
 
 const buildTestAuth = (isDevBuild: boolean) =>
@@ -72,27 +72,36 @@ describe(authOptions, () => {
       })
   );
 
-  it("should answer 429 to the fourth sign-in within ten seconds when cf-connecting-ip stays the same and x-forwarded-for changes", () =>
-    Effect.runPromise(
-      signInStatuses(
-        buildTestAuth(false),
-        ["198.51.100.1", "198.51.100.2", "198.51.100.3", "198.51.100.4"].map(
-          (xForwardedFor) => ({ cfConnectingIp: "203.0.113.7", xForwardedFor })
-        )
-      )
-    ).then((statuses) => {
-      expect(statuses).toStrictEqual([400, 400, 400, 429]);
-    }));
+  it.effect(
+    "should answer 429 to the fourth sign-in within ten seconds when cf-connecting-ip stays the same and x-forwarded-for changes",
+    () =>
+      Effect.gen(function* limitTheFourthSignIn() {
+        const statuses = yield* signInStatuses(
+          buildTestAuth(false),
+          ["198.51.100.1", "198.51.100.2", "198.51.100.3", "198.51.100.4"].map(
+            (xForwardedFor) => ({
+              cfConnectingIp: "203.0.113.7",
+              xForwardedFor,
+            })
+          )
+        );
 
-  it("should count a sign-in in its own bucket when it comes from another cf-connecting-ip", () =>
-    Effect.runPromise(
-      signInStatuses(buildTestAuth(false), [
-        { cfConnectingIp: "203.0.113.7", xForwardedFor: "198.51.100.1" },
-        { cfConnectingIp: "203.0.113.7", xForwardedFor: "198.51.100.1" },
-        { cfConnectingIp: "203.0.113.7", xForwardedFor: "198.51.100.1" },
-        { cfConnectingIp: "203.0.113.8", xForwardedFor: "198.51.100.1" },
-      ])
-    ).then((statuses) => {
-      expect(statuses).toStrictEqual([400, 400, 400, 400]);
-    }));
+        expect(statuses).toStrictEqual([400, 400, 400, 429]);
+      })
+  );
+
+  it.effect(
+    "should count a sign-in in its own bucket when it comes from another cf-connecting-ip",
+    () =>
+      Effect.gen(function* countEachAddressSeparately() {
+        const statuses = yield* signInStatuses(buildTestAuth(false), [
+          { cfConnectingIp: "203.0.113.7", xForwardedFor: "198.51.100.1" },
+          { cfConnectingIp: "203.0.113.7", xForwardedFor: "198.51.100.1" },
+          { cfConnectingIp: "203.0.113.7", xForwardedFor: "198.51.100.1" },
+          { cfConnectingIp: "203.0.113.8", xForwardedFor: "198.51.100.1" },
+        ]);
+
+        expect(statuses).toStrictEqual([400, 400, 400, 400]);
+      })
+  );
 });
