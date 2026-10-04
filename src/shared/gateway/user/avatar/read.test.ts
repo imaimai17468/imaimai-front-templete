@@ -1,6 +1,7 @@
+import { describe, expect, it, vi } from "@effect/vitest";
 import { Effect, Layer, Option } from "effect";
-import { describe, expect, it, vi } from "vite-plus/test";
 import { CurrentSession } from "@/lib/auth/session";
+import { DriverFailed } from "@/test/defect";
 import { AvatarBucket, AvatarObject } from ".";
 import {
   AvatarInvalidKey,
@@ -29,14 +30,12 @@ const makeFakes = (read: CurrentSession["Service"]["read"]) => {
   return {
     fetchAvatar,
     readAvatarOrFailure: (key: Option.Option<string>) =>
-      Effect.runPromise(
-        Effect.gen(function* callRead() {
-          const reader = yield* AvatarReader;
-          return yield* reader.read(key);
-        }).pipe(
-          Effect.provide(layer),
-          Effect.catch((error) => Effect.succeed(error))
-        )
+      Effect.gen(function* callRead() {
+        const reader = yield* AvatarReader;
+        return yield* reader.read(key);
+      }).pipe(
+        Effect.provide(layer),
+        Effect.catch((error) => Effect.succeed(error))
       ),
   };
 };
@@ -53,85 +52,104 @@ const rejectedKeyCases = [
 ] satisfies [string, Option.Option<string>][];
 
 describe("AvatarReader.read", () => {
-  it("should reject without reading persistence when the request is anonymous", () => {
-    const { fetchAvatar, readAvatarOrFailure } = makeFakes(
-      Effect.succeed(Option.none())
-    );
+  it.effect(
+    "should reject without reading persistence when the request is anonymous",
+    () =>
+      Effect.gen(function* rejectAnAnonymousRequest() {
+        const { fetchAvatar, readAvatarOrFailure } = makeFakes(
+          Effect.succeed(Option.none())
+        );
 
-    return readAvatarOrFailure(ownKey).then((result) => {
-      expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
-        fetchCalls: [],
-        result: new AvatarUnauthorized(),
-      });
-    });
-  });
+        const result = yield* readAvatarOrFailure(ownKey);
 
-  it.each(rejectedKeyCases)(
+        expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
+          fetchCalls: [],
+          result: new AvatarUnauthorized(),
+        });
+      })
+  );
+
+  it.effect.each(rejectedKeyCases)(
     "should reject without reading persistence when %s",
-    (_label, key) => {
-      const { fetchAvatar, readAvatarOrFailure } = makeFakes(
-        Effect.succeed(signedInAs("user-1"))
-      );
+    ([_label, key]) =>
+      Effect.gen(function* rejectAnInvalidKey() {
+        const { fetchAvatar, readAvatarOrFailure } = makeFakes(
+          Effect.succeed(signedInAs("user-1"))
+        );
 
-      return readAvatarOrFailure(key).then((result) => {
+        const result = yield* readAvatarOrFailure(key);
+
         expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
           fetchCalls: [],
           result: new AvatarInvalidKey(),
         });
-      });
-    }
+      })
   );
 
-  it("should fail with not-found when the owned object is absent", () => {
-    const { fetchAvatar, readAvatarOrFailure } = makeFakes(
-      Effect.succeed(signedInAs("user-1"))
-    );
-    fetchAvatar.mockReturnValue(Effect.succeed(Option.none()));
+  it.effect("should fail with not-found when the owned object is absent", () =>
+    Effect.gen(function* failWithNotFound() {
+      const { fetchAvatar, readAvatarOrFailure } = makeFakes(
+        Effect.succeed(signedInAs("user-1"))
+      );
+      fetchAvatar.mockReturnValue(Effect.succeed(Option.none()));
 
-    return readAvatarOrFailure(ownKey).then((result) => {
+      const result = yield* readAvatarOrFailure(ownKey);
+
       expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
         fetchCalls: [["user-1/avatar.png"]],
         result: new AvatarNotFound(),
       });
-    });
-  });
+    })
+  );
 
-  it("should return the gateway object when the owned object exists", () => {
-    const { fetchAvatar, readAvatarOrFailure } = makeFakes(
-      Effect.succeed(signedInAs("user-1"))
-    );
-    const avatar = new AvatarObject(new ReadableStream(), "image/png");
-    fetchAvatar.mockReturnValue(Effect.succeed(Option.some(avatar)));
+  it.effect(
+    "should return the gateway object when the owned object exists",
+    () =>
+      Effect.gen(function* returnTheGatewayObject() {
+        const { fetchAvatar, readAvatarOrFailure } = makeFakes(
+          Effect.succeed(signedInAs("user-1"))
+        );
+        const avatar = new AvatarObject(new ReadableStream(), "image/png");
+        fetchAvatar.mockReturnValue(Effect.succeed(Option.some(avatar)));
 
-    return readAvatarOrFailure(ownKey).then((result) => {
-      expect({
-        fetchCalls: fetchAvatar.mock.calls,
-        sameObject: result === avatar,
-      }).toStrictEqual({
-        fetchCalls: [["user-1/avatar.png"]],
-        sameObject: true,
-      });
-    });
-  });
+        const result = yield* readAvatarOrFailure(ownKey);
 
-  it("should propagate the defect when session resolution fails", () => {
-    const { readAvatarOrFailure } = makeFakes(
-      Effect.die(new Error("session failed"))
-    );
+        expect({
+          fetchCalls: fetchAvatar.mock.calls,
+          sameObject: result === avatar,
+        }).toStrictEqual({
+          fetchCalls: [["user-1/avatar.png"]],
+          sameObject: true,
+        });
+      })
+  );
 
-    const result = readAvatarOrFailure(ownKey);
+  it.effect("should propagate the defect when session resolution fails", () =>
+    Effect.gen(function* propagateTheSessionDefect() {
+      const sessionFailure = new DriverFailed({ message: "session failed" });
+      const { readAvatarOrFailure } = makeFakes(Effect.die(sessionFailure));
 
-    return expect(result).rejects.toThrow("session failed");
-  });
+      const defect = yield* readAvatarOrFailure(ownKey).pipe(
+        Effect.catchDefect(Effect.succeed)
+      );
 
-  it("should propagate the defect when persistence fails", () => {
-    const { fetchAvatar, readAvatarOrFailure } = makeFakes(
-      Effect.succeed(signedInAs("user-1"))
-    );
-    fetchAvatar.mockReturnValue(Effect.die(new Error("R2 failed")));
+      expect(defect).toBe(sessionFailure);
+    })
+  );
 
-    const result = readAvatarOrFailure(ownKey);
+  it.effect("should propagate the defect when persistence fails", () =>
+    Effect.gen(function* propagateTheBucketDefect() {
+      const { fetchAvatar, readAvatarOrFailure } = makeFakes(
+        Effect.succeed(signedInAs("user-1"))
+      );
+      const bucketFailure = new DriverFailed({ message: "R2 failed" });
+      fetchAvatar.mockReturnValue(Effect.die(bucketFailure));
 
-    return expect(result).rejects.toThrow("R2 failed");
-  });
+      const defect = yield* readAvatarOrFailure(ownKey).pipe(
+        Effect.catchDefect(Effect.succeed)
+      );
+
+      expect(defect).toBe(bucketFailure);
+    })
+  );
 });

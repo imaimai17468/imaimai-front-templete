@@ -1,9 +1,10 @@
+import { describe, expect, it, vi } from "@effect/vitest";
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import { DateTime, Effect, Layer, Option } from "effect";
-import { describe, expect, it, vi } from "vite-plus/test";
 import { CurrentSession } from "@/lib/auth/session";
 import { avatarUrlForKey } from "@/lib/avatar-url";
 import { ABSENT_FIELD } from "@/test/absent-field";
+import { DriverFailed } from "@/test/defect";
 import { UserPersistenceError } from ".";
 import { makeRunHandler } from "../runtime";
 import { CurrentUserReader, readCurrentUser, UserProfiles } from "./read";
@@ -31,8 +32,7 @@ const makeFakes = (read: CurrentSession["Service"]["read"]) => {
   return {
     answer: () => makeRunHandler(layer)(readCurrentUser),
     findProfile,
-    readCurrentUser: () =>
-      Effect.runPromise(readCurrentUser.pipe(Effect.provide(layer))),
+    readCurrentUser: () => readCurrentUser.pipe(Effect.provide(layer)),
   };
 };
 
@@ -75,115 +75,142 @@ const encodedRow = {
 };
 
 describe("CurrentUserReader.read", () => {
-  it("should return None without reading the profile when the request is anonymous", () => {
-    const { findProfile, readCurrentUser: read } = makeFakes(
-      Effect.succeed(Option.none())
-    );
+  it.effect(
+    "should return None without reading the profile when the request is anonymous",
+    () =>
+      Effect.gen(function* returnNoneWithoutReadingTheProfile() {
+        const { findProfile, readCurrentUser: read } = makeFakes(
+          Effect.succeed(Option.none())
+        );
 
-    return read().then((result) => {
-      expect({ findCalls: findProfile.mock.calls, result }).toStrictEqual({
-        findCalls: [],
-        result: Option.none(),
-      });
-    });
-  });
+        const result = yield* read();
 
-  it("should look the row up by the server-derived identity when the request is authenticated", () => {
-    const { findProfile, readCurrentUser: read } = makeFakes(
-      Effect.succeed(authenticatedCaller)
-    );
-    findProfile.mockReturnValue(Effect.succeed(Option.some(profileRow())));
+        expect({ findCalls: findProfile.mock.calls, result }).toStrictEqual({
+          findCalls: [],
+          result: Option.none(),
+        });
+      })
+  );
 
-    return read().then(() => {
-      expect(findProfile.mock.calls).toStrictEqual([["user-1"]]);
-    });
-  });
+  it.effect(
+    "should look the row up by the server-derived identity when the request is authenticated",
+    () =>
+      Effect.gen(function* lookTheRowUpByTheServerDerivedIdentity() {
+        const { findProfile, readCurrentUser: read } = makeFakes(
+          Effect.succeed(authenticatedCaller)
+        );
+        findProfile.mockReturnValue(Effect.succeed(Option.some(profileRow())));
 
-  it("should return None when the caller has no profile row", () => {
-    const { findProfile, readCurrentUser: read } = makeFakes(
-      Effect.succeed(authenticatedCaller)
-    );
-    findProfile.mockReturnValue(Effect.succeed(Option.none()));
+        yield* read();
 
-    return read().then((result) => {
+        expect(findProfile.mock.calls).toStrictEqual([["user-1"]]);
+      })
+  );
+
+  it.effect("should return None when the caller has no profile row", () =>
+    Effect.gen(function* returnNone() {
+      const { findProfile, readCurrentUser: read } = makeFakes(
+        Effect.succeed(authenticatedCaller)
+      );
+      findProfile.mockReturnValue(Effect.succeed(Option.none()));
+
+      const result = yield* read();
+
       expect(result).toStrictEqual(Option.none());
-    });
-  });
+    })
+  );
 
-  it("should encode the row with the session's email when a profile row exists", () => {
-    const { findProfile, readCurrentUser: read } = makeFakes(
-      Effect.succeed(authenticatedCaller)
-    );
-    findProfile.mockReturnValue(Effect.succeed(Option.some(profileRow())));
+  it.effect(
+    "should encode the row with the session's email when a profile row exists",
+    () =>
+      Effect.gen(function* encodeTheRowWithTheSessionEmail() {
+        const { findProfile, readCurrentUser: read } = makeFakes(
+          Effect.succeed(authenticatedCaller)
+        );
+        findProfile.mockReturnValue(Effect.succeed(Option.some(profileRow())));
 
-    return read().then((result) => {
-      expect(result).toStrictEqual(Option.some(encodedRow));
-    });
-  });
+        const result = yield* read();
 
-  it("should encode an absent name as null when the row holds none", () => {
-    const { findProfile, readCurrentUser: read } = makeFakes(
-      Effect.succeed(authenticatedCaller)
-    );
-    findProfile.mockReturnValue(
-      Effect.succeed(Option.some(profileRow({ name: Option.none() })))
-    );
+        expect(result).toStrictEqual(Option.some(encodedRow));
+      })
+  );
 
-    return read().then((result) => {
-      expect(result).toStrictEqual(
-        Option.some({ ...encodedRow, name: ABSENT_FIELD })
-      );
-    });
-  });
+  it.effect(
+    "should encode an absent name as null when the row holds none",
+    () =>
+      Effect.gen(function* encodeAnAbsentNameAsNull() {
+        const { findProfile, readCurrentUser: read } = makeFakes(
+          Effect.succeed(authenticatedCaller)
+        );
+        findProfile.mockReturnValue(
+          Effect.succeed(Option.some(profileRow({ name: Option.none() })))
+        );
 
-  it("should serve the uploaded avatar when the row holds a key alongside a provider image", () => {
-    const { findProfile, readCurrentUser: read } = makeFakes(
-      Effect.succeed(authenticatedCaller)
-    );
-    findProfile.mockReturnValue(
-      Effect.succeed(
-        Option.some(
-          profileRow({
-            avatarKey: Option.some(AVATAR_KEY),
-            image: Option.some(PROVIDER_IMAGE),
-          })
-        )
-      )
-    );
+        const result = yield* read();
 
-    return read().then((result) => {
-      expect(result).toStrictEqual(
-        Option.some({ ...encodedRow, avatarUrl: avatarUrlForKey(AVATAR_KEY) })
-      );
-    });
-  });
+        expect(result).toStrictEqual(
+          Option.some({ ...encodedRow, name: ABSENT_FIELD })
+        );
+      })
+  );
 
-  it("should fall back to the provider's image when the row holds no key", () => {
-    const { findProfile, readCurrentUser: read } = makeFakes(
-      Effect.succeed(authenticatedCaller)
-    );
-    findProfile.mockReturnValue(
-      Effect.succeed(
-        Option.some(profileRow({ image: Option.some(PROVIDER_IMAGE) }))
-      )
-    );
+  it.effect(
+    "should serve the uploaded avatar when the row holds a key alongside a provider image",
+    () =>
+      Effect.gen(function* serveTheUploadedAvatar() {
+        const { findProfile, readCurrentUser: read } = makeFakes(
+          Effect.succeed(authenticatedCaller)
+        );
+        findProfile.mockReturnValue(
+          Effect.succeed(
+            Option.some(
+              profileRow({
+                avatarKey: Option.some(AVATAR_KEY),
+                image: Option.some(PROVIDER_IMAGE),
+              })
+            )
+          )
+        );
 
-    return read().then((result) => {
-      expect(result).toStrictEqual(
-        Option.some({ ...encodedRow, avatarUrl: PROVIDER_IMAGE })
-      );
-    });
-  });
+        const result = yield* read();
 
-  it("should propagate the defect when session resolution fails", () => {
-    const { readCurrentUser: read } = makeFakes(
-      Effect.die(new Error("session failed"))
-    );
+        expect(result).toStrictEqual(
+          Option.some({ ...encodedRow, avatarUrl: avatarUrlForKey(AVATAR_KEY) })
+        );
+      })
+  );
 
-    const result = read();
+  it.effect(
+    "should fall back to the provider's image when the row holds no key",
+    () =>
+      Effect.gen(function* fallBackToTheProviderImage() {
+        const { findProfile, readCurrentUser: read } = makeFakes(
+          Effect.succeed(authenticatedCaller)
+        );
+        findProfile.mockReturnValue(
+          Effect.succeed(
+            Option.some(profileRow({ image: Option.some(PROVIDER_IMAGE) }))
+          )
+        );
 
-    return expect(result).rejects.toThrow("session failed");
-  });
+        const result = yield* read();
+
+        expect(result).toStrictEqual(
+          Option.some({ ...encodedRow, avatarUrl: PROVIDER_IMAGE })
+        );
+      })
+  );
+
+  it.effect("should propagate the defect when session resolution fails", () =>
+    Effect.gen(function* propagateTheDefect() {
+      const sessionFailure = new DriverFailed({ message: "session failed" });
+      const { readCurrentUser: read } = makeFakes(Effect.die(sessionFailure));
+
+      const defect = yield* read().pipe(Effect.catchDefect(Effect.succeed));
+
+      expect(defect).toBe(sessionFailure);
+    })
+  );
 
   it("should answer with the fixed message rather than the query when the profile read fails", () => {
     vi.spyOn(console, "error").mockImplementation((): void => {});
