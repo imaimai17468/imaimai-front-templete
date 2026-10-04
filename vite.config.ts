@@ -381,15 +381,23 @@ export default defineConfig({
         },
       },
       {
-        // The rule asks for `vi.mock(import("./x"), …)`, whose argument
-        // `effect/noDynamicImports` reports as an inline dynamic import. The
-        // Effect rule is the one this project keeps, so the path stays a
-        // string. The Effect rules are scoped to `src/**` above, so the
-        // exemption stops there too. `ultracite/oxlint/vitest` sets this one
-        // inside an override of its own, which the top-level `rules` above
-        // cannot reach.
+        // prefer-import-in-mock asks for `vi.mock(import("./x"), …)`, whose
+        // argument `effect/noDynamicImports` reports as an inline dynamic
+        // import. The Effect rule is the one this project keeps, so the path
+        // stays a string. The Effect rules are scoped to `src/**` above, so
+        // the exemption stops there too. no-standalone-expect does not know
+        // `@effect/vitest`'s `it.effect` as a test block and reads each
+        // `expect` in one as standing outside a test. `ultracite/oxlint/vitest`
+        // sets both rules inside an override of its own, which the top-level
+        // `rules` above cannot reach.
         files: ["src/**/*.test.ts", "src/**/*.test.tsx"],
-        rules: { "vitest/prefer-import-in-mock": "off" },
+        rules: {
+          "vitest/no-standalone-expect": [
+            "error",
+            { additionalTestBlockFunctions: ["it.effect", "it.effect.each"] },
+          ],
+          "vitest/prefer-import-in-mock": "off",
+        },
       },
       {
         files: ["src/routes/index/-components/code-block.tsx"],

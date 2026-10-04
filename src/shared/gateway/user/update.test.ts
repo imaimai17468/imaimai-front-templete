@@ -1,10 +1,9 @@
+import { describe, expect, it, vi } from "@effect/vitest";
 import { DateTime, Effect, Layer, Option } from "effect";
-import { TestClock } from "effect/testing";
-import { describe, expect, it, vi } from "vite-plus/test";
-import type { ErrorLogRecord } from "@/lib/report-error";
 import type { UpdateUser, UserWithEmail } from "@/shared/entities/user";
 import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";
+import { capturedReports } from "@/test/error-reports";
 import { UserPersistenceError } from ".";
 import {
   AvatarTypeUnsupported,
@@ -20,22 +19,6 @@ import {
 } from "./update";
 
 const TEST_CLOCK_INSTANT = "1970-01-01T00:00:00.000Z";
-
-// toStrictEqual で丸ごと比較するために、マシンの絶対パスと行番号を
-// 持つ stack を外して ErrorLogRecord の残り 3 フィールドを取り出す。
-type CapturedReport = Pick<ErrorLogRecord, "event" | "message" | "name">;
-
-const captureErrorReports = (): CapturedReport[] => {
-  const reported: CapturedReport[] = [];
-  vi.spyOn(console, "error").mockImplementation((payload: ErrorLogRecord) => {
-    reported.push({
-      event: payload.event,
-      message: payload.message,
-      name: payload.name,
-    });
-  });
-  return reported;
-};
 
 const pngFile = (byteLength: number) =>
   new File([new Uint8Array(byteLength)], "a.png", { type: "image/png" });
@@ -75,68 +58,69 @@ const makeFakes = (read: CurrentUserReader["Service"]["read"]) => {
     replaceAvatar,
     setName,
     updateProfile: (data: UpdateUser) =>
-      Effect.runPromise(
-        updateProfileResult(data).pipe(
-          Effect.provide(layer),
-          Effect.provide(TestClock.layer())
-        )
-      ),
+      updateProfileResult(data).pipe(Effect.provide(layer)),
     uploadAvatar: (file: File) =>
-      Effect.runPromise(
-        uploadAvatarResult(file).pipe(
-          Effect.provide(layer),
-          Effect.provide(TestClock.layer())
-        )
-      ),
+      uploadAvatarResult(file).pipe(Effect.provide(layer)),
   };
 };
 
 describe(updateProfileResult, () => {
-  it("should reject without writing persistence when the request is anonymous", () => {
-    const { setName, updateProfile } = makeFakes(Effect.succeed(Option.none()));
+  it.effect(
+    "should reject without writing persistence when the request is anonymous",
+    () =>
+      Effect.gen(function* rejectWithoutWritingPersistence() {
+        const { setName, updateProfile } = makeFakes(
+          Effect.succeed(Option.none())
+        );
 
-    return updateProfile({ name: "Updated User" }).then((result) => {
-      expect({ result, updateCalls: setName.mock.calls }).toStrictEqual({
-        result: { message: "Not authenticated", status: "failed" },
-        updateCalls: [],
-      });
-    });
-  });
+        const result = yield* updateProfile({ name: "Updated User" });
 
-  it("should pass the server-derived identity when the request is authenticated", () => {
-    const { setName, updateProfile } = makeFakes(
-      Effect.succeed(Option.some(authenticatedUser))
-    );
-    const data = { name: "Updated User" };
+        expect({ result, updateCalls: setName.mock.calls }).toStrictEqual({
+          result: { message: "Not authenticated", status: "failed" },
+          updateCalls: [],
+        });
+      })
+  );
 
-    return updateProfile(data).then((result) => {
-      expect({ result, updateCalls: setName.mock.calls }).toStrictEqual({
-        result: { status: "updated" },
-        updateCalls: [
-          [
-            "user-1",
-            Option.some("Updated User"),
-            DateTime.makeUnsafe(TEST_CLOCK_INSTANT),
+  it.effect(
+    "should pass the server-derived identity when the request is authenticated",
+    () =>
+      Effect.gen(function* passTheServerDerivedIdentity() {
+        const { setName, updateProfile } = makeFakes(
+          Effect.succeed(Option.some(authenticatedUser))
+        );
+
+        const result = yield* updateProfile({ name: "Updated User" });
+
+        expect({ result, updateCalls: setName.mock.calls }).toStrictEqual({
+          result: { status: "updated" },
+          updateCalls: [
+            [
+              "user-1",
+              Option.some("Updated User"),
+              DateTime.makeUnsafe(TEST_CLOCK_INSTANT),
+            ],
           ],
-        ],
-      });
-    });
-  });
+        });
+      })
+  );
 
-  it("should report the write failure when the name update fails", () => {
-    const { setName, updateProfile } = makeFakes(
-      Effect.succeed(Option.some(authenticatedUser))
-    );
-    setName.mockReturnValue(
-      Effect.fail(
-        new UserPersistenceError({
-          cause: new DriverFailed({ message: "D1 failed" }),
-        })
-      )
-    );
-    const reported = captureErrorReports();
+  it.effect("should report the write failure when the name update fails", () =>
+    Effect.gen(function* reportTheFailedNameWrite() {
+      const { setName, updateProfile } = makeFakes(
+        Effect.succeed(Option.some(authenticatedUser))
+      );
+      setName.mockReturnValue(
+        Effect.fail(
+          new UserPersistenceError({
+            cause: new DriverFailed({ message: "D1 failed" }),
+          })
+        )
+      );
 
-    return updateProfile({ name: "Updated User" }).then((result) => {
+      const result = yield* updateProfile({ name: "Updated User" });
+      const reported = yield* capturedReports;
+
       expect({ reported, result }).toStrictEqual({
         reported: [
           {
@@ -150,128 +134,154 @@ describe(updateProfileResult, () => {
           status: "failed",
         },
       });
-    });
-  });
+    })
+  );
 
-  it("should report the write failure when the name update touches zero rows", () => {
-    const { setName, updateProfile } = makeFakes(
-      Effect.succeed(Option.some(authenticatedUser))
-    );
-    setName.mockReturnValue(Effect.succeed(0));
-    const reported = captureErrorReports();
+  it.effect(
+    "should report the write failure when the name update touches zero rows",
+    () =>
+      Effect.gen(function* reportTheZeroRowNameWrite() {
+        const { setName, updateProfile } = makeFakes(
+          Effect.succeed(Option.some(authenticatedUser))
+        );
+        setName.mockReturnValue(Effect.succeed(0));
 
-    return updateProfile({ name: "Updated User" }).then((result) => {
-      expect({ reported, result }).toStrictEqual({
-        reported: [
-          {
-            event: "user.updateName",
-            message: "expected 1 row, got 0",
-            name: "UnexpectedRowCount",
+        const result = yield* updateProfile({ name: "Updated User" });
+        const reported = yield* capturedReports;
+
+        expect({ reported, result }).toStrictEqual({
+          reported: [
+            {
+              event: "user.updateName",
+              message: "expected 1 row, got 0",
+              name: "UnexpectedRowCount",
+            },
+          ],
+          result: {
+            message: "Failed to update profile",
+            status: "failed",
           },
-        ],
-        result: {
-          message: "Failed to update profile",
-          status: "failed",
-        },
-      });
-    });
-  });
+        });
+      })
+  );
 
-  it("should propagate the cause as a defect when the identity read fails", () => {
-    const { updateProfile } = makeFakes(
-      Effect.fail(
-        new UserPersistenceError({
-          cause: new DriverFailed({ message: "D1 failed" }),
-        })
-      )
-    );
+  it.effect(
+    "should propagate the cause as a defect when the identity read fails",
+    () =>
+      Effect.gen(function* propagateTheCauseAsADefect() {
+        const driverFailure = new DriverFailed({ message: "D1 failed" });
+        const { updateProfile } = makeFakes(
+          Effect.fail(new UserPersistenceError({ cause: driverFailure }))
+        );
 
-    const result = updateProfile({ name: "Updated User" });
+        const defect = yield* updateProfile({ name: "Updated User" }).pipe(
+          Effect.catchDefect(Effect.succeed)
+        );
 
-    return expect(result).rejects.toThrow("D1 failed");
-  });
+        expect(defect).toBe(driverFailure);
+      })
+  );
 });
 
 describe(uploadAvatarResult, () => {
-  it("should reject without writing persistence when the request is anonymous", () => {
-    const { replaceAvatar, uploadAvatar } = makeFakes(
-      Effect.succeed(Option.none())
-    );
+  it.effect(
+    "should reject without writing persistence when the request is anonymous",
+    () =>
+      Effect.gen(function* rejectWithoutWritingPersistence() {
+        const { replaceAvatar, uploadAvatar } = makeFakes(
+          Effect.succeed(Option.none())
+        );
 
-    return uploadAvatar(pngFile(1)).then((result) => {
-      expect({
-        result,
-        updateCalls: replaceAvatar.mock.calls,
-      }).toStrictEqual({
-        result: {
-          message: "Not authenticated",
+        const result = yield* uploadAvatar(pngFile(1));
+
+        expect({
+          result,
+          updateCalls: replaceAvatar.mock.calls,
+        }).toStrictEqual({
+          result: {
+            message: "Not authenticated",
+            status: "failed",
+          },
+          updateCalls: [],
+        });
+      })
+  );
+
+  it.effect(
+    "should pass the server-derived identity when the request is authenticated",
+    () =>
+      Effect.gen(function* passTheServerDerivedIdentity() {
+        const { replaceAvatar, uploadAvatar } = makeFakes(
+          Effect.succeed(Option.some(authenticatedUser))
+        );
+        const file = pngFile(1);
+
+        const result = yield* uploadAvatar(file);
+
+        expect({
+          result,
+          updateCalls: replaceAvatar.mock.calls,
+        }).toStrictEqual({
+          result: {
+            avatarUrl: "/api/avatars?key=new",
+            cleanup: "complete",
+            status: "uploaded",
+          },
+          updateCalls: [["user-1", file]],
+        });
+      })
+  );
+
+  it.effect(
+    "should report the rejected type when the gateway refuses the image",
+    () =>
+      Effect.gen(function* reportTheRejectedType() {
+        const { replaceAvatar, uploadAvatar } = makeFakes(
+          Effect.succeed(Option.some(authenticatedUser))
+        );
+        replaceAvatar.mockReturnValue(Effect.fail(new AvatarTypeUnsupported()));
+
+        const result = yield* uploadAvatar(pngFile(1));
+
+        expect(result).toStrictEqual({
+          message: "Unsupported image type",
           status: "failed",
-        },
-        updateCalls: [],
-      });
-    });
-  });
+        });
+      })
+  );
 
-  it("should pass the server-derived identity when the request is authenticated", () => {
-    const { replaceAvatar, uploadAvatar } = makeFakes(
-      Effect.succeed(Option.some(authenticatedUser))
-    );
-    const file = pngFile(1);
+  it.effect(
+    "should report a failed upload when the gateway could not store the object",
+    () =>
+      Effect.gen(function* reportAFailedUpload() {
+        const { replaceAvatar, uploadAvatar } = makeFakes(
+          Effect.succeed(Option.some(authenticatedUser))
+        );
+        replaceAvatar.mockReturnValue(Effect.fail(new AvatarUploadFailed()));
 
-    return uploadAvatar(file).then((result) => {
-      expect({
-        result,
-        updateCalls: replaceAvatar.mock.calls,
-      }).toStrictEqual({
-        result: {
-          avatarUrl: "/api/avatars?key=new",
-          cleanup: "complete",
-          status: "uploaded",
-        },
-        updateCalls: [["user-1", file]],
-      });
-    });
-  });
+        const result = yield* uploadAvatar(pngFile(1));
 
-  it("should report the rejected type when the gateway refuses the image", () => {
-    const { replaceAvatar, uploadAvatar } = makeFakes(
-      Effect.succeed(Option.some(authenticatedUser))
-    );
-    replaceAvatar.mockReturnValue(Effect.fail(new AvatarTypeUnsupported()));
+        expect(result).toStrictEqual({
+          message: "Failed to upload avatar",
+          status: "failed",
+        });
+      })
+  );
 
-    return uploadAvatar(pngFile(1)).then((result) => {
-      expect(result).toStrictEqual({
-        message: "Unsupported image type",
-        status: "failed",
-      });
-    });
-  });
+  it.effect(
+    "should propagate the cause as a defect when the identity read fails",
+    () =>
+      Effect.gen(function* propagateTheCauseAsADefect() {
+        const driverFailure = new DriverFailed({ message: "D1 failed" });
+        const { uploadAvatar } = makeFakes(
+          Effect.fail(new UserPersistenceError({ cause: driverFailure }))
+        );
 
-  it("should report a failed upload when the gateway could not store the object", () => {
-    const { replaceAvatar, uploadAvatar } = makeFakes(
-      Effect.succeed(Option.some(authenticatedUser))
-    );
-    replaceAvatar.mockReturnValue(Effect.fail(new AvatarUploadFailed()));
+        const defect = yield* uploadAvatar(pngFile(1)).pipe(
+          Effect.catchDefect(Effect.succeed)
+        );
 
-    return uploadAvatar(pngFile(1)).then((result) => {
-      expect(result).toStrictEqual({
-        message: "Failed to upload avatar",
-        status: "failed",
-      });
-    });
-  });
-
-  it("should propagate the cause as a defect when the identity read fails", () => {
-    const { uploadAvatar } = makeFakes(
-      Effect.fail(
-        new UserPersistenceError({
-          cause: new DriverFailed({ message: "D1 failed" }),
-        })
-      )
-    );
-
-    const result = uploadAvatar(pngFile(1));
-
-    return expect(result).rejects.toThrow("D1 failed");
-  });
+        expect(defect).toBe(driverFailure);
+      })
+  );
 });
