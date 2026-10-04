@@ -62,7 +62,9 @@ export const avatarObjectFrom = (
 export class AvatarBucket extends Context.Service<
   AvatarBucket,
   {
-    readonly get: (key: string) => Effect.Effect<Option.Option<AvatarObject>>;
+    readonly get: (
+      key: string
+    ) => Effect.Effect<Option.Option<AvatarObject>, UserPersistenceError>;
     readonly put: (
       key: string,
       file: File | ArrayBuffer,
@@ -75,7 +77,9 @@ export class AvatarBucket extends Context.Service<
     AvatarBucket,
     AvatarBucket.of({
       get: (key) =>
-        Effect.promise(() => getCloudflareEnv().AVATARS_BUCKET.get(key)).pipe(
+        persistenceEffect(() =>
+          getCloudflareEnv().AVATARS_BUCKET.get(key)
+        ).pipe(
           Effect.map((stored) =>
             Option.fromNullOr(stored).pipe(
               Option.flatMap(({ body }) => avatarObjectFrom(key, body))

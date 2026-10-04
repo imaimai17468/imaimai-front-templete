@@ -4,6 +4,7 @@ import { CurrentSession } from "@/lib/auth/session";
 import { isOwnAvatarKey } from "@/lib/storage/avatar-validation";
 import { AvatarBucket } from ".";
 import type { AvatarObject } from ".";
+import { orNone } from "..";
 import { makeRunHandler } from "../../runtime";
 
 export class AvatarUnauthorized extends Schema.TaggedError<AvatarUnauthorized>()(
@@ -22,6 +23,15 @@ export class AvatarNotFound extends Schema.TaggedError<AvatarNotFound>()(
 ) {}
 
 /**
+ * A bucket read that failed for a key the caller owns. It carries no fields,
+ * so nothing of the bucket's error reaches whoever receives it.
+ */
+export class AvatarReadFailed extends Schema.TaggedError<AvatarReadFailed>()(
+  "AvatarReadFailed",
+  {}
+) {}
+
+/**
  * The authorization boundary between an HTTP handler and the avatar bucket.
  *
  * Its dependencies are services rather than arguments, so a test provides a
@@ -35,7 +45,7 @@ export class AvatarReader extends Context.Service<
       key: Option.Option<string>
     ) => Effect.Effect<
       AvatarObject,
-      AvatarInvalidKey | AvatarNotFound | AvatarUnauthorized
+      AvatarInvalidKey | AvatarNotFound | AvatarReadFailed | AvatarUnauthorized
     >;
   }
 >()("app/gateways/user/avatar/AvatarReader") {
@@ -60,7 +70,14 @@ export class AvatarReader extends Context.Service<
         if (Option.isNone(ownKey)) {
           return yield* new AvatarInvalidKey();
         }
-        const avatar = yield* bucket.get(ownKey.value);
+        const answer = yield* orNone(
+          "user.readAvatar",
+          bucket.get(ownKey.value)
+        );
+        if (Option.isNone(answer)) {
+          return yield* new AvatarReadFailed();
+        }
+        const avatar = answer.value;
         if (Option.isNone(avatar)) {
           return yield* new AvatarNotFound();
         }

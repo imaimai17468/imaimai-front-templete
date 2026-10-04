@@ -23,6 +23,8 @@ export const getAvatarResponse: (
   Effect.catchTags({
     AvatarInvalidKey: () => Effect.succeed(jsonError(400, "Invalid key")),
     AvatarNotFound: () => Effect.succeed(jsonError(404, "Not found")),
+    AvatarReadFailed: () =>
+      Effect.succeed(jsonError(500, "Failed to read avatar")),
     AvatarUnauthorized: () => Effect.succeed(jsonError(401, "Unauthorized")),
   })
 );
