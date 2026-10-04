@@ -1,6 +1,7 @@
+import { describe, expect, it } from "@effect/vitest";
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import { Effect, Option } from "effect";
-import { describe, expect, it, vi } from "vite-plus/test";
+import { TestConsole } from "effect/testing";
 import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";
 import { errorReport, reportError } from "./report-error";
@@ -94,42 +95,40 @@ describe("report-error", () => {
   });
 
   describe(reportError, () => {
-    it("should write a plain record rather than the Option report when run", () => {
-      const errorSpy = vi
-        .spyOn(console, "error")
-        .mockImplementation((): void => {});
+    it.effect(
+      "should write a plain record rather than the Option report when run",
+      () =>
+        Effect.gen(function* writePlainRecord() {
+          yield* reportError("user.updateName", failureWithStack());
+          const written = yield* TestConsole.errorLines;
 
-      Effect.runSync(reportError("user.updateName", failureWithStack()));
+          expect(written).toStrictEqual([
+            {
+              event: "user.updateName",
+              message: "D1 failed",
+              name: "DriverFailed",
+              stack: STACK,
+            },
+          ]);
+        })
+    );
 
-      expect(errorSpy.mock.calls).toStrictEqual([
-        [
-          {
-            event: "user.updateName",
-            message: "D1 failed",
-            name: "DriverFailed",
-            stack: STACK,
-          },
-        ],
-      ]);
-    });
+    it.effect(
+      "should write an absent field rather than a None when the Error has no stack",
+      () =>
+        Effect.gen(function* writeAbsentStack() {
+          yield* reportError("user.updateName", failureWithoutStack());
+          const written = yield* TestConsole.errorLines;
 
-    it("should write an absent field rather than a None when the Error has no stack", () => {
-      const errorSpy = vi
-        .spyOn(console, "error")
-        .mockImplementation((): void => {});
-
-      Effect.runSync(reportError("user.updateName", failureWithoutStack()));
-
-      expect(errorSpy.mock.calls).toStrictEqual([
-        [
-          {
-            event: "user.updateName",
-            message: "D1 failed",
-            name: "DriverFailed",
-            stack: ABSENT_FIELD,
-          },
-        ],
-      ]);
-    });
+          expect(written).toStrictEqual([
+            {
+              event: "user.updateName",
+              message: "D1 failed",
+              name: "DriverFailed",
+              stack: ABSENT_FIELD,
+            },
+          ]);
+        })
+    );
   });
 });
