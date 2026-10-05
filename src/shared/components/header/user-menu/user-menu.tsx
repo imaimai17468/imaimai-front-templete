@@ -29,7 +29,8 @@ export const UserMenu = ({ user }: { readonly user: UserWithEmail }) => {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="cursor-pointer rounded-full focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
+          aria-label={`${name} のアカウントメニュー`}
+          className="cursor-pointer rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           <UserAvatar avatarUrl={avatarUrl} name={name} />
         </button>
