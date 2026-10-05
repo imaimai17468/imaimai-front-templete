@@ -60,6 +60,17 @@
             "statusMessage": "Env check: gate dependencies..."
           }
         ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/scoped-guidance.sh",
+            "timeout": 15,
+            "statusMessage": "Scoped guidance: forget which rules this session was pointed at, after compaction..."
+          }
+        ]
       }
     ],
     "Stop": [

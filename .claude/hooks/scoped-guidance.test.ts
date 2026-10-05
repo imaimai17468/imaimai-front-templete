@@ -6,8 +6,8 @@
  * named is decided in scoped-guidance-decision.ts and pinned by its own test.
  * What is left here is the entry's own: reading the rules off disk, asking git
  * what changed after a Bash call, the marker that points at a rule once per
- * session, the complete marker that answers the rest of a session without bun, and silence
- * on a payload it cannot read.
+ * session and the compaction that clears it, the complete marker that answers
+ * the rest of a session without bun, and silence on a payload it cannot read.
  *
  * Every case forks the hook against its own scratch project, under its own
  * TMPDIR, so no case sees another's marker. Nothing in the repository is
@@ -138,6 +138,22 @@ const bashNaming = (file: string): Call => ({
   toolInput: { command: `sed -n 1,20p ${file}` },
   toolName: "Bash",
 });
+
+/** A SessionStart payload for session `sessionId`, from `source`. */
+const sessionStart = async (
+  project: string,
+  sessionId: string,
+  source: string
+): Promise<BashRun> =>
+  await runHook(
+    project,
+    JSON.stringify({
+      cwd: project,
+      hook_event_name: "SessionStart",
+      session_id: sessionId,
+      source,
+    })
+  );
 
 describe("scoped-guidance", () => {
   afterAll(() => {
@@ -382,6 +398,52 @@ describe("scoped-guidance", () => {
     await printedBy(project, { ...bashNaming("src/a.tsx"), agentId: "a1" });
 
     expect(fs.existsSync(marker)).toBeTruthy();
+  });
+
+  it("should point at a reached rule again when the session was compacted", async () => {
+    const project = makeProject("session-start-compact");
+    await printedBy(project, bashNaming("src/a.tsx"));
+    await sessionStart(project, "s1", "compact");
+
+    const printed = await printedBy(project, bashNaming("src/a.tsx"));
+
+    expect(printed).toStrictEqual(
+      printedFor("PreToolUse", "reached src/a.tsx")
+    );
+  });
+
+  it("should print nothing for a reached rule when the session was resumed", async () => {
+    const project = makeProject("session-start-resume");
+    await printedBy(project, bashNaming("src/a.tsx"));
+    await sessionStart(project, "s1", "resume");
+
+    const printed = await printedBy(project, bashNaming("src/a.tsx"));
+
+    expect(printed).toStrictEqual({});
+  });
+
+  it("should keep a subagent's markers when its session is compacted", async () => {
+    const project = makeProject("compact-subagent");
+    const subagentCall = { ...bashNaming("src/a.tsx"), agentId: "a1" };
+    await printedBy(project, subagentCall);
+    await sessionStart(project, "s1", "compact");
+
+    const printed = await printedBy(project, subagentCall);
+
+    expect(printed).toStrictEqual({});
+  });
+
+  it("should keep another session's markers when one session is compacted", async () => {
+    const project = makeProject("compact-other-session");
+    await printedBy(project, { ...bashNaming("src/a.tsx"), sessionId: "s2" });
+    await sessionStart(project, "s1", "compact");
+
+    const printed = await printedBy(project, {
+      ...bashNaming("src/a.tsx"),
+      sessionId: "s2",
+    });
+
+    expect(printed).toStrictEqual({});
   });
 
   it.each([

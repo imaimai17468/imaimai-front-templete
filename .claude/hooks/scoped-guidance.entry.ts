@@ -2,8 +2,9 @@
 
 /**
  * Point the model at a rule from `.claude/hooks/guidance/` once per session,
- * as additionalContext, when the session reaches a file its `paths` cover,
- * runs a command its `commands` name, or fires an event its `events` list.
+ * and again once the session is compacted, as additionalContext, when the
+ * session reaches a file its `paths` cover, runs a command its `commands`
+ * name, or fires an event its `events` list.
  * scoped-guidance.sh runs it for PreToolUse, PostToolUse and UserPromptSubmit.
  *
  * Before a call, the paths and the command the call names decide; after a
