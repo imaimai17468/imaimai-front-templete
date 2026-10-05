@@ -97,7 +97,7 @@ src/
 エージェント運用層は4つでできています。
 
 - **[AGENTS.md](./AGENTS.md)**：規約の本体。毎セッション自動でロードされます（`CLAUDE.md` はこれを読み込むだけ）
-- **`.claude/hooks/guidance/`**：規約の分冊。frontmatter の `paths`（ファイル）、`commands`（`git commit` など）、`events`（`UserPromptSubmit` など）に当たったとき、`.claude/hooks/scoped-guidance.sh` がそのファイルを読むよう指示します。1 セッションに 1 回です
+- **`.claude/hooks/guidance/`**：規約の分冊。frontmatter の `paths`（ファイル）、`commands`（`git commit` など）、`events`（`UserPromptSubmit` など）に当たったとき、`.claude/hooks/scoped-guidance.sh` がそのファイルを読むよう指示します。1 セッションに 1 回で、コンテキストを圧縮したあとは改めて指示します
 - **`.claude/skills/`**：名前のついた作業の手順。チケット粒度の作業は `ticket-work` が持ち、AGENTS.md はそれを指します
 - **`.claude/hooks/`**：規約を機械的に強制する側。SessionStart で依存の欠落を報告し、Bash 実行前にガードを掛け、Stop ではコードが変わった turn だけ `bun run check`（format / lint / 型検査）と `bun run test` を回します。markdown のリンク切れ検査は変更があれば毎回走ります。ツリー全体を判定する検査は Stop に置かず、`fallow dead-code` は CI、`fallow dupes` は pre-push と CI の両方が回します。ここまでの検査はどれもビルドの成果物を動かさないので、CI は最後に `bun run smoke` を回します。ビルドした Worker を workerd で起動して `scripts/smoke.ts` が挙げるパスに HTTP リクエストを投げる検査で、ビルドが通ってから全リクエストで例外を投げる Worker はここでしか落ちません
 
