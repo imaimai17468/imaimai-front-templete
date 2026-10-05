@@ -22,7 +22,8 @@
       "Bash(git fetch *)",
       "Bash(actionlint *)",
       "Bash(gh pr view *)",
-      "Bash(gh pr checks *)"
+      "Bash(gh pr checks *)",
+      "Bash(npx -y modern-web-guidance@latest *)"
     ],
     "deny": [
       "Bash(rm -rf /)",
@@ -143,7 +144,11 @@
   "enabledPlugins": {
     "chrome-devtools-mcp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
-    "context7@claude-plugins-official": true
+    "context7@claude-plugins-official": true,
+    "modern-web-guidance@claude-plugins-official": true
+  },
+  "env": {
+    "DISABLE_TELEMETRY": "1"
   },
   "plansDirectory": "./.claude/plans",
   "claudeMdExcludes": ["**/.claude/worktrees/**"]
