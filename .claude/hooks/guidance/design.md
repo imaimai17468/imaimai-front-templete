@@ -195,4 +195,6 @@ unchanged. Decide that first, then build the sections from it.
   pass on their own still reads as one template with the content swapped.
 - Build on the primitives in `src/shared/ui/` and restyle what you take.
   Taking a prebuilt block's behavior costs nothing, and taking its styling
-  costs the identity.
+  costs the identity. Where a primitive there covers a behavior, such as a
+  dialog, a popover or a tooltip, keep it when a `modern-web-guidance` guide
+  shows native `<dialog>` or `popover` markup for the same behavior.
