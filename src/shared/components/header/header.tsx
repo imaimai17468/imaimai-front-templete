@@ -9,7 +9,7 @@ export const Header = ({
 }: {
   readonly user: Option.Option<UserWithEmail>;
 }) => (
-  <header className="sticky top-0 z-50 bg-transparent backdrop-blur-md">
+  <header className="sticky top-0 z-50 bg-background backdrop-blur-md supports-backdrop-filter:bg-transparent">
     <div className="flex items-center justify-between gap-3 p-6">
       <Link
         to="/"
