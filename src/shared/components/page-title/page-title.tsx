@@ -7,7 +7,10 @@ export const PageTitle = ({
   ...props
 }: ComponentPropsWithoutRef<"h1">) => (
   <h1
-    className={cn("text-2xl font-semibold tracking-tight", className)}
+    className={cn(
+      "text-2xl font-semibold tracking-tight text-balance",
+      className
+    )}
     {...props}
   >
     {children}
