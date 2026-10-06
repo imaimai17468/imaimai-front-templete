@@ -143,6 +143,16 @@ These decide what gets written and where it sits, where the sections above decid
 
 **Do not run adversatives back to back.** `ただし`, `一方で`, `とはいえ`, `現実的には` arriving one after another balance the text without moving it.
 
+**Change a repeated sentence ending only where the sentence keeps its function.** Three `〜します` in a row prompt a reread, and turning an explanation into a recommendation to vary the ending changes what the text says.
+
+**Build the sentence so it parses on first read.** Put the longer modifier first and the shortest one next to its noun. A `、` marks a break in the structure rather than a breath. Keep the subject near its predicate, and split a sentence whose predicate no longer answers its subject (`重視したのは…を採用した`). Open a chain of three or more `の`, or a run of kanji compounds, into a verb clause: `当該エラー起因再送抑制機能` becomes `このエラーが原因の再送を止める機能`. Fold a double negative only after checking that the logic did not flip.
+
+**Write the Japanese structure rather than the English one under it.** `この事実は〜を示している` makes the fact the actor, where `この事実から〜と分かる` names the inference. `〜することができる` is the potential form, `意味を持つ` is `意味がある`, and `〜することによって` is `〜すると`.
+
+**Keep running text in sentences.** A copy-style fragment such as `資料を、全員へ。` belongs nowhere in a body, and a parenthetical that repeats the noun before it (`修正前のAI生成文（素の出力）`) goes.
+
+**Put `**` inside brackets and punctuation, never around them.** GitHub renders `これは**「重要」**です` with the asterisks showing, because a `**` with a letter on one side and punctuation on the other cannot open or close emphasis. Write `これは「**重要**」です`.
+
 ## Calibration
 
 These rules cut what repeats and what overclaims. They do not license flattening a text toward a neutral middle, and applying them to someone else's writing means the minimum effective edit rather than a rewrite.
