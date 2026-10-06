@@ -10,9 +10,9 @@ This governs every text a person reads: replies to the user, plans, reports, com
 
 ## Plain words
 
-**Use the plain word for what happens, in language the reader already has.** A vivid image, a shorthand, or a coined term is cheaper to write and reads as insight, but it substitutes an impression for the mechanism, and it sounds most confident exactly where it is least specific. Name the condition and the consequence separately, each with its own plain verb: "is not detected", "fails", "is skipped".
+**Use the plain word for what happens, in language the reader already has.** A vivid image, a shorthand, or a coined term is cheaper to write and reads as insight, but it substitutes an impression for the mechanism, and it sounds most confident exactly where it is least specific. Name the condition and the consequence separately, each with its own plain verb: "is not detected", "fails", "is skipped". Where you replace an image, keep what it implied and how wide it was: `丸一日溶かした` becomes `丸一日かかってしまった`, which keeps the regret, and `静かに壊れる` becomes `気づかないうちに使えなくなる` rather than the narrower `通知なく`.
 
-**Prefer the shorter, older word.** `use` over `utilize`, `to` over `in order to`. Which words mark generated text turns over every year or two, so no list of them stays current here. The durable test is whether the word narrows the meaning: `leverage`, `robust`, `seamless`, `comprehensive`, `crucial`, `不可欠`, `核心的`, `多角的`, `掘り下げる` all fail it, because deleting them changes nothing.
+**Prefer the shorter, older word.** `use` over `utilize`, `to` over `in order to`. Which words mark generated text turns over every year or two, so no list of them stays current here. The durable test is whether the word narrows the meaning: `leverage`, `robust`, `seamless`, `comprehensive`, `crucial`, `不可欠`, `核心的`, `多角的`, `掘り下げる` all fail it, because deleting them changes nothing. A noun takes the size of the role it names: a rule is not a `契約` and a reference copy is not a `正本`, because the larger word claims a reliability or a uniqueness that nobody checked.
 
 **Let the verb be the plain one.** `serves as`, `stands as`, `represents`, `boasts` are all `is` or `has`. `made a decision` is `decided`, and `has the ability to` is `can`.
 
@@ -22,7 +22,7 @@ This governs every text a person reads: replies to the user, plans, reports, com
 
 **Cut the word that adds heat rather than light.** `really`, `simply`, `actually`, `truly`, `fundamentally`, `非常に`, `まさに` raise the temperature of a claim without changing it. A hedge that carries real uncertainty is a different thing, and Precision below protects it.
 
-**Anchor a term the reader may not hold to one they do, once.** Keep the file name, the type, the command in the report, because a reader given only the outcome cannot check it or carry it into the next conversation, and every later report then restarts from nothing. On first use, tie the term to a word the reader has used themselves, a place on screen, or work they did by hand. Use the name alone after that. Where you cannot tell what the reader holds, ask.
+**Anchor a term the reader may not hold to one they do, once.** Keep the file name, the type, the command in the report, because a reader given only the outcome cannot check it or carry it into the next conversation, and every later report then restarts from nothing. On first use, tie the term to a word the reader has used themselves, a place on screen, or work they did by hand, and describe what the thing does before giving its name, so the name arrives attached to something already held: `GPSで…案内する機能を、このアプリでは「避難誘導モード」と呼ぶ` rather than `本アプリの「避難誘導モード」は、GPSで…案内する`. Use the name alone after that. Where you cannot tell what the reader holds, ask.
 
 **Hand the reader the vocabulary they can act on, not the one you worked in.** A tool's output labels, an internal variable name, the nickname the task went by while you did it, and a term only one field holds (`tween`, `トゥイーン`) each put the reader where you were standing. Say what the thing does for them instead. The identifier they will type or click is what the rule above anchors and keeps; what goes is the word that only records how the work happened to be done. A name and an error message in the code are read the same way, by someone who never saw the work, so they take this rule too.
 
@@ -61,7 +61,7 @@ Each shape below is read as machine-written, and each also costs the reader some
 
 **Em dash: 5 per 1000 words of English.** Past that it carries work that punctuation should refuse, giving a subordinate clause the same weight as the main clause, so the reader cannot tell the instruction from its reason. Where the right side restates the left, delete it. Where it adds a condition, give it its own sentence. Japanese is stricter, below.
 
-**Do not put the negation before the claim.** `not X, but Y`, `it is not X, it is Y`, `AではなくB`, and a run of `not a X. Not a Y. A Z.` all spend a clause on what is not the case. Write Y. Keep X where it is a misreading the reader would actually reach, quote it, and add the ground for rejecting it, which a counterfactual often supplies (`もしAなら〜だったはずだ`).
+**Do not put the negation before the claim.** `not X, but Y`, `it is not X, it is Y`, `AではなくB`, and a run of `not a X. Not a Y. A Z.` all spend a clause on what is not the case. Write Y. Keep X where it is a misreading the reader would actually reach, quote it, and add the ground for rejecting it, which a counterfactual often supplies (`もしAなら〜だったはずだ`). Careful human Japanese uses `ではなく` too, so judge a document by its rate and each use by its second half: past about one sentence in thirty the contrast reads as generated, and a Y that stands as a claim on its own (`実際は発注そのものを自動で止める仕組みだ`) can keep its X where a bare `有用だ` cannot.
 
 **Do not balance a pair of clauses around a semicolon, and do not close on an aphorism.** The symmetry reads as insight and resists being checked, and a final polished line turns a finished argument back into a slogan. End on the clearest concrete sentence the text already contains. Where a balanced half is worth keeping, keep it only because it changes which way the reader decides a borderline case.
 
@@ -69,13 +69,19 @@ Each shape below is read as machine-written, and each also costs the reader some
 
 **Put the word that answers the previous sentence near the front of the next one.** Where it arrives at the end, the reader holds the whole sentence unplaced until it lands, and a run of them reads as a list of facts with the connections left out. The same gap opens when the subject changes between adjacent sentences with nothing announcing the change.
 
+**A connective names what it joins.** Before writing `また`, `そのため`, or an opening `これは`, find the fact on each side that it links. Where the earlier sentence holds no such fact, write the missing fact or drop the connective.
+
+**Open a paragraph with the sentence the rest of it supports.** `今回の障害はキャッシュ設定の不備が原因だった` goes first, and `先日負荷が急上昇した。原因を調べたら…` follows as its evidence.
+
+**Split a long sentence only where the next sentence's connective can carry the link**, whether that link is a means, a reason, an order, or a contrast. A `〜するために〜です` whose purpose leads into the predicate stays one sentence.
+
 **Prefer two parallel items to three.** Three reads as a template filling itself, where two reads as chosen. An enumeration of things that genuinely number three is exempt, and announcing the count (`論点は3つあります`) is not.
 
 **State an effect rather than its importance.** `a testament to`, `pivotal`, `significant`, `重要なのは〜である`. Where the effect is worth naming, name it. The same holds for a trailing participle that gestures at meaning (`highlighting its role in`, `〜を示している`), which either becomes a specific claim or goes.
 
 **Name the source or drop the sentence.** `experts argue`, `studies show`, `it is widely held` imply a consensus that nothing backs.
 
-**Vary the run.** Three or more long assertions in a row, or a run of short flat declaratives, both read as generated. Break the run with a sentence of the other length. Repeated openings, such as three consecutive sentences starting with the same subject, read the same way.
+**Vary the run.** A run of short flat declaratives of similar length reads as generated, so break it with a longer sentence. Length alone is not the signal: human Japanese runs longer and varies more than generated Japanese, so a long sentence is not shortened to vary the run. Repeated openings read the same way only where they are not deliberate parallelism.
 
 ## Precision
 
@@ -89,7 +95,9 @@ These decide whether the sentence says only as much as was checked, where Knowle
 
 **Do not write detection, prevention, or a guarantee as unconditional.** Give the condition: `〜が成り立つときに限り`, `〜しやすい`.
 
-**Narrow the claim to what the example supports.** Where the example carries only part of it, the claim moves rather than the example.
+**Narrow the claim to what the example supports.** Where the example carries only part of it, the claim moves rather than the example. A heading and a closing recommendation obey the same limit: where the body says `未定` or `一部`, the heading does not state it as decided and the recommendation does not build on it as a premise.
+
+**Mark uncertainty on the claim it belongs to.** Write `【要確認】` on what was not checked, `〜と推定する` on an inference, and `筆者は〜と考える` on an opinion. A `〜と思われます` on every sentence hides which one is unverified.
 
 ## What the document includes
 
@@ -99,7 +107,9 @@ These decide what gets written and where it sits, where the sections above decid
 
 **Answer what the reader came to ask, and leave the diff to the diff.** Whoever reads a PR body, an issue comment, or a review reply can open the changed files, so walking them through the change spends their attention on what they already hold. Write what the diff cannot tell them: why this over the alternative, what it costs, what is still open.
 
-**Give a point the room its consequence earns.** A judgment that could have gone the other way takes the space it needs, and a premise no reader would dispute takes one line or none. Where every point runs to the same length, the reader is left to work out which one decided the design.
+**Give a point the room its consequence earns.** A judgment that could have gone the other way takes the space it needs, and a premise no reader would dispute takes one line or none. Where every point runs to the same length, the reader is left to work out which one decided the design. Weight is not rank, so parallel items take no priority order and no `まず`, `次に` stages that the content does not have.
+
+**Explain without staging.** An explainer that builds a premise, an anomaly, a reveal, and a payoff across its sections delays every fact it holds. Delete the setup and reveal sentences, and where the facts survive, they were staging.
 
 **An option ruled out by a stated requirement gets that requirement and nothing else.** Writing its advantages, or balancing them against a drawback, gives a case nobody could adopt the same length as the design you adopted. Where several options were weighed, the ones you dropped go in a table of the option and the reason it lost, and the prose covers the option you took.
 
@@ -115,7 +125,7 @@ These decide what gets written and where it sits, where the sections above decid
 
 ## Format
 
-**Format follows the content.** A bullet list is for items that are genuinely parallel, and an argument that moves from one step to the next belongs in prose, so numbering paragraphs (`The first wall is`, `The second wall is`) to disguise a list as prose fails both ways. A heading needs more than two sentences under it. Emoji stay out of headings.
+**Format follows the content.** A bullet list is for items that are genuinely parallel, and an argument that moves from one step to the next belongs in prose, so numbering paragraphs (`The first wall is`, `The second wall is`) to disguise a list as prose fails both ways. Four or more parallel noun items run through one sentence on `、` are a list disguised the other way, and take one. A heading needs more than two sentences under it. Emoji stay out of headings.
 
 **A label names an action, or points at a literal.** A heading, a table column, or a bullet lead holds no room for a mechanism, so a slot that asks for one noun takes the nearest image instead. `溶かした先` names nothing that happened where `入れた節` names the action, and a file path or a section title cannot become an image at all.
 
@@ -133,9 +143,23 @@ These decide what gets written and where it sits, where the sections above decid
 
 **Do not run adversatives back to back.** `ただし`, `一方で`, `とはいえ`, `現実的には` arriving one after another balance the text without moving it.
 
+**Change a repeated sentence ending only where the sentence keeps its function.** Three `〜します` in a row prompt a reread, and turning an explanation into a recommendation to vary the ending changes what the text says.
+
+**Build the sentence so it parses on first read.** Put the longer modifier first and the shortest one next to its noun. A `、` marks a break in the structure rather than a breath. Keep the subject near its predicate, and split a sentence whose predicate no longer answers its subject (`重視したのは…を採用した`). Open a chain of three or more `の`, or a run of kanji compounds, into a verb clause: `当該エラー起因再送抑制機能` becomes `このエラーが原因の再送を止める機能`. Fold a double negative only after checking that the logic did not flip.
+
+**Write the Japanese structure rather than the English one under it.** `この事実は〜を示している` makes the fact the actor, where `この事実から〜と分かる` names the inference. `〜することができる` is the potential form, `意味を持つ` is `意味がある`, and `〜することによって` is `〜すると`.
+
+**Keep running text in sentences.** A copy-style fragment such as `資料を、全員へ。` belongs nowhere in a body, and a parenthetical that repeats the noun before it (`修正前のAI生成文（素の出力）`) goes.
+
+**Put `**` inside brackets and punctuation, never around them.** GitHub renders `これは**「重要」**です` with the asterisks showing, because a `**` with a letter on one side and punctuation on the other cannot open or close emphasis. Write `これは「**重要**」です`.
+
 ## Calibration
 
 These rules cut what repeats and what overclaims. They do not license flattening a text toward a neutral middle, and applying them to someone else's writing means the minimum effective edit rather than a rewrite.
+
+**Preserve what each of the author's sentences did.** A rewrite keeps the claim, its weight, the strength of its assertion, and the sentence's function: an evaluation does not become a goal, and an A the author rejected does not become `A に加えて B`. Add no actor, condition, number, cause, or example that the source and its context do not give. Where the rewrite needs one, write the sentence as provisional and name what is undecided, and a stance the author left open stays open.
+
+**Keep by default, and count your changes.** Mark each section keep or change before editing, with keep as the default. Afterwards count how many times each kind of change was applied, because a change made to every heading or every sentence is a pattern a reader takes for generated text, and the uneven sections, quoted speech, and shorthand are what made the original read as a person's.
 
 **Before cutting a flagged phrase, check whether cutting it loses meaning.** Where it does, it is content, and it stays or gets reworded. Where the author would defend it, it is a choice rather than a formula, and it stays.
 
