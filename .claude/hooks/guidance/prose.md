@@ -137,6 +137,10 @@ These decide what gets written and where it sits, where the sections above decid
 
 These rules cut what repeats and what overclaims. They do not license flattening a text toward a neutral middle, and applying them to someone else's writing means the minimum effective edit rather than a rewrite.
 
+**Preserve what each of the author's sentences did.** A rewrite keeps the claim, its weight, the strength of its assertion, and the sentence's function: an evaluation does not become a goal, and an A the author rejected does not become `A に加えて B`. Add no actor, condition, number, cause, or example that the source and its context do not give. Where the rewrite needs one, write the sentence as provisional and name what is undecided, and a stance the author left open stays open.
+
+**Keep by default, and count your changes.** Mark each section keep or change before editing, with keep as the default. Afterwards count how many times each kind of change was applied, because a change made to every heading or every sentence is a pattern a reader takes for generated text, and the uneven sections, quoted speech, and shorthand are what made the original read as a person's.
+
 **Before cutting a flagged phrase, check whether cutting it loses meaning.** Where it does, it is content, and it stays or gets reworded. Where the author would defend it, it is a choice rather than a formula, and it stays.
 
 **Match the register you are writing in.** A reply to the user, a commit message, and a rule are held to the same tests and read nothing alike. Bluntness, humor, and a first-person admission survive every rule here when they are the writer's own.
