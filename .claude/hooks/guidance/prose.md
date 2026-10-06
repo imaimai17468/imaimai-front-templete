@@ -89,7 +89,9 @@ These decide whether the sentence says only as much as was checked, where Knowle
 
 **Do not write detection, prevention, or a guarantee as unconditional.** Give the condition: `〜が成り立つときに限り`, `〜しやすい`.
 
-**Narrow the claim to what the example supports.** Where the example carries only part of it, the claim moves rather than the example.
+**Narrow the claim to what the example supports.** Where the example carries only part of it, the claim moves rather than the example. A heading and a closing recommendation obey the same limit: where the body says `未定` or `一部`, the heading does not state it as decided and the recommendation does not build on it as a premise.
+
+**Mark uncertainty on the claim it belongs to.** Write `【要確認】` on what was not checked, `〜と推定する` on an inference, and `筆者は〜と考える` on an opinion. A `〜と思われます` on every sentence hides which one is unverified.
 
 ## What the document includes
 
