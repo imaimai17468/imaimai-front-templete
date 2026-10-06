@@ -69,6 +69,12 @@ Each shape below is read as machine-written, and each also costs the reader some
 
 **Put the word that answers the previous sentence near the front of the next one.** Where it arrives at the end, the reader holds the whole sentence unplaced until it lands, and a run of them reads as a list of facts with the connections left out. The same gap opens when the subject changes between adjacent sentences with nothing announcing the change.
 
+**A connective names what it joins.** Before writing `また`, `そのため`, or an opening `これは`, find the fact on each side that it links. Where the earlier sentence holds no such fact, write the missing fact or drop the connective.
+
+**Open a paragraph with the sentence the rest of it supports.** `今回の障害はキャッシュ設定の不備が原因だった` goes first, and `先日負荷が急上昇した。原因を調べたら…` follows as its evidence.
+
+**Split a long sentence only where the next sentence's connective can carry the link**, whether that link is a means, a reason, an order, or a contrast. A `〜するために〜です` whose purpose leads into the predicate stays one sentence.
+
 **Prefer two parallel items to three.** Three reads as a template filling itself, where two reads as chosen. An enumeration of things that genuinely number three is exempt, and announcing the count (`論点は3つあります`) is not.
 
 **State an effect rather than its importance.** `a testament to`, `pivotal`, `significant`, `重要なのは〜である`. Where the effect is worth naming, name it. The same holds for a trailing participle that gestures at meaning (`highlighting its role in`, `〜を示している`), which either becomes a specific claim or goes.
@@ -101,7 +107,9 @@ These decide what gets written and where it sits, where the sections above decid
 
 **Answer what the reader came to ask, and leave the diff to the diff.** Whoever reads a PR body, an issue comment, or a review reply can open the changed files, so walking them through the change spends their attention on what they already hold. Write what the diff cannot tell them: why this over the alternative, what it costs, what is still open.
 
-**Give a point the room its consequence earns.** A judgment that could have gone the other way takes the space it needs, and a premise no reader would dispute takes one line or none. Where every point runs to the same length, the reader is left to work out which one decided the design.
+**Give a point the room its consequence earns.** A judgment that could have gone the other way takes the space it needs, and a premise no reader would dispute takes one line or none. Where every point runs to the same length, the reader is left to work out which one decided the design. Weight is not rank, so parallel items take no priority order and no `まず`, `次に` stages that the content does not have.
+
+**Explain without staging.** An explainer that builds a premise, an anomaly, a reveal, and a payoff across its sections delays every fact it holds. Delete the setup and reveal sentences, and where the facts survive, they were staging.
 
 **An option ruled out by a stated requirement gets that requirement and nothing else.** Writing its advantages, or balancing them against a drawback, gives a case nobody could adopt the same length as the design you adopted. Where several options were weighed, the ones you dropped go in a table of the option and the reason it lost, and the prose covers the option you took.
 
@@ -117,7 +125,7 @@ These decide what gets written and where it sits, where the sections above decid
 
 ## Format
 
-**Format follows the content.** A bullet list is for items that are genuinely parallel, and an argument that moves from one step to the next belongs in prose, so numbering paragraphs (`The first wall is`, `The second wall is`) to disguise a list as prose fails both ways. A heading needs more than two sentences under it. Emoji stay out of headings.
+**Format follows the content.** A bullet list is for items that are genuinely parallel, and an argument that moves from one step to the next belongs in prose, so numbering paragraphs (`The first wall is`, `The second wall is`) to disguise a list as prose fails both ways. Four or more parallel noun items run through one sentence on `、` are a list disguised the other way, and take one. A heading needs more than two sentences under it. Emoji stay out of headings.
 
 **A label names an action, or points at a literal.** A heading, a table column, or a bullet lead holds no room for a mechanism, so a slot that asks for one noun takes the nearest image instead. `溶かした先` names nothing that happened where `入れた節` names the action, and a file path or a section title cannot become an image at all.
 
