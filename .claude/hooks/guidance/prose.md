@@ -61,7 +61,7 @@ Each shape below is read as machine-written, and each also costs the reader some
 
 **Em dash: 5 per 1000 words of English.** Past that it carries work that punctuation should refuse, giving a subordinate clause the same weight as the main clause, so the reader cannot tell the instruction from its reason. Where the right side restates the left, delete it. Where it adds a condition, give it its own sentence. Japanese is stricter, below.
 
-**Do not put the negation before the claim.** `not X, but Y`, `it is not X, it is Y`, `AではなくB`, and a run of `not a X. Not a Y. A Z.` all spend a clause on what is not the case. Write Y. Keep X where it is a misreading the reader would actually reach, quote it, and add the ground for rejecting it, which a counterfactual often supplies (`もしAなら〜だったはずだ`).
+**Do not put the negation before the claim.** `not X, but Y`, `it is not X, it is Y`, `AではなくB`, and a run of `not a X. Not a Y. A Z.` all spend a clause on what is not the case. Write Y. Keep X where it is a misreading the reader would actually reach, quote it, and add the ground for rejecting it, which a counterfactual often supplies (`もしAなら〜だったはずだ`). Careful human Japanese uses `ではなく` too, so judge a document by its rate and each use by its second half: past about one sentence in thirty the contrast reads as generated, and a Y that stands as a claim on its own (`実際は発注そのものを自動で止める仕組みだ`) can keep its X where a bare `有用だ` cannot.
 
 **Do not balance a pair of clauses around a semicolon, and do not close on an aphorism.** The symmetry reads as insight and resists being checked, and a final polished line turns a finished argument back into a slogan. End on the clearest concrete sentence the text already contains. Where a balanced half is worth keeping, keep it only because it changes which way the reader decides a borderline case.
 
@@ -75,7 +75,7 @@ Each shape below is read as machine-written, and each also costs the reader some
 
 **Name the source or drop the sentence.** `experts argue`, `studies show`, `it is widely held` imply a consensus that nothing backs.
 
-**Vary the run.** Three or more long assertions in a row, or a run of short flat declaratives, both read as generated. Break the run with a sentence of the other length. Repeated openings, such as three consecutive sentences starting with the same subject, read the same way.
+**Vary the run.** A run of short flat declaratives of similar length reads as generated, so break it with a longer sentence. Length alone is not the signal: human Japanese runs longer and varies more than generated Japanese, so a long sentence is not shortened to vary the run. Repeated openings read the same way only where they are not deliberate parallelism.
 
 ## Precision
 
