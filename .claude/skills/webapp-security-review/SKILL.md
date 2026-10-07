@@ -1,11 +1,11 @@
 ---
 name: webapp-security-review
-description: Stack-specific web application security checks for this repository (TanStack Start on Cloudflare Workers, Better Auth, D1 through Drizzle, R2, the `gateway/` authorization boundary), one reference per vulnerability class, each saying which file to open, what to grep, which request to send, and what test pins the fix. Use when implementing or reviewing a server function, an API route, a gateway, an upload, a header, or anything that reads the session, alongside `security-audit`, which owns the general audit methodology and reporting.
+description: Stack-specific web application security checks for this repository (TanStack Start on Cloudflare Workers, Better Auth, D1 through Drizzle, R2, the `gateway/` authorization boundary), one reference per vulnerability class, each saying which file to open, what to grep, which request to send, and what test pins the fix. Use when implementing or reviewing a server function, an API route, a gateway, an upload, a header, or anything that reads the session, alongside `web-security-audit`, which owns the general audit methodology and reporting.
 ---
 
 # Web application security review
 
-This skill turns a vulnerability class into the checks it takes in this repository. `security-audit` decides how an audit is run and how a finding is validated and reported; this skill supplies what to look at once the class is known.
+This skill turns a vulnerability class into the checks it takes in this repository. `web-security-audit` decides how an audit is run and how a finding is validated and reported; this skill supplies what to look at once the class is known.
 
 ## Procedure
 
@@ -32,7 +32,7 @@ Chapters the references leave out, and why:
 | 1 to 3 | HTTP basics, the book's Flask sample app, and Burp Suite setup, none of which is a check on this code |
 | 13 (OS command injection) | A Worker has no shell to inject into |
 | 14 (server-side template injection) | Rendering is React, which has no template source a request can supply |
-| 26 to 29 | Running an assessment, writing the report, rebuilding the sample app, and future topics, which `security-audit` covers or which name no check |
+| 26 to 29 | Running an assessment, writing the report, rebuilding the sample app, and future topics, which `web-security-audit` covers or which name no check |
 
 ## Adding a reference
 

@@ -6,12 +6,12 @@ const COVERED_ROOTS = "{src,scripts,tools}";
 
 export const coverageInclude = [`${COVERED_ROOTS}/**/*.ts`, "tools/**/*.js"];
 
-// The vendored security-audit skill ships its validators with `node:test`
-// suites, which vitest collects and then fails as holding no test. Run them
-// with `node --test .claude/skills/security-audit/*.test.cjs`. It is exported
+// The web-security-audit skill ships its validators with `node:test` suites,
+// which vitest collects and then fails as holding no test. Run them with
+// `node --test .claude/skills/web-security-audit/scripts/*.test.cjs`. It is exported
 // so that `vitest.config.test.ts` fails once the directory it names is gone,
 // instead of leaving the exclusion to widen silently.
-export const vendoredSkillExclude = ".claude/skills/security-audit/**";
+export const nodeTestSkillExclude = ".claude/skills/web-security-audit/**";
 
 // coverage の gate から外れる条件はファイル名。コマンドとして実行される
 // ファイルは `*.entry.ts` と名付ければ、この配列を編集せずに外れる。パスで
@@ -60,7 +60,7 @@ export default defineConfig({
     exclude: [
       ...defaultExclude,
       ".claude/worktrees/**",
-      vendoredSkillExclude,
+      nodeTestSkillExclude,
       "src/shared/ui/**",
     ],
     setupFiles: ["./src/test-setup.ts"],
