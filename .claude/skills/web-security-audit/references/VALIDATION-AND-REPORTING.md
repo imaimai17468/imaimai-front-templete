@@ -111,8 +111,8 @@ Every record has a stable fingerprint, title, description, and repository-relati
 Run:
 
 ```sh
-node <skill-dir>/validate-findings.cjs <output-dir>/findings.json
-node <skill-dir>/validate-coverage-ledger.cjs <output-dir>/coverage-ledger.json
+node <skill-dir>/scripts/validate-findings.cjs <output-dir>/findings.json
+node <skill-dir>/scripts/validate-coverage-ledger.cjs <output-dir>/coverage-ledger.json
 ```
 
 Fix every structural and semantic error before continuing. The findings validator rejects input beyond 5 MiB, 1,000 top-level findings, or 64 nesting levels, and caps reported error output at 100 messages. Validator success proves format and ledger consistency only.

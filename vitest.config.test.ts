@@ -8,7 +8,7 @@ import { describe, expect, it, onTestFinished } from "vite-plus/test";
 import {
   coverageExclude,
   coverageInclude,
-  vendoredSkillExclude,
+  nodeTestSkillExclude,
 } from "./vitest.config.mts";
 
 const ROOT = import.meta.dirname;
@@ -65,7 +65,7 @@ describe("coverage.include and coverage.exclude", () => {
 });
 
 describe("test.exclude", () => {
-  it("should report no stale pattern when the vendored skill directory holds files", () => {
-    expect(stalePatterns([vendoredSkillExclude], ROOT)).toStrictEqual([]);
+  it("should report no stale pattern when the web-security-audit skill directory holds files", () => {
+    expect(stalePatterns([nodeTestSkillExclude], ROOT)).toStrictEqual([]);
   });
 });

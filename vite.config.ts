@@ -188,9 +188,9 @@ export default defineConfig({
       "dist",
       "build",
       "worker-configuration.d.ts",
-      // Third-party skill vendored verbatim. Its CommonJS validators trip the
-      // rules above, and a fix here is undone by the next copy from upstream.
-      ".claude/skills/security-audit",
+      // The web-security-audit skill keeps CommonJS validators, which trip the
+      // rules above.
+      ".claude/skills/web-security-audit",
     ],
     overrides: [
       {
@@ -430,9 +430,9 @@ export default defineConfig({
       "build",
       "src/routeTree.gen.ts",
       "worker-configuration.d.ts",
-      // Third-party skill vendored verbatim. Formatting rewrites its JSON
-      // schema and its validators, which the next copy from upstream restores.
-      ".claude/skills/security-audit",
+      // The web-security-audit skill keeps its JSON schema and validators in
+      // their own formatting rather than this project's.
+      ".claude/skills/web-security-audit",
       "*.md",
     ],
   },
