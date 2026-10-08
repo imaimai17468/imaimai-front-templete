@@ -29,7 +29,6 @@ const STEPS_AFTER_TRUST = [
   "[setup] bun install --frozen-lockfile",
   "[setup] bun run prepare",
   "[setup] bun run generate-routes",
-  "[setup] bun run cf-typegen",
 ] as const;
 
 /** What the copy branch prints, in order, and the line that closes the run. */

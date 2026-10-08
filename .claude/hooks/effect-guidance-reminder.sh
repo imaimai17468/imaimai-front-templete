@@ -62,9 +62,9 @@ fi
     (.tool_input.edits // [] | map(.new_string // "") | join("\n"))
   ] | join("\n"))' 2>/dev/null)
 
-# The suffix decides before the file is read, because an edit to bun.lock or to
-# worker-configuration.d.ts would otherwise pull hundreds of kB into a variable
-# for a judgment that throws it away.
+# The suffix decides before the file is read, because an edit to bun.lock would
+# otherwise pull hundreds of kB into a variable for a judgment that throws it
+# away.
 if ! holds_typescript_suffix "${FILE:-}"; then
   exit 0
 fi

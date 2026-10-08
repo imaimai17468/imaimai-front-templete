@@ -26,7 +26,7 @@ class DevSignInThrew extends Schema.TaggedError<DevSignInThrew>()(
 ) {}
 
 const RECOVERY =
-  "Run bun run db:push:local. If that does not help, reset the local D1.";
+  "Restart bun run dev, which applies the D1 migrations. If that does not help, reset the local D1.";
 
 const SIGN_UP_FALLBACK_MESSAGE = "sign-up failed";
 

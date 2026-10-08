@@ -8,10 +8,9 @@
     "setup:check": "bash .claude/hooks/session-start-env-check.sh --strict",
     "prepare": "lefthook install",
     "generate-routes": "tsr generate",
-    "dev": "PORTLESS_HTTPS=0 PORTLESS_PORT=1355 portless run vp dev",
-    "dev:https": "PORTLESS_HTTPS=1 portless run vp dev",
-    "build": "vp build",
-    "bundle:analyze": "vp build && wrangler deploy --dry-run --outdir .wrangler/bundle-analysis --metafile .wrangler/bundle-analysis/meta.json",
+    "dev": "PORTLESS_HTTPS=0 PORTLESS_PORT=1355 portless run alchemy dev",
+    "dev:https": "PORTLESS_HTTPS=1 portless run alchemy dev",
+    "build": "bun scripts/build.entry.ts",
     "lint": "vp lint",
     "lint:fix": "vp lint --fix",
     "format": "vp fmt --check .",
@@ -21,10 +20,8 @@
     "check:pins": "bun scripts/check-toolchain-pins.entry.ts",
     "check:shell": "git ls-files -z '*.sh' | xargs -0r shellcheck -x",
     "typecheck": "vp check --no-fmt --no-lint",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv",
-    "cf-typegen:check": "wrangler types --check --env-interface CloudflareEnv",
     "test": "vp test --run --coverage",
-    "smoke": "vp build && bun scripts/smoke.entry.ts",
+    "smoke": "bun scripts/smoke.entry.ts",
     "dead-code": "fallow dead-code",
     "dupes": "fallow dupes ./src",
     "doctor": "react-doctor",
@@ -32,9 +29,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:pull": "drizzle-kit pull",
-    "db:push:local": "wrangler d1 migrations apply DB --local",
-    "preview": "vp build && vp preview",
-    "deploy": "vp build && wrangler deploy"
+    "deploy": "alchemy deploy"
   },
   "dependencies": {
     "@hookform/resolvers": "5.9.1",
@@ -57,7 +52,9 @@
     "tailwind-merge": "3.6.0"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.54.2",
+    "@cloudflare/workers-types": "4.20260501.1",
+    "@effect/platform-bun": "4.0.0",
+    "@effect/platform-node": "4.0.0",
     "@effect/vitest": "4.0.0",
     "@shadcn/lint": "0.1.0",
     "@standard-schema/spec": "1.1.0",
@@ -76,6 +73,7 @@
     "@types/react-dom": "19.2.2",
     "@vitejs/plugin-react": "6.0.3",
     "@vitest/coverage-v8": "5.0.1",
+    "alchemy": "2.0.0-beta.81",
     "dotenv": "17.4.2",
     "drizzle-kit": "1.0.0-rc.5-ab785fc",
     "fallow": "3.27.0",
@@ -98,7 +96,6 @@
     "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",
     "vite-plus": "1.0.0",
     "vitest": "5.0.1",
-    "wrangler": "4.110.0",
     "yaml": "2.9.0",
     "zod": "4.4.3"
   },

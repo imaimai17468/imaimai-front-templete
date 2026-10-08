@@ -53,10 +53,9 @@ fi
 # the link check and lefthook all fail without it.
 [ -d "$TREE/node_modules" ] || GATE+=("node_modules absent — fresh checkout or worktree (fix: bun run setup)")
 # A capability probe, not a version compare: what old node lacks is
-# `module.registerHooks`, which @cloudflare/vite-plugin imports at module top
-# level, so loading vite.config.ts fails wherever it is loaded. Observed on
-# node 22.14: `bun run build` exits 1.
-node -e 'if (typeof require("node:module").registerHooks !== "function") process.exit(1)' >/dev/null 2>&1 || GATE+=("node with module.registerHooks — see engines in package.json (vite build fails)")
+# `module.registerHooks`, and alchemy's launcher exits naming it when node
+# rather than bun starts the alchemy CLI.
+node -e 'if (typeof require("node:module").registerHooks !== "function") process.exit(1)' >/dev/null 2>&1 || GATE+=("node with module.registerHooks — see engines in package.json (alchemy run under node exits)")
 
 # Gitignored, so a fresh checkout has none, and a worktree gets one only where
 # the main checkout already had one. `-L` sits beside `-e` because `-e` follows
@@ -70,9 +69,13 @@ elif CP_ERROR="$( ( cd "$TREE" && cp .env.local.example .env.local ) 2>&1 )"; th
 else
   SETUP+=(".env.local absent, and copying .env.local.example to it failed (fix: restore .env.local.example, or make the checkout writable). cp said: ${CP_ERROR:-cp exited non-zero and printed nothing}")
 fi
+# Alchemy reads CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN ahead of its
+# login, and drizzle-kit now reads the DRIZZLE_D1_* names, so a local env file
+# from before the rename breaks both. Only the names are matched, never a value.
+if [ -f "$TREE/.env.local" ] && grep -qE '^(CLOUDFLARE_ACCOUNT_ID|CLOUDFLARE_API_TOKEN|CLOUDFLARE_D1_DATABASE_ID)=' "$TREE/.env.local"; then
+  SETUP+=(".env.local still names CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN / CLOUDFLARE_D1_DATABASE_ID (fix: rename them to DRIZZLE_D1_ACCOUNT_ID / DRIZZLE_D1_API_TOKEN / DRIZZLE_D1_DATABASE_ID, as .env.local.example names them)")
+fi
 [ -f "$TREE/src/routeTree.gen.ts" ] || SETUP+=("src/routeTree.gen.ts absent (fix: bun run setup, or bun run generate-routes)")
-[ -f "$TREE/worker-configuration.d.ts" ] || SETUP+=("worker-configuration.d.ts absent (fix: bun run setup, or bun run cf-typegen)")
-[ -d "$TREE/.wrangler/state" ] || SETUP+=("local D1 not initialized — .wrangler/state absent (fix: bun run db:push:local before first bun run dev)")
 
 if [ "${#CREATED[@]}" -gt 0 ]; then
   printf '[env-check] %s\n' "${CREATED[@]}"

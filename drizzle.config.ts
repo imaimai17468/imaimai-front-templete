@@ -4,9 +4,9 @@ import type { Config } from "drizzle-kit";
 config({ path: ".env.local" });
 
 const CLOUDFLARE_VARS = [
-  "CLOUDFLARE_ACCOUNT_ID",
-  "CLOUDFLARE_D1_DATABASE_ID",
-  "CLOUDFLARE_API_TOKEN",
+  "DRIZZLE_D1_ACCOUNT_ID",
+  "DRIZZLE_D1_DATABASE_ID",
+  "DRIZZLE_D1_API_TOKEN",
 ] as const;
 
 type CloudflareVarName = (typeof CLOUDFLARE_VARS)[number];
@@ -32,13 +32,13 @@ export default {
   // variable is missing instead of sending `undefined`.
   dbCredentials: {
     get accountId() {
-      return requireCloudflareVar("CLOUDFLARE_ACCOUNT_ID");
+      return requireCloudflareVar("DRIZZLE_D1_ACCOUNT_ID");
     },
     get databaseId() {
-      return requireCloudflareVar("CLOUDFLARE_D1_DATABASE_ID");
+      return requireCloudflareVar("DRIZZLE_D1_DATABASE_ID");
     },
     get token() {
-      return requireCloudflareVar("CLOUDFLARE_API_TOKEN");
+      return requireCloudflareVar("DRIZZLE_D1_API_TOKEN");
     },
   },
 } satisfies Config;

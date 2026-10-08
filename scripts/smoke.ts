@@ -159,25 +159,19 @@ export const missedBy = (
   ...missingHeaders(headers, route),
 ];
 
-/**
- * What the run reports where the build left a local secrets file beside the
- * Worker config, or null where it left none.
- */
-export const leftoverSecretsFailure = (
-  secretsPath: string,
-  exists: boolean
-): string | null =>
-  exists
-    ? `the build wrote ${secretsPath}, which carries local secret values into dist/`
-    : null;
+/** The entries of `after` that `before` did not hold. */
+export const addedSince = (
+  before: readonly string[],
+  after: readonly string[]
+): readonly string[] => after.filter((entry) => !before.includes(entry));
 
 export const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-const READY_LINE = /Ready on (?<url>http:\/\/\S+)$/mu;
+const READY_LINE = /ready at (?<url>http:\/\/\S+)$/mu;
 
 /**
- * The address wrangler prints once workerd listens, or null while the text
+ * The address `alchemy dev` prints once the Worker listens, or null while the text
  * holds no such line. Matching to end of line keeps a URL that a stdout chunk
  * cut in half from being read as the whole address.
  */

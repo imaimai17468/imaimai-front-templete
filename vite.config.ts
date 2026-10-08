@@ -1,4 +1,3 @@
-import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
@@ -12,8 +11,6 @@ import ultraciteVitest from "ultracite/oxlint/vitest";
 import { defineConfig } from "vite-plus";
 import { effectRules } from "./oxlint.effect.ts";
 import reactDoctor from "./oxlint.react-doctor.ts";
-import { dropLocalSecrets } from "./tools/vite-plugins/drop-local-secrets-plugin";
-import { wranglerTypes } from "./tools/vite-plugins/wrangler-types-plugin";
 
 const CONFIG_FILES = "*.config.{js,ts,mjs,mts}";
 const FILES_VITEST_NEVER_LOADS = [CONFIG_FILES, "scripts/**"];
@@ -187,7 +184,7 @@ export default defineConfig({
       ".output",
       "dist",
       "build",
-      "worker-configuration.d.ts",
+      ".alchemy",
       // The web-security-audit skill keeps CommonJS validators, which trip the
       // rules above.
       ".claude/skills/web-security-audit",
@@ -429,7 +426,7 @@ export default defineConfig({
       "dist",
       "build",
       "src/routeTree.gen.ts",
-      "worker-configuration.d.ts",
+      ".alchemy",
       // The web-security-audit skill keeps its JSON schema and validators in
       // their own formatting rather than this project's.
       ".claude/skills/web-security-audit",
@@ -439,13 +436,5 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
-  plugins: [
-    devtools(),
-    tanstackStart(),
-    react(),
-    tailwindcss(),
-    cloudflare({ viteEnvironment: { name: "ssr" } }),
-    dropLocalSecrets(),
-    wranglerTypes(),
-  ],
+  plugins: [devtools(), tanstackStart(), react(), tailwindcss()],
 });

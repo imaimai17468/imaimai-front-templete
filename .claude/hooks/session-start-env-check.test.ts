@@ -86,15 +86,13 @@ describe("session-start-env-check.sh", () => {
   });
 
   /**
-   * A checkout whose only open setup question is the local env file: the three
-   * other paths the hook's setup section names are present.
+   * A checkout whose only open setup question is the local env file: the
+   * other path the hook's setup section names is present.
    */
   const scratchCheckout = (): string => {
     const dir = fs.mkdtempSync(path.join(scratchRoot, "checkout-"));
     fs.mkdirSync(path.join(dir, "src"), { recursive: true });
-    fs.mkdirSync(path.join(dir, ".wrangler", "state"), { recursive: true });
     fs.writeFileSync(path.join(dir, "src", "routeTree.gen.ts"), "");
-    fs.writeFileSync(path.join(dir, "worker-configuration.d.ts"), "");
     fs.writeFileSync(path.join(dir, EXAMPLE), EXAMPLE_BODY);
     return dir;
   };
@@ -121,6 +119,20 @@ describe("session-start-env-check.sh", () => {
       body: "BETTER_AUTH_SECRET=mine\n",
       created: [],
       setup: [],
+    });
+  });
+
+  it("should report the rename as a setup issue when the local env file still names the Cloudflare variables", async () => {
+    const dir = scratchCheckout();
+    fs.writeFileSync(path.join(dir, LOCAL_ENV), "CLOUDFLARE_API_TOKEN=x\n");
+
+    const { stdout } = await runHook(dir);
+
+    expect(report(stdout)).toStrictEqual({
+      created: [],
+      setup: [
+        ".env.local still names CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN / CLOUDFLARE_D1_DATABASE_ID (fix: rename them to DRIZZLE_D1_ACCOUNT_ID / DRIZZLE_D1_API_TOKEN / DRIZZLE_D1_DATABASE_ID, as .env.local.example names them)",
+      ],
     });
   });
 

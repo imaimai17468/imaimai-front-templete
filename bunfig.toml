@@ -6,3 +6,29 @@ exact = true
 # The check runs at resolution only: a version already pinned in bun.lock
 # installs without it, including under --frozen-lockfile.
 minimumReleaseAge = 604800
+
+# Packages the alchemy-run maintainers publish. Alchemy v2 is in beta and each
+# release pins sibling packages published days earlier, so minimumReleaseAge
+# would refuse every current release.
+minimumReleaseAgeExcludes = [
+  "alchemy",
+  "@alchemy.run/cloudflare-runtime",
+  "@alchemy.run/floci",
+  "@alchemy.run/node-utils",
+  "@distilled.cloud/acme",
+  "@distilled.cloud/aws",
+  "@distilled.cloud/axiom",
+  "@distilled.cloud/cloudflare",
+  "@distilled.cloud/core",
+  "@distilled.cloud/doppler",
+  "@distilled.cloud/fly-io",
+  "@distilled.cloud/gcp",
+  "@distilled.cloud/hetzner",
+  "@distilled.cloud/infisical",
+  "@distilled.cloud/neon",
+  "@distilled.cloud/planetscale",
+  "@distilled.cloud/prisma",
+  "@distilled.cloud/railway",
+  "@distilled.cloud/stripe",
+  "@distilled.cloud/zerossl",
+]

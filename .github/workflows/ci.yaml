@@ -37,9 +37,6 @@ jobs:
       - name: Generate route tree
         run: bun run generate-routes
 
-      - name: Generate Cloudflare env types
-        run: bun run cf-typegen
-
       # Fails on vulnerabilities in direct dependencies, and fails when `bun audit`
       # prints no JSON advisory report, which is what a registry or network error
       # leaves. Transitive advisories are printed without blocking: patching them
@@ -121,14 +118,13 @@ jobs:
       - name: Run Tests
         run: bun run test
 
-      # Builds, applies the D1 migrations to a fresh local state, boots the
-      # built Worker under workerd on it, requests the routes scripts/smoke.ts
-      # names, and sends its sign-in burst.
-      - name: Build the app and request its routes (smoke)
+      # The build `alchemy deploy` runs, without deploying, so a change that
+      # breaks the production bundle fails here.
+      - name: Build the Worker
+        run: bun run build
+
+      # Boots the stack under `alchemy dev` on a fresh local state, which
+      # applies the D1 migrations, requests the routes scripts/smoke.ts names,
+      # and sends its sign-in burst. It reads no Cloudflare account.
+      - name: Boot the app and request its routes (smoke)
         run: bun run smoke
-        # The Cloudflare plugin writes dist/server/.dev.vars only for a
-        # `[secrets] required` name it finds a value for, and CI holds none.
-        # This value gives it one, so smoke's check that the build left no such
-        # file fails here once the file comes back.
-        env:
-          BETTER_AUTH_SECRET: ci-build-probe
