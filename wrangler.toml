@@ -14,9 +14,10 @@ enabled = true
 binding = "DB"
 database_name = "local-db"
 database_id = "00000000-0000-0000-0000-000000000000"
-# drizzle-kit の出力先。既定の ./migrations ではなくここを見せることで、
-# `wrangler d1 migrations apply` が drizzle が生成した SQL を適用する。
+# drizzle-kit の出力先。drizzle-kit はマイグレーションを 1 件ずつフォルダに書くので、
+# `wrangler d1 migrations apply` には各フォルダの migration.sql を拾わせる。
 migrations_dir = "src/lib/drizzle/migrations"
+migrations_pattern = "src/lib/drizzle/migrations/*/migration.sql"
 
 [[r2_buckets]]
 binding = "AVATARS_BUCKET"

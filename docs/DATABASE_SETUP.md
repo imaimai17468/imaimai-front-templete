@@ -150,7 +150,7 @@ bun run db:generate
 bun run db:push:local
 ```
 
-`db:push:local` は `wrangler d1 migrations apply` を `--local` で呼び、`d1_migrations` テーブルに記録されていないマイグレーションだけを適用します。既存のローカルデータは残ります。適用先のディレクトリは `wrangler.toml` の `migrations_dir` が drizzle-kit の出力先を指しています。スキーマ変更時も `db:generate` → `db:push:local` の順で実行してください。
+`db:push:local` は `wrangler d1 migrations apply` を `--local` で呼び、`d1_migrations` テーブルに記録されていないマイグレーションだけを適用します。既存のローカルデータは残ります。drizzle-kit はマイグレーションを `src/lib/drizzle/migrations/` の下に 1 件ずつフォルダで書くので、`wrangler.toml` の `migrations_pattern` が各フォルダの `migration.sql` を wrangler に拾わせています。drizzle-kit 0.x の平らな `0000_<名前>.sql` で当てたローカル D1 は、記録された名前が今のフォルダ名と合わず、`table ... already exists` で止まります。その場合は下の[ローカルデータのリセット](#ローカルデータのリセット)で作り直してください。スキーマ変更時も `db:generate` → `db:push:local` の順で実行してください。
 
 ## 6. 動作確認
 

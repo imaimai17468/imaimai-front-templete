@@ -13,35 +13,43 @@ const stampedAt = (column: "created_at" | "updated_at") =>
   integer(column, { mode: "timestamp" }).$defaultFn(nowUtc);
 
 // Better Auth 必須テーブル
-export const users = sqliteTable("users", {
-  // The bucket key of an avatar this app uploaded. `image` stays Better Auth's
-  // column and holds whatever the social provider supplied, so the two never
-  // overwrite each other and the served path is not frozen into a stored URL.
-  avatarKey: text("avatar_key"),
-  createdAt: stampedAt("created_at").notNull(),
-  email: text("email").notNull().unique(),
-  emailVerified: integer("email_verified", { mode: "boolean" }),
-  id: text("id").primaryKey(),
-  image: text("image"),
-  name: text("name"),
-  updatedAt: stampedAt("updated_at").notNull(),
-});
+export const users = sqliteTable(
+  "users",
+  {
+    // The bucket key of an avatar this app uploaded. `image` stays Better Auth's
+    // column and holds whatever the social provider supplied, so the two never
+    // overwrite each other and the served path is not frozen into a stored URL.
+    avatarKey: text("avatar_key"),
+    createdAt: stampedAt("created_at").notNull(),
+    email: text("email").notNull(),
+    emailVerified: integer("email_verified", { mode: "boolean" }),
+    id: text("id").primaryKey(),
+    image: text("image"),
+    name: text("name"),
+    updatedAt: stampedAt("updated_at").notNull(),
+  },
+  (table) => [uniqueIndex("users_email_unique").on(table.email)]
+);
 
 const ownerId = () =>
   text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" });
 
-export const sessions = sqliteTable("sessions", {
-  createdAt: stampedAt("created_at").notNull(),
-  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
-  id: text("id").primaryKey(),
-  ipAddress: text("ip_address"),
-  token: text("token").notNull().unique(),
-  updatedAt: stampedAt("updated_at").notNull(),
-  userAgent: text("user_agent"),
-  userId: ownerId(),
-});
+export const sessions = sqliteTable(
+  "sessions",
+  {
+    createdAt: stampedAt("created_at").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    id: text("id").primaryKey(),
+    ipAddress: text("ip_address"),
+    token: text("token").notNull(),
+    updatedAt: stampedAt("updated_at").notNull(),
+    userAgent: text("user_agent"),
+    userId: ownerId(),
+  },
+  (table) => [uniqueIndex("sessions_token_unique").on(table.token)]
+);
 
 export const accounts = sqliteTable(
   "accounts",
@@ -91,10 +99,13 @@ export const rateLimits = sqliteTable(
   {
     count: integer("count").notNull(),
     id: text("id").primaryKey(),
-    key: text("key").notNull().unique(),
+    key: text("key").notNull(),
     lastRequest: integer("last_request").notNull(),
   },
   // Better Auth prunes rows older than its longest window with
   // `DELETE ... WHERE last_request < ?` inside the request that reset a window.
-  (table) => [index("rate_limits_last_request_idx").on(table.lastRequest)]
+  (table) => [
+    index("rate_limits_last_request_idx").on(table.lastRequest),
+    uniqueIndex("rate_limits_key_unique").on(table.key),
+  ]
 );
