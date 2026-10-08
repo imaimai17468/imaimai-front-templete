@@ -17,6 +17,8 @@ This skill turns a vulnerability class into the checks it takes in this reposito
 
 Run step 3 only against the local dev server and accounts you created yourself. Changing an id against a service you have not been authorized to test is an attack whatever the intent.
 
+`bun run dev` applies the D1 migrations itself when it starts, and keeps the local D1 as SQLite files under `.alchemy/local/d1/cloudflare-runtime-D1DatabaseObject/`: one `<hash>.sqlite` per local D1 Alchemy has created, beside `metadata.sqlite`. Deleting `.alchemy/state` leaves the earlier file behind, and nothing in a file's name says which stage it belongs to, so the dev stage's file is the one holding the user you signed in as, the most recently modified one after you sign in. A reference that reads a row runs `sqlite3 -readonly <that file> "<SQL>"`. Whether a write made with `sqlite3` reaches a running `bun run dev` has not been verified, so a reference that writes a row stops `bun run dev` first and starts it again after.
+
 ## References
 
 Each file in `references/` covers one vulnerability class and is named for it, such as `references/access-control.md`. List the directory and open the file for the class under review; open more than one where a change crosses classes, as an upload does for both file handling and authorization.

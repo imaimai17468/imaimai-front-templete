@@ -5,7 +5,7 @@ import type { DevSignInDeps } from "./dev";
 import { createDevSignIn, DEV_USER } from "./dev";
 
 const RECOVERY =
-  "Run bun run db:push:local. If that does not help, reset the local D1.";
+  "Restart bun run dev, which applies the D1 migrations. If that does not help, reset the local D1.";
 
 const reported = (message: string) =>
   Option.some({ message: Option.some(message) });

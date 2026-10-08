@@ -27,7 +27,6 @@ run bun install --frozen-lockfile
 # git hooks it installs are written here instead.
 run bun run prepare
 run bun run generate-routes
-run bun run cf-typegen
 
 # The local env file is gitignored, so a fresh clone has none and a worktree
 # gets one only where the main checkout already had one. `-L` sits beside `-e`

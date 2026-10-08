@@ -13,7 +13,9 @@ get.
 ## 1. Serve a production build
 
 Read the build and preview scripts from `package.json`, build, start the preview server and
-note its URL. If the port is occupied, kill the holder (`lsof -ti:<port> | xargs kill`)
+note its URL. Where `package.json` has no preview script, nothing serves the production build
+locally: ask the user for a deployed URL to measure, and report the audit as not run until
+they name one. If the port is occupied, kill the holder (`lsof -ti:<port> | xargs kill`)
 rather than moving to another port.
 
 ## 2. Confirm the app works

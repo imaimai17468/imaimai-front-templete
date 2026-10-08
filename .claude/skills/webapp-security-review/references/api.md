@@ -37,7 +37,7 @@ What may arrive is decided by each server function's validator (`input-validatio
 
 ## Reproduce locally
 
-Change one element of a request that works, and compare both the body and the row. Run `bun run db:push:local`, start `PORTLESS=0 bun run dev` (it serves `http://localhost:5173`), sign in on `/login`, and copy from the Network panel the request the profile page's Save button sends to `/_serverFn/...`. Replay it with `curl`, keeping the session cookie and the `x-tsr-serverFn: true` and `Sec-Fetch-Site: same-origin` headers, and change one thing per send: the method to `PUT`, then the cookie removed. The undeclared-field send is `data-processing.md`'s. Read the row with `bunx wrangler d1 execute DB --local --command "select id, name, email from users"` after each.
+Change one element of a request that works, and compare both the body and the row. Start `PORTLESS=0 bun run dev` (it serves `http://localhost:5173`), sign in on `/login`, and copy from the Network panel the request the profile page's Save button sends to `/_serverFn/...`. Replay it with `curl`, keeping the session cookie and the `x-tsr-serverFn: true` and `Sec-Fetch-Site: same-origin` headers, and change one thing per send: the method to `PUT`, then the cookie removed. The undeclared-field send is `data-processing.md`'s. Read the row with `sqlite3 -readonly <dev D1 file> "select id, name, email from users"` (`SKILL.md` names the file) after each.
 
 A 405 naming `POST` means the method is fixed. `Not authenticated` with the row unchanged is the refusal expected without a cookie. A plain-text 403 `Forbidden` means the request lacked `Sec-Fetch-Site` and the CSRF middleware (`csrf.md`) refused it before the handler ran, so it proves nothing about the endpoint.
 

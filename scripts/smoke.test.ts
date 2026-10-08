@@ -7,8 +7,8 @@
 
 import { describe, expect, it } from "vite-plus/test";
 import {
+  addedSince,
   EXPECTED_DOCUMENT_HEADERS,
-  leftoverSecretsFailure,
   messageOf,
   missedBy,
   missingFrom,
@@ -63,22 +63,20 @@ describe("smoke", () => {
 
   it("should give the address when a complete ready line is present", () => {
     expect(
-      readyUrlIn("[wrangler:info] Ready on http://localhost:53402\n")
+      readyUrlIn(
+        "[23:14:54.358] INFO (#374): [app] ready at http://localhost:53402\n"
+      )
     ).toBe("http://localhost:53402");
   });
 
   it("should give no address when the text holds no ready line", () => {
-    expect(readyUrlIn("⎔ Starting local server...\n")).toBeNull();
+    expect(
+      readyUrlIn("[23:14:30.118] INFO (#19): [db] create (local)\n")
+    ).toBeNull();
   });
 
-  it("should name the file when the build left local secrets beside the Worker config", () => {
-    expect(leftoverSecretsFailure("dist/server/.dev.vars", true)).toBe(
-      "the build wrote dist/server/.dev.vars, which carries local secret values into dist/"
-    );
-  });
-
-  it("should report nothing when the build left no local secrets file", () => {
-    expect(leftoverSecretsFailure("dist/server/.dev.vars", false)).toBeNull();
+  it("should give only the new entries when the second listing adds to the first", () => {
+    expect(addedSince(["a", "b"], ["a", "b", "c"])).toStrictEqual(["c"]);
   });
 
   it("should give the message when an Error was thrown", () => {

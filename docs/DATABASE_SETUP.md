@@ -1,39 +1,18 @@
 # データベースセットアップ
 
-> テンプレートは初期状態で `wrangler.toml` にローカル開発用のダミー値 (`local-db` / `local-avatars` / ゼロ UUID) が入っています。`bun run dev` はこのまま起動でき、`@cloudflare/vite-plugin` がローカル D1/R2 バインディングを提供します。**本番 Cloudflare にデプロイする場合**のみ、以下の手順で実リソースに差し替えてください。
+> D1 と R2 は `alchemy.run.ts` に宣言してあります。`bun run dev`（`alchemy dev`）は Cloudflare のアカウントもログインも無しにローカルの D1 / R2 を動かし、状態とデータを `.alchemy/`（gitignore 済み）に置きます。**本番 Cloudflare にデプロイする場合**のみ、以下の手順でログインと値の設定を行ってください。
 
-## 1. Cloudflareリソースを作成
-
-### D1 データベース
+## 1. Cloudflare にログイン
 
 ```bash
-wrangler d1 create <任意のデータベース名>
-# 例: wrangler d1 create my-project-db
+bunx alchemy profile edit --add Cloudflare
 ```
 
-出力される `database_id` を控えておく。
+OAuth か API トークンを選び、ログイン情報は `~/.alchemy/profiles/<プロファイル名>/cloudflare.json` に保存されます（プロファイル名は `ALCHEMY_PROFILE` が無ければ `default`）。
 
-### R2 バケット
+## 2. リソースを作成
 
-```bash
-wrangler r2 bucket create <任意のバケット名>
-# 例: wrangler r2 bucket create my-project-avatars
-```
-
-## 2. wrangler.toml を実リソースに差し替え
-
-`wrangler.toml` のダミー値 (`local-db` / `local-avatars` / ゼロ UUID) を実際の値に更新：
-
-```toml
-[[d1_databases]]
-binding = "DB"
-database_name = "<手順1で指定したデータベース名>"
-database_id = "<ここに実際のdatabase_idを入力>"
-
-[[r2_buckets]]
-binding = "AVATARS_BUCKET"
-bucket_name = "<手順1で指定したバケット名>"
-```
+D1 データベースと R2 バケットは、最初の `bun run deploy` が `alchemy.run.ts` の宣言（`Cloudflare.D1.Database("db")` と `Cloudflare.R2.Bucket("avatars")`）から作ります。名前や ID を設定ファイルに書き写す手順はありません。手順は [DEPLOYMENT.md](./DEPLOYMENT.md) を参照してください。wrangler で作った既存のリソースがある場合の注意も同じ文書にあります。
 
 ## 3. 環境変数を設定
 
@@ -49,9 +28,9 @@ GOOGLE_CLIENT_ID=<your-google-client-id>
 GOOGLE_CLIENT_SECRET=<your-google-client-secret>
 
 # Cloudflare D1 (drizzle-kit用)
-CLOUDFLARE_ACCOUNT_ID=<your-account-id>
-CLOUDFLARE_D1_DATABASE_ID=<your-d1-database-id>
-CLOUDFLARE_API_TOKEN=<your-api-token>
+DRIZZLE_D1_ACCOUNT_ID=<your-account-id>
+DRIZZLE_D1_DATABASE_ID=<your-d1-database-id>
+DRIZZLE_D1_API_TOKEN=<your-api-token>
 
 ```
 
@@ -61,25 +40,15 @@ CLOUDFLARE_API_TOKEN=<your-api-token>
 openssl rand -base64 32
 ```
 
-### CLOUDFLARE_ACCOUNT_ID の取得
+### DRIZZLE_D1_ACCOUNT_ID の取得
 
 1. [Cloudflare Dashboard](https://dash.cloudflare.com/) にログイン
 2. **Workers & Pages** をクリック
 3. 右サイドバーに表示される **Account ID** をコピー
 
-CLIでも取得可能：
-```bash
-wrangler whoami
-```
+### DRIZZLE_D1_DATABASE_ID の取得
 
-### CLOUDFLARE_D1_DATABASE_ID の取得
-
-手順1で `wrangler d1 create` を実行した際に出力された `database_id` の値。
-
-後から確認する場合：
-```bash
-wrangler d1 list
-```
+手順2のデプロイで作られた D1 データベースの ID。Cloudflare Dashboard の **Workers & Pages** > **D1** で、対象のデータベースを開くと表示されます。
 
 ### Cloudflare API Token の作成
 
@@ -88,8 +57,11 @@ wrangler d1 list
 3. 必要な権限は **Account > D1 > Edit** のみ。
 
 このトークンを使うのは drizzle-kit の `d1-http` ドライバ (`db:push` /
-`db:generate` / `db:pull` / `db:studio`) だけで、D1 以外の権限は不要。R2 の
-バケット作成には Wrangler の認証を使い、このトークンは使わない。権限を
+`db:generate` / `db:pull` / `db:studio`) だけで、D1 以外の権限は不要。D1 と R2 の
+作成は `bun run deploy` が Alchemy のログインで行い、このトークンは使わない。
+変数名を `CLOUDFLARE_*` にしていないのは、Alchemy が `CLOUDFLARE_ACCOUNT_ID` と
+`CLOUDFLARE_API_TOKEN` をログイン情報より先に読むので、D1 しか触れないこの
+トークンがデプロイに使われてしまうからである。権限を
 最小に保つこと自体がこのトークンをディスクに置く唯一の
 緩和策になっている。秘密をディスクに置かない原則の唯一の例外として許容しているもので、
 常設ではない — リモートスキーマ作業が終わったら削除するかローテーションし、タスクの間に
@@ -103,13 +75,13 @@ R2 バケットは非公開のまま使用します。アバターは認証と�
 
 ### 開発用ログイン
 
-`/login` には「Sign in With Google」ボタンが 1 つだけ並びます。`bun run dev` で立てた開発ビルドでは、このボタンが Google へ飛ばずに `src/lib/auth/sign-in/dev.ts` が持つ資格情報でサインインし、ローカル D1 にそのユーザーが居なければ作ってから入ります。`.wrangler/state` を消しても次のクリックで作り直されます。Google の認証情報を登録しなくても認証済みの画面を触れるので、下の Google 設定はデプロイ先を用意する段で行えば足ります。
+`/login` には「Sign in With Google」ボタンが 1 つだけ並びます。`bun run dev` で立てた開発ビルドでは、このボタンが Google へ飛ばずに `src/lib/auth/sign-in/dev.ts` が持つ資格情報でサインインし、ローカル D1 にそのユーザーが居なければ作ってから入ります。`.alchemy/` を消しても次のクリックで作り直されます。Google の認証情報を登録しなくても認証済みの画面を触れるので、下の Google 設定はデプロイ先を用意する段で行えば足ります。
 
 開発ビルドから Google 側を試すときは `VITE_GOOGLE_SIGN_IN=1 PORTLESS=0 bun run dev` で起動します。同じボタンがそのまま Google へ飛びます。
 
 この差し替えとメール・パスワード認証は本番ビルドでは働きません。Vite が `import.meta.env.DEV` を `false` に畳むので、デプロイされた Worker の `/api/auth/sign-in/email` は `EMAIL_PASSWORD_DISABLED` を返します。
 
-メール・パスワードが使う `accounts.password` 列は drizzle スキーマに入っているので、既にある D1 にはマイグレーションを当ててから使ってください。ローカルなら最初のクリックの前に `bun run db:push:local`、デプロイ先なら手順5の remote 適用です。drizzle は全列を名指しで SELECT するため、列が無い D1 では Google ログインの account 参照も落ちます。当てる前に押してしまい `User already exists.` が出続ける場合は、下の[ローカルデータのリセット](#ローカルデータのリセット)で作りかけの行ごと消してください。
+メール・パスワードが使う `accounts.password` 列は drizzle スキーマに入っているので、既にある D1 にはマイグレーションを当ててから使ってください。ローカルなら `bun run dev` を起動し直すと Alchemy が当て、デプロイ先なら手順5のとおり `bun run deploy` が当てます。drizzle は全列を名指しで SELECT するため、列が無い D1 では Google ログインの account 参照も落ちます。当てる前に押してしまい `User already exists.` が出続ける場合は、下の[ローカルデータのリセット](#ローカルデータのリセット)で作りかけの行ごと消してください。
 
 ### Google
 
@@ -130,27 +102,23 @@ R2 バケットは非公開のまま使用します。アバターは認証と�
 
 ## 5. データベースを初期化
 
-### リモート D1 に適用（本番・ステージング）
+スキーマを変えたら、マイグレーションファイルを生成します。
 
 ```bash
-# マイグレーションファイルを生成
 bun run db:generate
-
-# D1に適用
-bun run db:push
 ```
 
-### ローカル D1 に適用（開発用）
+生成先は `src/lib/drizzle/migrations/` で、`alchemy.run.ts` の `migrations` がこのディレクトリを指しています。Alchemy は適用済みのマイグレーションを D1 の `__alchemy_migrations` テーブルに記録し、まだ当たっていないものだけを当てます。
 
-```bash
-# マイグレーションファイルを生成（初回 or スキーマ変更時）
-bun run db:generate
+### ローカル D1（開発用）
 
-# ローカル D1 に適用
-bun run db:push:local
-```
+`bun run dev` の起動時に Alchemy が当てます。既存のローカルデータは、Alchemy が見る Cloudflare アカウント（`CLOUDFLARE_ACCOUNT_ID`、無ければログイン中のプロファイルのアカウント）が変わらない限り残ります。ログインなどでアカウントが変わると、新しい空のローカル D1 が作られる見込みです【要確認】。
 
-`db:push:local` は `wrangler d1 migrations apply` を `--local` で呼び、`d1_migrations` テーブルに記録されていないマイグレーションだけを適用します。既存のローカルデータは残ります。drizzle-kit はマイグレーションを `src/lib/drizzle/migrations/` の下に 1 件ずつフォルダで書くので、`wrangler.toml` の `migrations_pattern` が各フォルダの `migration.sql` を wrangler に拾わせています。drizzle-kit 0.x の平らな `0000_<名前>.sql` で当てたローカル D1 は、記録された名前が今のフォルダ名と合わず、`table ... already exists` で止まります。その場合は下の[ローカルデータのリセット](#ローカルデータのリセット)で作り直してください。スキーマ変更時も `db:generate` → `db:push:local` の順で実行してください。
+### リモート D1（本番・ステージング）
+
+`bun run deploy` が当てます。
+
+`bun run db:push`（`drizzle-kit push`）はスキーマを直接リモート D1 に書き、`__alchemy_migrations` には記録しません。【要確認】このため、push で当てた変更を含むマイグレーションを次のデプロイが当て直し、`already exists` で止まると推定していますが、確かめていません。Alchemy が管理する D1 にはデプロイ経由で当ててください。
 
 ## 6. 動作確認
 
@@ -160,27 +128,20 @@ bun run db:push:local
 bun run dev
 ```
 
-`vite.config.ts` の `@cloudflare/vite-plugin` により、`bun run dev` でもローカルの D1/R2 バインディングが使えます。HMR が有効なので日常的な開発にはこちらを使用してください。
-
-### プレビュー（デプロイ前確認）
-
-```bash
-bun run preview
-```
-
-Cloudflare Workers ランタイムをエミュレートして実行します。デプロイ前の最終確認に使用してください。
+`bun run dev` は `alchemy dev` を実行し、ローカルの D1/R2 バインディングが使えます。HMR が有効なので日常的な開発にはこちらを使用してください。
 
 | コマンド | ポート | DB/ストレージ | HMR | 用途 |
 |---------|--------|-------------|-----|------|
 | `bun run dev` | portless が割り当て（`http://my-app.localhost:1355`） | ローカルD1/R2 | ○ | 日常的な開発 |
 | `VITE_GOOGLE_SIGN_IN=1 PORTLESS=0 bun run dev` | 5173 | ローカルD1/R2 | ○ | Google ログインの確認 |
-| `bun run preview` | 4173 | ローカルD1/R2 | × | デプロイ前確認 |
 
 ### ローカルデータのリセット
 
+`bun run dev` を止めてから `.alchemy/` を消し、もう一度起動します。起動時にマイグレーションが当たり直します。
+
 ```bash
-rm -rf .wrangler
-bun run db:push:local
+rm -rf .alchemy
+bun run dev
 ```
 
 ## 補足：Drizzleコマンド
@@ -191,7 +152,7 @@ bun run db:push:local
 # スキーマからマイグレーション生成
 bun run db:generate
 
-# スキーマをリモート D1 に反映（ローカルは db:push:local）
+# スキーマをリモート D1 に直接反映（手順5の注意を参照）
 bun run db:push
 
 # データベースGUIを起動
@@ -211,10 +172,5 @@ bun run deploy
 
 このプロジェクトのデプロイ先は Cloudflare **Workers** です（Pages ではありません）。本番環境の値は種類で置き場所が変わります。
 
-- **秘密でない値**: `wrangler.toml` の `[vars]` に置き、コミットする。
-- **秘密の値**（`BETTER_AUTH_SECRET` / `GOOGLE_CLIENT_SECRET` など）: `wrangler secret put <NAME>` で登録する。ファイルには絶対に書かない。`.env*` は `.gitignore` 済みかつエージェントからの読み取りも拒否設定です。
-
-```bash
-wrangler secret put BETTER_AUTH_SECRET
-wrangler secret list
-```
+- **秘密でない値**: `alchemy.run.ts` の `env` に置き、コミットする。
+- **秘密の値**（`BETTER_AUTH_SECRET` / `GOOGLE_CLIENT_SECRET` など）: `bun run deploy` を実行するシェルの環境変数から渡す。ファイルには絶対に書かない。`.env*` は `.gitignore` 済みかつエージェントからの読み取りも拒否設定です。渡し方は [DEPLOYMENT.md](./DEPLOYMENT.md) の「秘密の渡し方」を参照してください。

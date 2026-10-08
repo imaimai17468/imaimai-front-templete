@@ -16,7 +16,6 @@ mise install
 mise exec -- bun install --frozen-lockfile --ignore-scripts
 
 mise exec -- bun run generate-routes
-mise exec -- bun run cf-typegen
 
 # rc を読むシェル(対話・ログイン)に shims の PATH を通す。
 # rc を読まないワンショットの非対話シェルには届かないため、そこでは

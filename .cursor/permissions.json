@@ -74,12 +74,6 @@
     "bun:run dead-code",
     "bun:run dupes",
     "bun:run generate-routes",
-    "bun:run cf-typegen",
-    "bun:run cf-typegen:check",
-    // wrangler (read-only / codegen)
-    "wrangler types",
-    "wrangler d1 list",
-    "wrangler tail",
     // actionlint, pinned to one argument form: a prefix entry would also
     // auto-approve `-shellcheck <path>` and `-pyflakes <path>`, which run the
     // named command, and `-init-config`, which writes .github/actionlint.yaml
@@ -91,7 +85,7 @@
     "block_instructions": [
       "Never run destructive or history-rewriting commands in this repo: rm -rf / rm -r, git push --force (any variant), git reset --hard, git clean, git branch -D, git checkout . / git checkout --, git restore . / git restore --, git commit --amend, interactive rebase, sudo, chmod -R.",
       "Never read or modify .env, .env.local, .env.development, .env.production.",
-      "Deploy, DB-schema, and publish commands always require explicit user approval: bun run deploy / preview / db:push / db:generate, wrangler deploy / d1 execute / r2 / secret, drizzle-kit, git commit, git push, gh pr create/edit/close/merge, gh api, bun add, bunx."
+      "Deploy, DB-schema, and publish commands always require explicit user approval: bun run deploy / db:push / db:generate, alchemy deploy / destroy / plan / profile / provider / state, drizzle-kit, git commit, git push, gh pr create/edit/close/merge, gh api, bun add, bunx."
     ]
   }
 }

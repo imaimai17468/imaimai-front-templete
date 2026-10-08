@@ -15,11 +15,15 @@
   // Vendored skill payloads: nothing in this repository imports them, and the
   // next update to the skill overwrites whatever a cleanup did to them.
   "ignorePatterns": [".claude/skills/**"],
-  // Read by the react-doctor binary at startup, and run by
-  // .claude/hooks/scoped-guidance.sh, neither of which an import graph reaches.
+  // Read by the react-doctor binary at startup, run by
+  // .claude/hooks/scoped-guidance.sh, loaded by the alchemy CLI, and named as
+  // the Worker's `main` in a string inside alchemy.run.ts, none of which an
+  // import graph reaches.
   "dynamicallyLoaded": [
     "doctor.config.ts",
     ".claude/hooks/scoped-guidance.entry.ts",
+    "alchemy.run.ts",
+    "src/ssr.tsx",
   ],
   "ignoreDependencies": [
     // Named as strings in the `lint.plugins` block of vite.config.ts, which
@@ -30,6 +34,10 @@
     // imports StandardSchemaV1 from it. No file here names it, so dropping it
     // fails the type check rather than the analysis.
     "@standard-schema/spec",
+    // Peer dependencies the alchemy CLI imports when it starts; it exits
+    // naming the missing one when either is absent.
+    "@effect/platform-bun",
+    "@effect/platform-node",
   ],
   "rules": {
     // The rule predicts that a production install omitting devDependencies

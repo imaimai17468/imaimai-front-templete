@@ -41,7 +41,7 @@ export const SPECS: readonly Spec[] = [
       {
         term: "実行環境",
         detail:
-          "Cloudflare Workers。@cloudflare/vite-plugin により bun run dev でも D1 と R2 のバインディングが有効",
+          "Cloudflare Workers。Alchemy が alchemy.run.ts の宣言から、bun run dev ではローカルに、bun run deploy では Cloudflare に Worker と D1 と R2 を立てる",
       },
       { term: "パッケージ", detail: "Bun。バージョンは mise.toml が固定する" },
     ],
@@ -123,10 +123,7 @@ export const LINKS: readonly ReferenceLink[] = [
   { name: "Better Auth", href: "https://www.better-auth.com/" },
   { name: "Cloudflare D1", href: "https://developers.cloudflare.com/d1/" },
   { name: "Cloudflare R2", href: "https://developers.cloudflare.com/r2/" },
-  {
-    name: "@cloudflare/vite-plugin",
-    href: "https://developers.cloudflare.com/workers/vite-plugin/",
-  },
+  { name: "Alchemy", href: "https://alchemy.run" },
   {
     name: "TypeScript 7",
     href: "https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/",
