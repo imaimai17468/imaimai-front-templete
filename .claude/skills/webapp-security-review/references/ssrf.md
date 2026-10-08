@@ -23,7 +23,7 @@ The book's other targets, a VM's metadata service and a container network's inte
 
 ## Checks
 
-**List the outbound requests before judging any of them.** Run `git grep -n -e 'fetch(' -e 'new Request(' -e 'HttpClient' -- src`, and check `wrangler.toml` for service bindings. Today the answer is the inbound handler and requests a test builds as input. A new hit is a sink, and each value that flows into its URL, method, headers or body is a source, including a column, a queue message or a field of an uploaded document.
+**List the outbound requests before judging any of them.** Run `git grep -n -e 'fetch(' -e 'new Request(' -e 'HttpClient' -- src`, and check the `App` declaration's `env` in `alchemy.run.ts` for service bindings. Today the answer is the inbound handler and requests a test builds as input. A new hit is a sink, and each value that flows into its URL, method, headers or body is a source, including a column, a queue message or a field of an uploaded document.
 
 **The request picks a destination id, and the server holds the URL.** Where the set of destinations is known (a webhook to a partner, a preview of this app's own pages), the request sends a logical id, and a map on the server turns it into the whole URL. An unknown id is refused before any network call. It is wrong where the request, or a row it wrote, carries the URL, even if the URL passes a parser: parsing a URL says what its parts are, never that the host is one this feature may call.
 

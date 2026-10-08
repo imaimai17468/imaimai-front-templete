@@ -12,8 +12,10 @@ Strips the template down to a frontend-only TanStack Start app by removing:
 - Better Auth (Google OAuth)
 
 **The Cloudflare Workers deployment is deliberately kept.** Only the *bindings*
-(D1, R2) and the auth vars leave `wrangler.toml`, so `bun run deploy` keeps
-working the moment this procedure finishes.
+(D1, R2) and the auth secrets leave `alchemy.run.ts` and
+`src/cloudflare-env.d.ts`, so the Worker itself stays declared and
+`bun run deploy` still has something to deploy. Step 8 says what has not been
+verified about that deploy.
 
 What else stays: the app shell, shared UI (`src/shared/ui`, header,
 mode-toggle, theme-provider), the sample home page, and the oxlint / oxfmt /
@@ -46,12 +48,12 @@ Two things above are easy to misread as deployment removals, and neither is one:
 - `src/test/cloudflare-workers-stub.ts` exists *only* to satisfy the vitest
   alias for that import (step 3). It goes with it.
 
-**Do not delete `src/ssr.tsx`.** It is the Worker entry that `wrangler.toml#main`
-points at. It calls `createStartHandler` and touches no binding, so
+**Do not delete `src/ssr.tsx`.** It is the Worker entry that `alchemy.run.ts`'s
+`main` points at. It calls `createStartHandler` and touches no binding, so
 it survives this procedure untouched, including its
-`satisfies ExportedHandler<CloudflareEnv>` annotation, which still typechecks
-after every binding is gone (`wrangler types` emits an empty `CloudflareEnv`
-interface rather than omitting it, which was verified rather than assumed).
+`satisfies ExportedHandler<CloudflareEnv>` annotation. `CloudflareEnv` stays
+declared in `src/cloudflare-env.d.ts` (step 4), so that annotation keeps a type
+to name.
 
 ## 2. Fix auth-dependent UI
 
@@ -87,8 +89,8 @@ Remove every hit individually.
 
 ## 3. Update build / test config
 
-`vite.config.ts` needs **no change**, because the `cloudflare()` plugin is what builds
-the Worker, and it stays.
+`vite.config.ts` needs **no change**: it names no binding, and the Worker is
+built and deployed by `Cloudflare.Website.Vite` in `alchemy.run.ts`, which stays.
 
 ### `vitest.config.mts`: drop the `cloudflare:workers` alias
 
@@ -128,40 +130,44 @@ are untouched by this procedure, and `vite.config.ts` loads each by path under
 
 ## 4. Config files
 
-### `wrangler.toml`: edit, do not delete
+### `alchemy.run.ts`: edit, do not delete
 
-Delete the `[[d1_databases]]` and `[[r2_buckets]]` blocks. Keep `name`, `main`, `compatibility_date`, and `compatibility_flags`.
+Delete the `Database` and `AvatarsBucket` declarations, and from the `App`
+declaration's `env` delete `AVATARS_BUCKET`, `DB`, `BETTER_AUTH_SECRET`,
+`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, together with the `Config` import
+nothing else uses. Keep `compatibility`, `dev`, `main`, the `state` layer and
+the `Alchemy.Stack(...)` export.
 
-Delete the `[secrets]` block and the comment above it. Every name in its
-`required` list is an auth secret this procedure removes, and naming a secret
-there makes it required at deploy time, and `docs/DEPLOYMENT.md` carries that
-contract. Leaving the block behind is the one edit in this step that breaks the
-deployment this skill exists to keep: `wrangler deploy` would fail on secrets the
-fork has no way to supply. When a fork introduces a secret of its own, the block
-comes back carrying that name.
+Each secret in `env` is a `Config.Redacted` that `bun run deploy` reads from the
+environment it runs in, and `docs/DEPLOYMENT.md` describes that. Leaving the
+three behind makes the deploy this skill exists to keep ask for values the fork
+has no way to supply. When a fork introduces a secret of its own, it comes back
+as an `env` entry carrying that name.
 
-Leave `compatibility_flags = ["nodejs_compat"]` in place unless you have
-verified nothing in the remaining build needs it. It is cheap to keep, and
-removing it on a hunch is how a deploy breaks in production rather than locally.
+Leave `flags: ["nodejs_compat"]` in `compatibility` unless you have verified
+nothing in the remaining build needs it. It is cheap to keep, and removing it on
+a hunch is how a deploy breaks in production rather than locally.
 
-Then regenerate the env types, as AGENTS.md's *Generated types stay generated*
-requires after this file changes:
+### `src/cloudflare-env.d.ts`: edit, do not delete
 
-```bash
-bun run cf-typegen
-```
+AGENTS.md's binding rule pairs each `env` entry with a member here, so delete the
+five members whose entries went above, then the `AppEnv` alias and the two
+imports it alone used. Keep the `Cloudflare.Env` interface and the
+`CloudflareEnv` alias, because `src/ssr.tsx` names it. Whether an interface left
+with no members passes `bun run check` has not been verified, and step 8 runs
+it.
 
 ### Delete what is genuinely DB-only
 
 ```bash
 rm -f drizzle.config.ts
-rm -rf .wrangler                # local D1 / R2 state
+rm -rf .alchemy                 # local Worker / D1 / R2 state; bun run dev recreates it
 rm -f docs/DATABASE_SETUP.md
 rm -f .env.local .env.local.example
 ```
 
-`worker-configuration.d.ts` is **kept**, and so is the `# cloudflare` block in
-`.gitignore` that lists it.
+The `# cloudflare` block in `.gitignore` is **kept**, because `alchemy dev`
+writes `.alchemy/` again on its next start.
 
 `scripts/setup.sh` ends by copying the env example file onto the local one.
 Delete that whole `if` block from the script, and from `scripts/setup.test.ts`
@@ -169,8 +175,8 @@ delete every case and step constant naming either file. Left in place, the copy
 has no source, so `bun run setup` prints `[setup] failed at: cp` and exits 1 on
 every run from here on.
 
-After deleting the env files, the only secrets path left is
-`wrangler secret put`, which is where production secrets belong anyway.
+After deleting the env files, the only secrets path left is the environment
+`bun run deploy` runs in, which is where production secrets belong anyway.
 `docs/DEPLOYMENT.md` stays and still describes it.
 
 ## 5. Update `package.json`
@@ -179,14 +185,11 @@ After deleting the env files, the only secrets path left is
 bun remove better-auth drizzle-orm drizzle-kit dotenv
 ```
 
-`wrangler` and `@cloudflare/vite-plugin` stay, because they are the deployment rather than the
-database.
+`alchemy` stays, because it is the deployment rather than the database.
 
-Remove these scripts: `db:generate`, `db:push`, `db:studio`, `db:pull`,
-`db:push:local`.
+Remove these scripts: `db:generate`, `db:push`, `db:studio`, `db:pull`.
 
-Keep everything else, explicitly including `deploy`, `preview`, and
-`cf-typegen`.
+Keep everything else, explicitly including `dev` and `deploy`.
 
 After the `bun run dead-code` run in step 8, remove any dependencies it now flags as unused.
 Expected: `@hookform/resolvers` (its last consumer was the profile form).
@@ -206,7 +209,7 @@ matching literal, and `README.md`'s quickstart names the env example file this
 procedure deletes without naming any of the terms.
 
 Surfaces to go through: `README.md`, `docs/DEPLOYMENT.md`, `docs/FORKING.md`,
-and `.claude/settings.json`.
+`.claude/settings.json`, and `.cursor/permissions.json`.
 
 **Do not strip these while you are in there.** They are the deployment, which
 this procedure keeps:
@@ -214,30 +217,33 @@ this procedure keeps:
 - README's `Hosting: Cloudflare Workers` line and the `ssr.tsx` entry in the
   project structure.
 - `docs/DEPLOYMENT.md` itself and every link to it.
-- In `.claude/settings.json`, the `wrangler types` / `wrangler deploy` /
-  `wrangler tail` / `wrangler secret:*` entries. Remove only `wrangler d1 *`,
-  `wrangler r2:*`, `drizzle-kit *`, and `bun run db:*`.
+- In `.cursor/permissions.json`'s `block_instructions`, the `bun run deploy` and
+  `alchemy deploy / destroy / provider / state` entries. Remove only
+  `db:push / db:generate` and `drizzle-kit`.
 - `AGENTS.md` needs no change at all, because the fork still runs on Cloudflare
   Workers.
 
 **Places where the right edit is not a deletion:**
 
-- `docs/DEPLOYMENT.md`'s **シークレットのローテーション** section loses its
-  subject, not just some lines: `BETTER_AUTH_SECRET` and `GOOGLE_CLIENT_SECRET`
-  are the only application secrets this template has, so once they go the table,
-  its heading, both example `wrangler secret put` lines, and the two paragraphs
-  explaining better-auth's wiring and its fail-loud guard all go with them.
-  Reduce the section to generic guidance: `wrangler secret list|put|delete`
-  with no named secrets, plus the ordering rule (register the new value, verify,
+- `docs/DEPLOYMENT.md`'s **秘密の渡し方** and **シークレットのローテーション**
+  sections lose their subject, not just some lines: `BETTER_AUTH_SECRET`,
+  `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are the only application secrets
+  this template has, so once they go, the `read -rs` example lines, the table,
+  and the paragraphs explaining better-auth's wiring and its fail-loud guard all
+  go with them. Reduce the two sections to generic guidance: a secret is a
+  `Config.Redacted` entry in `alchemy.run.ts`'s `env`, read from the environment
+  `bun run deploy` runs in, plus the ordering rule (deploy the new value, verify,
   then revoke the old one). That rule's procedure still holds, but its wording
   does not: it warns that reversing the order drops **認証** during the gap, and
   there is no auth left. Generalize the consequence to whatever consumes the
   secret. Step 7's grep is ASCII-only and will not flag that word. Finally, the
-  section's closing paragraph, which points local secrets at the deleted env
-  file, becomes "secrets go to `wrangler secret put`".
-- `docs/DEPLOYMENT.md`'s rollback commands and their explanation survive. What
-  goes is the **重要な限界** block after them (the D1-schema caveat and its
-  three-step staged-migration list), which only matters when a database exists.
+  closing paragraph, which points local secrets at the deleted env file, becomes
+  "secrets come from the environment `bun run deploy` runs in".
+- `docs/DEPLOYMENT.md`'s rollback section survives. What goes is the
+  **重要な限界** block in it (the D1-schema caveat and its three-step
+  staged-migration list), the migration paragraph under デプロイ, and the D1
+  paragraph under its wrangler subsection, which only matter when a database
+  exists.
 - `docs/FORKING.md` section 2 is entirely about swapping D1 / R2 resources, so
   it empties out, and it also holds the only pointer to `docs/DEPLOYMENT.md`.
   Move that pointer into section 1 and drop the section. Its headings are
@@ -247,19 +253,19 @@ this procedure keeps:
   sentence and the profile-feature deletion list with it.
 - Two documented rules stop applying and their homes have to say so.
   `.env.local.example` and `docs/DATABASE_SETUP.md` describe the standing
-  exception that lets drizzle-kit's `CLOUDFLARE_API_TOKEN` sit on disk. Removing
+  exception that lets drizzle-kit's `DRIZZLE_D1_API_TOKEN` sit on disk. Removing
   drizzle-kit closes that exception, so the wording goes with the files.
 
 ## 7. Residual reference check
 
 Scope the grep to database, auth, and storage terms. Do **not** grep for
-`wrangler` / `cloudflare` / `CloudflareEnv`, because those legitimately remain in
-`wrangler.toml`, `vite.config.ts`, `src/ssr.tsx`, and `package.json`, and
+`alchemy` / `cloudflare` / `CloudflareEnv`, because those legitimately remain in
+`alchemy.run.ts`, `src/cloudflare-env.d.ts`, `src/ssr.tsx`, and `package.json`, and
 treating them as leftovers is what leads to deleting the deployment by mistake.
 
 ```bash
-grep -rn "better-auth\|BETTER_AUTH\|drizzle\|D1Database\|R2Bucket\|AVATARS_BUCKET\|d1_databases\|r2_buckets" \
-  src scripts tools package.json vite.config.ts vitest.config.mts .fallowrc.jsonc wrangler.toml \
+grep -rn "better-auth\|BETTER_AUTH\|drizzle\|D1Database\|R2Bucket\|AVATARS_BUCKET\|D1\.Database\|R2\.Bucket" \
+  src scripts tools package.json vite.config.ts vitest.config.mts .fallowrc.jsonc alchemy.run.ts \
   README.md AGENTS.md .claude/settings.json docs/DEPLOYMENT.md docs/FORKING.md
 ```
 
@@ -290,22 +296,26 @@ cites the file describes what was true when it was written and must not be
 ```bash
 bun install
 bun run generate-routes
-bun run cf-typegen
 bun run check
 bun run test
 bun run dead-code
 bun run build
 bun run dev      # http://my-app.localhost:1355 (portless)
-bun run preview  # runs the built Worker on http://localhost:4173
 ```
 
 - `typecheck` errors point at imports of deleted modules. Remove them.
 - `dead-code` findings point at now-unused dependencies/exports. Remove them (see step 5).
-- `preview` passing is the signal that the Worker build is still intact. If it
-  fails, something in step 1 or 4 removed part of the deployment rather than the
-  database.
+- `bun run dev` serving the home page is the signal that the Worker still runs
+  under `alchemy dev`. If it fails, something in step 1 or 4 removed part of the
+  deployment rather than the database. `bun run build` exiting 0 is the signal
+  that the bundle `bun run deploy` uploads still builds.
 
-Deploying (`bun run deploy`) should work unchanged against the same Worker name.
+Not verified: a stage that was deployed before this procedure still holds the
+D1 database and R2 bucket that its earlier `bun run deploy` created, and the
+next `bun run deploy` may delete them now that `alchemy.run.ts` no longer
+declares them. Before anyone deploys to such a stage, ask the user to run
+`bunx alchemy plan --stage <name>` and read which resources it would delete;
+on an account with no Alchemy state store, `plan` itself offers to deploy one.
 
 ## 9. Commit
 
@@ -313,14 +323,15 @@ Split per the Commits discipline in `AGENTS.md`:
 
 1. `feat:` remove the auth / profile / DB-access features (`src/` deletions +
    `Header` / `__root` edits)
-2. `chore:` remove the D1 / R2 / Drizzle configuration (wrangler.toml bindings,
+2. `chore:` remove the D1 / R2 / Drizzle configuration (the `alchemy.run.ts`
+   bindings and their `src/cloudflare-env.d.ts` members,
    drizzle.config.ts, vitest alias, the local-DB scripts, the env files,
    `scripts/setup.sh` and `scripts/setup.test.ts`, and `docs/DATABASE_SETUP.md`)
 3. `chore:` remove the DB / auth dependencies (package.json / bun.lock)
 4. `docs:` remove DB- and auth-related documentation. Stage every surface
    step 6 touched, each by its explicit path as that discipline requires:
    `README.md`, `docs/DEPLOYMENT.md`, `docs/FORKING.md`,
-   and `.claude/settings.json`. A surface
+   `.claude/settings.json`, and `.cursor/permissions.json`. A surface
    missing from this list is a surface left uncommitted.
 
 Intermediate commits are not individually buildable (e.g. commit 1 deletes the

@@ -9,18 +9,20 @@ clone した直後に置き換えるべき値と、残す/捨てるファイル�
 | 場所 | 初期値 | 置き換える値 |
 |---|---|---|
 | `package.json` の `name` | `my-app` | プロジェクト名。portless はこの値を dev URL のホスト名にするので、README と docs/DATABASE_SETUP.md と src/routes/index/-components/home-page.tsx の `my-app.localhost` も揃える |
-| `wrangler.toml` の `name` | `my-project` | Worker 名（デプロイ先の識別子） |
+| `alchemy.run.ts` の `STACK_NAME` | `my-project` | スタック名（Alchemy が作るリソース名の先頭に付く） |
 | `LICENSE` の著作権表記 | テンプレート作者名 | 自分または自組織 |
 | `README.md` の見出しと説明 | テンプレートの説明 | プロジェクトの説明 |
 
-`wrangler.toml` の `name` はデプロイ先の Worker を決めるので、既存の Worker と
-衝突しない名前にする。
+Alchemy は作るリソースの名前を、既定で `<スタック名>-<リソース ID>-<ステージ>-`
+にランダムな接尾辞を足して決める（`node_modules/alchemy/src/PhysicalName.ts`）。
+スタック名はダッシュボードで自分のリソースを見分ける手がかりになるので、
+プロジェクト名にする。
 
-## 2. Cloudflare リソースを差し替える
+## 2. Cloudflare リソースを用意する
 
-`wrangler.toml` は初期状態でローカル開発用のダミー値（`local-db` /
-`local-avatars` / ゼロ UUID）が入っており、`bun run dev` はそのまま動く。
-本番にデプロイする段で実リソースへ差し替える。手順は
+D1 と R2 は `alchemy.run.ts` に宣言してあり、`bun run dev` は Cloudflare の
+アカウント無しにそれらをローカルで動かす。本番の D1 / R2 / Worker は最初の
+`bun run deploy` が作る。手順は
 [DATABASE_SETUP.md](./DATABASE_SETUP.md)、デプロイ後の運用は
 [DEPLOYMENT.md](./DEPLOYMENT.md) を参照。
 

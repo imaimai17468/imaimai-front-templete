@@ -13,7 +13,7 @@ The class comes back only where code writes SQL text itself. In the installed Dr
 - `sql.raw(str)`, which puts `str` into the statement verbatim (`node_modules/drizzle-orm/sql/sql.js`).
 - `run`, `all`, `get` and `values` on the database object, which accept a plain string and wrap it in `sql.raw` (`node_modules/drizzle-orm/sqlite-core/db.js`).
 - `sql.identifier(name)`, which quotes `name` as a table or column name. Its own doc comment warns that it gives no protection against injection, and whatever it names, the statement reads.
-- The D1 binding itself, reached as `getDb().$client` or `getCloudflareEnv().DB`: `prepare(query)` takes SQL text and binds only what `.bind(...)` receives, and `exec(query)` takes SQL text with no binding at all (`worker-configuration.d.ts`).
+- The D1 binding itself, reached as `getDb().$client` or `getCloudflareEnv().DB`: `prepare(query)` takes SQL text and binds only what `.bind(...)` receives, and `exec(query)` takes SQL text with no binding at all (`D1Database` in `node_modules/@cloudflare/workers-types/index.d.ts`).
 
 Inside the `` sql`...` `` tagged template, by contrast, each `${value}` becomes a bound parameter. A table or column object interpolated there renders as its quoted name.
 
@@ -43,7 +43,7 @@ then `git grep -n 'getDb()' -- src` and read each chain that follows a hit to it
 
 ## Reproduce locally
 
-Replay the profile write with names that are SQL syntax, against your own row. Run `bun run db:push:local`, start `PORTLESS=0 bun run dev` (it serves `http://localhost:5173`), sign in on `/login` as the dev user, and in the browser's Network panel copy the request the profile page's Save button sends to `/_serverFn/...`. Send it again with `curl`, keeping the session cookie and the `x-tsr-serverFn: true` header, changing only the `name` form field: `-F "name=O'Reilly"`, then `-F "name=' OR 1=1 --"`. Then read the row with `bunx wrangler d1 execute DB --local --command "select id, name from users"`.
+Replay the profile write with names that are SQL syntax, against your own row. Start `PORTLESS=0 bun run dev` (it serves `http://localhost:5173`), sign in on `/login` as the dev user, and in the browser's Network panel copy the request the profile page's Save button sends to `/_serverFn/...`. Send it again with `curl`, keeping the session cookie and the `x-tsr-serverFn: true` header, changing only the `name` form field: `-F "name=O'Reilly"`, then `-F "name=' OR 1=1 --"`. Then read the row with `sqlite3 -readonly <dev D1 file> "select id, name from users"` (`SKILL.md` names the file).
 
 On 2026-09-30 both requests answered 200 with `"status"` `"updated"` in the body, and the row held `' OR 1=1 --` exactly as sent, on the one row the session owns. That is what a bound value looks like. A changed row that is not yours, or a name that differs from what you sent, means the value reached the SQL text. A body whose `error` slot holds a validation message means the validator rejected the name before any query ran, so the step proved nothing about SQL and found a validator that refuses legitimate names. `Failed to update profile` also proves nothing until the `user.updateName` event in the dev server's log says why the write failed. A 500 with `"message":"HTTPError"` in the body answered every call on 2026-09-30 until a page had loaded the `update.fn.ts` module after a dev server restart, and it proves nothing either.
 
