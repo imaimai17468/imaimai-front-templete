@@ -82,12 +82,6 @@ A file's layer is the innermost role directory on its path: `components/`, `gate
 
 Every branch you added is reached by a test that fails when that branch breaks, covering internal paths as well as inputs and outputs; test-first is not required. `vitest.config.mts` enforces 100% branch coverage per file. A module that only wires a real dependency passes by holding no branch of its own, with the seam a test substitutes settled per layer (`.claude/hooks/guidance/data-fetching.md` for a service), and a file run as a command is named `*.entry.ts`, which coverage excludes by suffix.
 
-- **A test name states a condition and its result.** The name alone says what broke, without opening the body. Follow the phrasing of the tests around it.
-- **One test, one `expect`, arranged as Arrange / Act / Assert.** A table-driven case is one test per row and obeys the same rule.
-- **A structural result is asserted as one whole object.** Build what the unit produced, whether that is a set of fields or a response's status and headers, and compare it with `toStrictEqual` in a single `expect`. It fails with the whole shape, where field-by-field expects stop at the first mismatch and hide the rest.
-
-Reaching a component's branches from a test depends on how the component was shaped, and `.claude/hooks/guidance/react.md` (Testable Behavior Extraction) governs that.
-
 ## Commits & Pull Requests
 
 - **One commit = one purpose.** Where two changes could be reverted independently, split them, and a drive-by fix is always its own commit. One review finding is one commit, so a round that raised four findings lands four commits. Never `git add -A`, `git add .`, or `git commit -a`. Stage explicit paths, and use `git add -p` to split hunks within a file, except a config file such as `package.json` or `vite.config.ts`: pre-commit's `react-doctor --staged` refuses any commit that stages a `*.{js,ts,jsx,tsx}` file while such a config file differs between the index and the worktree, so restore it with `git checkout --`, make the other commits, then reapply its change and commit it last.
