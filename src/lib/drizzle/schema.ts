@@ -62,7 +62,6 @@ export const accounts = sqliteTable(
     createdAt: stampedAt("created_at").notNull(),
     id: text("id").primaryKey(),
     idToken: text("id_token"),
-    issuer: text("issuer").notNull(),
     // better-auth が providerId "credential" の行に書くパスワードハッシュ。
     // その資格情報サインインが有効なのは dev ビルドだけ。
     password: text("password"),
@@ -76,8 +75,8 @@ export const accounts = sqliteTable(
     userId: ownerId(),
   },
   (table) => [
-    uniqueIndex("accounts_issuer_account_id_uidx").on(
-      table.issuer,
+    uniqueIndex("accounts_provider_id_account_id_uidx").on(
+      table.providerId,
       table.accountId
     ),
   ]
