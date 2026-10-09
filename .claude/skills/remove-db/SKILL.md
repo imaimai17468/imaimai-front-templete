@@ -203,7 +203,7 @@ and strip every reference to the database, auth, and storage layer: D1, R2,
 Drizzle, Better Auth, Google OAuth, `BETTER_AUTH_*`, and the deleted `src/`
 paths.
 
-No list of individual lines follows, for the reason AGENTS.md's Instruction
+No list of individual lines follows, for the reason `prose.md`'s Instruction
 documents rule gives. Step 7's greps catch only references that contain a
 matching literal, and `README.md`'s quickstart names the env example file this
 procedure deletes without naming any of the terms.
@@ -271,7 +271,7 @@ grep -rn "better-auth\|BETTER_AUTH\|drizzle\|D1Database\|R2Bucket\|AVATARS_BUCKE
 
 Read every hit and decide, because a hit is not automatically a leftover. This
 grep reaches the eight literals above in the paths above and nothing else, so an
-empty result carries no proof, which AGENTS.md's Instruction documents rule
+empty result carries no proof, which `prose.md`'s Instruction documents rule
 states for a grep in general. One exclusion from the path list is deliberate:
 generic infra checklists (e.g. `.claude/skills/launch-checklist`) keep their
 generic D1 / R2 mentions.

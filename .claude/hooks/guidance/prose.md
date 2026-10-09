@@ -38,6 +38,8 @@ This governs every text a person reads: replies to the user, plans, reports, com
 
 **Write one claim once.** Do not restate a point in new words to make a passage feel thorough, and do not summarize a passage immediately after writing it. Where a text circles the same claim more than twice, cut the repetitions.
 
+**Guidance carries no padding.** A rule, a plan, or any instruction about how to act takes no new section and no new file for something an existing one holds, and *Write one claim once* settles the repetition inside a passage. Brevity is never the aim and is never bought with precision.
+
 ## What the sentence is about
 
 Ask of every sentence whether it updates **the situation** or **the document**.
@@ -107,6 +109,8 @@ These decide what gets written and where it sits, where the sections above decid
 
 **Answer what the reader came to ask, and leave the diff to the diff.** Whoever reads a PR body, an issue comment, or a review reply can open the changed files, so walking them through the change spends their attention on what they already hold. Write what the diff cannot tell them: why this over the alternative, what it costs, what is still open.
 
+**A commit message names the defect it fixes.** `レビュー指摘の修正` and `#123 対応` send the reader to the review thread to learn what changed. Write the wrong behavior and the behavior that replaced it.
+
 **Give a point the room its consequence earns.** A judgment that could have gone the other way takes the space it needs, and a premise no reader would dispute takes one line or none. Where every point runs to the same length, the reader is left to work out which one decided the design. Weight is not rank, so parallel items take no priority order and no `まず`, `次に` stages that the content does not have.
 
 **Explain without staging.** An explainer that builds a premise, an anomaly, a reveal, and a payoff across its sections delays every fact it holds. Delete the setup and reveal sentences, and where the facts survive, they were staging.
@@ -117,11 +121,17 @@ These decide what gets written and where it sits, where the sections above decid
 
 **Open a finding with what someone does and what they then see.** The mechanism follows that. A finding that opens with the mechanism leaves the reader to derive the reproduction, and the one they derive may not be the one you found.
 
+**A finding you raise goes on the line it is about.** Post it as an inline comment on that line rather than in the review body. Before raising a finding or an alternative, read the commit message and the doc comments on the code it touches, and drop what the author already weighed there unless you hold a measurement that breaks their reasoning. `gh pr view` prints the author, which is what decides whether a PR is yours to change; having the branch checked out does not.
+
 **Do not open a reply to a finding with agreement.** `仰るとおり` and `確かに` report your stance while leaving the reader unable to tell what you took the problem to be. Restate the problem in your own words first, then name the fix and link it. A wrong restatement is visible to them and gets corrected; agreement hides the same error.
 
 **A review of code you will not write is advice.** On someone else's pull request, `〜するのはどうでしょうか` and `〜できないでしょうか` leave the decision with the author. `〜しませんか` invites, which presumes you share the work, and `直してください` asks for it outright, so once you write none of the code both leave only the demand behind. Where the author decides to defer, that decision carries no conditions from you.
 
 **Write what you are doing, and nothing you have not committed to.** A comment on your own issue is a note to yourself: it records what you will do next and asks no one for approval, because no one is being asked. `あとで Issue を切ります`, added because the comment felt thin without it, puts work in the record that nobody assigned.
+
+**Instruction documents.** Every document written for an agent (`.claude/`, AGENTS.md, CLAUDE.md) is in English. Point at other files rather than restating them, because a copy goes wrong after the next edit to what it copied, except that an instruction to act states the action rather than sending the reader elsewhere for one command. Never write a claim about another file, commit, tool, or count without opening or running it in the same turn, or else drop the assertive form; an empty grep proves nothing about the literals you did not predict. After changing a step, reconcile every other mention of what it names. A code comment may state what you have seen the code do, never what you meant it to do, and one claiming a check is load-bearing is proven by deleting the check and watching its test fail. Prefer a principle to a long enumeration. Summarising an audit record, which describes decided state rather than action, is not restating.
+
+**Write a rule as the move to make.** Where the user asks for a rule that removes a behavior, state the action that replaces it, because a prohibition leaves every other route open and makes the reader invent the replacement. Where no action replaces the behavior, the prohibition is the whole rule and stands as one.
 
 ## Format
 
