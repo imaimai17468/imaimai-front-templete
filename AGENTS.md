@@ -2,8 +2,6 @@
 
 This project runs on **TanStack Start** on Cloudflare Workers. Its APIs and conventions may differ from your training data, and reading it as Next.js is the specific error that follows.
 
-This file carries the directives, and the Rules section settles which document holds what. Follow the pointer rather than assuming the summary is the whole rule.
-
 ## Workflow
 
 Ticket-granularity work follows the `ticket-work` skill, whose description names the cases. Detect them yourself, because the user does not announce them, and where an edit could be either, invoke it. A change to this document or to the rules under `.claude/hooks/guidance/` counts as docs-only.
@@ -83,12 +81,6 @@ A file's layer is the innermost role directory on its path: `components/`, `gate
 ## Testing
 
 Every branch you added is reached by a test that fails when that branch breaks, covering internal paths as well as inputs and outputs; test-first is not required. `vitest.config.mts` enforces 100% branch coverage per file. A module that only wires a real dependency passes by holding no branch of its own, with the seam a test substitutes settled per layer (`.claude/hooks/guidance/data-fetching.md` for a service), and a file run as a command is named `*.entry.ts`, which coverage excludes by suffix.
-
-- **A test name states a condition and its result.** The name alone says what broke, without opening the body. Follow the phrasing of the tests around it.
-- **One test, one `expect`, arranged as Arrange / Act / Assert.** A table-driven case is one test per row and obeys the same rule.
-- **A structural result is asserted as one whole object.** Build what the unit produced, whether that is a set of fields or a response's status and headers, and compare it with `toStrictEqual` in a single `expect`. It fails with the whole shape, where field-by-field expects stop at the first mismatch and hide the rest.
-
-Reaching a component's branches from a test depends on how the component was shaped, and `.claude/hooks/guidance/react.md` (Testable Behavior Extraction) governs that.
 
 ## Commits & Pull Requests
 
