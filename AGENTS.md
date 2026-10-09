@@ -2,8 +2,6 @@
 
 This project runs on **TanStack Start** on Cloudflare Workers. Its APIs and conventions may differ from your training data, and reading it as Next.js is the specific error that follows.
 
-This file carries the directives, and the Rules section settles which document holds what. Follow the pointer rather than assuming the summary is the whole rule.
-
 ## Workflow
 
 Ticket-granularity work follows the `ticket-work` skill, whose description names the cases. Detect them yourself, because the user does not announce them, and where an edit could be either, invoke it. A change to this document or to the rules under `.claude/hooks/guidance/` counts as docs-only.
