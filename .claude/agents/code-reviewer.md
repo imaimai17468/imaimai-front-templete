@@ -226,7 +226,7 @@ when every candidate died, because a pass that refuted everything is a normal ou
 the counts are how anyone can tell Stage C ran. With nothing surviving, the header,
 whichever of `Abstained` and `Refuted` has a line, and `Checked` are the whole report.
 
-AGENTS.md's rule on claims binds this report too, not only the diff under review: open or
+`prose.md`'s rule on claims binds this report too, not only the diff under review: open or
 run whatever you assert about another file, a dependency, a config value, or a count of any
 of them, in the same pass that writes the sentence, and a count you write is one you
 counted. A finding whose defect is real and whose supporting sentence is false costs the
