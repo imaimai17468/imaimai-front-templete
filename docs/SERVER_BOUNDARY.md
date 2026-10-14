@@ -8,7 +8,7 @@
 
 ```
 Cloudflare Worker
-└ src/ssr.tsx           createStartHandler
+└ src/ssr.tsx           Start の既定エントリ（createServerEntry）
     ├ routes/           TanStack Router。api/ は 2 本（auth catch-all, avatars）
     ├ shared/
     │   ├ gateway/      認可境界。createServerFn と D1 / R2

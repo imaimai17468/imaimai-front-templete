@@ -6,10 +6,10 @@ A parser or deserializer turns request bytes into a value before any validator s
 
 ## Where the decision lives here
 
-The server-function handler parses the body, and the validator only ever sees its result (`node_modules/@tanstack/start-server-core/dist/esm/server-functions-handler.js`, version 1.169.31):
+The server-function handler parses the body, and the validator only ever sees its result (`node_modules/@tanstack/start-server-core/dist/esm/server-functions-handler.js`, version 1.169.42):
 
 - A `multipart/form-data` or `application/x-www-form-urlencoded` POST is parsed by `request.formData()`, and the validator receives that `FormData`. The form's context entry is taken out first and parsed by seroval's `fromJSON` with the plugins listed next.
-- An `application/json` POST is parsed by `request.json()` and then by seroval's `fromJSON`, which rebuilds the value types seroval knows plus those of the registered plugins. The plugins are TanStack Router's `ShallowErrorPlugin`, `RawStreamSSRPlugin` and `ReadableStreamPlugin`, plus one per `serializationAdapters` entry in the Start options, of which `src/` registers none.
+- An `application/json` POST is parsed by `request.json()` and then by seroval's `fromJSON`, which rebuilds the value types seroval knows plus those of the registered plugins. The plugins are TanStack Router's `defaultSerovalDeserializerPlugins`: its own `RawStreamJSONDeserializePlugin`, `ShallowErrorPlugin` and `RawStreamJSONPlugin`, and `seroval-plugins`' `ReadableStreamPlugin`, plus one per `serializationAdapters` entry in the Start options, of which `src/` registers none.
 - On every path the caller's `context` is merged under the server's with `safeObjectMerge` (`node_modules/@tanstack/start-client-core/dist/esm/safeObjectMerge.js`), so a server key wins a collision and a key only the caller set arrives as the caller wrote it.
 - A GET carries the same seroval JSON in its `payload` query parameter, and that is the only path with a size check before parsing: the handler throws `Payload too large` past 1,000,000 characters.
 
