@@ -1,12 +1,7 @@
-import {
-  createStartHandler,
-  defaultStreamHandler,
-} from "@tanstack/react-start/server";
-
-const handler = createStartHandler(defaultStreamHandler);
+import startEntry from "@tanstack/react-start/server-entry";
 
 export default {
   fetch(request: Request) {
-    return handler(request);
+    return startEntry.fetch(request);
   },
 } satisfies ExportedHandler<CloudflareEnv>;

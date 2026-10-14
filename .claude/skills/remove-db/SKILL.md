@@ -49,7 +49,7 @@ Two things above are easy to misread as deployment removals, and neither is one:
   alias for that import (step 3). It goes with it.
 
 **Do not delete `src/ssr.tsx`.** It is the Worker entry that `alchemy.run.ts`'s
-`main` points at. It calls `createStartHandler` and touches no binding, so
+`main` points at. It calls Start's default entry and touches no binding, so
 it survives this procedure untouched, including its
 `satisfies ExportedHandler<CloudflareEnv>` annotation. `CloudflareEnv` stays
 declared in `src/cloudflare-env.d.ts` (step 4), so that annotation keeps a type
