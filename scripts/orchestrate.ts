@@ -11,6 +11,9 @@
  * bun scripts/orchestrate.ts remaining-budget  # the account's usage windows, one line
  * bun scripts/orchestrate.ts watch-prs feat/a feat/b       # exits when one of these needs the orchestrator
  * bun scripts/orchestrate.ts clean-worktrees feat/a feat/b # removes the worktrees of these finished branches
+ * bun scripts/orchestrate.ts record-dispatch feat/a opus high gate      # logs a dispatch and the 5h window
+ * bun scripts/orchestrate.ts record-done feat/a 101648 27 277919        # logs a completion and the 5h window
+ * bun scripts/orchestrate.ts ticket-costs      # what a ticket spent, per model and kind
  * ```
  *
  * `watch-prs` and `clean-worktrees` name the run by the branches the session
@@ -33,10 +36,14 @@
  * removed or why it was kept. It removes only the worktrees of the branches
  * given, and it fetches MAIN_REF first, because whether a branch's commits are
  * held anywhere else is asked of that ref.
+ *
+ * `record-dispatch`, `record-done` and `ticket-costs` share the log `costLogPath`
+ * names, which sits in the main checkout so a session in a worktree appends to
+ * the same log.
  */
 
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -75,6 +82,14 @@ import type {
   WorktreeFacts,
   WorktreeVerdict,
 } from "./orchestrate-decisions";
+import {
+  costLog,
+  dispatchEvent,
+  doneEvent,
+  fiveHourSnapshot,
+  formatCosts,
+} from "./ticket-costs";
+import type { CostEvent, Parsed } from "./ticket-costs";
 
 const run = (file: string, args: readonly string[]): string =>
   execFileSync(file, args, { encoding: "utf-8" });
@@ -148,6 +163,39 @@ const rateLimitsFile = (): RateLimitsFile => {
     return isErrnoFailure(error) && error.code === FILE_NOT_FOUND
       ? { kind: "absent" }
       : { detail: firstLine(error), kind: "unreadable" };
+  }
+};
+
+/** The account's five-hour window now, or undefined where none can be read. */
+const fiveHourNow = () => {
+  const nowSeconds = Date.now() / MS_PER_SECOND;
+  return fiveHourSnapshot(
+    remainingBudget(rateLimitsFile(), nowSeconds),
+    nowSeconds
+  );
+};
+
+const costLogPath = (): string =>
+  path.join(
+    path.dirname(
+      run("git", [
+        "rev-parse",
+        "--path-format=absolute",
+        "--git-common-dir",
+      ]).trim()
+    ),
+    ".claude",
+    "ticket-costs.jsonl"
+  );
+
+const costLogText = (logPath: string): string => {
+  try {
+    return readFileSync(logPath, "utf-8");
+  } catch (error) {
+    if (isErrnoFailure(error) && error.code === FILE_NOT_FOUND) {
+      return "";
+    }
+    throw error;
   }
 };
 
@@ -446,8 +494,26 @@ if (command === "free-gib") {
     usage("usage: bun scripts/orchestrate.ts clean-worktrees <branch>...");
   }
   cleanWorktrees(branches);
+} else if (command === "record-dispatch" || command === "record-done") {
+  const at = Math.round(Date.now() / MS_PER_SECOND);
+  const parsed: Parsed<CostEvent> =
+    command === "record-dispatch"
+      ? dispatchEvent(rest, at, fiveHourNow())
+      : doneEvent(rest, at, fiveHourNow());
+  if (parsed.kind === "error") {
+    usage(parsed.message);
+  }
+  const logPath = costLogPath();
+  mkdirSync(path.dirname(logPath), { recursive: true });
+  appendFileSync(logPath, `${JSON.stringify(parsed.value)}\n`);
+  console.log(`logged ${JSON.stringify(parsed.value)}`);
+} else if (command === "ticket-costs") {
+  const logPath = costLogPath();
+  formatCosts(costLog(costLogText(logPath)), logPath).forEach((line) => {
+    console.log(line);
+  });
 } else {
   usage(
-    "usage: bun scripts/orchestrate.ts <free-gib | remaining-budget | watch-prs <branch>... | clean-worktrees <branch>...>"
+    "usage: bun scripts/orchestrate.ts <free-gib | remaining-budget | watch-prs <branch>... | clean-worktrees <branch>... | record-dispatch <branch> <model> <effort> <kind> | record-done <branch> <subagent_tokens> <tool_uses> <duration_ms> | ticket-costs>"
   );
 }

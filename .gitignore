@@ -61,3 +61,6 @@ storybook-static
 .claude/.session-id
 # `claude --worktree` and `isolation: worktree` subagents check out here
 .claude/worktrees/
+
+# per-account ticket cost log that `bun scripts/orchestrate.ts record-*` appends to
+.claude/ticket-costs.jsonl
