@@ -71,6 +71,9 @@ Alchemy の Worker は、`observability` を指定しなければ Workers Logs �
   `query_worker_observability`、`observability_keys`、`observability_values`
 - Claude Code: 同じ URL を `.mcp.json` に `type: http` で置いてある。初回は
   セッションでプロジェクト MCP を承認する
+- ターミナル: `bunx alchemy logs --stage <名前> --since 1h` で直近のログを読む。
+  `--tail` を付けると流し続ける。モデルが実行してよいのは `--tail` なしの形だけで、
+  その手順は `.claude/skills/prod-logs/SKILL.md` にある
 
 Workers Logs に入るのはデプロイ済み Worker だけである。`bun run dev` では同じ
 `console.error` が開発サーバのターミナルに出る。クライアントへ返す失敗メッセージ
