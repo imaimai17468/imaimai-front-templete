@@ -19,6 +19,11 @@ export const Route = createRootRouteWithContext<{
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "imaimai-front-templete" },
+      {
+        name: "description",
+        content:
+          "TanStack Start を Cloudflare Workers で動かすフルスタックテンプレート。Better Auth と D1 と R2 を配線済み。",
+      },
     ],
     links: [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
   }),
