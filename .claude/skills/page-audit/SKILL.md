@@ -7,15 +7,19 @@ arguments: path
 
 # Page audit
 
-Both measurements run against a production build. A dev-server number is not the one users
-get.
+Both measurements target a production build, because a dev-server number is not the one
+users get. Where nothing serves one, step 1 says what a `bun run dev` run still settles and
+what it does not.
 
 ## 1. Serve a production build
 
 Read the build and preview scripts from `package.json`, build, start the preview server and
 note its URL. Where `package.json` has no preview script, nothing serves the production build
-locally: ask the user for a deployed URL to measure, and report the audit as not run until
-they name one. If the port is occupied, kill the holder (`lsof -ti:<port> | xargs kill`)
+locally: ask the user for a deployed URL, and until they name one measure `bun run dev`
+instead, which settles accessibility, SEO and CLS because those read the rendered DOM rather
+than the bundle. Name that environment at the top of the report, keep its LCP and INP out of
+`## Best so far`, and hold the production build's size to the targets in step 7 from
+`bun run build` alone. If the port is occupied, kill the holder (`lsof -ti:<port> | xargs kill`)
 rather than moving to another port.
 
 ## 2. Confirm the app works
@@ -40,7 +44,14 @@ available item. An auth-gated page you cannot reach is recorded as
 3. `mcp__plugin_chrome-devtools-mcp_chrome-devtools__performance_start_trace` with `reload: true`, `autoStop: true`,
    then `mcp__plugin_chrome-devtools-mcp_chrome-devtools__performance_analyze_insight` on every insight that reported
    findings (`LCPBreakdown`, `DocumentLatency`, `CLSCulprits`, `RenderBlocking`,
-   `SlowCSS`), collecting LCP, CLS and INP
+   `SlowCSS`), collecting LCP, CLS and INP. The trace carries no interaction unless you
+   add one, so a page without one has no INP and its cell says `—`.
+
+Where the MCP server answers that its browser profile is already running, another session
+holds it: run the same tools through the `chrome-devtools` CLI after
+`chrome-devtools start --isolated=true`. On 2026-10-15 that CLI's trace with `--reload true`
+recorded `about:blank`, and starting with `--reload false --autoStop false`, reloading with
+`navigate_page <id> --type reload`, then `performance_stop_trace` recorded the page.
 
 ## 5. Write the report
 
@@ -61,7 +72,7 @@ Commit: `{short hash}` {subject}
 - **Render-blocking**: {resource} blocked {ms}
 
 ## Changes
-- {page} · {device} · {metric}: {regression | new best | reset}, {best} → {this audit}, {what changed on the page, for a reset}
+- {page} · {device} · {metric}: {regression | new best | reset | misses target | beats target}, {best} → {this audit}, {what changed on the page, for a reset}
 
 ## Best so far
 | Page | Device | A11y | SEO | Best practices |
@@ -104,7 +115,42 @@ Where the page itself changed, such as new content above the fold, replace the c
 worse of two runs of this audit and say under `## Changes` what changed on the page. No
 other case writes a value worse than the cell.
 
-## 7. Fix, then re-measure
+## 7. Hold each page to the targets
+
+Step 6 protects what an earlier audit reached. These targets are what every page is held to
+on top of that, so a page that has never been better than them is still a finding. They were
+set from what the 2026-10-15 baseline in `docs/lighthouse/` measured, and the row marked
+provisional waits for the first production-build run. web.dev
+(https://web.dev/articles/vitals, read 2026-10-15) calls a page good at LCP within 2.5 s, INP
+of 200 ms or less and CLS of 0.1 or less, each at the 75th percentile of page loads, and a
+target below those numbers is set only where a measurement already sits under it.
+
+| Metric | Target | Why this number |
+|---|---|---|
+| Accessibility | 100 on a production-build run | After the 2026-10-15 fixes the only failing audit left was `target-size` on the dev-only react-grab toolbar, which the production build does not ship |
+| SEO | 100 | Measured 100 once the description meta landed |
+| Best practices | 100 | Measured 100 on every page |
+| LCP | ≤ 1000 ms (provisional) | Set from dev-server LCP of 45 to 65 ms, which the paragraph below does not accept for LCP; every page's LCP is text the server renders, so an edge round trip and the stylesheet are what production adds. The first production-build audit confirms or replaces it |
+| CLS | ≤ 0.02 | Measured 0.00 on every page, and 0.1 is five times that margin |
+| INP | ≤ 200 ms | web.dev's good threshold, kept until an audit measures one, because the trace carries no interaction |
+| Largest client chunk | < 500 kB minified | Vite's `build.chunkSizeWarningLimit` default, so `bun run build` prints no chunk warning; 601 kB before the split, 328 kB after |
+| Scripts every page loads | ≤ 250 kB gzip | The entry's chunks (`index`, `react`, `effect`, `utils`) total 207 kB gzip after the split |
+
+Read the two chunk rows from `bun run build`'s `dist/client/assets/` with the production build,
+and the rest from step 4's runs against the production build. A dev-server run settles only
+accessibility, SEO and CLS, and an audit that fails only on an element the dev build alone
+ships, such as the react-grab toolbar, is named in the page's section rather than counted
+against the target.
+
+A page that misses a target is a finding for step 8 whether or not step 6 called it a
+regression. Fix it in this audit where the fix is in reach, and otherwise write it under
+`## Changes` as `misses target: {metric} {value} against {target}, {cause}`, so the next audit
+still sees it. A value that beats its target by more than step 6's margin goes under
+`## Changes` as `beats target: {metric} {value} against {target}`, which is what the next
+tightening of this table is set from; the audit that measures it leaves the table itself
+alone.
+
+## 8. Fix, then re-measure
 
 In priority order: render-blocking resources (defer or async-load), LCP (preload the
 element, cut server response time, optimize images), CLS (explicit dimensions, nothing
@@ -113,6 +159,6 @@ inserted above the fold), long tasks and INP (split the tasks, debounce handlers
 give the skeleton the dimensions of the content it stands in for. Fix a shift recorded
 after LCP ahead of one before it of the same size, because the later one moves content the
 user is already reading.
-Rebuild and restart the preview server before re-measuring, add the after-fix numbers
+Rebuild and restart whichever server step 1 settled on before re-measuring, add the after-fix numbers
 to the same report, and update `## Best so far` from them as step 6 says, so the fix
-becomes the value the next audit is held to.
+becomes the value the next audit is held to, with step 7's targets as the floor under it.
