@@ -436,5 +436,28 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  environments: {
+    client: {
+      build: {
+        rolldownOptions: {
+          output: {
+            // React and Effect reach every page through the root layout, so
+            // each gets a chunk of its own: left in the entry they put it past
+            // Vite's 500 kB chunkSizeWarningLimit, and a chunk no application edit
+            // touches stays cached across deploys.
+            codeSplitting: {
+              groups: [
+                {
+                  name: "react",
+                  test: /node_modules[\\/](?:react|react-dom|scheduler)[\\/]/u,
+                },
+                { name: "effect", test: /node_modules[\\/]effect[\\/]/u },
+              ],
+            },
+          },
+        },
+      },
+    },
+  },
   plugins: [devtools(), tanstackStart(), react(), tailwindcss()],
 });
