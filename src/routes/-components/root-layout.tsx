@@ -26,11 +26,11 @@ export const RootLayout = () => {
           <TooltipProvider>
             <div className="flex min-h-dvh flex-col gap-16">
               <Header user={user} />
-              <div className="flex w-full flex-1 justify-center px-6 md:px-4">
+              <main className="flex w-full flex-1 justify-center px-6 md:px-4">
                 <div className="container">
                   <Outlet />
                 </div>
-              </div>
+              </main>
             </div>
             <Toaster richColors position="top-center" />
           </TooltipProvider>
