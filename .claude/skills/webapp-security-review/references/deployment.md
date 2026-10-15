@@ -7,7 +7,7 @@ What an attacker reaches after the code is right depends on how it is deployed: 
 ## Where the decision lives here
 
 - **`alchemy.run.ts`** is the whole runtime configuration: the `App` declaration's `main: "src/ssr.tsx"`, `compatibility` with date `2026-07-15` and `nodejs_compat`, one D1 binding (`DB`) and one R2 binding (`AVATARS_BUCKET`), and `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` as `Config.Redacted`. It sets no `observability`, no `workersDev`, no `routes` or `domain`, no `limits` and no stage-specific branch, so each of those takes the default Alchemy's Worker gives it (`node_modules/alchemy/src/Cloudflare/Workers/Worker.ts`).
-- **`docs/DEPLOYMENT.md`** is the procedure: `bun run deploy` (`alchemy deploy`) with a stage, secrets read from the environment it runs in, rollback, and the warning that a rollback leaves D1's schema where it was. Deploying, any `alchemy` command that reaches a Cloudflare account, and `bun run db:push` against the remote D1 are the user's, so a review reads this file and runs none of them.
+- **`docs/DEPLOYMENT.md`** is the procedure: `bun run deploy` (`alchemy deploy`) with a stage, secrets read from the environment it runs in, rollback, and the warning that a rollback leaves D1's schema where it was. Deploying, every `alchemy` command that reaches a Cloudflare account other than `alchemy logs` without `--tail`, and `bun run db:push` against the remote D1 are the user's, so a review reads this file and runs none of them.
 - **`.gitignore`** keeps `.env*`, `.dev.vars*`, `/dist`, `.wrangler` and `.alchemy/` out of git, and `.env.local.example` lists the variable names with placeholder values.
 
 ## Checks
