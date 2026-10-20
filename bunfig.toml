@@ -2,10 +2,10 @@
 # `bun add` writes `1.2.3` rather than `^1.2.3`.
 exact = true
 
-# Counted in seconds. A version published less than 7 days ago is not resolved.
+# Counted in seconds. A version published less than 24 hours ago is not resolved.
 # The check runs at resolution only: a version already pinned in bun.lock
 # installs without it, including under --frozen-lockfile.
-minimumReleaseAge = 604800
+minimumReleaseAge = 86400
 
 # Packages the alchemy-run maintainers publish. Alchemy v2 is in beta and each
 # release pins sibling packages published days earlier, so minimumReleaseAge
