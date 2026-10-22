@@ -143,9 +143,25 @@ export const missingHeaders = (
     .map(([name, value]) => `${name}: ${value}`);
 
 /**
+ * The single chunked framing, where the answer was chunked more than once.
+ * `fetch` reads repeated `Transfer-Encoding` lines as one joined value, and
+ * portless forwards them joined the same way, as `chunked, chunked`, which
+ * Chrome refuses and answers with an error page.
+ */
+export const repeatedChunking = (headers: Headers): readonly string[] => {
+  const encoding = headers.get("transfer-encoding") ?? "";
+  const chunkings = encoding
+    .split(",")
+    .filter((coding) => coding.trim().toLowerCase() === "chunked");
+  return chunkings.length > 1
+    ? [`Transfer-Encoding: chunked once (got ${encoding})`]
+    : [];
+};
+
+/**
  * What the answer failed to carry: the body's markers, the redirect target
- * where the route names one, and the headers it names. One list so `report`
- * prints every miss at once.
+ * where the route names one, the headers it names, and framing chunked only
+ * once. One list so `report` prints every miss at once.
  */
 export const missedBy = (
   body: string,
@@ -157,6 +173,7 @@ export const missedBy = (
     ? []
     : [`location ${route.location}`]),
   ...missingHeaders(headers, route),
+  ...repeatedChunking(headers),
 ];
 
 /** The entries of `after` that `before` did not hold. */

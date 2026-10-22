@@ -74,6 +74,9 @@
       },
     },
   },
+  "patchedDependencies": {
+    "@alchemy.run/cloudflare-runtime@2.0.0-beta.81": "patches/@alchemy.run%2Fcloudflare-runtime@2.0.0-beta.81.patch",
+  },
   "overrides": {
     "browserslist": "4.28.9",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.3.0",

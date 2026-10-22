@@ -14,6 +14,7 @@ import {
   missingFrom,
   missingHeaders,
   readyUrlIn,
+  repeatedChunking,
   report,
   ROUTES,
   served,
@@ -157,6 +158,25 @@ describe("smoke", () => {
     expect(
       missedBy("", new Headers({ location: "/login" }), guarded)
     ).toStrictEqual([]);
+  });
+
+  it("should name the framing when the answer is chunked twice", () => {
+    expect(
+      missedBy("", new Headers({ "transfer-encoding": "chunked, chunked" }), {
+        ...ROUTE,
+        marker: null,
+      })
+    ).toStrictEqual(["Transfer-Encoding: chunked once (got chunked, chunked)"]);
+  });
+
+  it("should find nothing missing when the answer is chunked once", () => {
+    expect(
+      repeatedChunking(new Headers({ "transfer-encoding": "chunked" }))
+    ).toStrictEqual([]);
+  });
+
+  it("should find nothing missing when the answer carries no transfer coding", () => {
+    expect(repeatedChunking(new Headers())).toStrictEqual([]);
   });
 
   it("should find nothing missing when the answer carries every header the route names", () => {

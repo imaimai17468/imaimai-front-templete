@@ -1,0 +1,109 @@
+diff --git a/dist/vite/node/plugin.mjs b/dist/vite/node/plugin.mjs
+index 1ad1c75e45bbb3fafec8f575299991e0c3635256..bb112c9acb6ec470ee594cd5832d2feb84f0ab4b 100644
+--- a/dist/vite/node/plugin.mjs
++++ b/dist/vite/node/plugin.mjs
+@@ -391,7 +391,7 @@ function dev(options) {
+ 					});
+ 					req.pipe(request);
+ 					request.on("response", (response) => {
+-						res.writeHead(response.statusCode ?? 500, response.headers);
++						res.writeHead(response.statusCode ?? 500, endToEndHeaders(response.headers));
+ 						response.pipe(res);
+ 					});
+ 					request.on("error", (error) => {
+@@ -414,6 +414,13 @@ function dev(options) {
+ 	plugins.push(plugin);
+ 	return plugins;
+ }
++/**
++* The server answering the browser writes its own framing, and Bun's
++* `node:http` writes a `transfer-encoding` it is handed as well as its own, so
++* the hop-by-hop headers workerd framed its response with are dropped.
++*/
++const HOP_BY_HOP_HEADERS = new Set(["connection", "keep-alive", "proxy-connection", "te", "trailer", "transfer-encoding", "upgrade"]);
++const endToEndHeaders = (headers) => Object.fromEntries(Object.entries(headers).filter(([name]) => !HOP_BY_HOP_HEADERS.has(name)));
+ const hasConfigureServerHook = (plugin) => {
+ 	const hook = plugin.configureServer;
+ 	if (hook == null) return false;
+@@ -479,7 +486,7 @@ function preview(options) {
+ 				});
+ 				req.pipe(request);
+ 				request.on("response", (response) => {
+-					res.writeHead(response.statusCode ?? 500, response.headers);
++					res.writeHead(response.statusCode ?? 500, endToEndHeaders(response.headers));
+ 					response.pipe(res);
+ 				});
+ 			});
+diff --git a/src/vite/dev-plugin.ts b/src/vite/dev-plugin.ts
+index c7cda8917138bacef9a73683e2a2c2bb36f467d8..2863b93157695f582b77feb691bbb0b65e862cee 100644
+--- a/src/vite/dev-plugin.ts
++++ b/src/vite/dev-plugin.ts
+@@ -16,7 +16,7 @@ import { resolvePluginApi } from "../rolldown/utils.ts";
+ import { DistilledDevEnvironment } from "./dev-environment.ts";
+ import type { ServerHandle } from "./dev-server.ts";
+ import { configuredExportTypes, mergeExportTypes } from "./export-types.ts";
+-import { proxyRequestHeaders } from "./forwarded-host.ts";
++import { endToEndHeaders, proxyRequestHeaders } from "./forwarded-host.ts";
+ import type { CloudflareVitePluginOptions } from "./plugin.ts";
+ import { handleWebSocket } from "./websockets.ts";
+ 
+@@ -267,7 +267,7 @@ export function dev(options: CloudflareVitePluginOptions): Array<vite.Plugin> {
+           });
+           req.pipe(request);
+           request.on("response", (response) => {
+-            res.writeHead(response.statusCode ?? 500, response.headers);
++            res.writeHead(response.statusCode ?? 500, endToEndHeaders(response.headers));
+             response.pipe(res);
+           });
+           // Without a listener a connection error is an unhandled `error`
+diff --git a/src/vite/forwarded-host.ts b/src/vite/forwarded-host.ts
+index 3ac91b85ccf715b34f815fe8c3058a3c66415fd1..13d1d142b2f48e6d411abace742457bcbf8fa38e 100644
+--- a/src/vite/forwarded-host.ts
++++ b/src/vite/forwarded-host.ts
+@@ -51,3 +51,24 @@ export function proxyRequestHeaders(
+     [HEADER_PROXY_SHARED_SECRET.toLowerCase()]: proxySharedSecret,
+   };
+ }
++
++/**
++ * The server answering the browser writes its own framing, and Bun's
++ * `node:http` writes a `transfer-encoding` it is handed as well as its own, so
++ * the hop-by-hop headers workerd framed its response with are dropped.
++ */
++const HOP_BY_HOP_HEADERS = new Set([
++  "connection",
++  "keep-alive",
++  "proxy-connection",
++  "te",
++  "trailer",
++  "transfer-encoding",
++  "upgrade",
++]);
++
++export function endToEndHeaders(headers: IncomingHttpHeaders): IncomingHttpHeaders {
++  return Object.fromEntries(
++    Object.entries(headers).filter(([name]) => !HOP_BY_HOP_HEADERS.has(name)),
++  );
++}
+diff --git a/src/vite/preview-plugin.ts b/src/vite/preview-plugin.ts
+index b1f329d02be9977aa69fa37098f1cdc190bd7239..d5b5d75852d2e4de3785318a2dfb5694e57130f3 100644
+--- a/src/vite/preview-plugin.ts
++++ b/src/vite/preview-plugin.ts
+@@ -6,7 +6,7 @@ import type * as vite from "vite";
+ import { parseViteEnvironments } from "../rolldown/options.ts";
+ import type { OptionsApi } from "../rolldown/plugins/index.ts";
+ import { resolvePluginApi } from "../rolldown/utils.ts";
+-import { proxyRequestHeaders } from "./forwarded-host.ts";
++import { endToEndHeaders, proxyRequestHeaders } from "./forwarded-host.ts";
+ import type { CloudflareVitePluginOptions } from "./plugin.ts";
+ import { handleWebSocket } from "./websockets.ts";
+ 
+@@ -97,7 +97,7 @@ export function preview(options: CloudflareVitePluginOptions): vite.Plugin {
+         });
+         req.pipe(request);
+         request.on("response", (response) => {
+-          res.writeHead(response.statusCode ?? 500, response.headers);
++          res.writeHead(response.statusCode ?? 500, endToEndHeaders(response.headers));
+           response.pipe(res);
+         });
+       });
