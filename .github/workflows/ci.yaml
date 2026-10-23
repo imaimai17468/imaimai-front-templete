@@ -29,7 +29,7 @@ jobs:
       # Installs every tool in mise.toml and exports them on PATH for the
       # steps below, so mise.toml is the one place those versions are written.
       - name: Install the toolchain from mise.toml
-        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
