@@ -223,9 +223,60 @@ ${LINK_FAILED}`,
     snippet: call("warning_message", "stop_hook_active", SUMMARY, "the body"),
   },
   {
-    answer: `✅ Stop gate: typecheck / lint / format and the test suite pass (${LINK_CLEAN})`,
-    name: "should report the quality gate and a clean link check as passing",
-    snippet: 'quality_gate_pass_message "$(link_note_clean)"',
+    answer: `✅ Stop gate: typecheck / lint / format and the test suite pass (hooks' test suite skipped: no hook changed, ${LINK_CLEAN})`,
+    name: "should report the quality gate and a clean link check as passing and the hooks' suite as skipped when it did not run",
+    snippet: 'quality_gate_pass_message "$(link_note_clean)" app',
+  },
+  {
+    answer: `✅ Stop gate: typecheck / lint / format, the test suite and the hooks' test suite pass (${LINK_CLEAN})`,
+    name: "should name the hooks' suite among the passing steps when it ran",
+    snippet: 'quality_gate_pass_message "$(link_note_clean)" app-and-hooks',
+  },
+  {
+    answer: `⚠️ Stop gate: the quality gate ran under an unknown plan "", so which suites passed is not known (${LINK_CLEAN})`,
+    name: "should say which suites passed is unknown rather than claim a pass when the plan is missing",
+    snippet: 'quality_gate_pass_message "$(link_note_clean)" ""',
+  },
+  {
+    answer: "app-and-hooks",
+    name: "should plan the hooks' suite beside the app's when a hook script changed",
+    snippet: call(
+      "quality_gate_plan",
+      "docs/note.md\n.claude/hooks/stop-gate.sh"
+    ),
+  },
+  {
+    answer: "app",
+    name: "should plan the app's suites alone when only a code file outside the hooks changed",
+    snippet: call(
+      "quality_gate_plan",
+      "src/a.ts\n.claude/hooks/guidance/react.md"
+    ),
+  },
+  {
+    answer: "none",
+    name: "should plan no suite when every changed path is a document",
+    snippet: call("quality_gate_plan", "docs/note.md\nREADME.md"),
+  },
+  {
+    answer: "yes",
+    name: "should run the hooks' suite when a changed path is a hook script",
+    snippet: `answers_yes ${call("holds_hook_file", "src/a.ts\n.claude/hooks/stop-gate.sh")}`,
+  },
+  {
+    answer: "yes",
+    name: "should run the hooks' suite when a changed path is a hook's test",
+    snippet: `answers_yes ${call("holds_hook_file", ".claude/hooks/run-bash.ts")}`,
+  },
+  {
+    answer: "no",
+    name: "should skip the hooks' suite when only a rule under guidance changed",
+    snippet: `answers_yes ${call("holds_hook_file", ".claude/hooks/guidance/react.md")}`,
+  },
+  {
+    answer: "no",
+    name: "should skip the hooks' suite when no changed path is under .claude/hooks",
+    snippet: `answers_yes ${call("holds_hook_file", "src/a.ts\n.claude/skills/x/SKILL.md")}`,
   },
   {
     answer: `✅ Stop gate: no code-relevant changes (quality gate skipped, ${LINK_SKIPPED})`,

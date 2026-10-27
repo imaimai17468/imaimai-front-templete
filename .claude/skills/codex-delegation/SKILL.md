@@ -51,12 +51,12 @@ To hand back a correction, `codex exec resume --last "<what is wrong>"` from the
 
 ## What the worker does with the result
 
-The `-o` file holds Codex's summary, and `ticket-work` step 6 sends the worker to the diff instead. Check `git status` and `git log` to confirm the change is uncommitted. Then run `bun run check` and `bun run test`, and carry the ticket on from step 6 as your own work: the acceptance criteria, the review, the commits, the PR.
+The `-o` file holds Codex's summary, and `ticket-work` step 6 sends the worker to the diff instead. Check `git status` and `git log` to confirm the change is uncommitted. Then run `bun run check` and `bun run test` (and `bun run test:hooks` where the change reached `.claude/hooks/`), and carry the ticket on from step 6 as your own work: the acceptance criteria, the review, the commits, the PR.
 
 Four things the diff and the exit code report differently from what happened:
 
 - `workspace-write` leaves git's index unwritable, so `git mv` is refused and Codex renames on the filesystem. `git status` shows each rename as a deletion plus an untracked file, and `git add` naming both the old and the new path restores rename detection.
-- Codex reports `bun run test` as exit 1 on 5-second timeouts in `.claude/hooks/pre-bash-guard.test.ts`, which spawns a shell per case and fails intermittently with nothing delegated. Run that file alone to decide whether it is really failing, rather than reading the exit code or one re-run of the full suite as the answer.
+- Codex has reported the hooks' suite as exit 1 on timeouts in `.claude/hooks/pre-bash-guard.test.ts`, which spawns a shell per case and fails intermittently with nothing delegated. That suite now runs under `bun run test:hooks` rather than `bun run test`. Where `bun run test:hooks` fails that way, run the failing file alone to decide whether it is really failing, rather than reading the exit code or one re-run of the full suite as the answer.
 - A rename Codex performs exactly as specified can still leave the file's new name false: a file given a suffix that `vitest.config.mts`'s `coverageExclude` matches, such as `*.entry.ts`, leaves the coverage gate even while it still holds branches no test reaches.
 - Told to sweep the repository for further references to a renamed path, Codex edits path literals in prose too, such as `docs/DEPLOYMENT.md`. Such a sweep reaches text this skill otherwise keeps with Claude, and the worker reads that hunk like any other.
 

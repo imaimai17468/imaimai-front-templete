@@ -45,6 +45,36 @@ holds_code_relevant_file() { # $1 = newline-delimited paths
   return 1
 }
 
+# Whether a changed path is a hook or a hook's test: anything under
+# `.claude/hooks/` but the rules in `guidance/`, which are documents no hook
+# test reads.
+holds_hook_file() { # $1 = newline-delimited paths
+  local path
+  while IFS= read -r path; do
+    case "$path" in
+      .claude/hooks/guidance/*) ;;
+      .claude/hooks/*) return 0 ;;
+    esac
+  done <<<"$1"
+  return 1
+}
+
+# Which suites the quality gate runs for the changed paths: `none`, `app`
+# (`check` and `test`), or `app-and-hooks`, which adds `test:hooks`. The hooks'
+# suite forks a shell per case, and on a machine whose endpoint scanning makes
+# each exec cost 0.3 s it took 18 s against the 9 s of `bun run test`
+# (2026-10-27), so it runs only when a hook changed. A hook reaches the gate
+# whatever its suffix, which `holds_code_relevant_file` alone misses for `.sh`.
+quality_gate_plan() { # $1 = newline-delimited paths
+  if holds_hook_file "$1"; then
+    printf 'app-and-hooks'
+  elif holds_code_relevant_file "$1"; then
+    printf 'app'
+  else
+    printf 'none'
+  fi
+}
+
 # The three verdicts the markdown link check can print.
 # Every sentence below reaches printf as an argument rather than as its format
 # string, so a `%` someone later writes into one of them prints as itself.
@@ -89,8 +119,12 @@ warning_message() { # $1 = downgrade cause, $2 = summary, $3 = reason body
     "$3"
 }
 
-quality_gate_pass_message() { # $1 = the link note
-  printf '%s' "✅ Stop gate: typecheck / lint / format and the test suite pass ($1)"
+quality_gate_pass_message() { # $1 = the link note, $2 = the plan that ran: app | app-and-hooks
+  case "$2" in
+    app-and-hooks) printf '%s' "✅ Stop gate: typecheck / lint / format, the test suite and the hooks' test suite pass ($1)" ;;
+    app) printf '%s' "✅ Stop gate: typecheck / lint / format and the test suite pass (hooks' test suite skipped: no hook changed, $1)" ;;
+    *) printf '%s' "⚠️ Stop gate: the quality gate ran under an unknown plan \"$2\", so which suites passed is not known ($1)" ;;
+  esac
 }
 
 quality_gate_skipped_message() { # $1 = the link note

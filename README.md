@@ -99,7 +99,7 @@ src/
 - **[AGENTS.md](./AGENTS.md)**：規約の本体。毎セッション自動でロードされます（`CLAUDE.md` はこれを読み込むだけ）
 - **`.claude/hooks/guidance/`**：規約の分冊。frontmatter の `paths`（ファイル）、`commands`（`git commit` など）、`events`（`UserPromptSubmit` など）に当たったとき、`.claude/hooks/scoped-guidance.sh` がそのファイルを読むよう指示します。1 セッションに 1 回で、コンテキストを圧縮したあとは改めて指示します
 - **`.claude/skills/`**：名前のついた作業の手順。チケット粒度の作業は `ticket-work` が持ち、AGENTS.md はそれを指します
-- **`.claude/hooks/`**：規約を機械的に強制する側。SessionStart で依存の欠落を報告し、Bash 実行前にガードを掛け、Stop ではコードが変わった turn だけ `bun run check`（format / lint / 型検査）と `bun run test` を回します。markdown のリンク切れ検査は変更があれば毎回走ります。ツリー全体を判定する検査は Stop に置かず、`fallow dead-code` は CI、`fallow dupes` は pre-push と CI の両方が回します。ここまでの検査はどれも Worker を動かさないので、CI は最後に `bun run build` と `bun run smoke` を回します。`bun run build` は `alchemy deploy` と同じビルドを、デプロイせずに `dist/` へ書きます。`bun run smoke` は空の状態から `alchemy dev` を `smoke` ステージで起動して `scripts/smoke.ts` が挙げるパスに HTTP リクエストを投げる検査で、全リクエストで例外を投げる Worker はここでしか落ちません。
+- **`.claude/hooks/`**：規約を機械的に強制する側。SessionStart で依存の欠落を報告し、Bash 実行前にガードを掛け、Stop ではコードが変わった turn だけ `bun run check`（format / lint / 型検査）と `bun run test` を回し、`.claude/hooks/` が変わった turn では hooks 自身のテスト `bun run test:hooks` も回します。`bun run test:hooks` は CI がどの PR でも回します。markdown のリンク切れ検査は変更があれば毎回走ります。ツリー全体を判定する検査は Stop に置かず、`fallow dead-code` は CI、`fallow dupes` は pre-push と CI の両方が回します。ここまでの検査はどれも Worker を動かさないので、CI は最後に `bun run build` と `bun run smoke` を回します。`bun run build` は `alchemy deploy` と同じビルドを、デプロイせずに `dist/` へ書きます。`bun run smoke` は空の状態から `alchemy dev` を `smoke` ステージで起動して `scripts/smoke.ts` が挙げるパスに HTTP リクエストを投げる検査で、全リクエストで例外を投げる Worker はここでしか落ちません。
 
 コミット前のレビューは `code-reviewer` エージェントが担い、PR ブランチへのコミットと push はエージェントが AGENTS.md の規律に従って自分で行います。`main` へは PR 経由でだけ入ります。
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Stop combined gate:
-# 1. Quality gate — typecheck / lint / format, then the test suite (blocking)
+# 1. Quality gate — typecheck / lint / format, then the test suite, and the
+#    hooks' test suite when a hook changed (blocking)
 #    — the dead-code and duplication checks are not here: their verdict is a
 #      property of more than this turn's diff, so CI runs `fallow dead-code`
 #      and lefthook's pre-push runs `fallow dupes`
@@ -139,14 +140,21 @@ ALL_FILES=$(printf '%s\n%s' "$CHANGED" "$UNTRACKED" | sort -u)
 
 # ==== 1. Quality gate (only when code-relevant files changed) ====
 
-CODE_RELEVANT=no
-if holds_code_relevant_file "$ALL_FILES"; then
-  CODE_RELEVANT=yes
-  # `bun run check` is `vp check`, which formats, lints and type-checks over one
-  # file walk. `bun run test` is `vp test --run --coverage`.
-  run_step check
-  run_step test
-fi
+# `bun run check` is `vp check`, which formats, lints and type-checks over one
+# file walk. `bun run test` runs every suite outside `.claude/` with coverage,
+# and `bun run test:hooks` the suites under it.
+PLAN=$(quality_gate_plan "$ALL_FILES")
+case "$PLAN" in
+  app)
+    run_step check
+    run_step test
+    ;;
+  app-and-hooks)
+    run_step check
+    run_step test
+    run_step test:hooks
+    ;;
+esac
 
 # ==== 2. Markdown link check ====
 
@@ -175,9 +183,9 @@ if [ -n "$GATE_FAILED_STEPS" ]; then
   emit_block "$(failure_summary)" "$(failure_body "$LINK_NOTE")"
 fi
 
-if [ "$CODE_RELEVANT" = yes ]; then
-  quality_gate_pass_message "$LINK_NOTE" | emit_message
-else
+if [ "$PLAN" = none ]; then
   quality_gate_skipped_message "$LINK_NOTE" | emit_message
+else
+  quality_gate_pass_message "$LINK_NOTE" "$PLAN" | emit_message
 fi
 exit 0

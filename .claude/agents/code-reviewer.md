@@ -156,7 +156,9 @@ polling a command until its output appears each cost minutes, and the parent run
 it has your report. Where one test file the diff changed answers a candidate, run
 `bun run test <path> --coverage.enabled=false`: `bun run test` alone carries `--coverage`
 and this repository's per-file 100% branch threshold, so a filtered run prints a threshold
-error for every file the filter never loaded and exits 1 on a passing test.
+error for every file the filter never loaded and exits 1 on a passing test. `bun run test`
+also excludes `.claude/**`, so for a test file under `.claude/hooks/` run
+`bunx vp test --run <path>`, which carries no coverage threshold.
 
 Every surviving finding carries two more fields, because the parent applies what you return
 and commits, and nothing downstream judges the remedy.
