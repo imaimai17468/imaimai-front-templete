@@ -1,15 +1,13 @@
-import { DateTime } from "effect";
-
 /**
- * The registration date this page shows.
+ * The format this page shows the registration date in.
  *
- * The zone is pinned beside the locale because `toLocaleDateString` otherwise
- * takes the runtime's, and workerd runs UTC while the reader's browser does
- * not, so an evening instant renders one day on the server and the next after
- * hydration.
+ * The zone is pinned beside the locale because a formatter otherwise takes the
+ * runtime's, and workerd runs UTC while the reader's browser does not, so an
+ * evening instant renders one day on the server and the next after hydration.
  */
+const registeredOnFormat = new Intl.DateTimeFormat("ja-JP", {
+  timeZone: "Asia/Tokyo",
+});
+
 export const formatRegisteredOn = (createdAt: string): string =>
-  DateTime.toDateUtc(DateTime.makeUnsafe(createdAt)).toLocaleDateString(
-    "ja-JP",
-    { timeZone: "Asia/Tokyo" }
-  );
+  registeredOnFormat.format(Date.parse(createdAt));
