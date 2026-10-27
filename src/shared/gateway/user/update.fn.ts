@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import { flow, Option, Schema } from "effect";
+import { flow, Schema } from "effect";
 import {
-  avatarSizeRejection,
+  avatarSizeVerdict,
   MAX_AVATAR_BYTES,
 } from "@/lib/storage/avatar-validation";
 import type { AvatarSizeRejection } from "@/lib/storage/avatar-validation";
@@ -29,7 +29,7 @@ const AVATAR_REJECTION_MESSAGES = {
 
 const rejectsFor = (rejection: AvatarSizeRejection) =>
   Schema.makeFilter<File>(
-    (file) => !Option.contains(avatarSizeRejection(file.size), rejection),
+    (file) => avatarSizeVerdict(file.size) !== rejection,
     {
       message: AVATAR_REJECTION_MESSAGES[rejection],
     }
