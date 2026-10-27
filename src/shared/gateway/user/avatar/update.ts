@@ -11,7 +11,6 @@ import {
   Schema,
 } from "effect";
 import { avatarUrlForKey } from "@/lib/avatar-url";
-import { getDb } from "@/lib/drizzle/db";
 import { users } from "@/lib/drizzle/schema";
 import { reportError } from "@/lib/report-error";
 import {
@@ -20,13 +19,7 @@ import {
   isOwnAvatarKey,
 } from "@/lib/storage/avatar-validation";
 import { AvatarBucket, AvatarKeyIds } from ".";
-import {
-  orNone,
-  persistenceEffect,
-  succeeded,
-  writeUserRow,
-  wroteOneRow,
-} from "..";
+import { orNone, readUserRow, succeeded, writeUserRow, wroteOneRow } from "..";
 import type { UserPersistenceError } from "..";
 
 export class AvatarTypeUnsupported extends Schema.TaggedError<AvatarTypeUnsupported>()(
@@ -98,17 +91,8 @@ export class UserAvatarKeys extends Context.Service<
     UserAvatarKeys,
     UserAvatarKeys.of({
       find: (userId) =>
-        persistenceEffect(() =>
-          getDb()
-            .select({ avatarKey: users.avatarKey })
-            .from(users)
-            .where(eq(users.id, userId))
-            .limit(1)
-            .then((rows) =>
-              Option.fromNullishOr(rows[0]).pipe(
-                Option.map((row) => Option.fromNullOr(row.avatarKey))
-              )
-            )
+        readUserRow(userId).pipe(
+          Effect.map(Option.map((row) => Option.fromNullOr(row.avatarKey)))
         ),
       set: (userId, previousKey, avatarKey, updatedAt) =>
         writeUserRow(
