@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import {
   avatarSizeVerdict,
-  MAX_AVATAR_BYTES,
+  MAX_AVATAR_MEGABYTES,
 } from "@/lib/storage/avatar-validation";
 import type { AvatarSizeRejection } from "@/lib/storage/avatar-validation";
 import { UserAvatar } from "@/shared/components/user-avatar/user-avatar";
@@ -29,7 +29,7 @@ import { submitProfile } from "./submit-profile";
 
 const AVATAR_SIZE_TOASTS = {
   empty: "That file is empty. Please select another one.",
-  "too-large": `Please keep file size under ${MAX_AVATAR_BYTES / 1024 / 1024}MB`,
+  "too-large": `Please keep file size under ${MAX_AVATAR_MEGABYTES}MB`,
 } satisfies Record<AvatarSizeRejection, string>;
 
 export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
@@ -127,7 +127,7 @@ export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
             <div>
               <p className="text-sm font-medium">Profile Image</p>
               <p className="text-sm text-muted-foreground">
-                {`Click to change image (max ${MAX_AVATAR_BYTES / 1024 / 1024}MB)`}
+                {`Click to change image (max ${MAX_AVATAR_MEGABYTES}MB)`}
               </p>
             </div>
             {pendingFile !== null && (

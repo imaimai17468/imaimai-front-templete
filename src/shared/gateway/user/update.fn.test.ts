@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
-import { MAX_AVATAR_BYTES } from "@/lib/storage/avatar-validation";
+import {
+  MAX_AVATAR_BYTES,
+  MAX_AVATAR_MEGABYTES,
+} from "@/lib/storage/avatar-validation";
 import { parseAvatarUpload, parseProfileUpdate } from "./update.fn";
 
 const pngFile = (byteLength: number) =>
@@ -82,7 +85,7 @@ describe(parseAvatarUpload, () => {
     const parse = () => parseAvatarUpload(data);
 
     expect(parse).toThrow(
-      `Avatar must be ${MAX_AVATAR_BYTES / 1024 / 1024}MB or smaller`
+      `Avatar must be ${MAX_AVATAR_MEGABYTES}MB or smaller`
     );
   });
 
