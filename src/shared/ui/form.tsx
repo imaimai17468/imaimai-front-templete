@@ -48,11 +48,11 @@ const FormField = <
 
 const useFormField = () => {
   const fieldContext = requireContext(
-    Option.fromNullOr(React.useContext(FormFieldContext)),
+    React.useContext(FormFieldContext),
     "useFormField should be used within <FormField>"
   );
   const itemContext = requireContext(
-    Option.fromNullOr(React.useContext(FormItemContext)),
+    React.useContext(FormItemContext),
     "useFormField should be used within <FormItem>"
   );
 
