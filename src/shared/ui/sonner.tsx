@@ -1,6 +1,5 @@
 "use client";
 
-import { Option } from "effect";
 import { useTheme } from "next-themes";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
@@ -8,6 +7,13 @@ type SonnerTheme = "light" | "dark";
 
 const isValidTheme = (t: string): t is SonnerTheme =>
   t === "dark" || t === "light";
+
+const resolveSonnerTheme = (theme: string): SonnerTheme => {
+  if (isValidTheme(theme)) {
+    return theme;
+  }
+  return "light";
+};
 
 // CSS custom properties are not part of `CSSProperties`, so the object is typed
 // as an intersection that admits `--*` keys. Declaring the type is what makes it
@@ -20,13 +26,10 @@ const toasterTokens: React.CSSProperties & Record<`--${string}`, string> = {
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "light" } = useTheme();
-  const resolvedTheme = Option.liftPredicate(theme, isValidTheme).pipe(
-    Option.getOrElse((): SonnerTheme => "light")
-  );
 
   return (
     <Sonner
-      theme={resolvedTheme}
+      theme={resolveSonnerTheme(theme)}
       className="toaster group"
       style={toasterTokens}
       {...props}
