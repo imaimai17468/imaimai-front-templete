@@ -134,28 +134,30 @@ export const avatarExtensionForMime = (
  */
 export const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 
-// Why an upload's byte length is unacceptable, if it is.
+/** Why an upload's byte length is unacceptable. */
 export type AvatarSizeRejection = "empty" | "too-large";
 
+/** An upload's byte length is either `"accepted"` or the reason it is rejected. */
+export type AvatarSizeVerdict = "accepted" | AvatarSizeRejection;
+
 /**
- * Classifies an upload's byte length, returning a `None` when the size is
- * acceptable. A rejection *reason* rather than a boolean so callers can keep
- * distinct messages ("no file selected" vs "too large") and so a future limit
- * (per-plan ceilings, minimum dimensions) can extend the union.
+ * Classifies an upload's byte length as `"accepted"` or an
+ * `AvatarSizeRejection`. The rejection is a reason rather than a boolean so
+ * callers can keep distinct messages ("no file selected" vs "too large"), and so
+ * a future limit (per-plan ceilings, minimum dimensions) can extend
+ * `AvatarSizeRejection`.
  *
  * The server is the enforcing caller; the client pre-check only spares the user
  * a doomed upload.
  */
-export const avatarSizeRejection = (
-  size: number
-): Option.Option<AvatarSizeRejection> => {
+export const avatarSizeVerdict = (size: number): AvatarSizeVerdict => {
   if (size <= 0) {
-    return Option.some("empty");
+    return "empty";
   }
   if (size > MAX_AVATAR_BYTES) {
-    return Option.some("too-large");
+    return "too-large";
   }
-  return Option.none();
+  return "accepted";
 };
 
 /**

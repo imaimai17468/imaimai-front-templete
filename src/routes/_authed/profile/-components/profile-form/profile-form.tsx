@@ -6,9 +6,10 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import {
-  avatarSizeRejection,
+  avatarSizeVerdict,
   MAX_AVATAR_BYTES,
 } from "@/lib/storage/avatar-validation";
+import type { AvatarSizeRejection } from "@/lib/storage/avatar-validation";
 import { UserAvatar } from "@/shared/components/user-avatar/user-avatar";
 import type { UpdateUser, UserWithEmail } from "@/shared/entities/user";
 import { displayName, UpdateUserSchema } from "@/shared/entities/user";
@@ -26,6 +27,11 @@ import {
 import { Input } from "@/shared/ui/input";
 import { SubmitLabel } from "./submit-label";
 import { submitProfile } from "./submit-profile";
+
+const AVATAR_SIZE_TOASTS = {
+  empty: "That file is empty. Please select another one.",
+  "too-large": `Please keep file size under ${MAX_AVATAR_BYTES / 1024 / 1024}MB`,
+} satisfies Record<AvatarSizeRejection, string>;
 
 export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
   const queryClient = useQueryClient();
@@ -57,25 +63,10 @@ export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
     // 選択は pendingFile が持つので、同じファイルを選び直しても change が届く。
     e.target.value = "";
 
-    const rejection = avatarSizeRejection(file.size);
-    if (Option.isSome(rejection)) {
-      const reason = rejection.value;
-      switch (reason) {
-        case "empty": {
-          toast.error("That file is empty. Please select another one.");
-          return;
-        }
-        case "too-large": {
-          toast.error(
-            `Please keep file size under ${MAX_AVATAR_BYTES / 1024 / 1024}MB`
-          );
-          return;
-        }
-        default: {
-          reason satisfies never;
-          return;
-        }
-      }
+    const verdict = avatarSizeVerdict(file.size);
+    if (verdict !== "accepted") {
+      toast.error(AVATAR_SIZE_TOASTS[verdict]);
+      return;
     }
 
     const nextPreviewUrl = URL.createObjectURL(file);

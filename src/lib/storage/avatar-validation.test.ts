@@ -4,7 +4,7 @@ import {
   avatarContentMatchesMime,
   avatarContentTypeForKey,
   avatarExtensionForMime,
-  avatarSizeRejection,
+  avatarSizeVerdict,
   isOwnAvatarKey,
   MAX_AVATAR_BYTES,
 } from "./avatar-validation";
@@ -42,26 +42,26 @@ describe(avatarExtensionForMime, () => {
   );
 });
 
-describe(avatarSizeRejection, () => {
+describe(avatarSizeVerdict, () => {
   it.each([
     ["zero bytes", 0],
     ["negative size", -1],
   ])("should return empty when the size is %s", (_label, size) => {
-    expect(avatarSizeRejection(size)).toStrictEqual(Option.some("empty"));
+    expect(avatarSizeVerdict(size)).toBe("empty");
   });
 
   it.each([
     ["one byte over the ceiling", MAX_AVATAR_BYTES + 1],
     ["far over the ceiling", MAX_AVATAR_BYTES * 10],
   ])("should return too-large when the size is %s", (_label, size) => {
-    expect(avatarSizeRejection(size)).toStrictEqual(Option.some("too-large"));
+    expect(avatarSizeVerdict(size)).toBe("too-large");
   });
 
   it.each([
     ["the smallest non-empty size", 1],
     ["exactly the ceiling", MAX_AVATAR_BYTES],
-  ])("should return a None when the size is %s", (_label, size) => {
-    expect(avatarSizeRejection(size)).toStrictEqual(Option.none());
+  ])("should return accepted when the size is %s", (_label, size) => {
+    expect(avatarSizeVerdict(size)).toBe("accepted");
   });
 });
 
