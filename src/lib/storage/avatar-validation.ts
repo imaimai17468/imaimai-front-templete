@@ -128,11 +128,19 @@ export const avatarExtensionForMime = (
   Option.fromUndefinedOr(AVATAR_MIME_TO_EXTENSION.get(mimeType));
 
 /**
- * Upload size ceiling in bytes. Exported so the client-side pre-check and the
- * server-side validator read the same number — a duplicated literal is how the
- * two limits drift apart.
+ * Upload size ceiling in the megabytes every size message shows, so a message
+ * cannot drift from the limit it reports. A megabyte here is 1024 × 1024
+ * bytes.
  */
-export const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+export const MAX_AVATAR_MEGABYTES = 5;
+
+/**
+ * The same ceiling in bytes, which `avatarSizeVerdict` compares a file's size
+ * against. Exported so the client-side pre-check and the server-side validator
+ * read the same number — a duplicated literal is how the two limits drift
+ * apart.
+ */
+export const MAX_AVATAR_BYTES = MAX_AVATAR_MEGABYTES * 1024 * 1024;
 
 /** Why an upload's byte length is unacceptable. */
 export type AvatarSizeRejection = "empty" | "too-large";

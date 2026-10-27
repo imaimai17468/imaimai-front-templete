@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { Option } from "effect";
 import { LogOut, User as UserIcon } from "lucide-react";
 import { signOut } from "@/lib/auth/sign-in";
 import { UserAvatar } from "@/shared/components/user-avatar/user-avatar";
@@ -20,9 +19,8 @@ const handleSignOut = (): Promise<void> =>
   });
 
 export const UserMenu = ({ user }: { readonly user: UserWithEmail }) => {
-  const avatarUrl = Option.fromNullOr(user.avatarUrl);
-  const name = displayName(Option.fromNullOr(user.name));
-  const { email } = user;
+  const name = displayName(user.name);
+  const { avatarUrl, email } = user;
 
   return (
     <DropdownMenu>

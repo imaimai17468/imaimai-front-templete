@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { flow, Schema } from "effect";
 import {
   avatarSizeVerdict,
-  MAX_AVATAR_BYTES,
+  MAX_AVATAR_MEGABYTES,
 } from "@/lib/storage/avatar-validation";
 import type { AvatarSizeRejection } from "@/lib/storage/avatar-validation";
 import { UpdateUserSchema } from "@/shared/entities/user";
@@ -24,7 +24,7 @@ export const parseProfileUpdate = flow(decodeFormData, (form) =>
 
 const AVATAR_REJECTION_MESSAGES = {
   empty: "No file selected",
-  "too-large": `Avatar must be ${MAX_AVATAR_BYTES / 1024 / 1024}MB or smaller`,
+  "too-large": `Avatar must be ${MAX_AVATAR_MEGABYTES}MB or smaller`,
 } satisfies Record<AvatarSizeRejection, string>;
 
 const rejectsFor = (rejection: AvatarSizeRejection) =>

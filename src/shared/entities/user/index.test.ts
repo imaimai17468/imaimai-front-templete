@@ -123,19 +123,19 @@ describe("UserWithEmailSchema decoding", () => {
 
 describe(displayName, () => {
   it("should fall back to User when the row holds no name", () => {
-    const result = displayName(Option.none());
+    const result = displayName(ABSENT_FIELD);
 
     expect(result).toBe("User");
   });
 
   it("should fall back to User when the name was cleared to an empty string", () => {
-    const result = displayName(Option.some(""));
+    const result = displayName("");
 
     expect(result).toBe("User");
   });
 
   it("should return the name when the row holds one", () => {
-    const result = displayName(Option.some("Alice"));
+    const result = displayName("Alice");
 
     expect(result).toBe("Alice");
   });

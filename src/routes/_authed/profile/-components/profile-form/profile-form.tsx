@@ -1,13 +1,12 @@
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Option } from "effect";
 import { Camera } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import {
   avatarSizeVerdict,
-  MAX_AVATAR_BYTES,
+  MAX_AVATAR_MEGABYTES,
 } from "@/lib/storage/avatar-validation";
 import type { AvatarSizeRejection } from "@/lib/storage/avatar-validation";
 import { UserAvatar } from "@/shared/components/user-avatar/user-avatar";
@@ -30,19 +29,19 @@ import { submitProfile } from "./submit-profile";
 
 const AVATAR_SIZE_TOASTS = {
   empty: "That file is empty. Please select another one.",
-  "too-large": `Please keep file size under ${MAX_AVATAR_BYTES / 1024 / 1024}MB`,
+  "too-large": `Please keep file size under ${MAX_AVATAR_MEGABYTES}MB`,
 } satisfies Record<AvatarSizeRejection, string>;
 
 export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
   const queryClient = useQueryClient();
-  const [previewUrl, setPreviewUrl] = useState(() => Option.none<string>());
-  const [pendingFile, setPendingFile] = useState(() => Option.none<File>());
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   // Object URL(外部リソース)の解放を表示中の previewUrl に同期する。
   useEffect(
     () => () => {
-      if (Option.isSome(previewUrl)) {
-        URL.revokeObjectURL(previewUrl.value);
+      if (previewUrl !== null) {
+        URL.revokeObjectURL(previewUrl);
       }
     },
     [previewUrl]
@@ -50,7 +49,7 @@ export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
 
   const form = useForm<UpdateUser>({
     defaultValues: {
-      name: Option.getOrElse(Option.fromNullOr(user.name), () => ""),
+      name: user.name ?? "",
     },
     resolver: standardSchemaResolver(UpdateUserSchema),
   });
@@ -70,8 +69,8 @@ export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
     }
 
     const nextPreviewUrl = URL.createObjectURL(file);
-    setPendingFile(Option.some(file));
-    setPreviewUrl(Option.some(nextPreviewUrl));
+    setPendingFile(file);
+    setPreviewUrl(nextPreviewUrl);
   };
 
   const { mutate: saveProfile, isPending } = useMutation({
@@ -81,7 +80,7 @@ export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
     },
     onSuccess: ({ avatarUploaded, outcome }) => {
       if (avatarUploaded) {
-        setPendingFile(Option.none());
+        setPendingFile(null);
       }
       if (outcome.status === "failed") {
         toast.error(outcome.message);
@@ -98,10 +97,8 @@ export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
     saveProfile(data);
   };
 
-  const name = displayName(Option.fromNullOr(user.name));
-  const avatarUrl = Option.orElse(previewUrl, () =>
-    Option.fromNullOr(user.avatarUrl)
-  );
+  const name = displayName(user.name);
+  const avatarUrl = previewUrl ?? user.avatarUrl;
 
   return (
     <Form {...form}>
@@ -130,10 +127,10 @@ export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
             <div>
               <p className="text-sm font-medium">Profile Image</p>
               <p className="text-sm text-muted-foreground">
-                {`Click to change image (max ${MAX_AVATAR_BYTES / 1024 / 1024}MB)`}
+                {`Click to change image (max ${MAX_AVATAR_MEGABYTES}MB)`}
               </p>
             </div>
-            {Option.isSome(pendingFile) && (
+            {pendingFile !== null && (
               <p className="text-xs text-muted-foreground">
                 New image selected. Click &quot;Update Profile&quot; to save.
               </p>

@@ -1,4 +1,3 @@
-import { Effect, Option } from "effect";
 import type { UpdateUser } from "@/shared/entities/user";
 import type {
   UpdateProfileResult,
@@ -31,31 +30,32 @@ interface ProfileSubmission {
 const uploadPendingAvatar = (
   uploadAvatar: SubmitProfileDeps["uploadAvatar"],
   pendingFile: File
-) => {
+): Promise<UploadAvatarResult> => {
   const avatarForm = new globalThis.FormData();
   avatarForm.append("avatar", pendingFile);
-  return Effect.promise(() => uploadAvatar(avatarForm));
+  return uploadAvatar(avatarForm);
 };
 
-const saveName = Effect.fn("saveName")(function* saveName(
+const saveName = (
   updateProfile: SubmitProfileDeps["updateProfile"],
   data: UpdateUser,
   avatarUploaded: boolean
-) {
+): Promise<ProfileSubmission> => {
   const profileForm = new globalThis.FormData();
   profileForm.append("name", data.name);
-  const updated = yield* Effect.promise(() => updateProfile(profileForm));
-  if (updated.status === "failed") {
+  return updateProfile(profileForm).then((updated) => {
+    if (updated.status === "failed") {
+      return {
+        avatarUploaded,
+        outcome: { message: updated.message, status: "failed" },
+      } satisfies ProfileSubmission;
+    }
     return {
       avatarUploaded,
-      outcome: { message: updated.message, status: "failed" },
+      outcome: { status: "saved" },
     } satisfies ProfileSubmission;
-  }
-  return {
-    avatarUploaded,
-    outcome: { status: "saved" },
-  } satisfies ProfileSubmission;
-});
+  });
+};
 
 /**
  * Runs one profile submission: the pending avatar first, so a failed upload
@@ -63,28 +63,20 @@ const saveName = Effect.fn("saveName")(function* saveName(
  */
 export const createSubmitProfile =
   ({ updateProfile, uploadAvatar }: SubmitProfileDeps) =>
-  (
-    data: UpdateUser,
-    pendingFile: Option.Option<File>
-  ): Promise<ProfileSubmission> =>
-    Effect.runPromise(
-      Effect.gen(function* submitProfile() {
-        if (Option.isNone(pendingFile)) {
-          return yield* saveName(updateProfile, data, false);
-        }
-        const uploaded = yield* uploadPendingAvatar(
-          uploadAvatar,
-          pendingFile.value
-        );
-        if (uploaded.status === "failed") {
-          return {
-            avatarUploaded: false,
-            outcome: { message: uploaded.message, status: "failed" },
-          } satisfies ProfileSubmission;
-        }
-        return yield* saveName(updateProfile, data, true);
-      })
-    );
+  (data: UpdateUser, pendingFile: File | null): Promise<ProfileSubmission> => {
+    if (pendingFile === null) {
+      return saveName(updateProfile, data, false);
+    }
+    return uploadPendingAvatar(uploadAvatar, pendingFile).then((uploaded) => {
+      if (uploaded.status === "failed") {
+        return {
+          avatarUploaded: false,
+          outcome: { message: uploaded.message, status: "failed" },
+        } satisfies ProfileSubmission;
+      }
+      return saveName(updateProfile, data, true);
+    });
+  };
 
 export const submitProfile = createSubmitProfile({
   updateProfile: (form) => updateProfileFn({ data: form }),
