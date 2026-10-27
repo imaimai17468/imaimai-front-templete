@@ -71,6 +71,7 @@
     "bun:run check:fix",
     "bun:run typecheck",
     "bun:run test",
+    "bun:run test:hooks",
     "bun:run dead-code",
     "bun:run dupes",
     "bun:run generate-routes",
