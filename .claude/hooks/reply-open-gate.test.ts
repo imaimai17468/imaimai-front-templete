@@ -20,7 +20,7 @@ import os from "node:os";
 import path from "node:path";
 import { text } from "node:stream/consumers";
 import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
-import { runBash } from "./run-bash";
+import { FORKING_CASE_TIMEOUT_MS, runBash } from "./run-bash";
 
 const HOOK = path.resolve(import.meta.dirname, "reply-open-gate.sh");
 const DECISION = path.resolve(
@@ -246,14 +246,18 @@ const CASES: readonly Case[] = [
   },
 ];
 
-describe.concurrent("reply-open-gate-decision.sh", () => {
-  it.each(CASES)("$name", async ({ answer, snippet }) => {
-    await expect(answerOf(snippet)).resolves.toStrictEqual({
-      answer,
-      stderr: "",
+describe.concurrent(
+  "reply-open-gate-decision.sh",
+  { timeout: FORKING_CASE_TIMEOUT_MS },
+  () => {
+    it.each(CASES)("$name", async ({ answer, snippet }) => {
+      await expect(answerOf(snippet)).resolves.toStrictEqual({
+        answer,
+        stderr: "",
+      });
     });
-  });
-});
+  }
+);
 
 /** A stop payload carrying the fields the gate reads, Cursor's one included. */
 interface Payload {
@@ -294,125 +298,129 @@ const typedEntry = (content: TypedContent): string =>
     type: "user",
   });
 
-describe.concurrent("reply-open-gate.sh", () => {
-  /**
-   * The transcripts the cases write, removed when the suite ends.
-   * `onTestFinished` registers against whichever case is current when it runs,
-   * which under `describe.concurrent` is not reliably the case that wrote the
-   * file. `beforeAll` assigns it, because vitest runs neither hook for a suite
-   * whose cases a `-t` filter all deselects.
-   */
-  let scratchRoot = "";
+describe.concurrent(
+  "reply-open-gate.sh",
+  { timeout: FORKING_CASE_TIMEOUT_MS },
+  () => {
+    /**
+     * The transcripts the cases write, removed when the suite ends.
+     * `onTestFinished` registers against whichever case is current when it runs,
+     * which under `describe.concurrent` is not reliably the case that wrote the
+     * file. `beforeAll` assigns it, because vitest runs neither hook for a suite
+     * whose cases a `-t` filter all deselects.
+     */
+    let scratchRoot = "";
 
-  beforeAll(() => {
-    scratchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "reply-open-gate-"));
-  });
-
-  afterAll(() => {
-    fs.rmSync(scratchRoot, { force: true, recursive: true });
-  });
-
-  /** A transcript file carrying the given entries, one per line. */
-  const transcript = (name: string, entries: readonly string[]): string => {
-    const file = path.join(scratchRoot, `${name}.jsonl`);
-    fs.writeFileSync(file, `${entries.join("\n")}\n`);
-    return file;
-  };
-
-  it("should stop the turn and hand the agent the refusal when the reply opens with prose", async () => {
-    await expect(
-      runHook({ last_assistant_message: `${PROSE_LINE}\n\n\`bun run dev\`` })
-    ).resolves.toStrictEqual({ status: 2, stderr: REFUSAL, stdout: "" });
-  });
-
-  it("should end the turn when the reply opens with a command", async () => {
-    await expect(
-      runHook({
-        last_assistant_message: "`bun run dev` でページを開く\n\n理由が続く",
-      })
-    ).resolves.toStrictEqual(PASSED);
-  });
-
-  it("should end the turn when this Stop is already continuing from a stop hook", async () => {
-    await expect(
-      runHook({ last_assistant_message: PROSE_LINE, stop_hook_active: true })
-    ).resolves.toStrictEqual(PASSED);
-  });
-
-  it("should end the turn when the payload carries no assistant text", async () => {
-    await expect(runHook({})).resolves.toStrictEqual(PASSED);
-  });
-
-  it("should end the turn when the reply is whitespace alone", async () => {
-    await expect(
-      runHook({ last_assistant_message: "\n   \n" })
-    ).resolves.toStrictEqual(PASSED);
-  });
-
-  it("should end the turn when Cursor reports an auto-followup already ran", async () => {
-    await expect(
-      runHook({ last_assistant_message: PROSE_LINE, loop_count: 1 })
-    ).resolves.toStrictEqual(PASSED);
-  });
-
-  it("should end the turn when the user typed the phrase that stops the shape rule", async () => {
-    const file = transcript("typed-stop", [
-      typedEntry("直してくれ"),
-      typedEntry("stop adhd mode"),
-    ]);
-
-    await expect(
-      runHook({ last_assistant_message: PROSE_LINE, transcript_path: file })
-    ).resolves.toStrictEqual(PASSED);
-  });
-
-  it("should end the turn when the phrase arrives in a message the user attached a file to", async () => {
-    const file = transcript("typed-blocks", [
-      typedEntry([{ text: "normal mode", type: "text" }]),
-    ]);
-
-    await expect(
-      runHook({ last_assistant_message: PROSE_LINE, transcript_path: file })
-    ).resolves.toStrictEqual(PASSED);
-  });
-
-  it("should stop the turn when the phrase appears only in text the user did not type", async () => {
-    const file = transcript("not-typed", [
-      JSON.stringify({
-        message: { content: "stop adhd mode", role: "user" },
-        type: "user",
-      }),
-      JSON.stringify({
-        message: {
-          content: [{ content: "stop adhd mode", type: "tool_result" }],
-          role: "user",
-        },
-        type: "user",
-      }),
-      JSON.stringify({
-        rendered: [
-          { content: "<system-reminder>stop adhd mode</system-reminder>" },
-        ],
-        type: "attachment",
-      }),
-    ]);
-
-    await expect(
-      runHook({ last_assistant_message: PROSE_LINE, transcript_path: file })
-    ).resolves.toStrictEqual({ status: 2, stderr: REFUSAL, stdout: "" });
-  });
-
-  it("should stop the turn and name the decision file when it is not beside the hook", async () => {
-    const alone = fs.mkdtempSync(path.join(scratchRoot, "lone-"));
-    const copy = path.join(alone, "reply-open-gate.sh");
-    fs.copyFileSync(HOOK, copy);
-
-    await expect(
-      runHook({ last_assistant_message: PROSE_LINE }, copy)
-    ).resolves.toStrictEqual({
-      status: 2,
-      stderr: `⛔ Stop block: the reply-open gate could not load ${alone}/reply-open-gate-decision.sh, so nothing judged this reply's first line.\nPut that file back beside reply-open-gate.sh, or run the hook by a path that names its directory.\n`,
-      stdout: "",
+    beforeAll(() => {
+      scratchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "reply-open-gate-"));
     });
-  });
-});
+
+    afterAll(() => {
+      fs.rmSync(scratchRoot, { force: true, recursive: true });
+    });
+
+    /** A transcript file carrying the given entries, one per line. */
+    const transcript = (name: string, entries: readonly string[]): string => {
+      const file = path.join(scratchRoot, `${name}.jsonl`);
+      fs.writeFileSync(file, `${entries.join("\n")}\n`);
+      return file;
+    };
+
+    it("should stop the turn and hand the agent the refusal when the reply opens with prose", async () => {
+      await expect(
+        runHook({ last_assistant_message: `${PROSE_LINE}\n\n\`bun run dev\`` })
+      ).resolves.toStrictEqual({ status: 2, stderr: REFUSAL, stdout: "" });
+    });
+
+    it("should end the turn when the reply opens with a command", async () => {
+      await expect(
+        runHook({
+          last_assistant_message: "`bun run dev` でページを開く\n\n理由が続く",
+        })
+      ).resolves.toStrictEqual(PASSED);
+    });
+
+    it("should end the turn when this Stop is already continuing from a stop hook", async () => {
+      await expect(
+        runHook({ last_assistant_message: PROSE_LINE, stop_hook_active: true })
+      ).resolves.toStrictEqual(PASSED);
+    });
+
+    it("should end the turn when the payload carries no assistant text", async () => {
+      await expect(runHook({})).resolves.toStrictEqual(PASSED);
+    });
+
+    it("should end the turn when the reply is whitespace alone", async () => {
+      await expect(
+        runHook({ last_assistant_message: "\n   \n" })
+      ).resolves.toStrictEqual(PASSED);
+    });
+
+    it("should end the turn when Cursor reports an auto-followup already ran", async () => {
+      await expect(
+        runHook({ last_assistant_message: PROSE_LINE, loop_count: 1 })
+      ).resolves.toStrictEqual(PASSED);
+    });
+
+    it("should end the turn when the user typed the phrase that stops the shape rule", async () => {
+      const file = transcript("typed-stop", [
+        typedEntry("直してくれ"),
+        typedEntry("stop adhd mode"),
+      ]);
+
+      await expect(
+        runHook({ last_assistant_message: PROSE_LINE, transcript_path: file })
+      ).resolves.toStrictEqual(PASSED);
+    });
+
+    it("should end the turn when the phrase arrives in a message the user attached a file to", async () => {
+      const file = transcript("typed-blocks", [
+        typedEntry([{ text: "normal mode", type: "text" }]),
+      ]);
+
+      await expect(
+        runHook({ last_assistant_message: PROSE_LINE, transcript_path: file })
+      ).resolves.toStrictEqual(PASSED);
+    });
+
+    it("should stop the turn when the phrase appears only in text the user did not type", async () => {
+      const file = transcript("not-typed", [
+        JSON.stringify({
+          message: { content: "stop adhd mode", role: "user" },
+          type: "user",
+        }),
+        JSON.stringify({
+          message: {
+            content: [{ content: "stop adhd mode", type: "tool_result" }],
+            role: "user",
+          },
+          type: "user",
+        }),
+        JSON.stringify({
+          rendered: [
+            { content: "<system-reminder>stop adhd mode</system-reminder>" },
+          ],
+          type: "attachment",
+        }),
+      ]);
+
+      await expect(
+        runHook({ last_assistant_message: PROSE_LINE, transcript_path: file })
+      ).resolves.toStrictEqual({ status: 2, stderr: REFUSAL, stdout: "" });
+    });
+
+    it("should stop the turn and name the decision file when it is not beside the hook", async () => {
+      const alone = fs.mkdtempSync(path.join(scratchRoot, "lone-"));
+      const copy = path.join(alone, "reply-open-gate.sh");
+      fs.copyFileSync(HOOK, copy);
+
+      await expect(
+        runHook({ last_assistant_message: PROSE_LINE }, copy)
+      ).resolves.toStrictEqual({
+        status: 2,
+        stderr: `⛔ Stop block: the reply-open gate could not load ${alone}/reply-open-gate-decision.sh, so nothing judged this reply's first line.\nPut that file back beside reply-open-gate.sh, or run the hook by a path that names its directory.\n`,
+        stdout: "",
+      });
+    });
+  }
+);

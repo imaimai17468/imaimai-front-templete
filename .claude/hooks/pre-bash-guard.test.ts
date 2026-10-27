@@ -27,7 +27,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 import { z } from "zod";
 import { readHookJson } from "./hook-output";
-import { runBash } from "./run-bash";
+import { FORKING_CASE_TIMEOUT_MS, runBash } from "./run-bash";
 
 const HOOK = path.resolve(import.meta.dirname, "pre-bash-guard.sh");
 
@@ -104,93 +104,109 @@ const bashPayload = (command: string): Payload => ({
   tool_name: "Bash",
 });
 
-describe.concurrent("the deny the hook prints", () => {
-  it("should carry the refusal in both dialects when a guard refuses the command", async () => {
-    await expect(runHook(bashPayload(SWEEP))).resolves.toStrictEqual({
-      output: denyOutput(SWEEP_REASON),
-      status: 0,
-      stderr: "",
+describe.concurrent(
+  "the deny the hook prints",
+  { timeout: FORKING_CASE_TIMEOUT_MS },
+  () => {
+    it("should carry the refusal in both dialects when a guard refuses the command", async () => {
+      await expect(runHook(bashPayload(SWEEP))).resolves.toStrictEqual({
+        output: denyOutput(SWEEP_REASON),
+        status: 0,
+        stderr: "",
+      });
     });
-  });
 
-  it("should stay silent when no guard refuses the command", async () => {
-    await expect(runHook(bashPayload("ls -la"))).resolves.toStrictEqual({
-      output: "",
-      status: 0,
-      stderr: "",
+    it("should stay silent when no guard refuses the command", async () => {
+      await expect(runHook(bashPayload("ls -la"))).resolves.toStrictEqual({
+        output: "",
+        status: 0,
+        stderr: "",
+      });
     });
-  });
-});
+  }
+);
 
-describe.concurrent("the payload's tool name decides whether the guards run", () => {
-  it("should refuse the same sweep it refuses for Bash when the payload names Cursor's Shell tool", async () => {
-    await expect(
-      runHook({ tool_input: { command: SWEEP }, tool_name: "Shell" })
-    ).resolves.toStrictEqual({
-      output: denyOutput(SWEEP_REASON),
-      status: 0,
-      stderr: "",
+describe.concurrent(
+  "the payload's tool name decides whether the guards run",
+  { timeout: FORKING_CASE_TIMEOUT_MS },
+  () => {
+    it("should refuse the same sweep it refuses for Bash when the payload names Cursor's Shell tool", async () => {
+      await expect(
+        runHook({ tool_input: { command: SWEEP }, tool_name: "Shell" })
+      ).resolves.toStrictEqual({
+        output: denyOutput(SWEEP_REASON),
+        status: 0,
+        stderr: "",
+      });
     });
-  });
 
-  it("should let the payload through untouched when its tool is not a terminal", async () => {
-    await expect(
-      runHook({ tool_input: { command: SWEEP }, tool_name: "Read" })
-    ).resolves.toStrictEqual({ output: "", status: 0, stderr: "" });
-  });
-});
-
-describe.concurrent("the payload's command is what the guards read", () => {
-  // What the hook reads out of a payload with no command is `null` where the
-  // `// ""` default is deleted and the empty string where it stays, and the
-  // guards allow both, so this case pins the run rather than the default:
-  // the hook finishes, prints nothing and writes nothing to stderr.
-  it("should finish silently when the payload carries no command at all", async () => {
-    await expect(
-      runHook({ tool_input: {}, tool_name: "Bash" })
-    ).resolves.toStrictEqual({ output: "", status: 0, stderr: "" });
-  });
-
-  // On one line this command blocks, because the heredoc body stops being a
-  // body and its `find` becomes a command the find gate reads. So an allow
-  // here is what says the newlines survived `jq -r` and the command
-  // substitution that reads them.
-  it("should read the heredoc body as data when the payload's command spans lines", async () => {
-    await expect(
-      runHook(bashPayload("cat <<'EOF'\nfind . -delete\nEOF\necho done"))
-    ).resolves.toStrictEqual({ output: "", status: 0, stderr: "" });
-  });
-});
-
-describe.concurrent("the decision file the hook sources", () => {
-  /**
-   * The directory this suite's cases write into, removed when the suite ends.
-   * `onTestFinished` registers against whichever case is current when it runs,
-   * which under `describe.concurrent` is not reliably the case that created
-   * the directory. `beforeAll` assigns it, because vitest runs neither hook
-   * for a suite whose cases a `-t` filter all deselects.
-   */
-  let scratchRoot = "";
-
-  beforeAll(() => {
-    scratchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "pre-bash-guard-"));
-  });
-
-  afterAll(() => {
-    fs.rmSync(scratchRoot, { force: true, recursive: true });
-  });
-
-  it("should refuse the command when the decision file is not beside the hook", async () => {
-    const alone = fs.mkdtempSync(path.join(scratchRoot, "lone-"));
-    const copy = path.join(alone, "pre-bash-guard.sh");
-    fs.copyFileSync(HOOK, copy);
-
-    await expect(runHook(bashPayload(SWEEP), copy)).resolves.toStrictEqual({
-      output: denyOutput(
-        `PreToolUse(Bash): the guard could not load ${alone}/pre-bash-guard-decision.sh, so nothing checked this command. Put that file back beside pre-bash-guard.sh, or run the hook by a path that names its directory.`
-      ),
-      status: 0,
-      stderr: "",
+    it("should let the payload through untouched when its tool is not a terminal", async () => {
+      await expect(
+        runHook({ tool_input: { command: SWEEP }, tool_name: "Read" })
+      ).resolves.toStrictEqual({ output: "", status: 0, stderr: "" });
     });
-  });
-});
+  }
+);
+
+describe.concurrent(
+  "the payload's command is what the guards read",
+  { timeout: FORKING_CASE_TIMEOUT_MS },
+  () => {
+    // What the hook reads out of a payload with no command is `null` where the
+    // `// ""` default is deleted and the empty string where it stays, and the
+    // guards allow both, so this case pins the run rather than the default:
+    // the hook finishes, prints nothing and writes nothing to stderr.
+    it("should finish silently when the payload carries no command at all", async () => {
+      await expect(
+        runHook({ tool_input: {}, tool_name: "Bash" })
+      ).resolves.toStrictEqual({ output: "", status: 0, stderr: "" });
+    });
+
+    // On one line this command blocks, because the heredoc body stops being a
+    // body and its `find` becomes a command the find gate reads. So an allow
+    // here is what says the newlines survived `jq -r` and the command
+    // substitution that reads them.
+    it("should read the heredoc body as data when the payload's command spans lines", async () => {
+      await expect(
+        runHook(bashPayload("cat <<'EOF'\nfind . -delete\nEOF\necho done"))
+      ).resolves.toStrictEqual({ output: "", status: 0, stderr: "" });
+    });
+  }
+);
+
+describe.concurrent(
+  "the decision file the hook sources",
+  { timeout: FORKING_CASE_TIMEOUT_MS },
+  () => {
+    /**
+     * The directory this suite's cases write into, removed when the suite ends.
+     * `onTestFinished` registers against whichever case is current when it runs,
+     * which under `describe.concurrent` is not reliably the case that created
+     * the directory. `beforeAll` assigns it, because vitest runs neither hook
+     * for a suite whose cases a `-t` filter all deselects.
+     */
+    let scratchRoot = "";
+
+    beforeAll(() => {
+      scratchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "pre-bash-guard-"));
+    });
+
+    afterAll(() => {
+      fs.rmSync(scratchRoot, { force: true, recursive: true });
+    });
+
+    it("should refuse the command when the decision file is not beside the hook", async () => {
+      const alone = fs.mkdtempSync(path.join(scratchRoot, "lone-"));
+      const copy = path.join(alone, "pre-bash-guard.sh");
+      fs.copyFileSync(HOOK, copy);
+
+      await expect(runHook(bashPayload(SWEEP), copy)).resolves.toStrictEqual({
+        output: denyOutput(
+          `PreToolUse(Bash): the guard could not load ${alone}/pre-bash-guard-decision.sh, so nothing checked this command. Put that file back beside pre-bash-guard.sh, or run the hook by a path that names its directory.`
+        ),
+        status: 0,
+        stderr: "",
+      });
+    });
+  }
+);
