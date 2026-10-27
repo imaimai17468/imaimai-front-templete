@@ -43,6 +43,22 @@ export const dieOnPersistenceError = {
     Effect.die(error.cause),
 };
 
+/** One user's row, or `None` when no row carries `userId`. */
+export const readUserRow = (
+  userId: string
+): Effect.Effect<
+  Option.Option<typeof users.$inferSelect>,
+  UserPersistenceError
+> =>
+  persistenceEffect(() =>
+    getDb()
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
+      .then(([row]) => Option.fromNullishOr(row))
+  );
+
 /**
  * The columns a profile write sets beside `updatedAt`, which it always sets.
  *

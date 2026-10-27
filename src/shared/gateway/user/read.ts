@@ -1,14 +1,11 @@
 import "@tanstack/react-start/server-only";
-import { eq } from "drizzle-orm";
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { CurrentSession } from "@/lib/auth/session";
 import { avatarUrlForKey } from "@/lib/avatar-url";
-import { getDb } from "@/lib/drizzle/db";
-import { users } from "@/lib/drizzle/schema";
 import { httpsUrl } from "@/lib/https-url";
 import { UserWithEmailSchema } from "@/shared/entities/user";
 import type { UserWithEmail } from "@/shared/entities/user";
-import { dieOnPersistenceError, persistenceEffect } from ".";
+import { dieOnPersistenceError, readUserRow } from ".";
 import type { UserPersistenceError } from ".";
 import { makeRunHandler } from "../runtime";
 
@@ -59,16 +56,7 @@ export class UserProfiles extends Context.Service<
     UserProfiles,
     UserProfiles.of({
       findProfile: (userId) =>
-        persistenceEffect(() =>
-          getDb()
-            .select()
-            .from(users)
-            .where(eq(users.id, userId))
-            .limit(1)
-            .then(([row]) =>
-              Option.fromNullishOr(row).pipe(Option.map(decodeProfileRow))
-            )
-        ),
+        readUserRow(userId).pipe(Effect.map(Option.map(decodeProfileRow))),
     })
   );
 }
