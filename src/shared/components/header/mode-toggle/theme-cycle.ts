@@ -1,10 +1,7 @@
-import { Option, Schema } from "effect";
+export type Theme = "dark" | "light";
 
-const ThemeSchema = Schema.Literals(["dark", "light"]);
-
-export type Theme = typeof ThemeSchema.Type;
-
-const decodeTheme = Schema.decodeUnknownOption(ThemeSchema);
+const isTheme = (value: string | undefined): value is Theme =>
+  value === "dark" || value === "light";
 
 const NEXT = {
   dark: "light",
@@ -16,21 +13,37 @@ export interface ThemeCycle {
   next: Theme;
 }
 
+const resolveCurrentTheme = (
+  rawTheme: string | undefined,
+  mounted: boolean
+): Theme => {
+  if (mounted && isTheme(rawTheme)) {
+    return rawTheme;
+  }
+  return "light";
+};
+
 export const resolveThemeCycle = (
-  rawTheme: Option.Option<string>,
+  rawTheme: string | undefined,
   mounted: boolean
 ): ThemeCycle => {
-  const current = rawTheme.pipe(
-    Option.flatMap(decodeTheme),
-    Option.filter(() => mounted),
-    Option.getOrElse((): Theme => "light")
-  );
+  const current = resolveCurrentTheme(rawTheme, mounted);
   return { current, next: NEXT[current] };
+};
+
+const ACTION_LABELS = {
+  dark: "ライトモードに切り替え",
+  light: "ダークモードに切り替え",
+} satisfies Record<Theme, string>;
+
+export const toggleLabel = (mounted: boolean, current: Theme): string => {
+  if (mounted) {
+    return ACTION_LABELS[current];
+  }
+  return "テーマを切り替え";
 };
 
 // next-themes hands back its persisted string, which can hold a value outside
 // `Theme`.
-export const needsThemeNormalization = (
-  theme: Option.Option<string>
-): boolean =>
-  Option.exists(theme, (value) => Option.isNone(decodeTheme(value)));
+export const needsThemeNormalization = (theme: string | undefined): boolean =>
+  theme !== undefined && !isTheme(theme);

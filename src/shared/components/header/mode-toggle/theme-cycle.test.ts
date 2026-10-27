@@ -1,12 +1,16 @@
-import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { needsThemeNormalization, resolveThemeCycle } from "./theme-cycle";
+import {
+  needsThemeNormalization,
+  resolveThemeCycle,
+  toggleLabel,
+} from "./theme-cycle";
+import type { Theme } from "./theme-cycle";
 
 describe(resolveThemeCycle, () => {
   it.each([
-    { label: "dark", theme: Option.some("dark") },
-    { label: "light", theme: Option.some("light") },
-    { label: "none", theme: Option.none() },
+    { label: "dark", theme: "dark" },
+    { label: "light", theme: "light" },
+    { label: "none", theme: undefined },
   ])(
     "should default to light when not mounted and theme is $label",
     ({ theme }) => {
@@ -22,13 +26,13 @@ describe(resolveThemeCycle, () => {
       current: "light",
       label: "light",
       next: "dark",
-      theme: Option.some("light"),
+      theme: "light",
     },
     {
       current: "dark",
       label: "dark",
       next: "light",
-      theme: Option.some("dark"),
+      theme: "dark",
     },
   ])(
     "should toggle to $next when mounted and theme is $label",
@@ -38,40 +42,52 @@ describe(resolveThemeCycle, () => {
   );
 
   it("should fall back to light when mounted and theme is none", () => {
-    expect(resolveThemeCycle(Option.none(), true)).toStrictEqual({
+    expect(resolveThemeCycle(undefined, true)).toStrictEqual({
       current: "light",
       next: "dark",
     });
   });
 
   it("should fall back to light when mounted and theme is unrecognized", () => {
-    expect(resolveThemeCycle(Option.some("high-contrast"), true)).toStrictEqual(
-      {
-        current: "light",
-        next: "dark",
-      }
-    );
+    expect(resolveThemeCycle("high-contrast", true)).toStrictEqual({
+      current: "light",
+      next: "dark",
+    });
   });
 });
 
 describe(needsThemeNormalization, () => {
   it.each([
-    { label: "none", theme: Option.none() },
-    { label: "light", theme: Option.some("light") },
-    { label: "dark", theme: Option.some("dark") },
+    { label: "none", theme: undefined },
+    { label: "light", theme: "light" },
+    { label: "dark", theme: "dark" },
   ])("should return false when the theme is $label", ({ theme }) => {
     expect(needsThemeNormalization(theme)).toBeFalsy();
   });
 
   it.each([
-    { label: "legacy system", theme: Option.some("system") },
-    { label: "unrecognized", theme: Option.some("high-contrast") },
-    { label: "empty string", theme: Option.some("") },
-    { label: "Object.prototype key", theme: Option.some("toString") },
+    { label: "legacy system", theme: "system" },
+    { label: "unrecognized", theme: "high-contrast" },
+    { label: "empty string", theme: "" },
+    { label: "Object.prototype key", theme: "toString" },
   ])(
     "should return true when the out-of-cycle theme is $label",
     ({ theme }) => {
       expect(needsThemeNormalization(theme)).toBeTruthy();
+    }
+  );
+});
+
+describe(toggleLabel, () => {
+  it.each<{ current: Theme; label: string; mounted: boolean }>([
+    { current: "light", label: "テーマを切り替え", mounted: false },
+    { current: "dark", label: "テーマを切り替え", mounted: false },
+    { current: "light", label: "ダークモードに切り替え", mounted: true },
+    { current: "dark", label: "ライトモードに切り替え", mounted: true },
+  ])(
+    "should read $label when mounted is $mounted and the theme is $current",
+    ({ current, label, mounted }) => {
+      expect(toggleLabel(mounted, current)).toBe(label);
     }
   );
 });
