@@ -94,4 +94,36 @@ export class AvatarReader extends Context.Service<
   );
 }
 
-export const runAvatarHandler = makeRunHandler(AvatarReader.layer);
+const jsonError = (status: number, error: string): Response =>
+  Response.json({ error }, { status });
+
+/**
+ * The response to a request for the avatar its `key` query parameter names,
+ * with every failure of the reader answered as a JSON error.
+ */
+export const getAvatarResponse: (
+  request: Request
+) => Effect.Effect<Response, never, AvatarReader> = Effect.fn(
+  "getAvatarResponse"
+)(
+  function* readRequestedAvatar(request: Request) {
+    const reader = yield* AvatarReader;
+    return yield* reader.read(
+      Option.fromNullOr(new URL(request.url).searchParams.get("key"))
+    );
+  },
+  Effect.map((avatar) => avatar.response()),
+  Effect.catchTags({
+    AvatarInvalidKey: () => Effect.succeed(jsonError(400, "Invalid key")),
+    AvatarNotFound: () => Effect.succeed(jsonError(404, "Not found")),
+    AvatarReadFailed: () =>
+      Effect.succeed(jsonError(500, "Failed to read avatar")),
+    AvatarUnauthorized: () => Effect.succeed(jsonError(401, "Unauthorized")),
+  })
+);
+
+const runAvatarHandler = makeRunHandler(AvatarReader.layer);
+
+/** Answers a request for an avatar object on behalf of the caller's session. */
+export const serveAvatar = (request: Request): Promise<Response> =>
+  runAvatarHandler(getAvatarResponse(request));

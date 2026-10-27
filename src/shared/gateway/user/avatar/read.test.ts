@@ -11,6 +11,7 @@ import {
   AvatarReadFailed,
   AvatarReader,
   AvatarUnauthorized,
+  getAvatarResponse,
 } from "./read";
 
 const makeFakes = (read: CurrentSession["Service"]["read"]) => {
@@ -168,6 +169,129 @@ describe("AvatarReader.read", () => {
           ],
           result: new AvatarReadFailed(),
         });
+      })
+  );
+});
+
+const respondThrough =
+  (read: AvatarReader["Service"]["read"]) => (request: Request) =>
+    getAvatarResponse(request).pipe(
+      Effect.provide(Layer.succeed(AvatarReader, AvatarReader.of({ read })))
+    );
+
+const avatarRequest = () =>
+  new Request("https://example.com/api/avatars?key=user-1%2Favatar.png");
+
+const avatarBody = () =>
+  new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode("avatar-body"));
+      controller.close();
+    },
+  });
+
+const errorCases = [
+  { error: "Unauthorized", failure: new AvatarUnauthorized(), status: 401 },
+  { error: "Invalid key", failure: new AvatarInvalidKey(), status: 400 },
+  { error: "Not found", failure: new AvatarNotFound(), status: 404 },
+  {
+    error: "Failed to read avatar",
+    failure: new AvatarReadFailed(),
+    status: 500,
+  },
+] satisfies {
+  error: string;
+  failure: Effect.Error<ReturnType<AvatarReader["Service"]["read"]>>;
+  status: number;
+}[];
+
+describe(getAvatarResponse, () => {
+  it.effect.each(errorCases)(
+    "should answer $status with $error when the authorization boundary fails with $failure._tag",
+    ({ error, failure, status }) =>
+      Effect.gen(function* answerTheRejection() {
+        const respond = respondThrough(() => Effect.fail(failure));
+
+        const response = yield* respond(avatarRequest());
+        const body = yield* Effect.promise(() => response.json());
+
+        expect({ body, status: response.status }).toStrictEqual({
+          body: { error },
+          status,
+        });
+      })
+  );
+
+  it.effect(
+    "should return the object's own response when the authorization boundary returns an avatar",
+    () =>
+      Effect.gen(function* serveTheObject() {
+        const respond = respondThrough(() =>
+          Effect.succeed(new AvatarObject(avatarBody(), "image/webp"))
+        );
+
+        const response = yield* respond(avatarRequest());
+        const body = yield* Effect.promise(() => response.text());
+
+        expect({
+          body,
+          headers: Object.fromEntries(response.headers),
+          status: response.status,
+        }).toStrictEqual({
+          body: "avatar-body",
+          headers: {
+            "cache-control": "private, max-age=31536000, immutable",
+            "content-security-policy": "default-src 'none'",
+            "content-type": "image/webp",
+            "x-content-type-options": "nosniff",
+          },
+          status: 200,
+        });
+      })
+  );
+
+  it.effect(
+    "should pass the query string's key to the authorization boundary when the request carries one",
+    () =>
+      Effect.gen(function* passTheQueryKey() {
+        const read = vi.fn<AvatarReader["Service"]["read"]>();
+        read.mockReturnValue(Effect.fail(new AvatarNotFound()));
+
+        yield* respondThrough(read)(avatarRequest());
+
+        expect(read.mock.calls).toStrictEqual([
+          [Option.some("user-1/avatar.png")],
+        ]);
+      })
+  );
+
+  it.effect(
+    "should pass an absent key to the authorization boundary when the request carries no key",
+    () =>
+      Effect.gen(function* passAnAbsentKey() {
+        const read = vi.fn<AvatarReader["Service"]["read"]>();
+        read.mockReturnValue(Effect.fail(new AvatarInvalidKey()));
+
+        yield* respondThrough(read)(
+          new Request("https://example.com/api/avatars")
+        );
+
+        expect(read.mock.calls).toStrictEqual([[Option.none()]]);
+      })
+  );
+
+  it.effect(
+    "should propagate the defect when the authorization boundary dies",
+    () =>
+      Effect.gen(function* propagateTheDefect() {
+        const readFailure = new DriverFailed({ message: "avatar read failed" });
+        const respond = respondThrough(() => Effect.die(readFailure));
+
+        const defect = yield* respond(avatarRequest()).pipe(
+          Effect.catchDefect(Effect.succeed)
+        );
+
+        expect(defect).toBe(readFailure);
       })
   );
 });
