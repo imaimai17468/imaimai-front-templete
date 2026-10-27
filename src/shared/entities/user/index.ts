@@ -1,4 +1,4 @@
-import { Option, Schema } from "effect";
+import { Schema } from "effect";
 
 // The pattern the HTML Standard gives for a valid e-mail address, which is
 // what `input type=email` accepts. Every class in it is ASCII, so the `u` flag
@@ -69,8 +69,9 @@ export type UpdateAvatar = typeof UpdateAvatarSchema.Encoded;
  * A row carries no name before the first profile save, and the form accepts a
  * blank submission as a clear, so both reach here and both fall back.
  */
-export const displayName = (name: Option.Option<string>): string =>
-  name.pipe(
-    Option.filter((value) => value !== ""),
-    Option.getOrElse(() => "User")
-  );
+export const displayName = (name: UserWithEmail["name"]): string => {
+  if (name === "") {
+    return "User";
+  }
+  return name ?? "User";
+};

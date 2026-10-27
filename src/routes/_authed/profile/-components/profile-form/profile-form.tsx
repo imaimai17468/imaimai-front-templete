@@ -1,6 +1,5 @@
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Option } from "effect";
 import { Camera } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -35,14 +34,14 @@ const AVATAR_SIZE_TOASTS = {
 
 export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
   const queryClient = useQueryClient();
-  const [previewUrl, setPreviewUrl] = useState(() => Option.none<string>());
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   // Object URL(外部リソース)の解放を表示中の previewUrl に同期する。
   useEffect(
     () => () => {
-      if (Option.isSome(previewUrl)) {
-        URL.revokeObjectURL(previewUrl.value);
+      if (previewUrl !== null) {
+        URL.revokeObjectURL(previewUrl);
       }
     },
     [previewUrl]
@@ -50,7 +49,7 @@ export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
 
   const form = useForm<UpdateUser>({
     defaultValues: {
-      name: Option.getOrElse(Option.fromNullOr(user.name), () => ""),
+      name: user.name ?? "",
     },
     resolver: standardSchemaResolver(UpdateUserSchema),
   });
@@ -71,7 +70,7 @@ export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
 
     const nextPreviewUrl = URL.createObjectURL(file);
     setPendingFile(file);
-    setPreviewUrl(Option.some(nextPreviewUrl));
+    setPreviewUrl(nextPreviewUrl);
   };
 
   const { mutate: saveProfile, isPending } = useMutation({
@@ -98,10 +97,8 @@ export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
     saveProfile(data);
   };
 
-  const name = displayName(Option.fromNullOr(user.name));
-  const avatarUrl = Option.orElse(previewUrl, () =>
-    Option.fromNullOr(user.avatarUrl)
-  );
+  const name = displayName(user.name);
+  const avatarUrl = previewUrl ?? user.avatarUrl;
 
   return (
     <Form {...form}>
