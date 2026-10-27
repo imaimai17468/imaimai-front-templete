@@ -18,7 +18,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterAll, describe, expect, it } from "vite-plus/test";
+import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 import { z } from "zod";
 import { readHookJson } from "./hook-output";
 import type { BashRun } from "./run-bash";
@@ -26,7 +26,12 @@ import { FORKING_CASE_TIMEOUT_MS, runBash } from "./run-bash";
 
 const HOOK = path.resolve(import.meta.dirname, "scoped-guidance.sh");
 
-const ROOT = fs.mkdtempSync(path.join(os.tmpdir(), "scoped-guidance-"));
+/**
+ * The directory every case's project sits under, removed when the suite ends.
+ * `beforeAll` assigns it, because vitest runs neither hook for a suite whose
+ * cases a `-t` filter all deselects.
+ */
+let scratchRoot = "";
 
 const Printed = z.object({
   hookSpecificOutput: z
@@ -62,7 +67,7 @@ const printedFor = (
 
 /** A scratch git project holding one scoped rule and one file with no trigger. */
 const makeProject = (name: string): string => {
-  const dir = path.join(ROOT, name);
+  const dir = path.join(scratchRoot, name);
   fs.mkdirSync(path.join(dir, ".claude/hooks/guidance"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, ".claude/hooks/guidance/react.md"),
@@ -159,8 +164,12 @@ describe.concurrent(
   "scoped-guidance",
   { timeout: FORKING_CASE_TIMEOUT_MS },
   () => {
+    beforeAll(() => {
+      scratchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "scoped-guidance-"));
+    });
+
     afterAll(() => {
-      fs.rmSync(ROOT, { force: true, recursive: true });
+      fs.rmSync(scratchRoot, { force: true, recursive: true });
     });
 
     it("should point at the rule when a Bash command names a covered file", async () => {
