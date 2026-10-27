@@ -15,6 +15,7 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
+import { FORKING_CASE_TIMEOUT_MS } from "../.claude/hooks/run-bash";
 
 const SETUP = path.resolve(import.meta.dirname, "setup.sh");
 const LOCAL_ENV = ".env.local";
@@ -81,7 +82,7 @@ const localEnvBody = (dir: string): string | null => {
     : null;
 };
 
-describe("setup.sh", () => {
+describe("setup.sh", { timeout: FORKING_CASE_TIMEOUT_MS }, () => {
   let scratchRoot = "";
 
   beforeAll(() => {
@@ -123,6 +124,7 @@ describe("setup.sh", () => {
       {
         encoding: "utf-8",
         env: { ...process.env, PATH: stubPath(stubs) },
+        timeout: FORKING_CASE_TIMEOUT_MS,
       }
     );
     return {

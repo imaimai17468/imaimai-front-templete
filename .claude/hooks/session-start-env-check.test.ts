@@ -19,7 +19,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
-import { runBash } from "./run-bash";
+import { FORKING_CASE_TIMEOUT_MS, runBash } from "./run-bash";
 
 const HOOK = path.resolve(import.meta.dirname, "session-start-env-check.sh");
 const LOCAL_ENV = ".env.local";
@@ -74,125 +74,129 @@ const runHook = async (dir: string) =>
     input: "",
   });
 
-describe("session-start-env-check.sh", () => {
-  let scratchRoot = "";
+describe(
+  "session-start-env-check.sh",
+  { timeout: FORKING_CASE_TIMEOUT_MS },
+  () => {
+    let scratchRoot = "";
 
-  beforeAll(() => {
-    scratchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "env-check-"));
-  });
-
-  afterAll(() => {
-    fs.rmSync(scratchRoot, { force: true, recursive: true });
-  });
-
-  /**
-   * A checkout whose only open setup question is the local env file: the
-   * other path the hook's setup section names is present.
-   */
-  const scratchCheckout = (): string => {
-    const dir = fs.mkdtempSync(path.join(scratchRoot, "checkout-"));
-    fs.mkdirSync(path.join(dir, "src"), { recursive: true });
-    fs.writeFileSync(path.join(dir, "src", "routeTree.gen.ts"), "");
-    fs.writeFileSync(path.join(dir, EXAMPLE), EXAMPLE_BODY);
-    return dir;
-  };
-
-  it("should copy the example into place and report the creation rather than a setup issue when the local env file is absent", async () => {
-    const dir = scratchCheckout();
-
-    const { stdout } = await runHook(dir);
-
-    expect({ body: localEnvBody(dir), ...report(stdout) }).toStrictEqual({
-      body: EXAMPLE_BODY,
-      created: [CREATED_LINE],
-      setup: [],
+    beforeAll(() => {
+      scratchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "env-check-"));
     });
-  });
 
-  it("should leave the values in place and report no creation when the local env file already exists", async () => {
-    const dir = scratchCheckout();
-    fs.writeFileSync(path.join(dir, LOCAL_ENV), "BETTER_AUTH_SECRET=mine\n");
-
-    const { stdout } = await runHook(dir);
-
-    expect({ body: localEnvBody(dir), ...report(stdout) }).toStrictEqual({
-      body: "BETTER_AUTH_SECRET=mine\n",
-      created: [],
-      setup: [],
+    afterAll(() => {
+      fs.rmSync(scratchRoot, { force: true, recursive: true });
     });
-  });
 
-  it("should report the rename as a setup issue when the local env file still names the Cloudflare variables", async () => {
-    const dir = scratchCheckout();
-    fs.writeFileSync(path.join(dir, LOCAL_ENV), "CLOUDFLARE_API_TOKEN=x\n");
+    /**
+     * A checkout whose only open setup question is the local env file: the
+     * other path the hook's setup section names is present.
+     */
+    const scratchCheckout = (): string => {
+      const dir = fs.mkdtempSync(path.join(scratchRoot, "checkout-"));
+      fs.mkdirSync(path.join(dir, "src"), { recursive: true });
+      fs.writeFileSync(path.join(dir, "src", "routeTree.gen.ts"), "");
+      fs.writeFileSync(path.join(dir, EXAMPLE), EXAMPLE_BODY);
+      return dir;
+    };
 
-    const { stdout } = await runHook(dir);
+    it("should copy the example into place and report the creation rather than a setup issue when the local env file is absent", async () => {
+      const dir = scratchCheckout();
 
-    expect(report(stdout)).toStrictEqual({
-      created: [],
-      setup: [
-        ".env.local still names CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN / CLOUDFLARE_D1_DATABASE_ID (fix: rename them to DRIZZLE_D1_ACCOUNT_ID / DRIZZLE_D1_API_TOKEN / DRIZZLE_D1_DATABASE_ID, as .env.local.example names them)",
-      ],
+      const { stdout } = await runHook(dir);
+
+      expect({ body: localEnvBody(dir), ...report(stdout) }).toStrictEqual({
+        body: EXAMPLE_BODY,
+        created: [CREATED_LINE],
+        setup: [],
+      });
     });
-  });
 
-  it("should report a setup issue rather than a creation when a directory sits at the local env path", async () => {
-    const dir = scratchCheckout();
-    fs.mkdirSync(path.join(dir, LOCAL_ENV));
+    it("should leave the values in place and report no creation when the local env file already exists", async () => {
+      const dir = scratchCheckout();
+      fs.writeFileSync(path.join(dir, LOCAL_ENV), "BETTER_AUTH_SECRET=mine\n");
 
-    const { stdout } = await runHook(dir);
+      const { stdout } = await runHook(dir);
 
-    // `cp` copies a file INTO a directory destination and exits 0, so a guard
-    // that only asked whether a regular file is there would report a creation
-    // and leave the checkout with no env file.
-    expect({
-      entries: fs.readdirSync(path.join(dir, LOCAL_ENV)),
-      ...report(stdout),
-    }).toStrictEqual({
-      created: [],
-      entries: [],
-      setup: [NON_REGULAR_ENTRY],
+      expect({ body: localEnvBody(dir), ...report(stdout) }).toStrictEqual({
+        body: "BETTER_AUTH_SECRET=mine\n",
+        created: [],
+        setup: [],
+      });
     });
-  });
 
-  it("should report a setup issue rather than write through the link when a dangling symlink sits at the local env path", async () => {
-    const dir = scratchCheckout();
-    const outside = path.join(scratchRoot, `${path.basename(dir)}-outside`);
-    fs.symlinkSync(outside, path.join(dir, LOCAL_ENV));
+    it("should report the rename as a setup issue when the local env file still names the Cloudflare variables", async () => {
+      const dir = scratchCheckout();
+      fs.writeFileSync(path.join(dir, LOCAL_ENV), "CLOUDFLARE_API_TOKEN=x\n");
 
-    const { stdout } = await runHook(dir);
+      const { stdout } = await runHook(dir);
 
-    // `-e` follows the link and reads a dangling one as absent, so a guard
-    // built on it alone would have `cp` write the example to `outside`.
-    expect({
-      outside: fs.existsSync(outside),
-      ...report(stdout),
-    }).toStrictEqual({
-      created: [],
-      outside: false,
-      setup: [NON_REGULAR_ENTRY],
+      expect(report(stdout)).toStrictEqual({
+        created: [],
+        setup: [
+          ".env.local still names CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN / CLOUDFLARE_D1_DATABASE_ID (fix: rename them to DRIZZLE_D1_ACCOUNT_ID / DRIZZLE_D1_API_TOKEN / DRIZZLE_D1_DATABASE_ID, as .env.local.example names them)",
+        ],
+      });
     });
-  });
 
-  it("should report a setup issue when the example it would copy is absent", async () => {
-    const dir = scratchCheckout();
-    fs.rmSync(path.join(dir, EXAMPLE));
+    it("should report a setup issue rather than a creation when a directory sits at the local env path", async () => {
+      const dir = scratchCheckout();
+      fs.mkdirSync(path.join(dir, LOCAL_ENV));
 
-    const { stdout } = await runHook(dir);
+      const { stdout } = await runHook(dir);
 
-    // The entry ends with `cp`'s own message, which this file does not pin, so
-    // the comparison stops at the marker the hook appends it after.
-    const printed = report(stdout);
-    expect({
-      body: localEnvBody(dir),
-      created: printed.created,
-      setup: printed.setup.map((entry) => entry.replace(CP_MESSAGE, "")),
-    }).toStrictEqual({
-      body: null,
-      created: [],
-      setup: [
-        ".env.local absent, and copying .env.local.example to it failed (fix: restore .env.local.example, or make the checkout writable).",
-      ],
+      // `cp` copies a file INTO a directory destination and exits 0, so a guard
+      // that only asked whether a regular file is there would report a creation
+      // and leave the checkout with no env file.
+      expect({
+        entries: fs.readdirSync(path.join(dir, LOCAL_ENV)),
+        ...report(stdout),
+      }).toStrictEqual({
+        created: [],
+        entries: [],
+        setup: [NON_REGULAR_ENTRY],
+      });
     });
-  });
-});
+
+    it("should report a setup issue rather than write through the link when a dangling symlink sits at the local env path", async () => {
+      const dir = scratchCheckout();
+      const outside = path.join(scratchRoot, `${path.basename(dir)}-outside`);
+      fs.symlinkSync(outside, path.join(dir, LOCAL_ENV));
+
+      const { stdout } = await runHook(dir);
+
+      // `-e` follows the link and reads a dangling one as absent, so a guard
+      // built on it alone would have `cp` write the example to `outside`.
+      expect({
+        outside: fs.existsSync(outside),
+        ...report(stdout),
+      }).toStrictEqual({
+        created: [],
+        outside: false,
+        setup: [NON_REGULAR_ENTRY],
+      });
+    });
+
+    it("should report a setup issue when the example it would copy is absent", async () => {
+      const dir = scratchCheckout();
+      fs.rmSync(path.join(dir, EXAMPLE));
+
+      const { stdout } = await runHook(dir);
+
+      // The entry ends with `cp`'s own message, which this file does not pin, so
+      // the comparison stops at the marker the hook appends it after.
+      const printed = report(stdout);
+      expect({
+        body: localEnvBody(dir),
+        created: printed.created,
+        setup: printed.setup.map((entry) => entry.replace(CP_MESSAGE, "")),
+      }).toStrictEqual({
+        body: null,
+        created: [],
+        setup: [
+          ".env.local absent, and copying .env.local.example to it failed (fix: restore .env.local.example, or make the checkout writable).",
+        ],
+      });
+    });
+  }
+);

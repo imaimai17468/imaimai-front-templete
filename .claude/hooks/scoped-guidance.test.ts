@@ -22,7 +22,7 @@ import { afterAll, describe, expect, it } from "vite-plus/test";
 import { z } from "zod";
 import { readHookJson } from "./hook-output";
 import type { BashRun } from "./run-bash";
-import { runBash } from "./run-bash";
+import { FORKING_CASE_TIMEOUT_MS, runBash } from "./run-bash";
 
 const HOOK = path.resolve(import.meta.dirname, "scoped-guidance.sh");
 
@@ -155,7 +155,7 @@ const sessionStart = async (
     })
   );
 
-describe("scoped-guidance", () => {
+describe("scoped-guidance", { timeout: FORKING_CASE_TIMEOUT_MS }, () => {
   afterAll(() => {
     fs.rmSync(ROOT, { force: true, recursive: true });
   });

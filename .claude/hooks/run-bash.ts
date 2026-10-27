@@ -13,6 +13,17 @@ export interface BashRunOptions {
   input: string;
 }
 
+/**
+ * The per-case timeout of a suite whose cases fork a script.
+ *
+ * It bounds a script that hangs rather than budgeting one case. A case's wall
+ * clock is set by how many of its neighbours are forking at the same moment
+ * and by what the machine charges for each exec: on 2026-10-27, with endpoint
+ * scanning on, `jq -n 1` took 0.3 s and `bun -e 0` 0.36 s, and at vitest's 5 s
+ * default a full run failed one to three hook cases before any assertion ran.
+ */
+export const FORKING_CASE_TIMEOUT_MS = 30_000;
+
 /** What one bash run produced. */
 export interface BashRun {
   status: number | null;
