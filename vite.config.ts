@@ -307,6 +307,20 @@ export default defineConfig({
         } satisfies DummyRuleMap,
       },
       {
+        // These layers take absence as the `null` or `undefined` that React
+        // props, router context and query results carry, and pass it on as it
+        // arrives.
+        files: ["src/routes/**", "src/shared/components/**"],
+        // A route's `-gateway` and `-entities` directories are those layers,
+        // and `api/` holds server handlers rather than UI.
+        excludeFiles: [
+          "src/routes/**/-gateway/**",
+          "src/routes/**/-entities/**",
+          "src/routes/api/**",
+        ],
+        rules: { "effect/noNullish": "off" },
+      },
+      {
         // shadcn CLI output. These are the rules the CLI's own files trip,
         // so leaving them on means rewriting every generated file by hand after
         // each `shadcn add`.
