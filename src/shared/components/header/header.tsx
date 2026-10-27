@@ -1,14 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import type { Option } from "effect";
 import type { UserWithEmail } from "@/shared/entities/user";
 import { AuthNavigation } from "./auth-navigation/auth-navigation";
 import { ModeToggle } from "./mode-toggle/mode-toggle";
 
-export const Header = ({
-  user,
-}: {
-  readonly user: Option.Option<UserWithEmail>;
-}) => (
+export const Header = ({ user }: { readonly user: UserWithEmail | null }) => (
   <header className="sticky top-0 z-50 bg-background backdrop-blur-md supports-backdrop-filter:bg-transparent">
     <div className="flex items-center justify-between gap-3 p-6">
       <Link
