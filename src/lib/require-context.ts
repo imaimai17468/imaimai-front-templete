@@ -7,13 +7,15 @@ class ContextMissing extends Schema.TaggedError<ContextMissing>()(
 ) {}
 
 /**
- * Unwraps a mandatory context value, throwing `ContextMissing` under the given
- * message when the `Option` is `None`.
+ * Returns a mandatory context value as `React.useContext` handed it over,
+ * throwing `ContextMissing` under the given message when it is `null` or
+ * `undefined`.
  *
  * A React context's provider is mandatory by convention rather than by type, so
  * its absence survives to runtime.
  */
-export const requireContext = <T>(
-  value: Option.Option<T>,
-  message: string
-): T => Option.getOrThrowWith(value, () => new ContextMissing({ message }));
+export const requireContext = <T>(value: T, message: string): NonNullable<T> =>
+  Option.getOrThrowWith(
+    Option.fromNullishOr(value),
+    () => new ContextMissing({ message })
+  );

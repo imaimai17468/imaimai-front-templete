@@ -1,6 +1,5 @@
 "use client";
 
-import { Option } from "effect";
 import { type Label as LabelPrimitive, Slot as SlotPrimitive } from "radix-ui";
 import * as React from "react";
 import {
@@ -48,11 +47,11 @@ const FormField = <
 
 const useFormField = () => {
   const fieldContext = requireContext(
-    Option.fromNullOr(React.useContext(FormFieldContext)),
+    React.useContext(FormFieldContext),
     "useFormField should be used within <FormField>"
   );
   const itemContext = requireContext(
-    Option.fromNullOr(React.useContext(FormItemContext)),
+    React.useContext(FormItemContext),
     "useFormField should be used within <FormItem>"
   );
 
@@ -115,15 +114,16 @@ function FormControl({
 }: React.ComponentProps<typeof SlotPrimitive.Slot>) {
   const { error, formItemId, formDescriptionId, formMessageId } =
     useFormField();
+  let describedBy = formDescriptionId;
+  if (error) {
+    describedBy = `${formDescriptionId} ${formMessageId}`;
+  }
 
   return (
     <SlotPrimitive.Slot
       data-slot="form-control"
       id={formItemId}
-      aria-describedby={Option.fromNullishOr(error).pipe(
-        Option.map(() => `${formDescriptionId} ${formMessageId}`),
-        Option.getOrElse(() => formDescriptionId)
-      )}
+      aria-describedby={describedBy}
       aria-invalid={!!error}
       {...props}
     />
@@ -145,14 +145,10 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
 
 function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   const { error, formMessageId } = useFormField();
-  // The fallback is `??` rather than `Option.getOrElse`: React 19 types
-  // `props.children` as a `ReactNode` that admits a Promise, and a callback
-  // returning one trips `promise-function-async`.
-  const failure = Option.fromNullishOr(error).pipe(
-    Option.map((fieldError) => fieldError.message ?? "")
-  );
-  const body: React.ReactNode =
-    Option.getOrUndefined(failure) ?? props.children;
+  let body: React.ReactNode = props.children;
+  if (error) {
+    body = error.message ?? "";
+  }
 
   if (body == null || body === "") {
     return null;
