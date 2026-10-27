@@ -49,6 +49,7 @@ const scratchDir = (prefix: string): string =>
 interface Steps {
   check: string;
   test: string;
+  testHooks: string;
   /** The body of the check-md-links.ts stand-in bun runs directly. */
   links: string;
 }
@@ -57,6 +58,7 @@ const PASSING: Steps = {
   check: "exit 0",
   links: "process.exit(0);",
   test: "exit 0",
+  testHooks: "exit 0",
 };
 
 /**
@@ -123,11 +125,16 @@ const scratchRepo = (steps: Steps, untracked: readonly string[]): string => {
     path.join(root, STAND_INS.packageJson),
     `${JSON.stringify({
       name: "stop-gate-scratch",
-      scripts: { check: steps.check, test: steps.test },
+      scripts: {
+        check: steps.check,
+        test: steps.test,
+        "test:hooks": steps.testHooks,
+      },
     })}\n`
   );
   fs.writeFileSync(path.join(root, STAND_INS.links), `${steps.links}\n`);
   untracked.forEach((name) => {
+    fs.mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
     fs.writeFileSync(path.join(root, name), "x\n");
   });
   return root;
@@ -225,7 +232,7 @@ describe.concurrent(
   () => {
     // `git init` plus `git commit` take 275 ms together on this machine (macOS,
     // 2026-09-09) and copying the tree they leave takes 0.8 ms, so the history
-    // is built once here rather than at each of `scratchRepo`'s 13 call sites.
+    // is built once here rather than at each `scratchRepo` call.
     beforeAll(createScratchTrees);
 
     afterAll(() => {
@@ -259,7 +266,19 @@ describe.concurrent(
       const run = await runGate(root);
 
       expect(run.systemMessage).toBe(
-        "✅ Stop gate: typecheck / lint / format and the test suite pass (md links: clean)"
+        "✅ Stop gate: typecheck / lint / format and the test suite pass (hooks' test suite skipped: no hook changed, md links: clean)"
+      );
+    });
+
+    it("should block and name the hooks' suite when a hook changed and that suite fails", async () => {
+      const root = scratchRepo({ ...PASSING, testHooks: "exit 1" }, [
+        ".claude/hooks/new-hook.sh",
+      ]);
+
+      const run = await runGate(root);
+
+      expect(run.systemMessage).toBe(
+        "⛔ Stop block: bun run test:hooks failed. Fix before ending the turn."
       );
     });
 
@@ -401,7 +420,7 @@ md links: FAILED`,
       const run = await runGate(work, { cwd: work, projectDir: session });
 
       expect(run.systemMessage).toBe(
-        "✅ Stop gate: typecheck / lint / format and the test suite pass (md links: clean)"
+        "✅ Stop gate: typecheck / lint / format and the test suite pass (hooks' test suite skipped: no hook changed, md links: clean)"
       );
     });
 

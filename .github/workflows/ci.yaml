@@ -118,6 +118,10 @@ jobs:
       - name: Run Tests
         run: bun run test
 
+      # Runs on every pull request, whatever it touched.
+      - name: Run the hooks' tests
+        run: bun run test:hooks
+
       # The build `alchemy deploy` runs, without deploying, so a change that
       # breaks the production bundle fails here.
       - name: Build the Worker

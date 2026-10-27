@@ -12,6 +12,7 @@
       "Bash(bun run check)",
       "Bash(bun run typecheck)",
       "Bash(bun run test)",
+      "Bash(bun run test:hooks)",
       "Bash(bun run lint)",
       "Bash(bun run dead-code)",
       "Bash(bun run dupes)",
