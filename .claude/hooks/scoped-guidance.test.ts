@@ -18,7 +18,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterAll, describe, expect, it } from "vite-plus/test";
+import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 import { z } from "zod";
 import { readHookJson } from "./hook-output";
 import type { BashRun } from "./run-bash";
@@ -26,7 +26,12 @@ import { FORKING_CASE_TIMEOUT_MS, runBash } from "./run-bash";
 
 const HOOK = path.resolve(import.meta.dirname, "scoped-guidance.sh");
 
-const ROOT = fs.mkdtempSync(path.join(os.tmpdir(), "scoped-guidance-"));
+/**
+ * The directory every case's project sits under, removed when the suite ends.
+ * `beforeAll` assigns it, because vitest runs neither hook for a suite whose
+ * cases a `-t` filter all deselects.
+ */
+let scratchRoot = "";
 
 const Printed = z.object({
   hookSpecificOutput: z
@@ -62,7 +67,7 @@ const printedFor = (
 
 /** A scratch git project holding one scoped rule and one file with no trigger. */
 const makeProject = (name: string): string => {
-  const dir = path.join(ROOT, name);
+  const dir = path.join(scratchRoot, name);
   fs.mkdirSync(path.join(dir, ".claude/hooks/guidance"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, ".claude/hooks/guidance/react.md"),
@@ -155,308 +160,316 @@ const sessionStart = async (
     })
   );
 
-describe("scoped-guidance", { timeout: FORKING_CASE_TIMEOUT_MS }, () => {
-  afterAll(() => {
-    fs.rmSync(ROOT, { force: true, recursive: true });
-  });
-
-  it("should point at the rule when a Bash command names a covered file", async () => {
-    const project = makeProject("bash");
-
-    const printed = await printedBy(project, bashNaming("src/routes/a.tsx"));
-
-    expect(printed).toStrictEqual(
-      printedFor("PreToolUse", "reached src/routes/a.tsx")
-    );
-  });
-
-  it("should point at the rule when Edit names a covered file", async () => {
-    const project = makeProject("edit");
-
-    const printed = await printedBy(project, {
-      sessionId: "s1",
-      toolInput: { file_path: path.join(project, "src/a.tsx") },
-      toolName: "Edit",
+describe.concurrent(
+  "scoped-guidance",
+  { timeout: FORKING_CASE_TIMEOUT_MS },
+  () => {
+    beforeAll(() => {
+      scratchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "scoped-guidance-"));
     });
 
-    expect(printed).toStrictEqual(
-      printedFor("PreToolUse", "reached src/a.tsx")
-    );
-  });
-
-  it("should point at the rule when Read opens a covered file", async () => {
-    const project = makeProject("read");
-
-    const printed = await printedBy(project, {
-      sessionId: "s1",
-      toolInput: { file_path: "src/a.tsx" },
-      toolName: "Read",
+    afterAll(() => {
+      fs.rmSync(scratchRoot, { force: true, recursive: true });
     });
 
-    expect(printed).toStrictEqual(
-      printedFor("PreToolUse", "reached src/a.tsx")
-    );
-  });
+    it("should point at the rule when a Bash command names a covered file", async () => {
+      const project = makeProject("bash");
 
-  it("should print nothing when Bash names a file an earlier Read reached", async () => {
-    const project = makeProject("read-then-bash");
-    await printedBy(project, {
-      sessionId: "s1",
-      toolInput: { file_path: "src/a.tsx" },
-      toolName: "Read",
+      const printed = await printedBy(project, bashNaming("src/routes/a.tsx"));
+
+      expect(printed).toStrictEqual(
+        printedFor("PreToolUse", "reached src/routes/a.tsx")
+      );
     });
 
-    const printed = await printedBy(project, bashNaming("src/a.tsx"));
+    it("should point at the rule when Edit names a covered file", async () => {
+      const project = makeProject("edit");
 
-    expect(printed).toStrictEqual({});
-  });
+      const printed = await printedBy(project, {
+        sessionId: "s1",
+        toolInput: { file_path: path.join(project, "src/a.tsx") },
+        toolName: "Edit",
+      });
 
-  it("should resolve a relative path against cwd when cwd is below CLAUDE_PROJECT_DIR", async () => {
-    const project = makeProject("project-dir");
-
-    const printed = await printedBy(project, {
-      cwd: path.join(project, "src"),
-      sessionId: "s1",
-      toolInput: { file_path: "a.tsx" },
-      toolName: "Edit",
+      expect(printed).toStrictEqual(
+        printedFor("PreToolUse", "reached src/a.tsx")
+      );
     });
 
-    expect(printed).toStrictEqual(
-      printedFor("PreToolUse", "reached src/a.tsx")
-    );
-  });
+    it("should point at the rule when Read opens a covered file", async () => {
+      const project = makeProject("read");
 
-  it("should read the rules under cwd when CLAUDE_PROJECT_DIR is unset", async () => {
-    const project = makeProject("no-project-dir");
-    const payload = payloadFor(project, bashNaming("src/a.tsx"));
+      const printed = await printedBy(project, {
+        sessionId: "s1",
+        toolInput: { file_path: "src/a.tsx" },
+        toolName: "Read",
+      });
 
-    const run = await runHook(project, payload, "unset");
-
-    expect(readHookJson(run.stdout, Printed)).toStrictEqual(
-      printedFor("PreToolUse", "reached src/a.tsx")
-    );
-  });
-
-  it("should print nothing when no named path is covered", async () => {
-    const project = makeProject("uncovered");
-
-    const printed = await printedBy(
-      project,
-      bashNaming("README.md /etc/hosts.tsx")
-    );
-
-    expect(printed).toStrictEqual({});
-  });
-
-  it("should point at the rule after Bash when git lists an untracked covered file", async () => {
-    const project = makeProject("post");
-    fs.mkdirSync(path.join(project, "src"));
-    fs.writeFileSync(path.join(project, "src/new.tsx"), "export {};\n");
-
-    const printed = await printedBy(project, {
-      event: "PostToolUse",
-      sessionId: "s1",
-      toolInput: { command: "python3 gen.py" },
-      toolName: "Bash",
+      expect(printed).toStrictEqual(
+        printedFor("PreToolUse", "reached src/a.tsx")
+      );
     });
 
-    expect(printed).toStrictEqual(
-      printedFor("PostToolUse", "reached src/new.tsx")
-    );
-  });
+    it("should print nothing when Bash names a file an earlier Read reached", async () => {
+      const project = makeProject("read-then-bash");
+      await printedBy(project, {
+        sessionId: "s1",
+        toolInput: { file_path: "src/a.tsx" },
+        toolName: "Read",
+      });
 
-  it("should point at the rule after Bash when the covered file was written and staged", async () => {
-    const project = makeProject("staged");
-    fs.mkdirSync(path.join(project, "src"));
-    fs.writeFileSync(path.join(project, "src/new.tsx"), "export {};\n");
-    execFileSync("git", ["add", "src/new.tsx"], { cwd: project });
+      const printed = await printedBy(project, bashNaming("src/a.tsx"));
 
-    const printed = await printedBy(project, {
-      event: "PostToolUse",
-      sessionId: "s1",
-      toolInput: { command: "python3 gen.py && git add src" },
-      toolName: "Bash",
+      expect(printed).toStrictEqual({});
     });
 
-    expect(printed).toStrictEqual(
-      printedFor("PostToolUse", "reached src/new.tsx")
-    );
-  });
+    it("should resolve a relative path against cwd when cwd is below CLAUDE_PROJECT_DIR", async () => {
+      const project = makeProject("project-dir");
 
-  it("should print nothing when the session has already reached the rule", async () => {
-    const project = makeProject("twice");
-    await printedBy(project, bashNaming("src/a.tsx"));
+      const printed = await printedBy(project, {
+        cwd: path.join(project, "src"),
+        sessionId: "s1",
+        toolInput: { file_path: "a.tsx" },
+        toolName: "Edit",
+      });
 
-    const printed = await printedBy(project, bashNaming("src/a.tsx"));
-
-    expect(printed).toStrictEqual({});
-  });
-
-  it("should point at the rule again when a subagent of the session reaches it", async () => {
-    const project = makeProject("subagent");
-    await printedBy(project, bashNaming("src/a.tsx"));
-
-    const printed = await printedBy(project, {
-      ...bashNaming("src/a.tsx"),
-      agentId: "a1",
+      expect(printed).toStrictEqual(
+        printedFor("PreToolUse", "reached src/a.tsx")
+      );
     });
 
-    expect(printed).toStrictEqual(
-      printedFor("PreToolUse", "reached src/a.tsx")
-    );
-  });
+    it("should read the rules under cwd when CLAUDE_PROJECT_DIR is unset", async () => {
+      const project = makeProject("no-project-dir");
+      const payload = payloadFor(project, bashNaming("src/a.tsx"));
 
-  it("should point at the rule on every call when the payload carries no id", async () => {
-    const project = makeProject("no-id");
-    const { sessionId: _session, ...call } = bashNaming("src/a.tsx");
-    await printedBy(project, call);
+      const run = await runHook(project, payload, "unset");
 
-    const printed = await printedBy(project, call);
-
-    expect(printed).toStrictEqual(
-      printedFor("PreToolUse", "reached src/a.tsx")
-    );
-  });
-
-  it("should point at the rule when a Bash command runs a phrase the rule names", async () => {
-    const project = makeProject("command");
-    addRule(project, "prose.md", PROSE_RULE);
-
-    const printed = await printedBy(project, {
-      sessionId: "s1",
-      toolInput: { command: "git add a && git commit -m x" },
-      toolName: "Bash",
+      expect(readHookJson(run.stdout, Printed)).toStrictEqual(
+        printedFor("PreToolUse", "reached src/a.tsx")
+      );
     });
 
-    expect(printed).toStrictEqual(
-      printedFor("PreToolUse", "ran `git commit`", "prose")
-    );
-  });
+    it("should print nothing when no named path is covered", async () => {
+      const project = makeProject("uncovered");
 
-  it("should point at the rule when a prompt fires an event the rule lists", async () => {
-    const project = makeProject("prompt");
-    addRule(project, "replies.md", REPLIES_RULE);
+      const printed = await printedBy(
+        project,
+        bashNaming("README.md /etc/hosts.tsx")
+      );
 
-    const printed = await printedBy(project, {
-      event: "UserPromptSubmit",
-      sessionId: "s1",
-      toolInput: {},
-      toolName: "",
+      expect(printed).toStrictEqual({});
     });
 
-    expect(printed).toStrictEqual(
-      printedFor("UserPromptSubmit", "fired UserPromptSubmit", "replies")
-    );
-  });
+    it("should point at the rule after Bash when git lists an untracked covered file", async () => {
+      const project = makeProject("post");
+      fs.mkdirSync(path.join(project, "src"));
+      fs.writeFileSync(path.join(project, "src/new.tsx"), "export {};\n");
 
-  it("should point at a rule added mid-session when every earlier rule was reached", async () => {
-    const project = makeProject("added");
-    await printedBy(project, bashNaming("src/a.tsx"));
-    addDesignRule(project);
+      const printed = await printedBy(project, {
+        event: "PostToolUse",
+        sessionId: "s1",
+        toolInput: { command: "python3 gen.py" },
+        toolName: "Bash",
+      });
 
-    const printed = await printedBy(project, bashNaming("src/a.css"));
+      expect(printed).toStrictEqual(
+        printedFor("PostToolUse", "reached src/new.tsx")
+      );
+    });
 
-    expect(printed).toStrictEqual(
-      printedFor("PreToolUse", "reached src/a.css", "design")
-    );
-  });
+    it("should point at the rule after Bash when the covered file was written and staged", async () => {
+      const project = makeProject("staged");
+      fs.mkdirSync(path.join(project, "src"));
+      fs.writeFileSync(path.join(project, "src/new.tsx"), "export {};\n");
+      execFileSync("git", ["add", "src/new.tsx"], { cwd: project });
 
-  it("should keep running scoped-guidance.entry.ts when a rule is still unreached", async () => {
-    const project = makeProject("incomplete");
-    addDesignRule(project);
-    await printedBy(project, bashNaming("src/a.tsx"));
+      const printed = await printedBy(project, {
+        event: "PostToolUse",
+        sessionId: "s1",
+        toolInput: { command: "python3 gen.py && git add src" },
+        toolName: "Bash",
+      });
 
-    const printed = await printedBy(project, bashNaming("src/a.css"));
+      expect(printed).toStrictEqual(
+        printedFor("PostToolUse", "reached src/new.tsx")
+      );
+    });
 
-    expect(printed).toStrictEqual(
-      printedFor("PreToolUse", "reached src/a.css", "design")
-    );
-  });
+    it("should print nothing when the session has already reached the rule", async () => {
+      const project = makeProject("twice");
+      await printedBy(project, bashNaming("src/a.tsx"));
 
-  it("should answer without scoped-guidance.entry.ts when the complete marker exists", async () => {
-    const project = makeProject("complete");
-    fs.mkdirSync(
-      path.join(project, "tmp/claude-scoped-guidance-s1-.complete-2"),
+      const printed = await printedBy(project, bashNaming("src/a.tsx"));
+
+      expect(printed).toStrictEqual({});
+    });
+
+    it("should point at the rule again when a subagent of the session reaches it", async () => {
+      const project = makeProject("subagent");
+      await printedBy(project, bashNaming("src/a.tsx"));
+
+      const printed = await printedBy(project, {
+        ...bashNaming("src/a.tsx"),
+        agentId: "a1",
+      });
+
+      expect(printed).toStrictEqual(
+        printedFor("PreToolUse", "reached src/a.tsx")
+      );
+    });
+
+    it("should point at the rule on every call when the payload carries no id", async () => {
+      const project = makeProject("no-id");
+      const { sessionId: _session, ...call } = bashNaming("src/a.tsx");
+      await printedBy(project, call);
+
+      const printed = await printedBy(project, call);
+
+      expect(printed).toStrictEqual(
+        printedFor("PreToolUse", "reached src/a.tsx")
+      );
+    });
+
+    it("should point at the rule when a Bash command runs a phrase the rule names", async () => {
+      const project = makeProject("command");
+      addRule(project, "prose.md", PROSE_RULE);
+
+      const printed = await printedBy(project, {
+        sessionId: "s1",
+        toolInput: { command: "git add a && git commit -m x" },
+        toolName: "Bash",
+      });
+
+      expect(printed).toStrictEqual(
+        printedFor("PreToolUse", "ran `git commit`", "prose")
+      );
+    });
+
+    it("should point at the rule when a prompt fires an event the rule lists", async () => {
+      const project = makeProject("prompt");
+      addRule(project, "replies.md", REPLIES_RULE);
+
+      const printed = await printedBy(project, {
+        event: "UserPromptSubmit",
+        sessionId: "s1",
+        toolInput: {},
+        toolName: "",
+      });
+
+      expect(printed).toStrictEqual(
+        printedFor("UserPromptSubmit", "fired UserPromptSubmit", "replies")
+      );
+    });
+
+    it("should point at a rule added mid-session when every earlier rule was reached", async () => {
+      const project = makeProject("added");
+      await printedBy(project, bashNaming("src/a.tsx"));
+      addDesignRule(project);
+
+      const printed = await printedBy(project, bashNaming("src/a.css"));
+
+      expect(printed).toStrictEqual(
+        printedFor("PreToolUse", "reached src/a.css", "design")
+      );
+    });
+
+    it("should keep running scoped-guidance.entry.ts when a rule is still unreached", async () => {
+      const project = makeProject("incomplete");
+      addDesignRule(project);
+      await printedBy(project, bashNaming("src/a.tsx"));
+
+      const printed = await printedBy(project, bashNaming("src/a.css"));
+
+      expect(printed).toStrictEqual(
+        printedFor("PreToolUse", "reached src/a.css", "design")
+      );
+    });
+
+    it("should answer without scoped-guidance.entry.ts when the complete marker exists", async () => {
+      const project = makeProject("complete");
+      fs.mkdirSync(
+        path.join(project, "tmp/claude-scoped-guidance-s1-.complete-2"),
+        {
+          recursive: true,
+        }
+      );
+
+      const printed = await printedBy(project, bashNaming("src/a.tsx"));
+
+      expect(printed).toStrictEqual({});
+    });
+
+    it("should mark a subagent complete when it reaches every rule but a prompt-only one", async () => {
+      const project = makeProject("subagent-complete");
+      addRule(project, "replies.md", REPLIES_RULE);
+      const marker = path.join(
+        project,
+        "tmp/claude-scoped-guidance-s1-a1.complete-3"
+      );
+
+      await printedBy(project, { ...bashNaming("src/a.tsx"), agentId: "a1" });
+
+      expect(fs.existsSync(marker)).toBeTruthy();
+    });
+
+    it("should point at a reached rule again when the session was compacted", async () => {
+      const project = makeProject("session-start-compact");
+      await printedBy(project, bashNaming("src/a.tsx"));
+      await sessionStart(project, "s1", "compact");
+
+      const printed = await printedBy(project, bashNaming("src/a.tsx"));
+
+      expect(printed).toStrictEqual(
+        printedFor("PreToolUse", "reached src/a.tsx")
+      );
+    });
+
+    it("should print nothing for a reached rule when the session was resumed", async () => {
+      const project = makeProject("session-start-resume");
+      await printedBy(project, bashNaming("src/a.tsx"));
+      await sessionStart(project, "s1", "resume");
+
+      const printed = await printedBy(project, bashNaming("src/a.tsx"));
+
+      expect(printed).toStrictEqual({});
+    });
+
+    it("should keep a subagent's markers when its session is compacted", async () => {
+      const project = makeProject("compact-subagent");
+      const subagentCall = { ...bashNaming("src/a.tsx"), agentId: "a1" };
+      await printedBy(project, subagentCall);
+      await sessionStart(project, "s1", "compact");
+
+      const printed = await printedBy(project, subagentCall);
+
+      expect(printed).toStrictEqual({});
+    });
+
+    it("should keep another session's markers when one session is compacted", async () => {
+      const project = makeProject("compact-other-session");
+      await printedBy(project, { ...bashNaming("src/a.tsx"), sessionId: "s2" });
+      await sessionStart(project, "s1", "compact");
+
+      const printed = await printedBy(project, {
+        ...bashNaming("src/a.tsx"),
+        sessionId: "s2",
+      });
+
+      expect(printed).toStrictEqual({});
+    });
+
+    it.each([
+      { input: "not json", name: "stdin is not JSON" },
       {
-        recursive: true,
-      }
-    );
+        input: '{"hook_event_name":"Stop","cwd":"/","tool_name":"Read"}',
+        name: "the event is neither PreToolUse nor PostToolUse",
+      },
+    ])("should exit 0 and print nothing when $name", async ({ input }) => {
+      const project = makeProject(`bad-${input.length}`);
 
-    const printed = await printedBy(project, bashNaming("src/a.tsx"));
+      const run = await runHook(project, input);
 
-    expect(printed).toStrictEqual({});
-  });
-
-  it("should mark a subagent complete when it reaches every rule but a prompt-only one", async () => {
-    const project = makeProject("subagent-complete");
-    addRule(project, "replies.md", REPLIES_RULE);
-    const marker = path.join(
-      project,
-      "tmp/claude-scoped-guidance-s1-a1.complete-3"
-    );
-
-    await printedBy(project, { ...bashNaming("src/a.tsx"), agentId: "a1" });
-
-    expect(fs.existsSync(marker)).toBeTruthy();
-  });
-
-  it("should point at a reached rule again when the session was compacted", async () => {
-    const project = makeProject("session-start-compact");
-    await printedBy(project, bashNaming("src/a.tsx"));
-    await sessionStart(project, "s1", "compact");
-
-    const printed = await printedBy(project, bashNaming("src/a.tsx"));
-
-    expect(printed).toStrictEqual(
-      printedFor("PreToolUse", "reached src/a.tsx")
-    );
-  });
-
-  it("should print nothing for a reached rule when the session was resumed", async () => {
-    const project = makeProject("session-start-resume");
-    await printedBy(project, bashNaming("src/a.tsx"));
-    await sessionStart(project, "s1", "resume");
-
-    const printed = await printedBy(project, bashNaming("src/a.tsx"));
-
-    expect(printed).toStrictEqual({});
-  });
-
-  it("should keep a subagent's markers when its session is compacted", async () => {
-    const project = makeProject("compact-subagent");
-    const subagentCall = { ...bashNaming("src/a.tsx"), agentId: "a1" };
-    await printedBy(project, subagentCall);
-    await sessionStart(project, "s1", "compact");
-
-    const printed = await printedBy(project, subagentCall);
-
-    expect(printed).toStrictEqual({});
-  });
-
-  it("should keep another session's markers when one session is compacted", async () => {
-    const project = makeProject("compact-other-session");
-    await printedBy(project, { ...bashNaming("src/a.tsx"), sessionId: "s2" });
-    await sessionStart(project, "s1", "compact");
-
-    const printed = await printedBy(project, {
-      ...bashNaming("src/a.tsx"),
-      sessionId: "s2",
+      expect(run).toStrictEqual({ status: 0, stderr: "", stdout: "" });
     });
-
-    expect(printed).toStrictEqual({});
-  });
-
-  it.each([
-    { input: "not json", name: "stdin is not JSON" },
-    {
-      input: '{"hook_event_name":"Stop","cwd":"/","tool_name":"Read"}',
-      name: "the event is neither PreToolUse nor PostToolUse",
-    },
-  ])("should exit 0 and print nothing when $name", async ({ input }) => {
-    const project = makeProject(`bad-${input.length}`);
-
-    const run = await runHook(project, input);
-
-    expect(run).toStrictEqual({ status: 0, stderr: "", stdout: "" });
-  });
-});
+  }
+);

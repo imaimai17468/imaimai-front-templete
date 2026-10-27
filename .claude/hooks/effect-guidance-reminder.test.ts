@@ -16,14 +16,19 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterAll, describe, expect, it } from "vite-plus/test";
+import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 import { z } from "zod";
 import { readHookJson } from "./hook-output";
 import { FORKING_CASE_TIMEOUT_MS, runBash } from "./run-bash";
 
 const HOOK = path.resolve(import.meta.dirname, "effect-guidance-reminder.sh");
 
-const ROOT = fs.mkdtempSync(path.join(os.tmpdir(), "effect-guidance-"));
+/**
+ * The directory every case's own directory sits under, removed when the suite
+ * ends. `beforeAll` assigns it, because vitest runs neither hook for a suite
+ * whose cases a `-t` filter all deselects.
+ */
+let scratchRoot = "";
 
 /** The additionalContext shape the hook prints, and silence read as an empty object. */
 const Printed = z.object({
@@ -72,7 +77,7 @@ interface Payload {
 
 /** A directory of this case's own, so its marker and its fixtures reach no other case. */
 const caseDir = (name: string): string =>
-  fs.mkdtempSync(path.join(ROOT, `${name}-`));
+  fs.mkdtempSync(path.join(scratchRoot, `${name}-`));
 
 /**
  * Run the hook on one payload.
@@ -98,12 +103,16 @@ const editPayload = (
   tool_name: "Edit",
 });
 
-describe(
+describe.concurrent(
   "effect-guidance-reminder.sh",
   { timeout: FORKING_CASE_TIMEOUT_MS },
   () => {
+    beforeAll(() => {
+      scratchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "effect-guidance-"));
+    });
+
     afterAll(() => {
-      fs.rmSync(ROOT, { force: true, recursive: true });
+      fs.rmSync(scratchRoot, { force: true, recursive: true });
     });
 
     it("should ask for the guidance when an edit adds an Effect import to a file that had none", async () => {

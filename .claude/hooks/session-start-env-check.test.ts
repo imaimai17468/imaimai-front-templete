@@ -74,7 +74,7 @@ const runHook = async (dir: string) =>
     input: "",
   });
 
-describe(
+describe.concurrent(
   "session-start-env-check.sh",
   { timeout: FORKING_CASE_TIMEOUT_MS },
   () => {
