@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { Option } from "effect";
 import type { UserWithEmail } from "@/shared/entities/user";
 import { Button } from "@/shared/ui/button";
 import { UserMenu } from "../user-menu/user-menu";
@@ -7,10 +6,10 @@ import { UserMenu } from "../user-menu/user-menu";
 export const AuthNavigation = ({
   user,
 }: {
-  readonly user: Option.Option<UserWithEmail>;
+  readonly user: UserWithEmail | null;
 }) => {
-  if (Option.isSome(user)) {
-    return <UserMenu user={user.value} />;
+  if (user !== null) {
+    return <UserMenu user={user} />;
   }
 
   return (

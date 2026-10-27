@@ -33,7 +33,7 @@ A `Schema` decodes a row, rather than a hand-written mapping. Decoding is what t
 - One `queryOptions` factory per read, in the `*.fn.ts` beside the server function it calls. Name it `<subject>QueryOptions`. `query/prefer-query-options` reports a `queryKey` and `queryFn` written inline at a call site.
 - The key is the gateway directory and the operation as kebab-case segments, one segment per level, with the request object last where the read takes one: `["user", "current"]`. Partial-key `invalidateQueries` is the point of the hierarchy, and a spelling nobody can predict makes it a silent no-op.
 - `queryFn` takes the context's `signal` and passes it to the server function (`getCurrentUserFn({ signal })`), so a cancelled query cancels the request rather than leaving it running.
-- Where the row is nullable, `select` converts it (`select: Option.fromNullOr`), so every reader gets the `Option` this codebase passes around and no call site repeats the conversion. `select` runs per read and leaves `state.data` as the server sent it, so the dehydrated cache is unaffected.
+- Where the row is nullable, the factory sets no `select`, so every reader gets the `null` the server function sent. Its readers are route and component files, which take absence as the `null` TanStack Query hands them rather than as an `Option`.
 - The factory is the whole export. No `useCurrentUser` wrapper hook, because the call site picks between `useSuspenseQuery`, `useQuery` and a loader, and a wrapper picks for it.
 
 ## Reading
