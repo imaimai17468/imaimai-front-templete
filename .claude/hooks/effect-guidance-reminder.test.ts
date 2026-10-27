@@ -98,7 +98,7 @@ const editPayload = (
   tool_name: "Edit",
 });
 
-describe(
+describe.concurrent(
   "effect-guidance-reminder.sh",
   { timeout: FORKING_CASE_TIMEOUT_MS },
   () => {
