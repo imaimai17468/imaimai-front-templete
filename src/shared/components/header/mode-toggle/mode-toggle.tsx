@@ -4,20 +4,11 @@ import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { Button } from "@/shared/ui/button";
-import { needsThemeNormalization, resolveThemeCycle } from "./theme-cycle";
-import type { Theme } from "./theme-cycle";
-
-const ACTION_LABELS = {
-  dark: "ライトモードに切り替え",
-  light: "ダークモードに切り替え",
-} satisfies Record<Theme, string>;
-
-const toggleLabel = (mounted: boolean, current: Theme): string => {
-  if (mounted) {
-    return ACTION_LABELS[current];
-  }
-  return "テーマを切り替え";
-};
+import {
+  needsThemeNormalization,
+  resolveThemeCycle,
+  toggleLabel,
+} from "./theme-cycle";
 
 // ハイドレーション検出用。購読対象の外部システムは存在しないため subscribe は
 // 何も通知しない。サーバスナップショット false がそのまま SSR ガードになる。

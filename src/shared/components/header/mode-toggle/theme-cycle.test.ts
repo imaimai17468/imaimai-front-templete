@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
-import { needsThemeNormalization, resolveThemeCycle } from "./theme-cycle";
+import {
+  needsThemeNormalization,
+  resolveThemeCycle,
+  toggleLabel,
+} from "./theme-cycle";
+import type { Theme } from "./theme-cycle";
 
 describe(resolveThemeCycle, () => {
   it.each([
@@ -69,6 +74,20 @@ describe(needsThemeNormalization, () => {
     "should return true when the out-of-cycle theme is $label",
     ({ theme }) => {
       expect(needsThemeNormalization(theme)).toBeTruthy();
+    }
+  );
+});
+
+describe(toggleLabel, () => {
+  it.each<{ current: Theme; label: string; mounted: boolean }>([
+    { current: "light", label: "テーマを切り替え", mounted: false },
+    { current: "dark", label: "テーマを切り替え", mounted: false },
+    { current: "light", label: "ダークモードに切り替え", mounted: true },
+    { current: "dark", label: "ライトモードに切り替え", mounted: true },
+  ])(
+    "should read $label when mounted is $mounted and the theme is $current",
+    ({ current, label, mounted }) => {
+      expect(toggleLabel(mounted, current)).toBe(label);
     }
   );
 });

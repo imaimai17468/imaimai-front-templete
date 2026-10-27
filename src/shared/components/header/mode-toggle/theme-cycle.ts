@@ -31,6 +31,18 @@ export const resolveThemeCycle = (
   return { current, next: NEXT[current] };
 };
 
+const ACTION_LABELS = {
+  dark: "ライトモードに切り替え",
+  light: "ダークモードに切り替え",
+} satisfies Record<Theme, string>;
+
+export const toggleLabel = (mounted: boolean, current: Theme): string => {
+  if (mounted) {
+    return ACTION_LABELS[current];
+  }
+  return "テーマを切り替え";
+};
+
 // next-themes hands back its persisted string, which can hold a value outside
 // `Theme`.
 export const needsThemeNormalization = (theme: string | undefined): boolean =>
