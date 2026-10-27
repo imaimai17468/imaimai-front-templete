@@ -36,7 +36,7 @@ const AVATAR_SIZE_TOASTS = {
 export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
   const queryClient = useQueryClient();
   const [previewUrl, setPreviewUrl] = useState(() => Option.none<string>());
-  const [pendingFile, setPendingFile] = useState(() => Option.none<File>());
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   // Object URL(外部リソース)の解放を表示中の previewUrl に同期する。
   useEffect(
@@ -70,7 +70,7 @@ export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
     }
 
     const nextPreviewUrl = URL.createObjectURL(file);
-    setPendingFile(Option.some(file));
+    setPendingFile(file);
     setPreviewUrl(Option.some(nextPreviewUrl));
   };
 
@@ -81,7 +81,7 @@ export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
     },
     onSuccess: ({ avatarUploaded, outcome }) => {
       if (avatarUploaded) {
-        setPendingFile(Option.none());
+        setPendingFile(null);
       }
       if (outcome.status === "failed") {
         toast.error(outcome.message);
@@ -133,7 +133,7 @@ export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
                 {`Click to change image (max ${MAX_AVATAR_BYTES / 1024 / 1024}MB)`}
               </p>
             </div>
-            {Option.isSome(pendingFile) && (
+            {pendingFile !== null && (
               <p className="text-xs text-muted-foreground">
                 New image selected. Click &quot;Update Profile&quot; to save.
               </p>
