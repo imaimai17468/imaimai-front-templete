@@ -283,9 +283,9 @@ export default defineConfig({
       },
       {
         // Effect's own rules. The scope is all of `src/` rather than the
-        // layers that hold Effect today, because `lib/auth/` and `routes/api/`
-        // hold some too and a glob naming layers leaves the next one outside
-        // without reporting it.
+        // layers that hold Effect today, because `lib/auth/` holds some too and
+        // a glob naming layers leaves the next one outside without reporting
+        // it.
         files: ["src/**"],
         rules: {
           ...effectRules,
@@ -307,18 +307,64 @@ export default defineConfig({
         } satisfies DummyRuleMap,
       },
       {
-        // These layers take absence as the `null` or `undefined` that React
-        // props, router context and query results carry, and pass it on as it
-        // arrives.
-        files: ["src/routes/**", "src/shared/components/**"],
-        // A route's `-gateway` and `-entities` directories are those layers,
-        // and `api/` holds server handlers rather than UI.
+        // Effect stays inside the gateway, `src/lib/` and the entities, so the
+        // files that render, route and answer requests import none of it. They
+        // take absence as the `null` or `undefined` that React props, router
+        // context and query results carry, which `effect/noNullish` would
+        // otherwise send back to `Option`. The scope is all of `src/` minus
+        // those layers, so a new directory falls under it without an edit.
+        files: ["src/**"],
         excludeFiles: [
+          "src/shared/gateway/**",
           "src/routes/**/-gateway/**",
+          "src/lib/**",
+          "src/shared/entities/**",
           "src/routes/**/-entities/**",
-          "src/routes/api/**",
+          "src/test/**",
+          "src/test-setup.ts",
         ],
-        rules: { "effect/noNullish": "off" },
+        rules: {
+          "effect/noNullish": "off",
+          "no-restricted-imports": [
+            "error",
+            {
+              patterns: [
+                {
+                  regex: "^(?:effect|effect/.+|@effect/.+)$",
+                  message:
+                    "Effect stays in the gateway, src/lib/ and the entities. Take the plain value they export.",
+                },
+              ],
+            },
+          ],
+        },
+      },
+      {
+        // An entity is a `Schema`, so `Schema` is the one part of Effect it
+        // holds. Its tests read the decoded values, which carry `Option` and
+        // `DateTime`.
+        files: ["src/shared/entities/**", "src/routes/**/-entities/**"],
+        excludeFiles: ["**/*.test.ts"],
+        rules: {
+          "no-restricted-imports": [
+            "error",
+            {
+              paths: [
+                {
+                  allowImportNames: ["Schema"],
+                  message: "An entity holds only Effect's Schema.",
+                  name: "effect",
+                },
+              ],
+              patterns: [
+                {
+                  regex: "^(?:effect/.+|@effect/.+)$",
+                  message: "An entity holds only Effect's Schema.",
+                },
+              ],
+            },
+          ],
+        },
       },
       {
         // shadcn CLI output. These are the rules the CLI's own files trip,
@@ -335,7 +381,6 @@ export default defineConfig({
           "style-rules/no-tailwind-shadow": "off",
           "style-rules/no-tailwind-sibling-margin": "off",
           "style-rules/no-tailwind-transition-all": "off",
-          "effect/noNullish": "off",
           "func-style": "off",
           "react/function-component-definition": "off",
           "sort-keys": "off",
