@@ -16,6 +16,12 @@ paths: src/**/*.ts, src/**/*.tsx
 - **Change the code, not the dependency array**: The array lists every reactive value the effect reads, and `react-hooks/exhaustive-deps` reports one it leaves out. To make an effect re-run less often, change what it reads. Split two unrelated synchronizations into two effects, so deleting one leaves the other working. Compute the next state with an updater (`setCount((c) => c + 1)`) instead of reading the state. Move a static object or function outside the component, create a dynamic one inside the effect, and depend on an object prop's primitive fields rather than the object, because a value created during render is a new one on every render.
 - **The last effect standing must read as a sentence**: After the above, every remaining `useEffect` should read as "synchronize [external system] with [rendered value]" (e.g. paint the canvas from the computed layout). An effect that doesn't fit that sentence has a better home.
 
+# Custom Hooks
+
+- **One concern per hook**: a hook holds the state logic of one concern (a list's create, update and delete) rather than everything one screen does, because a screen-sized hook hides which state each part of the screen reads.
+- **No lifecycle wrappers**: `useMount`, `useEffectOnce` and their kind pass a fixed dependency array through, so `react-hooks/exhaustive-deps` cannot see what the effect reads. Write the effect with its real dependencies, and where it must skip an initial state, check that state inside the effect.
+- **`use` names a function that calls a hook**: a function that calls none is a plain function (`getSorted`, not `useSorted`), because the prefix tells a reader the Rules of Hooks bind its call sites.
+
 # Keeping Input Responsive
 
 Where typing into a field re-renders a slow list, render the field from `query` and the list from `useDeferredValue(query)`. The field updates at once, and React renders the list at a lower priority and abandons that render when the next keystroke arrives, so nobody picks a delay. A `setTimeout` debounce picks one by hand and holds the list back on a fast machine as well. Keep an explicit debounce for thinning out requests to a server, where the number of calls is what matters. React can interrupt a deferred render only between components, so give each row its own component.
