@@ -63,17 +63,18 @@ would have survived.
 - **efficiency**: computation or I/O the diff repeats, independent operations run
   sequentially, work added to startup or to a hot path
 - **coupling**: pieces that must change together where the code does not show it, and
-  pieces tied together that change for different reasons. A value or a rule written in two
-  places with no shared definition, a module reading a global or a file another module
-  writes, a call order its callers have to know; a general function taking a parameter only
-  one caller understands, a module importing one that changes more often than itself, a
-  caller reaching into another module's internals. `bun run dupes` reports copied code under
+  pieces tied together that change for different reasons. The first kind is a value or a
+  rule written in two places with no shared definition, a module reading a global or a file
+  another module writes, or a call order its callers have to know. The second is a general
+  function taking a parameter only one caller understands, a module importing one that
+  changes more often than itself, or a caller reaching into another module's internals.
+  `bun run dupes` reports copied code under
   `src/`, so raise a copy only where the two differ in text and still have to agree
 - **altitude**: a symptom patched where the root cause sits deeper, a special case layered
   on shared infrastructure where changing the mechanism would remove the special case. A
   special case shows as an `if` on one specific value, a parameter one caller passes, or a
   wait (`setTimeout`, a sleep) or a retry standing in for an order the code does not
-  guarantee. Its first fix names the mechanism change that removes it, not a local patch
+  guarantee. Its first fix is the mechanism change that makes it unnecessary
 - **rules**: read `AGENTS.md`, `.claude/hooks/guidance/prose.md`, and every path-scoped file under
   `.claude/hooks/guidance/` whose scope matches the diff, whichever of them is not already in your
   context. Set `rule` to the one violated. Invent no rule beyond those files, and never
@@ -108,10 +109,10 @@ into Stage C inside the finding that absorbed it, which is what separates a `mer
 from the `refuted` one Stage C produces. Count what you folded away.
 
 Then group what one mechanism change removes. Candidates whose first fixes differ can still
-share a cause: a toolbar and a menu that each re-check when an action is disabled both go
-once the action carries its own check, a change that looks like neither fix. Where one
-change to a shared mechanism would remove two or more candidates, name that change as the
-group's fix and list the candidates under it. Grouping is not merging: each member keeps
+share a cause. A toolbar and a menu that each re-check whether an action is disabled both
+disappear once the action carries its own check, and neither call site's own fix points to
+that change. Where one change to a shared mechanism would remove two or more candidates,
+name that change as the group's fix and list the candidates under it. Each member keeps
 its own location and takes its own verdict, and no group counts toward `merged`. Stage C
 confirms the group's fix removes each member, and a member it does not remove leaves the
 group with its own fix.
