@@ -70,7 +70,10 @@ would have survived.
   caller reaching into another module's internals. `bun run dupes` reports copied code under
   `src/`, so raise a copy only where the two differ in text and still have to agree
 - **altitude**: a symptom patched where the root cause sits deeper, a special case layered
-  on shared infrastructure where changing the mechanism would remove the special case
+  on shared infrastructure where changing the mechanism would remove the special case. A
+  special case shows as an `if` on one specific value, a parameter one caller passes, or a
+  wait (`setTimeout`, a sleep) or a retry standing in for an order the code does not
+  guarantee. Its first fix names the mechanism change that removes it, not a local patch
 - **rules**: read `AGENTS.md`, `.claude/hooks/guidance/prose.md`, and every path-scoped file under
   `.claude/hooks/guidance/` whose scope matches the diff, whichever of them is not already in your
   context. Set `rule` to the one violated. Invent no rule beyond those files, and never
