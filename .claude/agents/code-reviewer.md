@@ -62,6 +62,13 @@ would have survived.
   instead
 - **efficiency**: computation or I/O the diff repeats, independent operations run
   sequentially, work added to startup or to a hot path
+- **coupling**: pieces that must change together where the code does not show it, and
+  pieces tied together that change for different reasons. A value or a rule written in two
+  places with no shared definition, a module reading a global or a file another module
+  writes, a call order its callers have to know; a general function taking a parameter only
+  one caller understands, a module importing one that changes more often than itself, a
+  caller reaching into another module's internals. `bun run dupes` reports copied code under
+  `src/`, so raise a copy only where the two differ in text and still have to agree
 - **altitude**: a symptom patched where the root cause sits deeper, a special case layered
   on shared infrastructure where changing the mechanism would remove the special case
 - **rules**: read `AGENTS.md`, `.claude/hooks/guidance/prose.md`, and every path-scoped file under
@@ -74,7 +81,7 @@ first idea for the fix, a severity of critical / major / minor, and the rule it 
 where one applies.
 
 Coverage-first applies fully to logic, state, integrity and rules. For cleanup, reuse,
-efficiency and altitude, calibrate: a behaviour-identical change (a rename, a
+efficiency, coupling and altitude, calibrate: a behaviour-identical change (a rename, a
 constant extraction, a doc reword) carrying no critical or major finding should draw few
 or no comments, so raise one only when it is material.
 
@@ -200,7 +207,7 @@ depth: standard — 4 raised, 1 merged, 1 refuted, 1 abstained, 1 returned
   caller holds the lock across both
 
 ## Checked
-- logic, state, integrity, security, cleanup, efficiency, altitude — swept over the whole diff
+- logic, state, integrity, security, cleanup, efficiency, coupling, altitude — swept over the whole diff
 - reuse — swept src/shared/ and src/lib/ only, so a helper living elsewhere would not
   have been found
 - rules — AGENTS.md and prose.md; design.md never loaded, so this diff's CSS went
