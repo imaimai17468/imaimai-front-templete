@@ -62,8 +62,18 @@ would have survived.
   instead
 - **efficiency**: computation or I/O the diff repeats, independent operations run
   sequentially, work added to startup or to a hot path
+- **coupling**: pieces that must change together where the code does not show it, and
+  pieces tied together that change for different reasons. A value or a rule written in two
+  places with no shared definition, a module reading a global or a file another module
+  writes, a call order its callers have to know; a general function taking a parameter only
+  one caller understands, a module importing one that changes more often than itself, a
+  caller reaching into another module's internals. `bun run dupes` reports copied code under
+  `src/`, so raise a copy only where the two differ in text and still have to agree
 - **altitude**: a symptom patched where the root cause sits deeper, a special case layered
-  on shared infrastructure where changing the mechanism would remove the special case
+  on shared infrastructure where changing the mechanism would remove the special case. A
+  special case shows as an `if` on one specific value, a parameter one caller passes, or a
+  wait (`setTimeout`, a sleep) or a retry standing in for an order the code does not
+  guarantee. Its first fix names the mechanism change that removes it, not a local patch
 - **rules**: read `AGENTS.md`, `.claude/hooks/guidance/prose.md`, and every path-scoped file under
   `.claude/hooks/guidance/` whose scope matches the diff, whichever of them is not already in your
   context. Set `rule` to the one violated. Invent no rule beyond those files, and never
@@ -74,7 +84,7 @@ first idea for the fix, a severity of critical / major / minor, and the rule it 
 where one applies.
 
 Coverage-first applies fully to logic, state, integrity and rules. For cleanup, reuse,
-efficiency and altitude, calibrate: a behaviour-identical change (a rename, a
+efficiency, coupling and altitude, calibrate: a behaviour-identical change (a rename, a
 constant extraction, a doc reword) carrying no critical or major finding should draw few
 or no comments, so raise one only when it is material.
 
@@ -96,6 +106,15 @@ where the defect is.
 Sort by severity. Drop nothing and settle no verdict here: a folded candidate travels on
 into Stage C inside the finding that absorbed it, which is what separates a `merged` count
 from the `refuted` one Stage C produces. Count what you folded away.
+
+Then group what one mechanism change removes. Candidates whose first fixes differ can still
+share a cause: a toolbar and a menu that each re-check when an action is disabled both go
+once the action carries its own check, a change that looks like neither fix. Where one
+change to a shared mechanism would remove two or more candidates, name that change as the
+group's fix and list the candidates under it. Grouping is not merging: each member keeps
+its own location and takes its own verdict, and no group counts toward `merged`. Stage C
+confirms the group's fix removes each member, and a member it does not remove leaves the
+group with its own fix.
 
 ## Stage C: refute
 
@@ -200,12 +219,17 @@ depth: standard — 4 raised, 1 merged, 1 refuted, 1 abstained, 1 returned
   caller holds the lock across both
 
 ## Checked
-- logic, state, integrity, security, cleanup, efficiency, altitude — swept over the whole diff
+- logic, state, integrity, security, cleanup, efficiency, coupling, altitude — swept over the whole diff
 - reuse — swept src/shared/ and src/lib/ only, so a helper living elsewhere would not
   have been found
 - rules — AGENTS.md and prose.md; design.md never loaded, so this diff's CSS went
   unchecked against it
 ```
+
+A group Stage B formed and Stage C kept prints as one `## Group · <the shared change>`
+section ahead of the findings, listing its members' heading lines and carrying the
+group's **Fix:** and **Acceptance:**. Each member's own **Fix:** line then reads
+`the group's fix`, so the parent applies the change once.
 
 A refutation gets one line in the `Refuted` section, carrying the `file:line` Stage C
 re-read and what killed it. The parent acts on nothing there. An abstention gets one line
