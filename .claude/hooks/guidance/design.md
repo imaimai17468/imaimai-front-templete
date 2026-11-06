@@ -105,6 +105,15 @@ line across every column. Give the columns equal height, anchor the control to
 the bottom of each, and hold the slot of a value that is missing in one column.
 Copy length then stops deciding where a neighbor's content lands.
 
+A component styles its own inside: padding, border, and type. The parent that
+places it decides its outer margin and its position, through `gap`, a grid, or
+flex alignment, because a margin built into a component has to be overridden
+wherever it is used differently. Size splits the same way. Give a component no
+`width`, `height` or `fullHeight` prop, and let the parent's layout or a
+`className` size it, since a numeric prop cannot say `max-content`, a grid
+track, or a percentage. Build each component so it still holds together when
+the parent stretches it.
+
 ## Shapes
 
 Pick the radius tier that matches the element's size, and do not introduce
