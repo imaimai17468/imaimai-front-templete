@@ -1,5 +1,5 @@
 ---
-description: What an effect is for, component props and splitting, testable shape, and module organization
+description: What an effect is for, custom hooks, keeping input responsive, component props and splitting, testable shape, and module organization
 paths: src/**/*.ts, src/**/*.tsx
 ---
 
