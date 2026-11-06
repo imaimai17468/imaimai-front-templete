@@ -107,6 +107,15 @@ Sort by severity. Drop nothing and settle no verdict here: a folded candidate tr
 into Stage C inside the finding that absorbed it, which is what separates a `merged` count
 from the `refuted` one Stage C produces. Count what you folded away.
 
+Then group what one mechanism change removes. Candidates whose first fixes differ can still
+share a cause: a toolbar and a menu that each re-check when an action is disabled both go
+once the action carries its own check, a change that looks like neither fix. Where one
+change to a shared mechanism would remove two or more candidates, name that change as the
+group's fix and list the candidates under it. Grouping is not merging: each member keeps
+its own location and takes its own verdict, and no group counts toward `merged`. Stage C
+confirms the group's fix removes each member, and a member it does not remove leaves the
+group with its own fix.
+
 ## Stage C: refute
 
 Try to kill each candidate by re-deriving it from the actual code. Verdict per finding:
@@ -216,6 +225,11 @@ depth: standard — 4 raised, 1 merged, 1 refuted, 1 abstained, 1 returned
 - rules — AGENTS.md and prose.md; design.md never loaded, so this diff's CSS went
   unchecked against it
 ```
+
+A group Stage B formed and Stage C kept prints as one `## Group · <the shared change>`
+section ahead of the findings, listing its members' heading lines and carrying the
+group's **Fix:** and **Acceptance:**. Each member's own **Fix:** line then reads
+`the group's fix`, so the parent applies the change once.
 
 A refutation gets one line in the `Refuted` section, carrying the `file:line` Stage C
 re-read and what killed it. The parent acts on nothing there. An abstention gets one line
