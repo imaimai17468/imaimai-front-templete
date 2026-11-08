@@ -42,7 +42,7 @@ export const ROUTES: readonly Route[] = [
   {
     headers: EXPECTED_DOCUMENT_HEADERS,
     location: null,
-    marker: "docs/SERVER_BOUNDARY.md",
+    marker: "docs/FORKING.md",
     path: "/",
     status: 200,
   },
