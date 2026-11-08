@@ -45,7 +45,6 @@ src/
 | DB・認証・ストレージの設定 | [docs/DATABASE_SETUP.md](./docs/DATABASE_SETUP.md) |
 | デプロイ、ロールバック、シークレット | [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) |
 | 自分のプロジェクトとして使い始める | [docs/FORKING.md](./docs/FORKING.md) |
-| サーバーの境界を oRPC / BFF に移す | [docs/SERVER_BOUNDARY.md](./docs/SERVER_BOUNDARY.md) |
 | AI エージェントで開発するときの決まり | [AGENTS.md](./AGENTS.md) と `.claude/` |
 
 ## 困ったとき

@@ -79,10 +79,7 @@ export const HomePage = () => (
       、デプロイとロールバックは{" "}
       <code className="font-mono text-foreground">docs/DEPLOYMENT.md</code>
       、新規プロジェクトへの流用は{" "}
-      <code className="font-mono text-foreground">docs/FORKING.md</code>
-      、サーバ境界を動かす前提は{" "}
-      <code className="font-mono text-foreground">docs/SERVER_BOUNDARY.md</code>
-      。
+      <code className="font-mono text-foreground">docs/FORKING.md</code>。
     </p>
   </div>
 );
