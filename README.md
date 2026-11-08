@@ -1,127 +1,69 @@
 # My App
 
-TanStack Start + TypeScript + Tailwind CSS + shadcn/ui を使用したモダンな Web アプリケーションテンプレートです。
+TanStack Start で作った Web アプリのテンプレートです。Cloudflare Workers で動きます。
 
-## 技術スタック
-
-- **Framework**: TanStack Start (TanStack Router + Vite)
-- **Data Fetching**: TanStack Query (SSR 統合は @tanstack/react-router-ssr-query)
-- **Language**: TypeScript 7 (native compiler)
-- **Styling**: Tailwind CSS v4
-- **UI Components**: shadcn/ui (Radix UI primitives)
-- **Authentication**: Better Auth (Google OAuth。dev ビルドに限り、固定ユーザーでワンクリックログインできる)
-- **Database**: Cloudflare D1 (SQLite) + Drizzle ORM
-- **Storage**: Cloudflare R2
-- **Hosting**: Cloudflare Workers ([Alchemy](https://alchemy.run) v2 で宣言・デプロイ)
-- **Code Quality**: Vite+ (`vp check` で format / lint / 型検査)
-- **Testing**: Vitest + Testing Library
-- **Package Manager**: Bun
-- **Git Hooks**: Lefthook
-
-## クイックスタート
+## はじめる
 
 ```bash
-git clone <your-repo-url>
-cd <your-repo-name>
-mise install                 # Node / Bun / actionlint / shellcheck を mise.toml の版で用意
-bun run setup                # 依存・git hooks・生成ファイル・.env.local をまとめて用意
-bun run dev
+mise install    # Node / Bun などを mise.toml の版で入れる
+bun run setup   # 依存、git hooks、生成ファイル、.env.local を用意する
+bun run dev     # http://my-app.localhost:1355 で開く
 ```
 
-`bun run setup` は `.env.local` が無ければ `.env.local.example` からコピーします（既にあれば触りません）。入るのは仮の値なので、実サービスに繋ぐ前に編集してください。
+`.env.local` には `.env.local.example` の仮の値が入ります。実際のサービスにつなぐ前に書き換えてください。`bun run dev` は Worker と D1・R2 をローカルで動かすので、Cloudflare のアカウントは要りません。
 
-`src/routeTree.gen.ts` は `bun run dev` と `bun run build` が生成し、ルートファイルの追加や削除に追従します。dev を起動せずに `bun run check` や `bun run test` を走らせるときだけ、先に `bun run generate-routes` を叩いてください。Worker のバインディングの型は `src/cloudflare-env.d.ts` の `Cloudflare.Env` が `alchemy.run.ts` の `App` 宣言から取るので、生成するファイルはありません。
+## よく使うコマンド
 
-[mise](https://mise.jdx.dev/) を使わない場合は、`package.json` の `engines.node` を満たす Node と、`mise.toml` が指定する版の Bun を手動で用意してください。Cursor Cloud Agent 環境では `.cursor/environment.json` が `scripts/cloud-agent-install.sh` を自動実行し、mise と依存の導入から `generate-routes` までを済ませます（`bun install` は `--ignore-scripts` なので lefthook の hook は入りません）。shims の PATH 追記は rc ファイルを読むシェルにしか効かないため、rc を読まない非対話シェルからは `mise exec -- <コマンド>` で実行してください。
+| コマンド | すること |
+| --- | --- |
+| `bun run dev` | 開発サーバーを起動する |
+| `bun run check` | format・lint・型を検査する（`bun run check:fix` で直す） |
+| `bun run test` | テストを実行する |
+| `bun run build` | デプロイと同じビルドを、デプロイせずに作る |
+| `bunx shadcn@latest add <name>` | shadcn/ui の部品を足す |
 
-`bun run dev` は [portless](https://github.com/vercel-labs/portless) 経由で起動し、`http://my-app.localhost:1355` で開きます。linked worktree ではブランチ名の末尾がサブドメインとして前に付きます（ブランチ `fix-ui` なら `http://fix-ui.my-app.localhost:1355`）。付くのは末尾だけなので、`feat/x` と `fix/x` は同じ URL になり、`main` と `master` のブランチには何も付きません。dev サーバのポートは portless が空きから割り当てるので、worktree を並べて起動してもポートの取り合いは起きません。HTTPS が要るときは `bun run dev:https` を使います。443 を掴むので管理者権限が要ります。portless は前回のポートと TLS 設定を `~/.portless` に持っていてそちらを優先するので、どちらかへ切り替えるときは先に `bunx portless proxy stop` を実行してください。`bun run dev` の中身は `alchemy dev` で、Worker と D1 / R2 をローカルで動かすので、Cloudflare のアカウントもログインも要りません。状態とデータは `.alchemy/`（gitignore 済み）に置かれ、起動時に `src/lib/drizzle/migrations/` の D1 マイグレーションが適用されます。portless を通さずに起動するときは `PORTLESS=0 bun run dev` で、`http://localhost:5173` で開きます。
-
-データベース・認証・ストレージのセットアップ手順は [docs/DATABASE_SETUP.md](./docs/DATABASE_SETUP.md)、デプロイ・ロールバック・シークレット運用は [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)、このテンプレートを新規プロジェクトに使う手順は [docs/FORKING.md](./docs/FORKING.md)、サーバ境界を oRPC / BFF 構成へ動かす場合の前提は [docs/SERVER_BOUNDARY.md](./docs/SERVER_BOUNDARY.md) を参照。
-
-## Tools
-
-- **[mise](https://mise.jdx.dev/)**：Node / Bun / actionlint / shellcheck のバージョン固定 (`mise.toml`)
-- **[shadcn/ui](https://ui.shadcn.com/)**：UI components (`components.json`)
-- **[TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)**：Type checker (Go-native `tsc`)
-- **[Vite+](https://viteplus.dev/)**：Vite / Vitest / oxlint / oxfmt を束ねる CLI。設定は `vite.config.ts` の `lint` / `fmt` ブロックに集約される
-- **[oxlint](https://oxc.rs/docs/guide/usage/linter)**：Linter (`vite.config.ts` の `lint` ブロック)
-- **[oxlint-tailwindcss](https://oxlint-tailwindcss.pages.dev/)**：Tailwind CSS のクラス名検査 (`vite.config.ts` の `lint` ブロック)
-- **[@shadcn/lint](https://github.com/shadcn-ui/lint)**：デザインシステムの検査 (`vite.config.ts` の `lint` ブロック)。呼び出し側が `className` でコンポーネントの見た目を上書きすると落ちる。配置に使う layout 系クラスだけが通り、見た目を変えたいときは `src/shared/ui/` 側の variant を使う
-- **自作 oxlint プラグイン** (`tools/oxlint-plugins/`)：`vite.config.ts` の `lint.jsPlugins` から読み込まれる。層契約・コンポーネント命名・1ファイル1コンポーネント・テストの形（1テスト1 expect など）を機械的に強制するので、規約は文書だけでなくここにもある
-- **[Alchemy](https://alchemy.run)**：Worker・D1・R2 を `alchemy.run.ts` に TypeScript で宣言し、`bun run dev`（`alchemy dev`）でローカルに起動、`bun run deploy`（`alchemy deploy`）で Cloudflare にデプロイする
-- **[oxlint-plugin-effect](https://github.com/cevr/effect-oxlint)**：Effect 向け追加ルール (`oxlint.effect.ts`、`vite.config.ts` の `lint.overrides` から `src/**` にかかる)。満たせないパスがあるときは、そのパスを名指しした `vite.config.ts` の override ブロックで外し、理由をその隣に書く
-- **[react-doctor](https://github.com/millionco/react-doctor)**：React 向け追加ルール (`oxlint.react-doctor.ts`)
-- **[oxfmt](https://oxc.rs/docs/guide/usage/formatter)**：Formatter (`vite.config.ts` の `fmt` ブロック)
-- **[portless](https://github.com/vercel-labs/portless)**：dev サーバに名前付き HTTPS URL を割り当てる proxy。`bun run dev` が経由する
-- **[lefthook](https://github.com/evilmartians/lefthook)**：Git hooks (`lefthook.yml`、`bun run setup` が `prepare` スクリプト経由でインストールする)
-- **[fallow](https://github.com/fallow-rs/fallow)**：未使用の依存 / エクスポート / ファイルと、コードの複製の検出 (`.fallowrc.jsonc`)。CI が `bun run dead-code` と `bun run dupes`、lefthook の pre-push が `bun run dupes` を回す
-- **[actionlint](https://github.com/rhysd/actionlint)**：GitHub Actions workflow checker (`mise.toml` が版を固定)
-- **[shellcheck](https://www.shellcheck.net/)**：tracked な `*.sh` の静的検査。`bun run check:shell` が lefthook の pre-push と CI の両方から呼ぶ (`mise.toml` が版を固定)
-
-## プロジェクト構成
+## コードの置き場所
 
 ```
 src/
-├── routes/                 # TanStack Router file-based routes
-│   ├── __root.tsx          # Root route (head, headers, loader)
-│   ├── -components/        # Root route only (RootLayout, NotFound)
-│   ├── index/              # route.tsx と -components/
-│   ├── login/              # route.tsx と -components/
-│   ├── _authed/
-│   │   ├── route.tsx       # 配下をまとめて守る pathless layout
-│   │   └── profile/        # route.tsx と -components/
-│   ├── auth.auth-code-error/ # OAuth failure landing page (route.tsx と -components/)
-│   └── api/                # API routes (auth catch-all, avatars)
-├── shared/                 # 2 つ以上のルートが使うもの
-│   ├── components/         # 自前で書いたコンポーネント
-│   ├── ui/                 # shadcn/ui primitives
-│   ├── gateway/            # 認可境界と D1 / R2 アクセス
-│   └── entities/           # Domain types and schemas
-├── lib/
-│   ├── auth/               # Better Auth 設定
-│   ├── cloudflare/         # CloudflareEnv helper (cloudflare:workers)
-│   ├── drizzle/            # Drizzle ORM スキーマ
-│   ├── storage/            # R2 ストレージ
-│   └── utils.ts
-├── test/                   # Test helpers (router harness, cloudflare:workers stub)
-├── router.tsx              # TanStack Router definition
-├── ssr.tsx                 # Server entry (Cloudflare Worker handler)
-├── test-setup.ts           # Vitest setup
-└── styles.css              # Tailwind v4 tokens
+├── routes/      # URL ごとのページ（TanStack Router のファイルベースルーティング）
+├── shared/      # 2つ以上のルートが使うもの
+│   ├── components/  # 自分で書いたコンポーネント
+│   ├── ui/          # shadcn/ui の部品
+│   ├── gateway/     # 認可と D1・R2 へのアクセス
+│   └── entities/    # ドメインの型とスキーマ
+├── lib/         # 認証、DB、ストレージの設定
+└── ssr.tsx      # Worker の入口
 ```
 
-配置と import 方向の規約は [AGENTS.md](./AGENTS.md) の `Rules` を参照してください。
+どこに何を置くかの決まりは [AGENTS.md](./AGENTS.md) の Rules にあります。
 
-## AI エージェントで開発する
+## 次に読むもの
 
-エージェント運用層は4つでできています。
+| 知りたいこと | 読むもの |
+| --- | --- |
+| DB・認証・ストレージの設定 | [docs/DATABASE_SETUP.md](./docs/DATABASE_SETUP.md) |
+| デプロイ、ロールバック、シークレット | [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) |
+| 自分のプロジェクトとして使い始める | [docs/FORKING.md](./docs/FORKING.md) |
+| サーバーの境界を oRPC / BFF に移す | [docs/SERVER_BOUNDARY.md](./docs/SERVER_BOUNDARY.md) |
+| AI エージェントで開発するときの決まり | [AGENTS.md](./AGENTS.md) と `.claude/` |
 
-- **[AGENTS.md](./AGENTS.md)**：規約の本体。毎セッション自動でロードされます（`CLAUDE.md` はこれを読み込むだけ）
-- **`.claude/hooks/guidance/`**：規約の分冊。frontmatter の `paths`（ファイル）、`commands`（`git commit` など）、`events`（`UserPromptSubmit` など）に当たったとき、`.claude/hooks/scoped-guidance.sh` がそのファイルを読むよう指示します。1 セッションに 1 回で、コンテキストを圧縮したあとは改めて指示します
-- **`.claude/skills/`**：名前のついた作業の手順。チケット粒度の作業は `ticket-work` が持ち、AGENTS.md はそれを指します
-- **`.claude/hooks/`**：規約を機械的に強制する側。SessionStart で依存の欠落を報告し、Bash 実行前にガードを掛け、Stop ではコードが変わった turn だけ `bun run check`（format / lint / 型検査）と `bun run test` を回し、`.claude/hooks/` が変わった turn では hooks 自身のテスト `bun run test:hooks` も回します。`bun run test:hooks` は CI がどの PR でも回します。markdown のリンク切れ検査は変更があれば毎回走ります。ツリー全体を判定する検査は Stop に置かず、`fallow dead-code` は CI、`fallow dupes` は pre-push と CI の両方が回します。ここまでの検査はどれも Worker を動かさないので、CI は最後に `bun run build` と `bun run smoke` を回します。`bun run build` は `alchemy deploy` と同じビルドを、デプロイせずに `dist/` へ書きます。`bun run smoke` は空の状態から `alchemy dev` を `smoke` ステージで起動して `scripts/smoke.ts` が挙げるパスに HTTP リクエストを投げる検査で、全リクエストで例外を投げる Worker はここでしか落ちません。
+## 困ったとき
 
-コミット前のレビューは `code-reviewer` エージェントが担い、PR ブランチへのコミットと push はエージェントが AGENTS.md の規律に従って自分で行います。`main` へは PR 経由でだけ入ります。
+- `bun run dev` を起動していない間にルートのファイルを足したり消したりしたときは、`bun run check` や `bun run test` の前に `bun run generate-routes` を実行してください。
+- portless を通さずに起動するときは `PORTLESS=0 bun run dev` を使います。`http://localhost:5173` で開きます。
+- HTTPS で開くときは `bun run dev:https` を使います（443 番を使うので管理者権限が要ります）。HTTP と HTTPS を切り替える前に `bunx portless proxy stop` を実行してください。
+- worktree では URL にブランチ名の末尾が付きます（ブランチ `fix-ui` なら `http://fix-ui.my-app.localhost:1355`）。
+- mise を使わないときは、`package.json` の `engines.node` を満たす Node と、`mise.toml` の版の Bun を入れてください。
 
-## shadcn/ui
+## 技術スタック
 
-```bash
-bunx shadcn@latest add [component-name]
-```
-
-## 参考リンク
-
-- [TanStack Start](https://tanstack.com/start/)
-- [TanStack Router](https://tanstack.com/router/)
-- [Tailwind CSS](https://tailwindcss.com/docs)
-- [shadcn/ui](https://ui.shadcn.com/)
-- [Better Auth](https://www.better-auth.com/)
-- [Cloudflare D1](https://developers.cloudflare.com/d1/)
-- [Cloudflare R2](https://developers.cloudflare.com/r2/)
-- [Alchemy](https://alchemy.run)
-- [oxc (oxlint/oxfmt)](https://oxc.rs/)
-- [oxlint-tailwindcss](https://oxlint-tailwindcss.pages.dev/)
-- [@shadcn/lint](https://github.com/shadcn-ui/lint)
-- [fallow](https://docs.fallow.tools/)
-- [oxlint-plugin-effect](https://github.com/cevr/effect-oxlint)
-- [Vitest](https://vitest.dev/)
+- フレームワーク: TanStack Start（データ取得は TanStack Query）
+- 言語: TypeScript 7
+- スタイル: Tailwind CSS v4、shadcn/ui
+- 認証: Better Auth（Google OAuth。dev ビルドに限り、固定ユーザーでワンクリックログインできる）
+- データベース: Cloudflare D1、Drizzle ORM
+- ストレージ: Cloudflare R2
+- ホスティング: Cloudflare Workers（[Alchemy](https://alchemy.run) で宣言してデプロイ）
+- 検査とテスト: Vite+（oxlint・oxfmt）、Vitest
+- パッケージマネージャー: Bun

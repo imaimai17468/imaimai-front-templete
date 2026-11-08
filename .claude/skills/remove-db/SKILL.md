@@ -214,8 +214,8 @@ Surfaces to go through: `README.md`, `docs/DEPLOYMENT.md`, `docs/FORKING.md`,
 **Do not strip these while you are in there.** They are the deployment, which
 this procedure keeps:
 
-- README's `Hosting: Cloudflare Workers` line and the `ssr.tsx` entry in the
-  project structure.
+- README's `ホスティング: Cloudflare Workers` line and the `ssr.tsx` entry in
+  the source tree.
 - `docs/DEPLOYMENT.md` itself and every link to it.
 - In `.cursor/permissions.json`'s `block_instructions`, the `bun run deploy` and
   `alchemy deploy / destroy / provider / state` entries. Remove only
