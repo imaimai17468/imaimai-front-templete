@@ -224,7 +224,7 @@ describe("smoke", () => {
     expect(ROUTES.map((route) => route.path)).toStrictEqual([
       "/",
       "/login",
-      "/auth/auth-code-error",
+      "/login?error=access_denied",
       "/favicon.svg",
       "/profile",
     ]);

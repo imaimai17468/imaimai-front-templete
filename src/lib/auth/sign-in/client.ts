@@ -39,7 +39,11 @@ export const signUpWithEmail = (account: {
 
 export const startGoogleSignIn = () =>
   authClient.signIn
-    .social({ callbackURL: "/", provider: "google" })
+    .social({
+      callbackURL: "/",
+      errorCallbackURL: "/login",
+      provider: "google",
+    })
     .then(({ error }) => reportedFailure(error));
 
 export const endSession = () => authClient.signOut();

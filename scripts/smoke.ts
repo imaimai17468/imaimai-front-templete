@@ -56,8 +56,8 @@ export const ROUTES: readonly Route[] = [
   {
     headers: EXPECTED_DOCUMENT_HEADERS,
     location: null,
-    marker: "Authentication Error",
-    path: "/auth/auth-code-error",
+    marker: "Sign-in failed",
+    path: "/login?error=access_denied",
     status: 200,
   },
   // A build that stops copying `public/` answers 404 here while every
