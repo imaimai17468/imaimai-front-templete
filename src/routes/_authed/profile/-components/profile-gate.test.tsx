@@ -3,8 +3,8 @@ import { act, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vite-plus/test";
 import type { UserWithEmail } from "@/shared/entities/user";
 import { currentUserQueryOptions } from "@/shared/gateway/user/read.fn";
-import { renderWithRouter } from "@/test/router-utils";
 import { ProfileGate } from "./profile-gate";
+import { renderWithRouter } from "./router-utils";
 
 const signedIn: UserWithEmail = {
   avatarUrl: null,

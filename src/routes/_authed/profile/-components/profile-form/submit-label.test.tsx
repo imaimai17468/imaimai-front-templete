@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { render } from "@/test/render";
+import { render } from "../render";
 import { SubmitLabel } from "./submit-label";
 
 const rendered = (isPending: boolean) => {

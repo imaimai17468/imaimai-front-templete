@@ -57,7 +57,7 @@ export default defineConfig({
     // Restores every spy before each test, which is what a per-file
     // `afterEach(() => vi.restoreAllMocks())` did in the two suites that had
     // one, and now covers the suites that did not. It does not reach timers or
-    // the DOM: `src/test/render.tsx` and `tooltip.test.tsx` register their own
+    // the DOM: `src/routes/_authed/profile/-components/render.tsx` and `tooltip.test.tsx` register their own
     // teardown per call, which holds whichever way `isolate` is set.
     restoreMocks: true,
     // `isolate: false` shares a worker between files, so an `import.meta.env`
