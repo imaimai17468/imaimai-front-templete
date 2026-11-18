@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "@effect/vitest";
 import { DateTime, Effect, Layer, Option } from "effect";
 import type { UpdateUser, UserWithEmail } from "@/shared/entities/user";
+import { capturedReports } from "@/shared/gateway/error-reports";
 import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";
-import { capturedReports } from "@/test/error-reports";
 import { UserPersistenceError } from ".";
 import {
   AvatarTypeUnsupported,

@@ -63,7 +63,7 @@ export default defineConfig({
       nodeTestSkillExclude,
       "src/shared/ui/**",
     ],
-    setupFiles: ["./src/test-setup.ts"],
+    setupFiles: ["./src/test/setup.ts"],
     coverage: {
       include: coverageInclude,
       exclude: coverageExclude,

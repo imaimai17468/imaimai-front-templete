@@ -236,7 +236,7 @@ export default defineConfig({
         },
       },
       {
-        files: ["src/test-setup.ts", "src/test/render.tsx"],
+        files: ["src/test/setup.ts", "src/test/render.tsx"],
         rules: {
           // vitest.config.mts sets no `globals`, so the import is what defines
           // `vi` and `onTestFinished` in these two.
@@ -321,7 +321,6 @@ export default defineConfig({
           "src/shared/entities/**",
           "src/routes/**/-entities/**",
           "src/test/**",
-          "src/test-setup.ts",
         ],
         rules: {
           "effect/noNullish": "off",

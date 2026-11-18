@@ -1,3 +1,4 @@
+import "@tanstack/react-start/server-only";
 import { Effect, Schema } from "effect";
 import { TestConsole } from "effect/testing";
 import type { ErrorLogRecord } from "@/shared/gateway/report-error";

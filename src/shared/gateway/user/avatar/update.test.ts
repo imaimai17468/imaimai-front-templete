@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "@effect/vitest";
 import { SQLiteDialect } from "drizzle-orm/sqlite-core";
 import { DateTime, Effect, Layer, Option } from "effect";
+import { capturedReports } from "@/shared/gateway/error-reports";
 import { avatarUrlForKey } from "@/shared/gateway/user/avatar-url";
 import { DriverFailed } from "@/test/defect";
-import { capturedReports } from "@/test/error-reports";
 import { AvatarBucket, AvatarKeyIds } from ".";
 import { UserPersistenceError } from "..";
 import {
