@@ -15,8 +15,7 @@
 set -euo pipefail
 
 # Emit a deny in both dialects at once: Claude Code reads the legacy
-# decision/reason pair (pre-bash-guard.test.ts keys on the literal
-# "block"), Cursor reads hookSpecificOutput.permissionDecision. Cursor was
+# decision/reason pair, Cursor reads hookSpecificOutput.permissionDecision. Cursor was
 # observed honoring exactly this combined output (a guard in this file blocked a
 # live command in a Cursor session, 2026-08-07). Claude Code has NOT been observed
 # parsing the combined shape — both fields agree on the outcome, so the
@@ -53,7 +52,7 @@ esac
 # substitution below would then hand an empty refusal to a command nothing
 # checked. Denying instead puts that failure on the side that stops the command.
 # `$0` carries the directory whenever the caller names this file by path, which
-# .claude/settings.json and pre-bash-guard.test.ts both do; a bare
+# .claude/settings.json does; a bare
 # `bash pre-bash-guard.sh` leaves the name in place, finds no file under it and
 # takes the deny. `dirname` would fork a process on a hook that runs before
 # every Bash call.
@@ -63,7 +62,7 @@ HOOK_DIR=${0%/*}
 # deny below, and Claude Code passes a command on that status to the
 # permission flow unchecked by this guard.
 set +e
-# shellcheck source=.claude/hooks/pre-bash-guard-decision.sh
+# shellcheck source=.claude/hooks/pre-bash-guard/pre-bash-guard-decision.sh
 source "$HOOK_DIR/pre-bash-guard-decision.sh" 2>/dev/null
 DECISION_FILE_STATUS=$?
 set -e

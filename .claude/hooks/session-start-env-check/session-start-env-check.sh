@@ -10,7 +10,7 @@ set -uo pipefail
 
 INPUT="$(cat 2>/dev/null || true)"
 
-ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../../.." && pwd)}"
 # CLAUDE_PROJECT_DIR is where the session started, and the input's `cwd` is the
 # checkout the session works in; in a worktree session those differ, so the
 # checks on the checkout itself read `cwd` first.
@@ -30,7 +30,7 @@ SETUP=()
 CREATED=()
 
 command -v jq >/dev/null 2>&1 || GATE+=("jq (ALL guard hooks parse their input with jq — the gates are effectively OFF)")
-command -v bun >/dev/null 2>&1 || GATE+=("bun (the Stop quality gate, its markdown dead-link check, and lefthook's pre-commit/pre-push checks cannot run)")
+command -v bun >/dev/null 2>&1 || GATE+=("bun (the Stop quality gate and lefthook's pre-commit/pre-push checks cannot run)")
 # `mise`, not `actionlint` or `shellcheck`: lefthook runs both static checks
 # through `mise exec --` and skips each on a missing mise, so mise is the
 # condition that decides whether they run. mise.toml pins the versions it
@@ -49,8 +49,8 @@ fi
 # .git/hooks. `--git-path` answers relative to the checkout when the hooks are
 # inside it, so the test runs there.
 ( cd "$TREE" 2>/dev/null && [ -f "$(git rev-parse --git-path hooks/pre-commit 2>/dev/null)" ] ) || GATE+=("lefthook hooks not installed — pre-commit/pre-push run nothing (fix: bun run setup)")
-# A fresh worktree has no node_modules until someone installs; the Stop gate,
-# the link check and lefthook all fail without it.
+# A fresh worktree has no node_modules until someone installs; the Stop gate
+# and lefthook both fail without it.
 [ -d "$TREE/node_modules" ] || GATE+=("node_modules absent — fresh checkout or worktree (fix: bun run setup)")
 # A capability probe, not a version compare: what old node lacks is
 # `module.registerHooks`, and alchemy's launcher exits naming it when node

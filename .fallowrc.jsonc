@@ -16,12 +16,12 @@
   // next update to the skill overwrites whatever a cleanup did to them.
   "ignorePatterns": [".claude/skills/**"],
   // Read by the react-doctor binary at startup, run by
-  // .claude/hooks/scoped-guidance.sh, loaded by the alchemy CLI, and named as
+  // .claude/hooks/scoped-guidance/scoped-guidance.sh, loaded by the alchemy CLI, and named as
   // the Worker's `main` in a string inside alchemy.run.ts, none of which an
   // import graph reaches.
   "dynamicallyLoaded": [
     "doctor.config.ts",
-    ".claude/hooks/scoped-guidance.entry.ts",
+    ".claude/hooks/scoped-guidance/scoped-guidance.entry.ts",
     "alchemy.run.ts",
     "src/ssr.tsx",
   ],

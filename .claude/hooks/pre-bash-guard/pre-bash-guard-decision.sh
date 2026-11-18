@@ -12,8 +12,7 @@
 # three rounds of 20 calls, where an entry that reads the same payload and
 # sources this file without calling a guard took 141 ms, 202 ms and 148 ms over
 # three rounds of its own: the same range, so the three guards now cost less
-# than the noise between rounds (macOS under parallel load, 2026-09-09). The 294
-# cases of pre-bash-guard-decision.test.ts answer in 0.41 s of that file's load.
+# than the noise between rounds (macOS under parallel load, 2026-09-09).
 
 # The newline that joins and separates the lines of a command's text.
 NEWLINE=$'\n'

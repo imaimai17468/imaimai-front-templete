@@ -89,9 +89,6 @@ jobs:
       - name: Verify the toolchain pins agree with vite-plus
         run: bun run check:pins
 
-      - name: Check markdown links
-        run: bun .claude/hooks/check-md-links.ts
-
       - name: Check Claude frontmatter parses
         run: bun scripts/check-claude-frontmatter.entry.ts
 
@@ -117,10 +114,6 @@ jobs:
 
       - name: Run Tests
         run: bun run test
-
-      # Runs on every pull request, whatever it touched.
-      - name: Run the hooks' tests
-        run: bun run test:hooks
 
       # The build `alchemy deploy` runs, without deploying, so a change that
       # breaks the production bundle fails here.

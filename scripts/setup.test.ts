@@ -15,7 +15,13 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
-import { FORKING_CASE_TIMEOUT_MS } from "../.claude/hooks/run-bash";
+
+/**
+ * Each case forks setup.sh, so its wall clock is set by how many neighbours fork
+ * at the same moment and by what the machine charges per exec. This bounds a
+ * script that hangs rather than budgeting one case.
+ */
+const FORKING_CASE_TIMEOUT_MS = 30_000;
 
 const SETUP = path.resolve(import.meta.dirname, "setup.sh");
 const LOCAL_ENV = ".env.local";

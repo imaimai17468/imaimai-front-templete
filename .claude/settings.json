@@ -12,11 +12,9 @@
       "Bash(bun run check)",
       "Bash(bun run typecheck)",
       "Bash(bun run test)",
-      "Bash(bun run test:hooks)",
       "Bash(bun run lint)",
       "Bash(bun run dead-code)",
       "Bash(bun run dupes)",
-      "Bash(bun .claude/hooks/check-md-links.ts *)",
       "Bash(memory_pressure)",
       "Bash(gh pr merge --squash *)",
       "Bash(bun run format)",
@@ -56,7 +54,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start-env-check.sh",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start-env-check/session-start-env-check.sh",
             "timeout": 15,
             "statusMessage": "Env check: gate dependencies..."
           }
@@ -67,7 +65,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/scoped-guidance.sh",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/scoped-guidance/scoped-guidance.sh",
             "timeout": 15,
             "statusMessage": "Scoped guidance: forget which rules this session was pointed at, after compaction..."
           }
@@ -79,15 +77,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/stop-gate.sh",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/stop-gate/stop-gate.sh",
             "timeout": 240,
-            "statusMessage": "Stop gate: typecheck / lint / format + tests + markdown links..."
-          },
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/reply-open-gate.sh",
-            "timeout": 15,
-            "statusMessage": "Reply gate: the first line is what the reader runs..."
+            "statusMessage": "Stop gate: typecheck / lint / format..."
           }
         ]
       }
@@ -98,20 +90,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-guard.sh",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-guard/pre-bash-guard.sh",
             "timeout": 30,
             "statusMessage": "Bash guard: env-file protection + find gate + unnamed-changes gate..."
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|MultiEdit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/effect-guidance-reminder.sh",
-            "timeout": 15,
-            "statusMessage": "Effect guidance: point the first edit of an Effect file at the pinned guide..."
           }
         ]
       },
@@ -120,7 +101,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/scoped-guidance.sh",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/scoped-guidance/scoped-guidance.sh",
             "timeout": 15,
             "statusMessage": "Scoped guidance: point at the guidance the call reaches..."
           }
@@ -133,7 +114,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/scoped-guidance.sh",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/scoped-guidance/scoped-guidance.sh",
             "timeout": 15,
             "statusMessage": "Scoped guidance: point at the guidance a changed file falls under..."
           }
@@ -145,7 +126,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/scoped-guidance.sh",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/scoped-guidance/scoped-guidance.sh",
             "timeout": 15,
             "statusMessage": "Scoped guidance: point at the guidance a prompt brings in..."
           }

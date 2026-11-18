@@ -8,7 +8,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { parse } from "yaml";
 import { z } from "zod";
-import { HOOK_EVENTS } from "../.claude/hooks/scoped-guidance-decision";
+import { HOOK_EVENTS } from "../.claude/hooks/scoped-guidance/scoped-guidance-decision";
 
 const REPO = path.resolve(import.meta.dirname, "..");
 
