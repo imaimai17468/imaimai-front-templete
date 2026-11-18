@@ -8,6 +8,7 @@
   // `fallow list --entry-points` prints the same entries with and without it.
   "entry": [
     "scripts/**/*.{ts,js}",
+    ".github/scripts/**/*.ts",
     "src/shared/ui/**/*.{ts,tsx}",
     "src/lib/utils.ts",
     "src/test/**/*.{ts,tsx}",

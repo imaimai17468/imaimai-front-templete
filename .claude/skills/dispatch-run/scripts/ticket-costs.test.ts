@@ -13,8 +13,9 @@ const NOW = 1_791_964_866;
 const RESETS_AT = NOW + 3600;
 const LOG_PATH = "/repo/.claude/ticket-costs.jsonl";
 const RECORD_DISPATCH_USAGE =
-  "usage: bun scripts/orchestrate.ts record-dispatch";
-const RECORD_DONE_USAGE = "usage: bun scripts/orchestrate.ts record-done";
+  "usage: bun .claude/skills/dispatch-run/scripts/orchestrate.ts record-dispatch";
+const RECORD_DONE_USAGE =
+  "usage: bun .claude/skills/dispatch-run/scripts/orchestrate.ts record-done";
 
 const budget = (
   windows: Extract<RemainingBudget, { kind: "budget" }>["windows"]

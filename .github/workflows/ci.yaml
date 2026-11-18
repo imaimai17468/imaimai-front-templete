@@ -43,7 +43,7 @@ jobs:
       # needs `overrides`, which add template debt, so direct deps are the audit
       # boundary and the rest waits for upstream.
       - name: Audit direct dependencies for known vulnerabilities
-        run: bun scripts/audit-dependencies.entry.ts
+        run: bun .github/scripts/dependency-audit/audit-dependencies.entry.ts
 
       # Type-checks workflow expressions and validates action inputs, which YAML
       # syntax checking alone does not reach. With no arguments it walks

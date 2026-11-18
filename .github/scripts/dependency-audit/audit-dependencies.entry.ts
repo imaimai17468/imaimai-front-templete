@@ -2,7 +2,7 @@
 
 /**
  * ```
- * bun scripts/audit-dependencies.entry.ts
+ * bun .github/scripts/dependency-audit/audit-dependencies.entry.ts
  * ```
  *
  * Runs `bun audit --json` and exits non-zero when an advisory names a direct
@@ -10,7 +10,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import manifest from "../package.json" with { type: "json" };
+import manifest from "../../../package.json" with { type: "json" };
 import {
   auditOutcome,
   auditReportLines,

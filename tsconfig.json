@@ -31,6 +31,8 @@
     "**/*.mts",
     "**/*.tsx",
     ".claude/hooks/**/*.ts",
+    ".claude/skills/dispatch-run/scripts/**/*.ts",
+    ".github/scripts/**/*.ts",
     "src/routeTree.gen.ts"
   ],
   "exclude": ["node_modules"]

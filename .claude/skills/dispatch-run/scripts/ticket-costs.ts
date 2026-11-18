@@ -92,7 +92,7 @@ const withWindow = <T extends object>(
 ): T & { readonly window?: WindowSnapshot } =>
   window === undefined ? event : { ...event, window };
 
-const RECORD_DISPATCH_USAGE = `usage: bun scripts/orchestrate.ts record-dispatch <branch> <${MODELS.join("|")}> <${EFFORTS.join("|")}> <${KINDS.join("|")}>`;
+const RECORD_DISPATCH_USAGE = `usage: bun .claude/skills/dispatch-run/scripts/orchestrate.ts record-dispatch <branch> <${MODELS.join("|")}> <${EFFORTS.join("|")}> <${KINDS.join("|")}>`;
 
 export const dispatchEvent = (
   args: readonly string[],
@@ -122,7 +122,7 @@ export const dispatchEvent = (
 };
 
 const RECORD_DONE_USAGE =
-  "usage: bun scripts/orchestrate.ts record-done <branch> <subagent_tokens> <tool_uses> <duration_ms>";
+  "usage: bun .claude/skills/dispatch-run/scripts/orchestrate.ts record-done <branch> <subagent_tokens> <tool_uses> <duration_ms>";
 
 const COUNT = /^\d+$/u;
 

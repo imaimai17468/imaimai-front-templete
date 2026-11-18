@@ -7,13 +7,13 @@
  * own, which that file does not allowlist.
  *
  * ```
- * bun scripts/orchestrate.ts free-gib          # free memory in GiB, one number
- * bun scripts/orchestrate.ts remaining-budget  # the account's usage windows, one line
- * bun scripts/orchestrate.ts watch-prs feat/a feat/b       # exits when one of these needs the orchestrator
- * bun scripts/orchestrate.ts clean-worktrees feat/a feat/b # removes the worktrees of these finished branches
- * bun scripts/orchestrate.ts record-dispatch feat/a opus high gate      # logs a dispatch and the 5h window
- * bun scripts/orchestrate.ts record-done feat/a 101648 27 277919        # logs a completion and the 5h window
- * bun scripts/orchestrate.ts ticket-costs      # what a ticket spent, per model and kind
+ * bun .claude/skills/dispatch-run/scripts/orchestrate.ts free-gib          # free memory in GiB, one number
+ * bun .claude/skills/dispatch-run/scripts/orchestrate.ts remaining-budget  # the account's usage windows, one line
+ * bun .claude/skills/dispatch-run/scripts/orchestrate.ts watch-prs feat/a feat/b       # exits when one of these needs the orchestrator
+ * bun .claude/skills/dispatch-run/scripts/orchestrate.ts clean-worktrees feat/a feat/b # removes the worktrees of these finished branches
+ * bun .claude/skills/dispatch-run/scripts/orchestrate.ts record-dispatch feat/a opus high gate      # logs a dispatch and the 5h window
+ * bun .claude/skills/dispatch-run/scripts/orchestrate.ts record-done feat/a 101648 27 277919        # logs a completion and the 5h window
+ * bun .claude/skills/dispatch-run/scripts/orchestrate.ts ticket-costs      # what a ticket spent, per model and kind
  * ```
  *
  * `watch-prs` and `clean-worktrees` name the run by the branches the session
@@ -485,13 +485,17 @@ if (command === "free-gib") {
 } else if (command === "watch-prs") {
   const branches = branchNames(rest);
   if (branches === undefined) {
-    usage("usage: bun scripts/orchestrate.ts watch-prs <branch>...");
+    usage(
+      "usage: bun .claude/skills/dispatch-run/scripts/orchestrate.ts watch-prs <branch>..."
+    );
   }
   await watchPrs(branches, []);
 } else if (command === "clean-worktrees") {
   const branches = branchNames(rest);
   if (branches === undefined) {
-    usage("usage: bun scripts/orchestrate.ts clean-worktrees <branch>...");
+    usage(
+      "usage: bun .claude/skills/dispatch-run/scripts/orchestrate.ts clean-worktrees <branch>..."
+    );
   }
   cleanWorktrees(branches);
 } else if (command === "record-dispatch" || command === "record-done") {
@@ -514,6 +518,6 @@ if (command === "free-gib") {
   });
 } else {
   usage(
-    "usage: bun scripts/orchestrate.ts <free-gib | remaining-budget | watch-prs <branch>... | clean-worktrees <branch>... | record-dispatch <branch> <model> <effort> <kind> | record-done <branch> <subagent_tokens> <tool_uses> <duration_ms> | ticket-costs>"
+    "usage: bun .claude/skills/dispatch-run/scripts/orchestrate.ts <free-gib | remaining-budget | watch-prs <branch>... | clean-worktrees <branch>... | record-dispatch <branch> <model> <effort> <kind> | record-done <branch> <subagent_tokens> <tool_uses> <duration_ms> | ticket-costs>"
   );
 }

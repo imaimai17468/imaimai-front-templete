@@ -13,8 +13,13 @@ import { effectRules } from "./oxlint.effect.ts";
 import reactDoctor from "./oxlint.react-doctor.ts";
 
 const CONFIG_FILES = "*.config.{js,ts,mjs,mts}";
-const FILES_VITEST_NEVER_LOADS = [CONFIG_FILES, "scripts/**"];
-const CLI_ENTRYPOINTS = ["scripts/**", ".claude/hooks/**"];
+const SCRIPT_FILES = [
+  "scripts/**",
+  ".claude/skills/dispatch-run/scripts/**",
+  ".github/scripts/**",
+];
+const FILES_VITEST_NEVER_LOADS = [CONFIG_FILES, ...SCRIPT_FILES];
+const CLI_ENTRYPOINTS = [...SCRIPT_FILES, ".claude/hooks/**"];
 
 export default defineConfig({
   lint: {
@@ -219,7 +224,7 @@ export default defineConfig({
         // is what the input actually is, and `Record<string, unknown>` is the
         // parsed shape a type guard narrows from: that covers
         // no-unknown-parameters and no-unsafe-dictionary-type.
-        files: ["scripts/**"],
+        files: SCRIPT_FILES,
         rules: {
           "anti-slop/no-unknown-parameters": "off",
           "anti-slop/no-unsafe-dictionary-type": "off",

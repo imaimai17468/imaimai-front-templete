@@ -7,7 +7,7 @@
       "mcp__cloudflare-observability__*",
       "WebSearch",
       "WebFetch",
-      "Bash(bun scripts/orchestrate.ts *)",
+      "Bash(bun .claude/skills/dispatch-run/scripts/orchestrate.ts *)",
       "Bash(bun run setup)",
       "Bash(bun run check)",
       "Bash(bun run typecheck)",

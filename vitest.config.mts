@@ -4,7 +4,14 @@ import { defaultExclude, defineConfig } from "vite-plus";
 
 const COVERED_ROOTS = "{src,scripts,tools}";
 
-export const coverageInclude = [`${COVERED_ROOTS}/**/*.ts`, "tools/**/*.js"];
+// The two script directories outside the roots take patterns of their own:
+// inside the brace, tinyglobby took longer than 5 s to expand it.
+export const coverageInclude = [
+  `${COVERED_ROOTS}/**/*.ts`,
+  "tools/**/*.js",
+  ".claude/skills/dispatch-run/scripts/**/*.ts",
+  ".github/scripts/**/*.ts",
+];
 
 // The web-security-audit skill ships its validators with `node:test` suites,
 // which vitest collects and then fails as holding no test. Run them with
@@ -24,9 +31,10 @@ export const coverageExclude = [
   "src/**/*.tsx",
   "src/test/**",
   `${COVERED_ROOTS}/**/*.entry.ts`,
-  // `.claude/settings.json` の allow ルール `Bash(bun scripts/orchestrate.ts *)`
+  ".github/scripts/**/*.entry.ts",
+  // `.claude/settings.json` の allow ルール `Bash(bun .claude/skills/dispatch-run/scripts/orchestrate.ts *)`
   // がこのパスを名指すので、改名はその設定ファイルの編集になる。
-  "scripts/orchestrate.ts",
+  ".claude/skills/dispatch-run/scripts/orchestrate.ts",
   // ファイル名が URL を決めるファイルルートで、`auth.$` が `/api/auth/$` を
   // 生む。改名するとその URL が変わる。
   "src/routes/api/auth.$.ts",
