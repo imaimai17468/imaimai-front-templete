@@ -34,12 +34,7 @@ export const HomePage = () => (
         engines.node を満たす Node と{" "}
         <code className="font-mono text-foreground">mise.toml</code>{" "}
         が指定する版の Bun を手動で用意する。rc を読まないシェルからは{" "}
-        <code className="font-mono text-foreground">mise exec --</code>{" "}
-        を通す。Cursor Cloud Agent では{" "}
-        <code className="font-mono text-foreground">
-          .cursor/environment.json
-        </code>{" "}
-        が同じセットアップを自動実行する。
+        <code className="font-mono text-foreground">mise exec --</code> を通す。
       </p>
     </Section>
 
