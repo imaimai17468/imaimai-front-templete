@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from "vite-plus/test";
-import type { AVATAR_ROUTE_PATH } from "@/lib/avatar-url";
 import type { FileRouteTypes } from "@/routeTree.gen";
+import type { AVATAR_ROUTE_PATH } from "@/shared/gateway/user/avatar-url";
 
 describe("/api/avatars", () => {
   // The route beside this test serves the path its file name gives it, so

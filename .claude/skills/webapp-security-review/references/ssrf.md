@@ -10,7 +10,7 @@ Nothing under `src/` makes an outbound request today. `git grep -n 'fetch(' -- s
 
 The Worker still makes outbound requests through Better Auth's Google provider (`@better-auth/core`, `dist/social-providers/google.mjs`, as installed with `better-auth` 1.7.2): the token exchange with `https://oauth2.googleapis.com/token` and the signing keys from `https://www.googleapis.com/oauth2/v3/certs`. Both URLs are constants in the library, and the profile, `picture` included, is decoded from the ID token rather than fetched, so no request value picks a destination there.
 
-The `image` column is where a stored URL exists. Better Auth writes Google's `picture` into it at sign-up, and `CurrentUserReader` (`src/shared/gateway/user/read.ts`) sends it on as the avatar URL only when `httpsUrl` (`src/lib/https-url.ts`) parses it as an absolute `https:` URL. The browser fetches that URL through an `<img>`, so it is not a server-side request. It becomes one the moment a route fetches, proxies or resizes it on the server, and `httpsUrl` would not stop that: it checks the scheme and nothing about the host.
+The `image` column is where a stored URL exists. Better Auth writes Google's `picture` into it at sign-up, and `CurrentUserReader` (`src/shared/gateway/user/read.ts`) sends it on as the avatar URL only when `httpsUrl` (`src/shared/gateway/user/https-url.ts`) parses it as an absolute `https:` URL. The browser fetches that URL through an `<img>`, so it is not a server-side request. It becomes one the moment a route fetches, proxies or resizes it on the server, and `httpsUrl` would not stop that: it checks the scheme and nothing about the host.
 
 What Cloudflare documents about a Worker's own `fetch` (read 2026-09-30):
 

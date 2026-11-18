@@ -4,7 +4,7 @@ import type { SQL } from "drizzle-orm";
 import { DateTime, Effect, Option, Schema } from "effect";
 import { getDb } from "@/lib/drizzle/db";
 import { users } from "@/lib/drizzle/schema";
-import { reportError } from "@/lib/report-error";
+import { reportError } from "@/shared/gateway/report-error";
 
 /**
  * A D1 row read or write, or an R2 object read or write on a user's behalf,

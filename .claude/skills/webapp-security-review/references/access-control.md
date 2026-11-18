@@ -32,7 +32,7 @@ The `_authed` layout route (`src/routes/_authed/route.tsx`) redirects a signed-o
 
 ## Reproduce locally
 
-Replay a key that exists, because a key no upload wrote answers 404 whether the check holds or not. On `bun run dev`, sign in as account B, upload an avatar, and copy the avatar image's `src`, which `avatarUrlForKey` (`src/lib/avatar-url.ts`) builds as `/api/avatars?key=` followed by B's encoded key. Sign in as account A in another browser profile and request that exact URL. A 400 `{"error":"Invalid key"}` means the check holds, a 200 with image bytes means A read B's object, and a 404 means the key was never a stored object, so the step proved nothing. The same request with no session cookie answers 401.
+Replay a key that exists, because a key no upload wrote answers 404 whether the check holds or not. On `bun run dev`, sign in as account B, upload an avatar, and copy the avatar image's `src`, which `avatarUrlForKey` (`src/shared/gateway/user/avatar-url.ts`) builds as `/api/avatars?key=` followed by B's encoded key. Sign in as account A in another browser profile and request that exact URL. A 400 `{"error":"Invalid key"}` means the check holds, a 200 with image bytes means A read B's object, and a 404 means the key was never a stored object, so the step proved nothing. The same request with no session cookie answers 401.
 
 For a boundary with no route to call by hand yet, drive its `layerNoDeps` from a test, providing a `CurrentSession` layer that answers signed out, or signed in as a user other than the object's owner. That is how `src/shared/gateway/user/avatar/read.test.ts` reaches every denial without a session cookie or an R2 binding, by providing fake `CurrentSession` and `AvatarBucket` layers.
 

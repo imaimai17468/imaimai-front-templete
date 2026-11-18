@@ -1,10 +1,10 @@
 import "@tanstack/react-start/server-only";
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { CurrentSession } from "@/lib/auth/session";
-import { avatarUrlForKey } from "@/lib/avatar-url";
-import { httpsUrl } from "@/lib/https-url";
 import { UserWithEmailSchema } from "@/shared/entities/user";
 import type { UserWithEmail } from "@/shared/entities/user";
+import { avatarUrlForKey } from "@/shared/gateway/user/avatar-url";
+import { httpsUrl } from "@/shared/gateway/user/https-url";
 import { dieOnPersistenceError, readUserRow } from ".";
 import type { UserPersistenceError } from ".";
 import { makeRunHandler } from "../runtime";

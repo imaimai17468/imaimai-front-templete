@@ -1,3 +1,4 @@
+import "@tanstack/react-start/server-only";
 import { Option, Schema } from "effect";
 
 const isHttps = Schema.makeFilter<URL>((url) => url.protocol === "https:", {

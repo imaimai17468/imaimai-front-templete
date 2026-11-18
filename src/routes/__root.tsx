@@ -1,9 +1,9 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext } from "@tanstack/react-router";
-import { DOCUMENT_HEADERS } from "@/lib/response-headers";
 import { currentUserQueryOptions } from "@/shared/gateway/user/read.fn";
 import { NotFound } from "./-components/not-found";
 import { RootLayout } from "./-components/root-layout";
+import { DOCUMENT_HEADERS } from "./-response-headers";
 import "@/styles.css";
 
 if (import.meta.env.DEV && !import.meta.env.SSR) {

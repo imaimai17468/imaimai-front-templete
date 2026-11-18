@@ -1,3 +1,4 @@
+import "@tanstack/react-start/server-only";
 /** The path that serves an avatar object. */
 export const AVATAR_ROUTE_PATH = "/api/avatars";
 

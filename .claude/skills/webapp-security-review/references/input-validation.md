@@ -34,7 +34,7 @@ Checks that need the caller or a stored row, such as whether an avatar key belon
 
 **A pattern matches the whole value.** `AVATAR_KEY_PATTERN` in `src/lib/storage/avatar-validation.ts` opens with `^` and closes with `$`. A pattern without both accepts any string that merely contains a match. Keep patterns to simple fixed formats, and bound the length before matching, so a long input cannot make a backtracking pattern run for seconds.
 
-**A URL is checked for the use it is put to.** `httpsUrl` in `src/lib/https-url.ts` lets a stored provider image leave the read only as an absolute `https` URL. A value used as a redirect target or fetched by the server needs its own rule, and a URL the server fetches is a server-side request forgery question that validation alone does not settle.
+**A URL is checked for the use it is put to.** `httpsUrl` in `src/shared/gateway/user/https-url.ts` lets a stored provider image leave the read only as an absolute `https` URL. A value used as a redirect target or fetched by the server needs its own rule, and a URL the server fetches is a server-side request forgery question that validation alone does not settle.
 
 **A rejection says which rule failed and nothing more.** The server-function handler sends a thrown `Error`'s `message` to the client. The messages `Schema` builds name the rule and the path (`Name must be 50 characters or less` at `["name"]`) and leave out the rejected value, because the `reportInput` parse option is off by default. Keep it off at the wire, and keep a hand-written message from quoting the input, so a rejected secret is not reflected back or copied into a log.
 

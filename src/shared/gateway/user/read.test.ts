@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "@effect/vitest";
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import { DateTime, Effect, Layer, Option } from "effect";
 import { CurrentSession } from "@/lib/auth/session";
-import { avatarUrlForKey } from "@/lib/avatar-url";
+import { avatarUrlForKey } from "@/shared/gateway/user/avatar-url";
 import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";
 import { rejectionOf } from "@/test/rejection";

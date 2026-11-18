@@ -1,3 +1,4 @@
+import "@tanstack/react-start/server-only";
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import type { Effect } from "effect";
 import { Console, Option, Predicate, Schema } from "effect";

@@ -10,7 +10,7 @@ import {
   Result,
   Schema,
 } from "effect";
-import { reportError } from "@/lib/report-error";
+import { reportError } from "@/shared/gateway/report-error";
 
 // Passed to every runtime `makeRunHandler` builds, so a layer two of them
 // reach is built once and the later runtime takes that instance. A map per

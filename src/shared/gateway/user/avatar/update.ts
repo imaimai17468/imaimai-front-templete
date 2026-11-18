@@ -10,14 +10,14 @@ import {
   Option,
   Schema,
 } from "effect";
-import { avatarUrlForKey } from "@/lib/avatar-url";
 import { users } from "@/lib/drizzle/schema";
-import { reportError } from "@/lib/report-error";
 import {
   avatarContentMatchesMime,
   avatarExtensionForMime,
   isOwnAvatarKey,
 } from "@/lib/storage/avatar-validation";
+import { reportError } from "@/shared/gateway/report-error";
+import { avatarUrlForKey } from "@/shared/gateway/user/avatar-url";
 import { AvatarBucket, AvatarKeyIds } from ".";
 import { orNone, readUserRow, succeeded, writeUserRow, wroteOneRow } from "..";
 import type { UserPersistenceError } from "..";
