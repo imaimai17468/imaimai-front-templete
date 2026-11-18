@@ -168,8 +168,8 @@ rm -f .env.local .env.local.example
 The `# cloudflare` block in `.gitignore` is **kept**, because `alchemy dev`
 writes `.alchemy/` again on its next start.
 
-`scripts/setup.sh` ends by copying the env example file onto the local one.
-Delete that whole `if` block from the script, and from `scripts/setup.test.ts`
+`scripts/setup/setup.sh` ends by copying the env example file onto the local one.
+Delete that whole `if` block from the script, and from `scripts/setup/setup.test.ts`
 delete every case and step constant naming either file. Left in place, the copy
 has no source, so `bun run setup` prints `[setup] failed at: cp` and exits 1 on
 every run from here on.
@@ -322,7 +322,7 @@ Split per the Commits discipline in `AGENTS.md`:
 2. `chore:` remove the D1 / R2 / Drizzle configuration (the `alchemy.run.ts`
    bindings and their `src/cloudflare-env.d.ts` members,
    drizzle.config.ts, vitest alias, the local-DB scripts, the env files,
-   `scripts/setup.sh` and `scripts/setup.test.ts`, and `docs/DATABASE_SETUP.md`)
+   `scripts/setup/setup.sh` and `scripts/setup/setup.test.ts`, and `docs/DATABASE_SETUP.md`)
 3. `chore:` remove the DB / auth dependencies (package.json / bun.lock)
 4. `docs:` remove DB- and auth-related documentation. Stage every surface
    step 6 touched, each by its explicit path as that discipline requires:

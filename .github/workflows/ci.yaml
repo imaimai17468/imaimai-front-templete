@@ -90,7 +90,7 @@ jobs:
         run: bun run check:pins
 
       - name: Check Claude frontmatter parses
-        run: bun scripts/check-claude-frontmatter.entry.ts
+        run: bun scripts/claude-frontmatter/check-claude-frontmatter.entry.ts
 
       # `vp check` runs format, lint and type checks in one pass, which is why
       # this workflow has no separate tsc step.
@@ -121,7 +121,7 @@ jobs:
         run: bun run build
 
       # Boots the stack under `alchemy dev` on a fresh local state, which
-      # applies the D1 migrations, requests the routes scripts/smoke.ts names,
+      # applies the D1 migrations, requests the routes scripts/smoke/smoke.ts names,
       # and sends its sign-in burst. It reads no Cloudflare account.
       - name: Boot the app and request its routes (smoke)
         run: bun run smoke

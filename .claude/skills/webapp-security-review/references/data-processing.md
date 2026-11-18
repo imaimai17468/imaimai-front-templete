@@ -18,7 +18,7 @@ The validator then decodes the parsed value with Effect `Schema`, as `parseProfi
 Two topics of the chapter have no counterpart here, each checked on 2026-09-30:
 
 - **XML external entities.** Nothing parses XML: `git grep -n -i -e xml -e DOMParser -- src package.json` finds only `image/svg+xml` as a favicon type and as a MIME type the avatar tests expect to be refused.
-- **YAML loaders.** `yaml` is a devDependency, imported only by `scripts/claude-frontmatter.ts`, which reads this repository's own files rather than a request.
+- **YAML loaders.** `yaml` is a devDependency, imported only by `scripts/claude-frontmatter/claude-frontmatter.ts`, which reads this repository's own files rather than a request.
 
 Object-rebuilding deserialization has a near counterpart. Nothing in `src/` rebuilds a class by name, and `git grep -n -e 'eval(' -e 'new Function' -- src` finds nothing, but the wire parser is seroval's `fromJSON`, which rebuilds more than JSON's plain data and runs each plugin's decode code. What it may build is set by seroval 1.6.3 and the registered plugins, so the adapter check below is where this class enters.
 

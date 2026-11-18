@@ -25,7 +25,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { setTimeout as delay } from "node:timers/promises";
-import { STACK_NAME } from "../alchemy.run";
+import { STACK_NAME } from "../../alchemy.run";
 import {
   addedSince,
   report,

@@ -3095,7 +3095,7 @@ describe("server-only-marker", () => {
 
   it("should stay silent when the file sits outside src", () => {
     // Arrange
-    const context = makeLayerContext("/repo/scripts/smoke.entry.ts");
+    const context = makeLayerContext("/repo/scripts/smoke/smoke.entry.ts");
 
     // Act
     const visitors = rule.create(context);

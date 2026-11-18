@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "setup": "bash scripts/setup.sh",
+    "setup": "bash scripts/setup/setup.sh",
     "setup:check": "bash .claude/hooks/session-start-env-check/session-start-env-check.sh --strict",
     "prepare": "lefthook install",
     "generate-routes": "tsr generate",
@@ -21,7 +21,7 @@
     "check:shell": "git ls-files -z '*.sh' | xargs -0r shellcheck -x",
     "typecheck": "vp check --no-fmt --no-lint",
     "test": "vp test --run --coverage",
-    "smoke": "bun scripts/smoke.entry.ts",
+    "smoke": "bun scripts/smoke/smoke.entry.ts",
     "dead-code": "fallow dead-code",
     "dupes": "fallow dupes ./src",
     "doctor": "react-doctor",

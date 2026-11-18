@@ -63,7 +63,7 @@ const inlineItems = (inline: string): string[] => {
  * comma-separated string, a flow list, and a block list. Only these keys are
  * read, so the `yaml` package stays out of a hook that runs around every tool
  * call, where loading it cost about 130 ms. Frontmatter that YAML itself would
- * refuse is `bun scripts/check-claude-frontmatter.entry.ts`'s to reject.
+ * refuse is `bun scripts/claude-frontmatter/check-claude-frontmatter.entry.ts`'s to reject.
  */
 const readList = (frontmatter: string, key: string): string[] => {
   const prefix = `${key}:`;

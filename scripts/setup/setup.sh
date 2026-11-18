@@ -3,7 +3,7 @@
 # its first push.
 set -Eeuo pipefail
 
-cd "${0%/*}/.."
+cd "${0%/*}/../.."
 
 STEP=""
 trap 'printf "[setup] failed at: %s\n" "$STEP" >&2' ERR

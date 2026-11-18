@@ -28,7 +28,7 @@ const LOCAL_ENV = ".env.local";
 const EXAMPLE = ".env.local.example";
 /** The bytes the repository ships, so losing that file fails this suite rather than `bun run setup`. */
 const EXAMPLE_BODY = readFileSync(
-  path.resolve(import.meta.dirname, "..", EXAMPLE),
+  path.resolve(import.meta.dirname, "../..", EXAMPLE),
   "utf-8"
 );
 
@@ -100,14 +100,14 @@ describe("setup.sh", { timeout: FORKING_CASE_TIMEOUT_MS }, () => {
   });
 
   /**
-   * A checkout carrying the script and the example it copies. The script cds to
-   * its own directory's parent, so the copy lands here rather than in this
+   * A checkout carrying the script and the example it copies. The script cds two
+   * directories above its own, so the copy lands here rather than in this
    * repository.
    */
   const scratchCheckout = (): string => {
     const dir = mkdtempSync(path.join(scratchRoot, "checkout-"));
-    mkdirSync(path.join(dir, "scripts"));
-    copyFileSync(SETUP, path.join(dir, "scripts", "setup.sh"));
+    mkdirSync(path.join(dir, "scripts", "setup"), { recursive: true });
+    copyFileSync(SETUP, path.join(dir, "scripts", "setup", "setup.sh"));
     writeFileSync(path.join(dir, EXAMPLE), EXAMPLE_BODY);
     return dir;
   };
@@ -126,7 +126,7 @@ describe("setup.sh", { timeout: FORKING_CASE_TIMEOUT_MS }, () => {
   const runSetup = (dir: string, stubs: readonly StubName[]): SetupRun => {
     const result = spawnSync(
       "/bin/bash",
-      [path.join(dir, "scripts", "setup.sh")],
+      [path.join(dir, "scripts", "setup", "setup.sh")],
       {
         encoding: "utf-8",
         env: { ...process.env, PATH: stubPath(stubs) },

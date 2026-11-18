@@ -3,7 +3,7 @@ import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import { parse } from "dotenv";
 import { Config, Effect, Layer } from "effect";
-import { secretsFromDevFile } from "./scripts/deploy-secrets";
+import { secretsFromDevFile } from "./scripts/deploy-secrets/deploy-secrets";
 
 export const STACK_NAME = "my-project";
 
