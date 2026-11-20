@@ -6,11 +6,11 @@ TanStack Start で作った Web アプリのテンプレートです。Cloudflar
 
 ```bash
 mise install    # Node / Bun などを mise.toml の版で入れる
-bun run setup   # 依存、git hooks、生成ファイル、.env.local を用意する
+bun run setup   # 依存、git hooks、生成ファイル、.env を用意する
 bun run dev     # http://my-app.localhost:1355 で開く
 ```
 
-`.env.local` には `.env.local.example` の仮の値が入ります。実際のサービスにつなぐ前に書き換えてください。`bun run dev` は Worker と D1・R2 をローカルで動かすので、Cloudflare のアカウントは要りません。
+`.env` には `scripts/setup/placeholders.dotenv` の仮の値が入ります。実際のサービスにつなぐ前に書き換えてください。`bun run dev` は Worker と D1・R2 をローカルで動かすので、Cloudflare のアカウントは要りません。
 
 ## よく使うコマンド
 
@@ -32,8 +32,8 @@ src/
 │   ├── ui/          # shadcn/ui の部品
 │   ├── gateway/     # 認可と D1・R2 へのアクセス
 │   └── entities/    # ドメインの型とスキーマ
-├── lib/         # 認証、DB、ストレージの設定
-└── ssr.tsx      # Worker の入口
+└── lib/         # 認証とアバター検証の設定
+db/              # D1 のスキーマとマイグレーション
 ```
 
 どこに何を置くかの決まりは [AGENTS.md](./AGENTS.md) の Rules にあります。
@@ -63,6 +63,6 @@ src/
 - 認証: Better Auth（Google OAuth。dev ビルドに限り、固定ユーザーでワンクリックログインできる）
 - データベース: Cloudflare D1、Drizzle ORM
 - ストレージ: Cloudflare R2
-- ホスティング: Cloudflare Workers（[Alchemy](https://alchemy.run) で宣言してデプロイ）
+- ホスティング: Cloudflare Workers（[Void](https://void.cloud) でデプロイ）
 - 検査とテスト: Vite+（oxlint・oxfmt）、Vitest
 - パッケージマネージャー: Bun
