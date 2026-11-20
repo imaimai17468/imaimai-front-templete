@@ -53,8 +53,8 @@ fi
 # and lefthook both fail without it.
 [ -d "$TREE/node_modules" ] || GATE+=("node_modules absent — fresh checkout or worktree (fix: bun run setup)")
 # The void CLI checks the same floor when it starts and exits naming it, and
-# `bun run dev`, `bun run build` and `bun run smoke` all start it.
-node -e 'const [major, minor] = process.versions.node.split(".").map(Number); process.exit((major === 24 && minor >= 22) || (major === 26 && minor >= 12) || major > 26 ? 0 : 1)' >/dev/null 2>&1 || GATE+=("node 24.22+ or 26.12+ (the void CLI exits under an older node; fix: mise install, which reads mise.toml)")
+# `bun run setup`, the `bun run db:*` scripts and `bun run deploy` start it.
+node -e 'const [major, minor] = process.versions.node.split(".").map(Number); process.exit((major === 24 && minor >= 22) || (major === 26 && minor >= 12) || major > 26 ? 0 : 1)' >/dev/null 2>&1 || GATE+=("node 24.22+ or 26.12+ (the void CLI that bun run setup, db:* and deploy start exits under an older node; fix: mise install, which reads mise.toml)")
 
 # Gitignored, so a fresh checkout has none, and a worktree gets one only where
 # the main checkout already had one. `-L` sits beside `-e` because `-e` follows
