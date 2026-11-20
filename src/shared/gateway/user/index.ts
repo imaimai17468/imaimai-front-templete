@@ -1,9 +1,8 @@
 import "@tanstack/react-start/server-only";
-import { and, eq } from "drizzle-orm";
-import type { SQL } from "drizzle-orm";
+import { users } from "@schema";
 import { DateTime, Effect, Option, Schema } from "effect";
-import { getDb } from "@/lib/drizzle/db";
-import { users } from "@/lib/drizzle/schema";
+import { and, db, eq } from "void/db";
+import type { SQL } from "void/db";
 import { reportError } from "@/shared/gateway/report-error";
 
 /**
@@ -51,7 +50,7 @@ export const readUserRow = (
   UserPersistenceError
 > =>
   persistenceEffect(() =>
-    getDb()
+    db
       .select()
       .from(users)
       .where(eq(users.id, userId))
@@ -85,7 +84,7 @@ export const writeUserRow = (
   ...stillHolds: SQL[]
 ): Effect.Effect<number, UserPersistenceError> =>
   persistenceEffect(() =>
-    getDb()
+    db
       .update(users)
       .set({ ...columns, updatedAt: DateTime.toDateUtc(updatedAt) })
       .where(and(eq(users.id, userId), ...stillHolds))

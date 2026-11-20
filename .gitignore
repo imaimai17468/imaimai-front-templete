@@ -37,7 +37,6 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
-!.env.local.example
 # Wrangler local secrets (not covered by the .env* glob);
 # glob also catches env-specific files like .dev.vars.staging
 .dev.vars*
@@ -45,7 +44,9 @@ yarn-error.log*
 
 # cloudflare
 .wrangler
-.alchemy/
+.void/
+.void-wrangler.jsonc
+.cloudflare/
 
 # typescript
 *.tsbuildinfo

@@ -5,12 +5,11 @@
  * bun run smoke
  * ```
  *
- * Boots the stack under `alchemy dev` on a fresh local state, which applies the
- * D1 migrations, requests the routes `smoke.ts` names, then sends the sign-in
- * burst `SIGN_IN_BURST` names. A Worker that throws on every request fails
- * here, and so does an auth rate limiter that is off or whose table the
- * migrations do not create. The run reads no Cloudflare account: the Alchemy
- * home it gets is empty, and the Cloudflare variables are cleared.
+ * Boots the dev server under Void on an empty local D1 and R2, which applies
+ * the D1 migrations, requests the routes `smoke.ts` names, then sends the
+ * sign-in burst `SIGN_IN_BURST` names. A Worker that throws on every request
+ * fails here, and so does an auth rate limiter that is off or whose table the
+ * migrations do not create. The run reads no Cloudflare account.
  *
  * Exits non-zero naming every route that answered differently from what
  * `ROUTES` states, or did not answer, and where the burst was not limited as
@@ -20,16 +19,15 @@
 import { spawn } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
 import { once } from "node:events";
-import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { setTimeout as delay } from "node:timers/promises";
-import { STACK_NAME } from "../../alchemy.run";
 import {
-  addedSince,
   report,
   messageOf,
+  pointsAt,
   missedBy,
   readyUrlIn,
   ROUTES,
@@ -39,29 +37,17 @@ import {
 } from "./smoke";
 import type { Route, RouteResult } from "./smoke";
 
-const STAGE = "smoke";
-const STAGE_STATE = path.join(".alchemy/state", STACK_NAME, STAGE);
-
-/** Where `alchemy dev` keeps the data of each local D1 database and R2 bucket. */
-const LOCAL_DATA_DIRS = [
-  ".alchemy/local/d1/cloudflare-runtime-D1DatabaseObject",
-  ".alchemy/local/r2/cloudflare-runtime-R2BucketObject",
-];
-
 /**
- * The environment `alchemy dev` runs under. The secrets the Worker requires
- * before it answers a request are given here, and the variables that would
- * point Alchemy at a Cloudflare account are emptied.
+ * The environment the dev server runs under. `SMOKE_STATE_DIR` is where
+ * `vite.config.ts` points Void's local D1 and R2, and the secrets the Worker
+ * requires before it answers a request are given here.
  */
-const devEnv = (alchemyHome: string): NodeJS.ProcessEnv => ({
+const devEnv = (stateDir: string): NodeJS.ProcessEnv => ({
   ...process.env,
-  ALCHEMY_HOME: alchemyHome,
-  ALCHEMY_TELEMETRY_DISABLED: "1",
   BETTER_AUTH_SECRET: "smoke-run-placeholder-secret-0123456789",
-  CLOUDFLARE_ACCOUNT_ID: "",
-  CLOUDFLARE_API_TOKEN: "",
   GOOGLE_CLIENT_ID: "smoke-run-placeholder-client-id",
   GOOGLE_CLIENT_SECRET: "smoke-run-placeholder-client-secret",
+  SMOKE_STATE_DIR: stateDir,
 });
 
 const BOOT_TIMEOUT_MS = 120_000;
@@ -69,14 +55,16 @@ const REQUEST_TIMEOUT_MS = 30_000;
 const KILL_TIMEOUT_MS = 10_000;
 
 /**
- * The base URL `alchemy dev` prints once the Worker listens. It moves to the
- * next free port when the configured one is taken, so this line is the only
- * place the address exists.
+ * The base URL the dev server prints once it listens. It moves to the next
+ * free port when the default one is taken, so this line is the only place the
+ * address exists.
  */
 const readyUrl = async (child: ChildProcess, stdout: Readable) => {
   const { promise, reject, resolve } = Promise.withResolvers<string>();
   const timer = setTimeout(() => {
-    reject(new Error(`alchemy dev was not ready within ${BOOT_TIMEOUT_MS}ms`));
+    reject(
+      new Error(`the dev server was not ready within ${BOOT_TIMEOUT_MS}ms`)
+    );
   }, BOOT_TIMEOUT_MS);
 
   stdout.setEncoding("utf-8");
@@ -101,10 +89,10 @@ const readyUrl = async (child: ChildProcess, stdout: Readable) => {
   stdout.on("data", scan);
 
   child.on("close", () => {
-    reject(new Error("alchemy dev exited before it served anything"));
+    reject(new Error("the dev server exited before it served anything"));
   });
   child.on("error", (cause) => {
-    reject(new Error("alchemy dev could not be started", { cause }));
+    reject(new Error("the dev server could not be started", { cause }));
   });
 
   try {
@@ -185,13 +173,12 @@ const signInStatuses = async (
     ? answered
     : await signInStatuses(baseUrl, [...answered, await signInStatus(baseUrl)]);
 
-/** Boots the stack on the smoke stage, with `alchemyHome` as Alchemy's home. */
-const smokeOn = async (alchemyHome: string): Promise<number> => {
-  const child = spawn(
-    "bunx",
-    ["alchemy", "dev", "--no-input", "--stage", STAGE],
-    { env: devEnv(alchemyHome), stdio: ["ignore", "pipe", "inherit"] }
-  );
+/** Boots the dev server with its local D1 and R2 kept under `stateDir`. */
+const smokeOn = async (stateDir: string): Promise<number> => {
+  const child = spawn("bunx", ["vp", "dev"], {
+    env: devEnv(stateDir),
+    stdio: ["ignore", "pipe", "inherit"],
+  });
 
   try {
     const baseUrl = await readyUrl(child, child.stdout);
@@ -226,36 +213,31 @@ const smokeOn = async (alchemyHome: string): Promise<number> => {
   }
 };
 
-const entriesOf = async (dir: string): Promise<readonly string[]> => {
-  const names = await readdir(dir).catch(() => []);
-  return names.map((name) => path.join(dir, name));
-};
+/** Where void 1.11.0 records the local D1 directory the `void db` CLI uses. */
+const LOCAL_D1_RECORD = ".void/local-d1.json";
 
-const localDataEntries = async (): Promise<readonly string[]> => {
-  const perDir = await Promise.all(LOCAL_DATA_DIRS.map(entriesOf));
-  return perDir.flat();
+/**
+ * Removes the record when this run wrote it, which is what `bun run dev`
+ * starting without `persistTo` does, so `void db` goes back to `.void/`.
+ */
+const releaseLocalD1Record = async (stateDir: string) => {
+  const recordText = await readFile(LOCAL_D1_RECORD, "utf-8").catch(() => "");
+  if (pointsAt(recordText, stateDir)) {
+    await rm(LOCAL_D1_RECORD, { force: true });
+  }
 };
 
 /**
- * Each run starts the stage from no records, so Alchemy creates a new local D1
- * for it rather than reusing the rate-limit rows of an earlier run, and the
- * run removes the local data that appeared while it ran. A database a
- * `bun run dev` created during the run goes with it.
+ * Each run starts from an empty directory, so Void creates a new local D1 for
+ * it rather than reusing the rate-limit rows of an earlier run.
  */
 const run = async (): Promise<number> => {
-  await rm(STAGE_STATE, { force: true, recursive: true });
-  const before = await localDataEntries();
-  const alchemyHome = await mkdtemp(path.join(tmpdir(), "app-smoke-"));
+  const stateDir = await mkdtemp(path.join(tmpdir(), "app-smoke-"));
   try {
-    return await smokeOn(alchemyHome);
+    return await smokeOn(stateDir);
   } finally {
-    await rm(alchemyHome, { force: true, recursive: true });
-    await rm(STAGE_STATE, { force: true, recursive: true });
-    await Promise.all(
-      addedSince(before, await localDataEntries()).map(async (entry) => {
-        await rm(entry, { force: true, recursive: true });
-      })
-    );
+    await rm(stateDir, { force: true, recursive: true });
+    await releaseLocalD1Record(stateDir);
   }
 };
 

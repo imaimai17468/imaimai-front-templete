@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1795190030348,
+      "tag": "20261120155350_rainy_lenny_balinger",
+      "breakpoints": true
+    }
+  ]
+}

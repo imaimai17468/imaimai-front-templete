@@ -6,18 +6,18 @@ SQL injection happens when a value from a request becomes part of the SQL text a
 
 ## Where the decision lives here
 
-Every query in `src/` is built with Drizzle's query builder on the D1 database `getDb()` returns (`src/lib/drizzle/db.ts`). `UserProfiles.findProfile` in `src/shared/gateway/user/read.ts` is `select().from(users).where(eq(users.id, userId))`, and `writeUserRow` in `src/shared/gateway/user/index.ts` is `update(users).set(...).where(eq(users.id, userId))`, and `UserAvatarKeys.find` in `src/shared/gateway/user/avatar/update.ts` selects `avatarKey` the same way. Drizzle's SQLite dialect renders every value as a `?` placeholder and hands the value to D1 separately (`escapeParam` in `node_modules/drizzle-orm/sqlite-core/dialect.js` returns `"?"`), so none of these queries can be injected through its values.
+Every query in `src/` is built with Drizzle's query builder on the D1 database `db` from `void/db` returns. `UserProfiles.findProfile` in `src/shared/gateway/user/read.ts` is `select().from(users).where(eq(users.id, userId))`, and `writeUserRow` in `src/shared/gateway/user/index.ts` is `update(users).set(...).where(eq(users.id, userId))`, and `UserAvatarKeys.find` in `src/shared/gateway/user/avatar/update.ts` selects `avatarKey` the same way. Drizzle's SQLite dialect renders every value as a `?` placeholder and hands the value to D1 separately (`escapeParam` in `node_modules/drizzle-orm/sqlite-core/dialect.js` returns `"?"`), so none of these queries can be injected through its values.
 
-The class comes back only where code writes SQL text itself. In the installed Drizzle (0.45.2) those places are:
+The class comes back only where code writes SQL text itself. In the installed Drizzle (0.45.4, the `drizzle-orm` pin in `package.json`) those places are:
 
 - `sql.raw(str)`, which puts `str` into the statement verbatim (`node_modules/drizzle-orm/sql/sql.js`).
 - `run`, `all`, `get` and `values` on the database object, which accept a plain string and wrap it in `sql.raw` (`node_modules/drizzle-orm/sqlite-core/db.js`).
 - `sql.identifier(name)`, which quotes `name` as a table or column name. Its own doc comment warns that it gives no protection against injection, and whatever it names, the statement reads.
-- The D1 binding itself, reached as `getDb().$client` or `getCloudflareEnv().DB`: `prepare(query)` takes SQL text and binds only what `.bind(...)` receives, and `exec(query)` takes SQL text with no binding at all (`D1Database` in `node_modules/@cloudflare/workers-types/index.d.ts`).
+- The D1 binding itself, reached as `db.$client` or `env.DB` from `cloudflare:workers`: `prepare(query)` takes SQL text and binds only what `.bind(...)` receives, and `exec(query)` takes SQL text with no binding at all (`D1Database` in `node_modules/@cloudflare/workers-types/index.d.ts`).
 
 Inside the `` sql`...` `` tagged template, by contrast, each `${value}` becomes a bound parameter. A table or column object interpolated there renders as its quoted name.
 
-Better Auth issues its own queries through `drizzleAdapter(getDb(), ...)` in `src/lib/auth/better-auth.ts`. Those are the library's code rather than this repository's, and this reference does not cover them.
+Better Auth issues its own queries through `drizzleAdapter(db, ...)` in `src/lib/auth/better-auth.ts`. Those are the library's code rather than this repository's, and this reference does not cover them.
 
 ## Checks
 
@@ -27,7 +27,7 @@ Better Auth issues its own queries through `drizzleAdapter(getDb(), ...)` in `sr
 git grep -n -e 'sql\.raw' -e 'sql\.identifier' -e 'sql`' -e '\$client' -e '\.prepare(' -e '\.exec(' -- src
 ```
 
-then `git grep -n 'getDb()' -- src` and read each chain that follows a hit to its end, because a `.run(`, `.all(`, `.get(` or `.values(` on the database object usually sits on the next line. `insert(...).values({...})` is the builder and takes values, and `form.get`, `searchParams.get` and `RegExp.prototype.exec` are not database calls, so those hits are noise. The code is right where every hit is the builder, or a `` sql`...` `` template whose values are interpolated directly. It is wrong where a string built with `+` or a template literal, or returned by a helper that takes a `string`, arrives at `sql.raw`, at one of the four methods, or at `prepare` without `.bind`. On main on 2026-09-30 the first grep returned only the `AVATAR_KEY_PATTERN.exec` call in `src/lib/storage/avatar-validation.ts`, and `getDb()` led to the three builder chains above and to `drizzleAdapter`.
+then `git grep -n -w 'db' -- src/shared/gateway src/lib` and read each chain that follows a hit to its end, because a `.run(`, `.all(`, `.get(` or `.values(` on the database object usually sits on the next line. `insert(...).values({...})` is the builder and takes values, and `form.get`, `searchParams.get` and `RegExp.prototype.exec` are not database calls, so those hits are noise. The code is right where every hit is the builder, or a `` sql`...` `` template whose values are interpolated directly. It is wrong where a string built with `+` or a template literal, or returned by a helper that takes a `string`, arrives at `sql.raw`, at one of the four methods, or at `prepare` without `.bind`. On main on 2026-09-30 the first grep returned only the `AVATAR_KEY_PATTERN.exec` call in `src/lib/storage/avatar-validation.ts`, and `getDb()` led to the three builder chains above and to `drizzleAdapter`.
 
 **A template is interpolated once, by the tag.** `` sql`select * from ${users} where ${users.name} = ${name}` `` binds `name`. The same text assembled first as a JavaScript template literal and then handed to `sql.raw` or to `db.all` puts `name` into the source. A reviewer reads the character before the backtick: `sql` means the tag interpolates, anything else means a string was built.
 

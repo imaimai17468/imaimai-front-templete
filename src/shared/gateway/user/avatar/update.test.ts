@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "@effect/vitest";
-import { SQLiteDialect } from "drizzle-orm/sqlite-core";
 import { DateTime, Effect, Layer, Option } from "effect";
+import { SQLiteAsyncDialect } from "void/schema-d1";
 import { capturedReports } from "@/shared/gateway/error-reports";
 import { avatarUrlForKey } from "@/shared/gateway/user/avatar-url";
 import { DriverFailed } from "@/test/defect";
@@ -488,12 +488,12 @@ describe(avatarKeyStillHeld, () => {
     [
       "the row held no key",
       Option.none(),
-      { params: [], sql: '("users"."avatar_key" is null)' },
+      { params: [], sql: '"users"."avatar_key" is null' },
     ],
   ])(
     "should match only a row still holding what was read when %s",
     (_label, previousKey, expected) => {
-      const { params, sql } = new SQLiteDialect().sqlToQuery(
+      const { params, sql } = new SQLiteAsyncDialect().sqlToQuery(
         avatarKeyStillHeld(previousKey)
       );
 

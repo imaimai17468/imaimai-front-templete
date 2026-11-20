@@ -1260,17 +1260,20 @@ describe("layer-boundaries", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it("should report when a route imports drizzle infrastructure via alias", () => {
-    // Arrange
-    const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
-    const visitors = rule.create(context);
+  it.each(["void/db", "void/storage", "void/env", "@schema", "@schema/users"])(
+    "should report when a route imports %s",
+    (specifier) => {
+      // Arrange
+      const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
+      const visitors = rule.create(context);
 
-    // Act
-    visitors.ImportDeclaration?.(importNode("@/lib/drizzle/db"));
+      // Act
+      visitors.ImportDeclaration?.(importNode(specifier));
 
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
+      // Assert
+      expect(context.report).toHaveBeenCalledOnce();
+    }
+  );
 
   it("should report when a route imports the session adapter", () => {
     // Arrange
@@ -1291,18 +1294,6 @@ describe("layer-boundaries", () => {
 
     // Act
     visitors.ImportDeclaration?.(importNode("@/lib/auth/session/caller"));
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should report when a route imports Cloudflare bindings directly", () => {
-    // Arrange
-    const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
-    const visitors = rule.create(context);
-
-    // Act
-    visitors.ImportDeclaration?.(importNode("@/lib/cloudflare/env"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -1339,14 +1330,14 @@ describe("layer-boundaries", () => {
     "/repo/src/routes/login/-components/sign-in-button.tsx",
     "/repo/src/shared/ui/button.tsx",
   ])(
-    "should report when the component at %s imports drizzle infrastructure",
+    "should report when the component at %s imports the database client",
     (filename) => {
       // Arrange
       const context = makeLayerContext(filename);
       const visitors = rule.create(context);
 
       // Act
-      visitors.ImportDeclaration?.(importNode("@/lib/drizzle/db"));
+      visitors.ImportDeclaration?.(importNode("void/db"));
 
       // Assert
       expect(context.report).toHaveBeenCalledOnce();
@@ -1398,7 +1389,7 @@ describe("layer-boundaries", () => {
 
   it.each([
     "@/lib/auth/session",
-    "@/lib/cloudflare/env",
+    "void/storage",
     "cloudflare:workers",
     "@tanstack/react-start/server",
   ])("should report when a route dynamically imports %s", (specifier) => {
@@ -1452,7 +1443,7 @@ describe("layer-boundaries", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it("should not report when a gateway imports the Cloudflare env adapter", () => {
+  it("should not report when a gateway imports the storage client", () => {
     // Arrange
     const context = makeLayerContext(
       "/repo/src/shared/gateway/user/avatar/index.ts"
@@ -1460,7 +1451,7 @@ describe("layer-boundaries", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ImportDeclaration?.(importNode("@/lib/cloudflare/env"));
+    visitors.ImportDeclaration?.(importNode("void/storage"));
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -1535,11 +1526,28 @@ describe("layer-boundaries", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ImportDeclaration?.(importNode("@/lib/drizzle/schema"));
+    visitors.ImportDeclaration?.(importNode("@/lib/utils"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
   });
+
+  it.each(["void/db", "void/storage", "void/env", "@schema"])(
+    "should report when an entity imports %s",
+    (specifier) => {
+      // Arrange
+      const context = makeLayerContext(
+        "/repo/src/shared/entities/user/index.ts"
+      );
+      const visitors = rule.create(context);
+
+      // Act
+      visitors.ImportDeclaration?.(importNode(specifier));
+
+      // Assert
+      expect(context.report).toHaveBeenCalledOnce();
+    }
+  );
 
   it("should report when an entity imports a route", () => {
     // Arrange
@@ -1619,7 +1627,7 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it.each(["@/lib/drizzle/db", "@/shared/entities/user"])(
+  it.each(["@/lib/memoize-value", "@/shared/entities/user"])(
     "should not report when an adapter imports %s",
     (specifier) => {
       // Arrange
@@ -1634,13 +1642,13 @@ describe("layer-boundaries", () => {
     }
   );
 
-  it("should report when a route imports drizzle infrastructure via relative path", () => {
+  it("should report when a route imports the session adapter via relative path", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/login/route.tsx");
     const visitors = rule.create(context);
 
     // Act
-    visitors.ImportDeclaration?.(importNode("../../lib/drizzle/db"));
+    visitors.ImportDeclaration?.(importNode("../../lib/auth/session"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -1893,7 +1901,7 @@ describe("layer-boundaries", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ExportNamedDeclaration?.(importNode("@/lib/drizzle/db"));
+    visitors.ExportNamedDeclaration?.(importNode("void/db"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -1905,7 +1913,7 @@ describe("layer-boundaries", () => {
     const visitors = rule.create(context);
 
     // Act
-    visitors.ExportAllDeclaration?.(importNode("@/lib/drizzle/db"));
+    visitors.ExportAllDeclaration?.(importNode("@/lib/auth/session"));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -3026,18 +3034,6 @@ describe("server-only-marker", () => {
 
     // Act
     visitors.Program?.(programNode(["better-auth"]));
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should report when the Cloudflare env adapter opens without the marker", () => {
-    // Arrange
-    const context = makeLayerContext("/repo/src/lib/cloudflare/env.ts");
-    const visitors = rule.create(context);
-
-    // Act
-    visitors.Program?.(programNode(["cloudflare:workers"]));
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();

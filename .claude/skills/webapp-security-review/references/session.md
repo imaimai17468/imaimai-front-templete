@@ -6,7 +6,7 @@ A session carries one sign-in forward to every later request, so whoever holds t
 
 ## Where the decision lives here
 
-The session is a row in the D1 `sessions` table (`src/lib/drizzle/schema.ts`), and the cookie carries that row's random token together with an HMAC of the token under `BETTER_AUTH_SECRET`. On each read, Better Auth's `/get-session` (`node_modules/better-auth/dist/api/routes/session.mjs`) verifies the HMAC, looks the token up in D1, and treats a missing or expired row as signed out. `session.cookieCache` is unset, so no read is answered from the cookie alone.
+The session is a row in the D1 `sessions` table (`db/schema.ts`), and the cookie carries that row's random token together with an HMAC of the token under `BETTER_AUTH_SECRET`. On each read, Better Auth's `/get-session` (`node_modules/better-auth/dist/api/routes/session.mjs`) verifies the HMAC, looks the token up in D1, and treats a missing or expired row as signed out. `session.cookieCache` is unset, so no read is answered from the cookie alone.
 
 - `authOptions` in `src/lib/auth/options.ts` sets the cookie's `Secure` flag through `advanced.useSecureCookies: !isDevBuild`, which `src/lib/auth/better-auth.ts` passes as `import.meta.env.DEV`, and the lifetime through `session.expiresIn` (7 days) and `session.updateAge` (1 day).
 - `CurrentSession` in `src/lib/auth/session/index.ts` calls `getAuth().api.getSession` with the request's headers, and `pickCaller` in `caller.ts` keeps only `id` and `email`. Every gateway boundary reads the caller through it.

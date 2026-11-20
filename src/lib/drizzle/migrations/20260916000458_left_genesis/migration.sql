@@ -1,1 +1,0 @@
-ALTER TABLE `users` ADD `avatar_key` text;

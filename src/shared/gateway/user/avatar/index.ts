@@ -1,6 +1,6 @@
 import "@tanstack/react-start/server-only";
 import { Context, Effect, Layer, Option } from "effect";
-import { getCloudflareEnv } from "@/lib/cloudflare/env";
+import { storage } from "void/storage";
 import { avatarContentTypeForKey } from "@/lib/storage/avatar-validation";
 import type { AvatarContentType } from "@/lib/storage/avatar-validation";
 import { persistenceEffect } from "..";
@@ -52,7 +52,7 @@ export const avatarObjectFrom = (
   );
 
 /**
- * The `AVATARS_BUCKET` binding, reached by key.
+ * The R2 bucket `void/storage` binds, reached by key.
  *
  * A service rather than direct binding calls so a test provides a bucket
  * without a Cloudflare environment. `put` reports only whether the object was
@@ -77,9 +77,7 @@ export class AvatarBucket extends Context.Service<
     AvatarBucket,
     AvatarBucket.of({
       get: (key) =>
-        persistenceEffect(() =>
-          getCloudflareEnv().AVATARS_BUCKET.get(key)
-        ).pipe(
+        persistenceEffect(() => storage.get(key)).pipe(
           Effect.map((stored) =>
             Option.fromNullOr(stored).pipe(
               Option.flatMap(({ body }) => avatarObjectFrom(key, body))
@@ -88,12 +86,11 @@ export class AvatarBucket extends Context.Service<
         ),
       put: (key, file, contentType) =>
         persistenceEffect(() =>
-          getCloudflareEnv().AVATARS_BUCKET.put(key, file, {
+          storage.put(key, file, {
             httpMetadata: { contentType },
           })
         ).pipe(Effect.asVoid),
-      remove: (key) =>
-        persistenceEffect(() => getCloudflareEnv().AVATARS_BUCKET.delete(key)),
+      remove: (key) => persistenceEffect(() => storage.delete(key)),
     })
   );
 }

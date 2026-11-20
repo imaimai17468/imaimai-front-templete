@@ -1,6 +1,5 @@
 import "@tanstack/react-start/server-only";
-import { eq, isNull } from "drizzle-orm";
-import type { SQL } from "drizzle-orm";
+import { users } from "@schema";
 import {
   Context,
   DateTime,
@@ -10,7 +9,8 @@ import {
   Option,
   Schema,
 } from "effect";
-import { users } from "@/lib/drizzle/schema";
+import { eq, isNull } from "void/db";
+import type { SQL } from "void/db";
 import {
   avatarContentMatchesMime,
   avatarExtensionForMime,

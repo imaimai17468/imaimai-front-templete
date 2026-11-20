@@ -3,6 +3,9 @@
  * `smoke.entry.ts` holds the process and network side.
  */
 
+import { stripVTControlCharacters } from "node:util";
+import { Option, Schema } from "effect";
+
 /** The tag a whole HTML response ends with, so a truncated one lacks it. */
 const CLOSING_TAG = "</html>";
 
@@ -176,24 +179,19 @@ export const missedBy = (
   ...repeatedChunking(headers),
 ];
 
-/** The entries of `after` that `before` did not hold. */
-export const addedSince = (
-  before: readonly string[],
-  after: readonly string[]
-): readonly string[] => after.filter((entry) => !before.includes(entry));
-
 export const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-const READY_LINE = /ready at (?<url>http:\/\/\S+)$/mu;
+const READY_LINE = /Local:\s+(?<url>http:\/\/\S+)$/mu;
 
 /**
- * The address `alchemy dev` prints once the Worker listens, or null while the text
+ * The address the dev server prints once it listens, or null while the text
  * holds no such line. Matching to end of line keeps a URL that a stdout chunk
- * cut in half from being read as the whole address.
+ * cut in half from being read as the whole address, and the terminal colors
+ * come off first because they sit between the URL and the line's end.
  */
 export const readyUrlIn = (lines: string): string | null =>
-  READY_LINE.exec(lines)?.groups?.url ?? null;
+  READY_LINE.exec(stripVTControlCharacters(lines))?.groups?.url ?? null;
 
 export const served = (result: RouteResult): boolean =>
   result.kind === "answered" &&
@@ -210,3 +208,17 @@ export const report = (result: RouteResult): string => {
       : `, missing ${result.missing.join(" and ")}`;
   return `${result.path} -> ${result.status} (expected ${result.expectedStatus}${missing})`;
 };
+
+const decodeLocalD1Record = Schema.decodeUnknownOption(
+  Schema.fromJsonString(Schema.Struct({ persistRoot: Schema.String }))
+);
+
+/**
+ * Whether the record `voidPlugin({ persistTo })` writes for the `void db` CLI
+ * still names `dir`. A run that pointed it at its own directory leaves the
+ * CLI aimed at a directory that no longer exists.
+ */
+export const pointsAt = (recordText: string, dir: string): boolean =>
+  decodeLocalD1Record(recordText).pipe(
+    Option.exists(({ persistRoot }) => persistRoot === dir)
+  );
