@@ -140,10 +140,14 @@ are untouched by this procedure, and `vite.config.ts` loads each by path under
 ## 4. Local files
 
 ```bash
-rm -f .env scripts/setup/placeholders.dotenv
+rm -f scripts/setup/placeholders.dotenv
 rm -rf .void                    # local D1 / R2 state and generated types; bun run dev recreates it
 rm -f docs/DATABASE_SETUP.md
 ```
+
+The root dotenv file is gitignored, and once `env.ts` is gone nothing reads it.
+`.claude/hooks/pre-bash-guard/pre-bash-guard.sh` refuses any command naming it,
+so leave deleting it to the user.
 
 `scripts/setup/setup.sh` ends by copying the placeholder file onto the root
 dotenv file, and `.claude/hooks/session-start-env-check/session-start-env-check.sh`
