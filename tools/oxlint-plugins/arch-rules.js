@@ -441,7 +441,9 @@ const BROWSER_PATH_BANS = [
 const PERSISTENCE_MESSAGE =
   "Routes and components must not touch persistence. D1, R2 and the schema are owned by gateways.";
 
-const BROWSER_EXTERNAL_BANS = [
+// What Void hands the Worker: D1, R2, the schema and the secrets. Each is
+// reached by a bare specifier, so the `src/lib` path ban never sees it.
+const SERVER_RESOURCE_BANS = [
   { message: PERSISTENCE_MESSAGE, source: "void/db" },
   { message: PERSISTENCE_MESSAGE, source: "void/storage" },
   { message: PERSISTENCE_MESSAGE, source: "@schema" },
@@ -450,6 +452,10 @@ const BROWSER_EXTERNAL_BANS = [
       "Routes and components must not read the Worker's secrets. Delegate to a gateway.",
     source: "void/env",
   },
+];
+
+const BROWSER_EXTERNAL_BANS = [
+  ...SERVER_RESOURCE_BANS,
   {
     message:
       "Routes and components must not access Cloudflare bindings directly. Delegate to a gateway.",
@@ -486,6 +492,11 @@ const LAYER_RULES = {
     paths: BROWSER_PATH_BANS,
   },
   entity: {
+    externals: SERVER_RESOURCE_BANS.map(({ source }) => ({
+      message:
+        "Entities import nothing from the layers above. D1, R2, the schema and the Worker's secrets belong to gateways.",
+      source,
+    })),
     layers: [
       {
         layer: "route",

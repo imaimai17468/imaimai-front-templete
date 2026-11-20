@@ -1532,6 +1532,23 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
+  it.each(["void/db", "void/storage", "void/env", "@schema"])(
+    "should report when an entity imports %s",
+    (specifier) => {
+      // Arrange
+      const context = makeLayerContext(
+        "/repo/src/shared/entities/user/index.ts"
+      );
+      const visitors = rule.create(context);
+
+      // Act
+      visitors.ImportDeclaration?.(importNode(specifier));
+
+      // Assert
+      expect(context.report).toHaveBeenCalledOnce();
+    }
+  );
+
   it("should report when an entity imports a route", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/shared/entities/user/index.ts");
