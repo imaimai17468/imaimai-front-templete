@@ -6,7 +6,7 @@ Path traversal is a request that names a location the server joins onto a base i
 
 ## Where the decision lives here
 
-This Worker stores nothing on a disk it keeps. The "path" is an R2 object key in `AVATARS_BUCKET`, and the base it must stay inside is the caller's own prefix, `<userId>/`.
+This Worker stores nothing on a disk it keeps. The "path" is an R2 object key in the `STORAGE` bucket, and the base it must stay inside is the caller's own prefix, `<userId>/`.
 
 R2 has no directories to climb out of. Its documentation (Objects page, read 2026-09-30) describes a flat store in which `/` only groups keys by prefix, and it documents no normalization of `..`, so treat the key `a/../b` as a distinct object rather than `b` (not tried against R2 here; the pattern below refuses such a key before the bucket sees it). On R2 a traversal is a key that lands in another user's prefix, or on an object this app did not write, and ownership decides both, so the boundary below is the same one `access-control.md` names.
 
@@ -20,9 +20,9 @@ A filesystem does exist under `nodejs_compat`: with this repository's compatibil
 
 ## Checks
 
-**Every key the bucket sees is built by the server or matched whole before use.** Run `git grep -n -e 'AVATARS_BUCKET' -e 'bucket.get' -e 'bucket.put' -e 'bucket.remove' -- src` and follow each call's key back to where it was built. It is right where the key came from the session and `AvatarKeyIds`, or passed `isOwnAvatarKey` for the caller's id. It is wrong where a request value, or a column, reaches the binding without passing through one of those, even if it passed a `replace("../", "")` or a `startsWith` first, because a filter that removes bad substrings leaves every spelling it did not predict.
+**Every key the bucket sees is built by the server or matched whole before use.** Run `git grep -n -e 'storage\.' -e 'bucket.get' -e 'bucket.put' -e 'bucket.remove' -- src` and follow each call's key back to where it was built. It is right where the key came from the session and `AvatarKeyIds`, or passed `isOwnAvatarKey` for the caller's id. It is wrong where a request value, or a column, reaches the binding without passing through one of those, even if it passed a `replace("../", "")` or a `startsWith` first, because a filter that removes bad substrings leaves every spelling it did not predict.
 
-**Ownership compares segments, never string prefixes.** The owner segment is compared for equality after the pattern splits it off, and `avatar-validation.test.ts` pins the case "caller id is a prefix of the key's owner" (`user-12/avatar.png` for caller `user-1`). A new `AVATARS_BUCKET.list({ prefix })` has to pass `<userId>/` with the trailing slash, because the prefix `user-1` also lists `user-12`'s objects and no current test covers a listing.
+**Ownership compares segments, never string prefixes.** The owner segment is compared for equality after the pattern splits it off, and `avatar-validation.test.ts` pins the case "caller id is a prefix of the key's owner" (`user-12/avatar.png` for caller `user-1`). A new `storage.list({ prefix })` has to pass `<userId>/` with the trailing slash, because the prefix `user-1` also lists `user-12`'s objects and no current test covers a listing.
 
 **A value that names a file is chosen from a list the server holds.** Where a feature lets the request pick a template, a locale, a theme or a document, the request sends a logical id and the server maps it to the key or path, returning 404 for an id that is not in the map. A request that sends the key itself is the design this check rejects, whatever validation follows it.
 
@@ -44,7 +44,7 @@ Replay keys around one that exists, so a 404 has a meaning. On `bun run dev`, si
 | `<userId>%2Favatar.png`, encoded a second time | `400 Invalid key` | the route decodes once, and the pattern did not match the leftover `%2F` |
 | the copied key with the UUID's last character changed to another lowercase hex digit | `404 Not found` | the key was well formed and yours, and nothing was stored there; it says nothing about traversal |
 
-A `200` for any variant other than the baseline is the finding, and so is a `404` for one of the `400` rows, because a `404` means the key reached `AVATARS_BUCKET.get`.
+A `200` for any variant other than the baseline is the finding, and so is a `404` for one of the `400` rows, because a `404` means the key reached `storage.get`.
 
 ## Fix and pin
 

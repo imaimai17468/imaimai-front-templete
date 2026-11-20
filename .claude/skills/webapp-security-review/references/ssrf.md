@@ -6,7 +6,7 @@ Server-side request forgery is a request that decides where the server sends a r
 
 ## Where the decision lives here
 
-Nothing under `src/` makes an outbound request today. `git grep -n 'fetch(' -- src` finds only `src/ssr.tsx`, which is the Worker's inbound handler, and no `HttpClient` from Effect is imported.
+Nothing under `src/` makes an outbound request today. `git grep -n 'fetch(' -- src` finds nothing, and no `HttpClient` from Effect is imported.
 
 The Worker still makes outbound requests through Better Auth's Google provider (`@better-auth/core`, `dist/social-providers/google.mjs`, as installed with `better-auth` 1.7.2): the token exchange with `https://oauth2.googleapis.com/token` and the signing keys from `https://www.googleapis.com/oauth2/v3/certs`. Both URLs are constants in the library, and the profile, `picture` included, is decoded from the ID token rather than fetched, so no request value picks a destination there.
 
@@ -23,7 +23,7 @@ The book's other targets, a VM's metadata service and a container network's inte
 
 ## Checks
 
-**List the outbound requests before judging any of them.** Run `git grep -n -e 'fetch(' -e 'new Request(' -e 'HttpClient' -- src`, and check the `App` declaration's `env` in `alchemy.run.ts` for service bindings. Today the answer is the inbound handler and requests a test builds as input. A new hit is a sink, and each value that flows into its URL, method, headers or body is a source, including a column, a queue message or a field of an uploaded document.
+**List the outbound requests before judging any of them.** Run `git grep -n -e 'fetch(' -e 'new Request(' -e 'HttpClient' -- src`, and check `cloudflare.services` in `void.config.ts` for service bindings. Today the answer is the requests a test builds as input. A new hit is a sink, and each value that flows into its URL, method, headers or body is a source, including a column, a queue message or a field of an uploaded document.
 
 **The request picks a destination id, and the server holds the URL.** Where the set of destinations is known (a webhook to a partner, a preview of this app's own pages), the request sends a logical id, and a map on the server turns it into the whole URL. An unknown id is refused before any network call. It is wrong where the request, or a row it wrote, carries the URL, even if the URL passes a parser: parsing a URL says what its parts are, never that the host is one this feature may call.
 
@@ -37,7 +37,7 @@ The book's other targets, a VM's metadata service and a container network's inte
 
 ## Reproduce locally
 
-No route here fetches a URL, so the step that runs today is the grep in the first check: `src/ssr.tsx` and the two `Request`s in `src/routes/api/-avatars.test.ts` are the expected answer, and any other hit is a sink to review. For a feature that adds a fetch, the first reproduction is the fake-service test under Fix and pin, sending the refused and the allowed id. As a second, optional step, run a receiver you control that records every request and answers a fixed marker, such as `bun -e 'Bun.serve({ port: 8788, fetch(r) { console.log(r.method, r.url, [...r.headers]); return new Response("LAB_MARKER"); } })'`, then send the feature's request once with the id or URL it expects and once pointing at `http://localhost:8788/`.
+No route here fetches a URL, so the step that runs today is the grep in the first check: the `Request`s that tests under `src/` build as input are the expected answer, and any other hit is a sink to review. For a feature that adds a fetch, the first reproduction is the fake-service test under Fix and pin, sending the refused and the allowed id. As a second, optional step, run a receiver you control that records every request and answers a fixed marker, such as `bun -e 'Bun.serve({ port: 8788, fetch(r) { console.log(r.method, r.url, [...r.headers]); return new Response("LAB_MARKER"); } })'`, then send the feature's request once with the id or URL it expects and once pointing at `http://localhost:8788/`.
 
 - The marker in the Worker's response means the request chose the destination and the body came back.
 - A line in the receiver's log with no marker in the response is the blind case, which is still the finding.

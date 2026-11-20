@@ -17,7 +17,7 @@ This skill turns a vulnerability class into the checks it takes in this reposito
 
 Run step 3 only against the local dev server and accounts you created yourself. Changing an id against a service you have not been authorized to test is an attack whatever the intent.
 
-`bun run dev` applies the D1 migrations itself when it starts, and keeps the local D1 as SQLite files under `.alchemy/local/d1/cloudflare-runtime-D1DatabaseObject/`: one `<hash>.sqlite` per local D1 Alchemy has created, beside `metadata.sqlite`. Deleting `.alchemy/state` leaves the earlier file behind, and nothing in a file's name says which stage it belongs to, so the dev stage's file is the one holding the user you signed in as, the most recently modified one after you sign in. A reference that reads a row runs `sqlite3 -readonly <that file> "<SQL>"`. Whether a write made with `sqlite3` reaches a running `bun run dev` has not been verified, so a reference that writes a row stops `bun run dev` first and starts it again after.
+`bun run dev` applies the D1 migrations itself when it starts, and keeps the local D1 as a SQLite file under `.void/v3/d1/miniflare-D1DatabaseObject/`: one `<hash>.sqlite` beside `metadata.sqlite`. `bun run smoke` keeps its own D1 in a temporary directory and deletes it, so the file there is the one holding the user you signed in as. A reference that reads a row runs `sqlite3 -readonly <that file> "<SQL>"`. Whether a write made with `sqlite3` reaches a running `bun run dev` has not been verified, so a reference that writes a row stops `bun run dev` first and starts it again after.
 
 ## References
 
