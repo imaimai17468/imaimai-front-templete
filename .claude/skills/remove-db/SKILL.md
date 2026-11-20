@@ -272,10 +272,11 @@ bun run dev      # http://my-app.localhost:1355 (portless)
   that the bundle `bun run deploy` uploads still builds.
 
 Not verified: an app deployed before this procedure still has the D1 database
-and R2 bucket its earlier `bun run deploy` created. Void never deletes an
-inferred resource on its own (`node_modules/void/docs/reference/cli/project.md`),
-so they stay on the account until the user removes them with Cloudflare's own
-tools, and `void.lock.json` may still record their IDs.
+and R2 bucket its earlier `bun run deploy` created. What `void deploy` does
+with a resource that no import infers any more was not found in Void's bundled
+docs, so before anyone deploys, the user checks the account for them, removes
+them with Cloudflare's own tools if they are no longer wanted, and reads what
+`void.lock.json` still records.
 
 ## 9. Commit
 
