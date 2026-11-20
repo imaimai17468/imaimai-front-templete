@@ -8,7 +8,7 @@ SQL injection happens when a value from a request becomes part of the SQL text a
 
 Every query in `src/` is built with Drizzle's query builder on the D1 database `db` from `void/db` returns. `UserProfiles.findProfile` in `src/shared/gateway/user/read.ts` is `select().from(users).where(eq(users.id, userId))`, and `writeUserRow` in `src/shared/gateway/user/index.ts` is `update(users).set(...).where(eq(users.id, userId))`, and `UserAvatarKeys.find` in `src/shared/gateway/user/avatar/update.ts` selects `avatarKey` the same way. Drizzle's SQLite dialect renders every value as a `?` placeholder and hands the value to D1 separately (`escapeParam` in `node_modules/drizzle-orm/sqlite-core/dialect.js` returns `"?"`), so none of these queries can be injected through its values.
 
-The class comes back only where code writes SQL text itself. In the installed Drizzle (0.45.2) those places are:
+The class comes back only where code writes SQL text itself. In the installed Drizzle (0.45.4, the `drizzle-orm` pin in `package.json`) those places are:
 
 - `sql.raw(str)`, which puts `str` into the statement verbatim (`node_modules/drizzle-orm/sql/sql.js`).
 - `run`, `all`, `get` and `values` on the database object, which accept a plain string and wrap it in `sql.raw` (`node_modules/drizzle-orm/sqlite-core/db.js`).
