@@ -250,7 +250,7 @@ refuse_protected_env_file() { # reads GUARD_SCRUBBED; sets GUARD_REFUSAL
   UNESCAPED=${GUARD_SCRUBBED//\\/}
   UNQUOTED=${UNESCAPED//[\"\']/}
   if [[ $GUARD_SCRUBBED =~ $ENV_FILE_RE || $UNESCAPED =~ $ENV_FILE_RE || $UNQUOTED =~ $ENV_FILE_RE ]]; then
-    GUARD_REFUSAL="PreToolUse(Bash): this command references a protected env file (.env / .env.local / .env.development / .env.production). Reading or writing these is denied regardless of tool. Use .env.local.example for documented placeholders. To write the filename as prose, put it in a quoted body of \`git\` -m/--message or of \`gh\` --body/--title/--subject: a single-quoted body is read as prose, a double-quoted one only when the command contains no \$(, \${ or backtick."
+    GUARD_REFUSAL="PreToolUse(Bash): this command references a protected env file (.env / .env.local / .env.development / .env.production). Reading or writing these is denied regardless of tool. Use scripts/setup/placeholders.dotenv for documented placeholders. To write the filename as prose, put it in a quoted body of \`git\` -m/--message or of \`gh\` --body/--title/--subject: a single-quoted body is read as prose, a double-quoted one only when the command contains no \$(, \${ or backtick."
   fi
 }
 
