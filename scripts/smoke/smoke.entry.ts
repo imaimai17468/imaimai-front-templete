@@ -195,11 +195,12 @@ const smokeOn = async (stateDir: string): Promise<number> => {
       );
       return 1;
     }
-    const burstFailure = await signInStatuses(baseUrl, []).then(
-      signInBurstFailure,
-      (error: unknown) =>
-        `${SIGN_IN_BURST.path} -> no response (${messageOf(error)})`
-    );
+    const burstFailure = await signInStatuses(baseUrl, [])
+      .then(signInBurstFailure)
+      .catch(
+        (error: unknown) =>
+          `${SIGN_IN_BURST.path} -> no response (${messageOf(error)})`
+      );
     if (burstFailure !== null) {
       console.error(`[smoke] ${burstFailure}`);
       return 1;
