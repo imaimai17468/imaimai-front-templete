@@ -124,8 +124,8 @@ Workers が `process.env` を埋めるのは `nodejs_compat_populate_process_env
 入るので、`void` を上げるときに一緒に上がる。上限は日付を設定して `bun run dev` を
 走らせ、対応日付を名指しするエラーを読んで確かめる。
 
-いずれかの値が未設定か空の場合、`buildAuth()` は**例外を投げる**（メッセージに対応する
-変数名と、`void secret put` で設定するよう明示）。つまり登録漏れの症状は、
+いずれかの値が未設定か空の場合、`env` から読んだ時点で Void が **`EnvValidationError` を投げ**、
+メッセージに対応する変数名が出る。`void deploy` も、`env.ts` が必須とする値がデプロイ先に無いと止まる。つまり登録漏れの症状は、
 既定値や空の OAuth 設定へのサイレントフォールバックではなく「認証経路が失敗する」。
 better-auth 自身の既定シークレット検出は本番判定に `NODE_ENV` を使うが、`NODE_ENV`
 は Worker の binding ではないため `process.env` が埋まっても現れず、全環境で作動

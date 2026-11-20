@@ -11,7 +11,7 @@ Authentication is every route by which a request comes to be treated as a given 
 - `emailAndPassword.enabled` is the dev flag, so a production build signs in only through Google (`socialProviders.google`). `/api/auth/sign-in/email` answers 400 `EMAIL_PASSWORD_DISABLED` and `/api/auth/sign-up/email` answers 400 `EMAIL_PASSWORD_SIGN_UP_DISABLED` on the built Worker.
 - `rateLimit` is `{ enabled: true, storage: "database" }` and `advanced.ipAddress.ipAddressHeaders` is `["cf-connecting-ip"]`, in every build.
 - No `baseURL`, `trustedOrigins` or `plugins` option is set, so each of those takes Better Auth's default, which the checks below state for the installed 1.7.2.
-- `readAuthSecret` in `src/lib/auth/secret.ts` throws when `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET` is absent or empty, and `secret.test.ts` pins both answers.
+- `env.ts` declares `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` as required, so `src/lib/auth/better-auth.ts` reading one from `env` (`void/env`) throws an `EnvValidationError` naming it when it is absent or empty (`node_modules/void/dist/runtime/env/public.mjs`). No test in this repository pins that throw, because it is Void's.
 
 `src/lib/auth/sign-in/` is the browser side: `startGoogleSignIn` in `client.ts` sends `callbackURL: "/"`, and the dev arm in `dev.ts` signs in as `DEV_USER`, whose password sits in the source because `selectSignIn` in `index.ts` folds that arm out of a production build.
 

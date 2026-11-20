@@ -3,9 +3,9 @@ import * as schema from "@schema";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "void/db";
+import { env } from "void/env";
 import { memoizeValue } from "@/lib/memoize-value";
 import { authOptions } from "./options";
-import { readAuthSecret } from "./secret";
 
 const buildAuth = () =>
   betterAuth(
@@ -31,12 +31,13 @@ const buildAuth = () =>
       // The absence has to be fatal here: better-auth's own guard against its
       // public default secret only fires when it believes it is in
       // production, and it decides that from NODE_ENV, so the guard is false
-      // in every environment. Without this throw, a missing secret silently
-      // signs sessions with a published constant.
+      // in every environment. Reading `env` throws an EnvValidationError
+      // naming a key that env.ts requires and the Worker lacks or holds empty,
+      // so a missing secret never signs sessions with a published constant.
       secrets: {
-        authSecret: readAuthSecret("BETTER_AUTH_SECRET"),
-        googleClientId: readAuthSecret("GOOGLE_CLIENT_ID"),
-        googleClientSecret: readAuthSecret("GOOGLE_CLIENT_SECRET"),
+        authSecret: env.BETTER_AUTH_SECRET,
+        googleClientId: env.GOOGLE_CLIENT_ID,
+        googleClientSecret: env.GOOGLE_CLIENT_SECRET,
       },
     })
   );
