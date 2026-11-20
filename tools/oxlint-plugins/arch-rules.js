@@ -626,7 +626,9 @@ const layerBoundaries = {
         return;
       }
       const externalViolation = rules.externals?.find(
-        (ban) => source.value === ban.source
+        (ban) =>
+          source.value === ban.source ||
+          source.value.startsWith(`${ban.source}/`)
       );
       if (externalViolation !== undefined) {
         context.report({ message: externalViolation.message, node });

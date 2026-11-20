@@ -1260,7 +1260,7 @@ describe("layer-boundaries", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it.each(["void/db", "void/storage", "void/env", "@schema"])(
+  it.each(["void/db", "void/storage", "void/env", "@schema", "@schema/users"])(
     "should report when a route imports %s",
     (specifier) => {
       // Arrange

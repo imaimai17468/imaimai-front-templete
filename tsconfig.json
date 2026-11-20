@@ -26,6 +26,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@schema": ["./db/schema.ts"],
+      "@schema/*": ["./db/schema/*"],
       "void/db": ["./.void/db.d.ts"]
     }
   },
