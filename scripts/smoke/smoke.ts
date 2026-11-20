@@ -4,6 +4,7 @@
  */
 
 import { stripVTControlCharacters } from "node:util";
+import { Option, Schema } from "effect";
 
 /** The tag a whole HTML response ends with, so a truncated one lacks it. */
 const CLOSING_TAG = "</html>";
@@ -207,3 +208,17 @@ export const report = (result: RouteResult): string => {
       : `, missing ${result.missing.join(" and ")}`;
   return `${result.path} -> ${result.status} (expected ${result.expectedStatus}${missing})`;
 };
+
+const decodeLocalD1Record = Schema.decodeUnknownOption(
+  Schema.fromJsonString(Schema.Struct({ persistRoot: Schema.String }))
+);
+
+/**
+ * Whether the record `voidPlugin({ persistTo })` writes for the `void db` CLI
+ * still names `dir`. A run that pointed it at its own directory leaves the
+ * CLI aimed at a directory that no longer exists.
+ */
+export const pointsAt = (recordText: string, dir: string): boolean =>
+  decodeLocalD1Record(recordText).pipe(
+    Option.exists(({ persistRoot }) => persistRoot === dir)
+  );

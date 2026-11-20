@@ -9,6 +9,7 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   EXPECTED_DOCUMENT_HEADERS,
   messageOf,
+  pointsAt,
   missedBy,
   missingFrom,
   missingHeaders,
@@ -84,6 +85,27 @@ describe("smoke", () => {
   it("should give the message when an Error was thrown", () => {
     expect(messageOf(new Error("socket hang up"))).toBe("socket hang up");
   });
+
+  it("should report the record as this run's when it names the run's directory", () => {
+    expect(
+      pointsAt(
+        '{"version":1,"persistRoot":"/tmp/app-smoke-1"}',
+        "/tmp/app-smoke-1"
+      )
+    ).toBeTruthy();
+  });
+
+  it.each([
+    ["another directory", '{"persistRoot":"/repo/.void"}'],
+    ["no persistRoot", '{"version":1}'],
+    ["no record", ""],
+    ["text that is not JSON", "{"],
+  ])(
+    "should not report the record as this run's when it holds %s",
+    (_label, recordText) => {
+      expect(pointsAt(recordText, "/tmp/app-smoke-1")).toBeFalsy();
+    }
+  );
 
   it("should give the string form when a non-Error was thrown", () => {
     expect(messageOf("socket hang up")).toBe("socket hang up");

@@ -19,7 +19,7 @@
 import { spawn } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
 import { once } from "node:events";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type { Readable } from "node:stream";
@@ -27,6 +27,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import {
   report,
   messageOf,
+  pointsAt,
   missedBy,
   readyUrlIn,
   ROUTES,
@@ -212,6 +213,20 @@ const smokeOn = async (stateDir: string): Promise<number> => {
   }
 };
 
+/** Where void 1.11.0 records the local D1 directory the `void db` CLI uses. */
+const LOCAL_D1_RECORD = ".void/local-d1.json";
+
+/**
+ * Removes the record when this run wrote it, which is what `bun run dev`
+ * starting without `persistTo` does, so `void db` goes back to `.void/`.
+ */
+const releaseLocalD1Record = async (stateDir: string) => {
+  const recordText = await readFile(LOCAL_D1_RECORD, "utf-8").catch(() => "");
+  if (pointsAt(recordText, stateDir)) {
+    await rm(LOCAL_D1_RECORD, { force: true });
+  }
+};
+
 /**
  * Each run starts from an empty directory, so Void creates a new local D1 for
  * it rather than reusing the rate-limit rows of an earlier run.
@@ -222,6 +237,7 @@ const run = async (): Promise<number> => {
     return await smokeOn(stateDir);
   } finally {
     await rm(stateDir, { force: true, recursive: true });
+    await releaseLocalD1Record(stateDir);
   }
 };
 
