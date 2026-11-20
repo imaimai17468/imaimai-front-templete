@@ -1,11 +1,5 @@
-import {
-  index,
-  integer,
-  sqliteTable,
-  text,
-  uniqueIndex,
-} from "drizzle-orm/sqlite-core";
 import { DateTime } from "effect";
+import { index, integer, sqliteTable, text, uniqueIndex } from "void/schema-d1";
 
 const nowUtc = () => DateTime.toDateUtc(DateTime.nowUnsafe());
 

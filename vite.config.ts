@@ -9,6 +9,7 @@ import ultraciteReact from "ultracite/oxlint/react";
 import tanstack from "ultracite/oxlint/tanstack";
 import ultraciteVitest from "ultracite/oxlint/vitest";
 import { defineConfig } from "vite-plus";
+import { voidPlugin } from "void";
 import { effectRules } from "./oxlint.effect.ts";
 import reactDoctor from "./oxlint.react-doctor.ts";
 
@@ -20,6 +21,10 @@ const SCRIPT_FILES = [
 ];
 const FILES_VITEST_NEVER_LOADS = [CONFIG_FILES, ...SCRIPT_FILES];
 const CLI_ENTRYPOINTS = [...SCRIPT_FILES, ".claude/hooks/**"];
+
+// `bun run smoke` names a directory of its own here, so its local D1 and R2
+// start empty and the rate-limit rows it writes never reach `bun run dev`.
+const { SMOKE_STATE_DIR } = process.env;
 
 export default defineConfig({
   lint: {
@@ -189,7 +194,8 @@ export default defineConfig({
       ".output",
       "dist",
       "build",
-      ".alchemy",
+      ".void",
+      ".cloudflare",
       // The web-security-audit skill keeps CommonJS validators, which trip the
       // rules above.
       ".claude/skills/web-security-audit",
@@ -492,7 +498,10 @@ export default defineConfig({
       "dist",
       "build",
       "src/routeTree.gen.ts",
-      ".alchemy",
+      ".void",
+      ".cloudflare",
+      // `void db generate` writes these, and rewrites them on the next run.
+      "db/migrations",
       // The web-security-audit skill keeps its JSON schema and validators in
       // their own formatting rather than this project's.
       ".claude/skills/web-security-audit",
@@ -525,5 +534,13 @@ export default defineConfig({
       },
     },
   },
-  plugins: [devtools(), tanstackStart(), react(), tailwindcss()],
+  plugins: [
+    devtools(),
+    voidPlugin(
+      SMOKE_STATE_DIR === undefined ? {} : { persistTo: SMOKE_STATE_DIR }
+    ),
+    tanstackStart(),
+    react(),
+    tailwindcss(),
+  ],
 });

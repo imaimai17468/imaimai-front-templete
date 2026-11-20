@@ -7,7 +7,6 @@
 
 import { describe, expect, it } from "vite-plus/test";
 import {
-  addedSince,
   EXPECTED_DOCUMENT_HEADERS,
   messageOf,
   missedBy,
@@ -63,21 +62,23 @@ describe("smoke", () => {
   });
 
   it("should give the address when a complete ready line is present", () => {
+    expect(readyUrlIn("  ➜  Local:   http://localhost:5174/\n")).toBe(
+      "http://localhost:5174/"
+    );
+  });
+
+  it("should give the address when the ready line carries terminal colors", () => {
     expect(
       readyUrlIn(
-        "[23:14:54.358] INFO (#374): [app] ready at http://localhost:53402\n"
+        "  \u001B[32m➜\u001B[39m  \u001B[1mLocal\u001B[22m:   \u001B[36mhttp://localhost:\u001B[1m5174\u001B[22m/\u001B[39m\n"
       )
-    ).toBe("http://localhost:53402");
+    ).toBe("http://localhost:5174/");
   });
 
   it("should give no address when the text holds no ready line", () => {
     expect(
-      readyUrlIn("[23:14:30.118] INFO (#19): [db] create (local)\n")
+      readyUrlIn("[void] Applied 1 migration(s): 20261120155350_init.sql\n")
     ).toBeNull();
-  });
-
-  it("should give only the new entries when the second listing adds to the first", () => {
-    expect(addedSince(["a", "b"], ["a", "b", "c"])).toStrictEqual(["c"]);
   });
 
   it("should give the message when an Error was thrown", () => {

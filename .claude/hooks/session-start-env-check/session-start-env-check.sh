@@ -52,29 +52,31 @@ fi
 # A fresh worktree has no node_modules until someone installs; the Stop gate
 # and lefthook both fail without it.
 [ -d "$TREE/node_modules" ] || GATE+=("node_modules absent — fresh checkout or worktree (fix: bun run setup)")
-# A capability probe, not a version compare: what old node lacks is
-# `module.registerHooks`, and alchemy's launcher exits naming it when node
-# rather than bun starts the alchemy CLI.
-node -e 'if (typeof require("node:module").registerHooks !== "function") process.exit(1)' >/dev/null 2>&1 || GATE+=("node with module.registerHooks — see engines in package.json (alchemy run under node exits)")
+# The void CLI checks the same floor when it starts and exits naming it, and
+# `bun run dev`, `bun run build` and `bun run smoke` all start it.
+node -e 'const [major, minor] = process.versions.node.split(".").map(Number); process.exit((major === 24 && minor >= 22) || (major === 26 && minor >= 12) || major > 26 ? 0 : 1)' >/dev/null 2>&1 || GATE+=("node 24.22+ or 26.12+ (the void CLI exits under an older node; fix: mise install, which reads mise.toml)")
 
 # Gitignored, so a fresh checkout has none, and a worktree gets one only where
 # the main checkout already had one. `-L` sits beside `-e` because `-e` follows
 # a symlink: a dangling one reads as absent, and the copy would then write
 # through it to a path outside the tree. The copy runs from inside the tree so
 # `cp` names the two files the way the entries below name theirs.
-if [ -e "$TREE/.env.local" ] || [ -L "$TREE/.env.local" ]; then
-  [ -f "$TREE/.env.local" ] || SETUP+=(".env.local exists and is not a regular file (fix: remove that path, and the next session copies .env.local.example in its place)")
-elif CP_ERROR="$( ( cd "$TREE" && cp .env.local.example .env.local ) 2>&1 )"; then
-  CREATED+=("Created .env.local from .env.local.example, whose values are placeholders (edit them before pointing the tree at a real service).")
+LOCAL_ENV=.env
+PLACEHOLDERS=scripts/setup/placeholders.dotenv
+if [ -e "$TREE/$LOCAL_ENV" ] || [ -L "$TREE/$LOCAL_ENV" ]; then
+  [ -f "$TREE/$LOCAL_ENV" ] || SETUP+=("$LOCAL_ENV exists and is not a regular file (fix: remove that path, and the next session copies $PLACEHOLDERS in its place)")
+elif CP_ERROR="$( ( cd "$TREE" && cp "$PLACEHOLDERS" "$LOCAL_ENV" ) 2>&1 )"; then
+  CREATED+=("Created $LOCAL_ENV from $PLACEHOLDERS, whose values are placeholders (edit them before pointing the tree at a real service).")
 else
-  SETUP+=(".env.local absent, and copying .env.local.example to it failed (fix: restore .env.local.example, or make the checkout writable). cp said: ${CP_ERROR:-cp exited non-zero and printed nothing}")
+  SETUP+=("$LOCAL_ENV absent, and copying $PLACEHOLDERS to it failed (fix: restore $PLACEHOLDERS, or make the checkout writable). cp said: ${CP_ERROR:-cp exited non-zero and printed nothing}")
 fi
-# Alchemy reads CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN ahead of its
-# login, and drizzle-kit now reads the DRIZZLE_D1_* names, so a local env file
-# from before the rename breaks both. Only the names are matched, never a value.
-if [ -f "$TREE/.env.local" ] && grep -qE '^(CLOUDFLARE_ACCOUNT_ID|CLOUDFLARE_API_TOKEN|CLOUDFLARE_D1_DATABASE_ID)=' "$TREE/.env.local"; then
-  SETUP+=(".env.local still names CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN / CLOUDFLARE_D1_DATABASE_ID (fix: rename them to DRIZZLE_D1_ACCOUNT_ID / DRIZZLE_D1_API_TOKEN / DRIZZLE_D1_DATABASE_ID, as .env.local.example names them)")
-fi
+# The void plugin refuses to start while any other dotenv file sits at the
+# root, so each one found is named here. Only names are listed, never a value.
+for OTHER_ENV in "$TREE"/.env.* "$TREE"/.dev.vars*; do
+  [ -e "$OTHER_ENV" ] || continue
+  SETUP+=("${OTHER_ENV##*/} at the root stops bun run dev (fix: move its values into $LOCAL_ENV, then remove it)")
+done
+[ -f "$TREE/.void/tsconfig.json" ] || SETUP+=(".void/tsconfig.json absent, so the type check cannot resolve void/env, void/db or @schema (fix: bun run setup, or bun run generate-void)")
 [ -f "$TREE/src/routeTree.gen.ts" ] || SETUP+=("src/routeTree.gen.ts absent (fix: bun run setup, or bun run generate-routes)")
 
 if [ "${#CREATED[@]}" -gt 0 ]; then

@@ -1,8 +1,8 @@
 import "@tanstack/react-start/server-only";
+import * as schema from "@schema";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { getDb } from "@/lib/drizzle/db";
-import * as schema from "@/lib/drizzle/schema";
+import { db } from "void/db";
 import { memoizeValue } from "@/lib/memoize-value";
 import { authOptions } from "./options";
 import { readAuthSecret } from "./secret";
@@ -10,7 +10,7 @@ import { readAuthSecret } from "./secret";
 const buildAuth = () =>
   betterAuth(
     authOptions({
-      database: drizzleAdapter(getDb(), {
+      database: drizzleAdapter(db, {
         provider: "sqlite",
         schema: {
           account: schema.accounts,

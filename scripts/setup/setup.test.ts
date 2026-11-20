@@ -24,8 +24,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 const FORKING_CASE_TIMEOUT_MS = 30_000;
 
 const SETUP = path.resolve(import.meta.dirname, "setup.sh");
-const LOCAL_ENV = ".env.local";
-const EXAMPLE = ".env.local.example";
+const LOCAL_ENV = ".env";
+const EXAMPLE = "scripts/setup/placeholders.dotenv";
 /** The bytes the repository ships, so losing that file fails this suite rather than `bun run setup`. */
 const EXAMPLE_BODY = readFileSync(
   path.resolve(import.meta.dirname, "../..", EXAMPLE),
@@ -36,20 +36,19 @@ const STEPS_AFTER_TRUST = [
   "[setup] bun install --frozen-lockfile",
   "[setup] bun run prepare",
   "[setup] bun run generate-routes",
+  "[setup] bun run generate-void",
 ] as const;
 
 /** What the copy branch prints, in order, and the line that closes the run. */
 const COPIED_TAIL = [
-  "[setup] cp .env.local.example .env.local",
-  "[setup] .env.local holds placeholder values: edit them before pointing the tree at a real service.",
+  `[setup] cp ${EXAMPLE} ${LOCAL_ENV}`,
+  `[setup] ${LOCAL_ENV} holds placeholder values: edit them before pointing the tree at a real service.`,
   "[setup] done.",
 ] as const;
 
-const SKIPPED_LINE =
-  "[setup] .env.local already exists: skipped copying .env.local.example.";
+const SKIPPED_LINE = `[setup] ${LOCAL_ENV} already exists: skipped copying ${EXAMPLE}.`;
 
-const NON_REGULAR_LINE =
-  "[setup] .env.local exists and is not a regular file: remove that path, then setup copies .env.local.example in its place.";
+const NON_REGULAR_LINE = `[setup] ${LOCAL_ENV} exists and is not a regular file: remove that path, then setup copies ${EXAMPLE} in its place.`;
 
 const TRUST_SKIPPED = "[setup] mise not on PATH: skipped trusting mise.toml.";
 

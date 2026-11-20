@@ -433,22 +433,23 @@ const layerOf = (srcPath) => {
 const BROWSER_PATH_BANS = [
   {
     message:
-      "Routes and components must not touch persistence. src/lib/drizzle is owned by gateways.",
-    target: "src/lib/drizzle",
-  },
-  {
-    message:
       "Routes and components must not resolve request authentication. Delegate to a gateway.",
     target: "src/lib/auth/session",
   },
-  {
-    message:
-      "Routes and components must not access Cloudflare persistence bindings directly. Delegate to a gateway.",
-    target: "src/lib/cloudflare",
-  },
 ];
 
+const PERSISTENCE_MESSAGE =
+  "Routes and components must not touch persistence. D1, R2 and the schema are owned by gateways.";
+
 const BROWSER_EXTERNAL_BANS = [
+  { message: PERSISTENCE_MESSAGE, source: "void/db" },
+  { message: PERSISTENCE_MESSAGE, source: "void/storage" },
+  { message: PERSISTENCE_MESSAGE, source: "@schema" },
+  {
+    message:
+      "Routes and components must not read the Worker's secrets. Delegate to a gateway.",
+    source: "void/env",
+  },
   {
     message:
       "Routes and components must not access Cloudflare bindings directly. Delegate to a gateway.",
@@ -683,11 +684,6 @@ const MARKER_DIRECTORIES = [
     hint: "`src/lib/auth/session/` is the half the server runs and `src/lib/auth/sign-in/` the half the browser runs.",
     prefix: "src/lib/auth/sign-in/",
     runs: "client",
-  },
-  {
-    hint: "This directory hands out the Worker bindings, which exist on the server alone.",
-    prefix: "src/lib/cloudflare/",
-    runs: "server",
   },
 ];
 

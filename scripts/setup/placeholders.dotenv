@@ -1,0 +1,9 @@
+# Placeholder values `bun run setup` copies to the root dotenv file of a checkout
+# that has none. env.ts lists the names the Worker reads; keep this file in step
+# with it. Production values never live in the working tree: they are set with
+# `void secret put`.
+
+# Better Auth takes the base URL from each request, so there is no BETTER_AUTH_URL.
+BETTER_AUTH_SECRET=your_better_auth_secret
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret

@@ -1,6 +1,6 @@
 import "@tanstack/react-start/server-only";
 import { Option, Schema } from "effect";
-import { getCloudflareEnv } from "@/lib/cloudflare/env";
+import { env } from "void/env";
 
 export type AuthSecretName =
   | "BETTER_AUTH_SECRET"
@@ -11,7 +11,7 @@ const configuredSecret = (name: AuthSecretName) => {
   // The same text on both: the annotation answers an absent secret, which
   // reaches the schema as a non-string, and the check answers an empty one.
   const missing = {
-    message: `${name} is not set. Set it in the environment \`bun run deploy\` runs in for a deployed Worker, or in .env.local for local development.`,
+    message: `${name} is not set. Set it with \`void secret put ${name}\` for a deployed Worker, or in .env at the repository root for local development.`,
   };
   return Schema.String.annotate(missing).check(Schema.isMinLength(1, missing));
 };
@@ -25,4 +25,4 @@ export const requireAuthSecret = (
   );
 
 export const readAuthSecret = (name: AuthSecretName): string =>
-  requireAuthSecret(name, Option.fromUndefinedOr(getCloudflareEnv()[name]));
+  requireAuthSecret(name, Option.fromUndefinedOr(env[name]));

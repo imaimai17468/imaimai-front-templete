@@ -10,7 +10,7 @@ const secretNames = [
 ] satisfies AuthSecretName[];
 
 const notSetMessage = (name: AuthSecretName) =>
-  `${name} is not set. Set it in the environment \`bun run deploy\` runs in for a deployed Worker, or in .env.local for local development.`;
+  `${name} is not set. Set it with \`void secret put ${name}\` for a deployed Worker, or in .env at the repository root for local development.`;
 
 describe(requireAuthSecret, () => {
   it.each(secretNames)(
