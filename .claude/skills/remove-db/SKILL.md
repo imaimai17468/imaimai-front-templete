@@ -86,12 +86,15 @@ Remove every hit individually.
 
 ## 3. Update build / test config
 
-`vite.config.ts` needs **no change**: `voidPlugin()` builds and serves the
-Worker whatever bindings the source asks for.
+### `vite.config.ts`: drop the migrations entry, keep `voidPlugin()`
 
-### `tsconfig.json`: drop the two Void paths
+`voidPlugin()` builds and serves the Worker whatever bindings the source asks
+for, so it stays. The file's one edit is removing the `db/migrations` entry from
+the formatter's ignore list, because step 1 deleted that directory.
 
-Remove the `@schema` and `void/db` entries from `paths`, because step 1 deleted
+### `tsconfig.json`: drop the three Void paths
+
+Remove the `@schema`, `@schema/*` and `void/db` entries from `paths`, because step 1 deleted
 the schema they point at. Keep `extends`, which still carries Void's env types.
 
 ### `vitest.config.mts`: drop the `cloudflare:workers` alias
@@ -108,8 +111,7 @@ other one that names a file it deleted.
 
 ### `.fallowrc.jsonc`: drop the deleted entries
 
-Remove `env.ts` and `db/schema.ts` from `dynamicallyLoaded`, and the
-`db/migrations` entry from the formatter's ignore list in `vite.config.ts`.
+Remove `env.ts` and `db/schema.ts` from `dynamicallyLoaded`.
 
 ### `tools/oxlint-plugins/arch-rules.js`: prune the dead layer bans
 
