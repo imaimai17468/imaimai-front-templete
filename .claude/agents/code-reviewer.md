@@ -21,8 +21,7 @@ Then read the untracked files it lists. An empty diff returns an empty findings 
 them so the output stays readable, as the Target command above does. Separate them with `;`
 rather than `&&`, because independent probes each have an answer and `&&` throws away every
 answer after the first non-zero exit. One call returns one result to one response of yours,
-and a response costs the model's latency whatever the commands return, measured at 22
-seconds across 48 reviews of this repository, 2026-09-15.
+and each response costs the model's latency whatever the commands return.
 
 A worktree-isolated session meets a guard that refuses a chain it cannot show stays inside
 that worktree. Where a chain comes back refused, send those commands one per call and carry
