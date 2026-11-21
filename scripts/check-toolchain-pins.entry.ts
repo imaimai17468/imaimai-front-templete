@@ -32,6 +32,13 @@ const coreVersionOf = (spec: string | undefined): string | undefined =>
   spec?.replace(`npm:${CORE}@`, "");
 
 /**
+ * tsrs names its release after the TypeScript release it ports, with a
+ * `.tsrsN` suffix: `7.1.0-beta.tsrs2` ports `7.1.0-beta`.
+ */
+const portedTypeScriptOf = (spec: string | undefined): string | undefined =>
+  exactVersionOf(spec)?.replace(/\.tsrs\d+$/u, "");
+
+/**
  * Void's `^0.45.4` resolves to the direct `0.45.4` only while that is its
  * floor, so the floor is what the direct pin has to equal.
  */
@@ -91,9 +98,15 @@ const PINS: readonly Pin[] = [
     source: VITE_PLUS,
   },
   {
-    bundled: exactVersionOf(bundled["oxlint-tsgolint"]),
-    declared: exactVersionOf(declared["oxlint-tsgolint"]),
-    label: "devDependencies.oxlint-tsgolint",
+    bundled: exactVersionOf(bundled.tsrs),
+    declared: exactVersionOf(declared.tsrs),
+    label: "devDependencies.tsrs",
+    source: VITE_PLUS,
+  },
+  {
+    bundled: portedTypeScriptOf(bundled.tsrs),
+    declared: exactVersionOf(declared.typescript),
+    label: "devDependencies.typescript (the release tsrs ports)",
     source: VITE_PLUS,
   },
   {
