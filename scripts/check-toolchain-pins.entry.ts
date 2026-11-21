@@ -91,9 +91,9 @@ const PINS: readonly Pin[] = [
     source: VITE_PLUS,
   },
   {
-    bundled: exactVersionOf(bundled["oxlint-tsgolint"]),
-    declared: exactVersionOf(declared["oxlint-tsgolint"]),
-    label: "devDependencies.oxlint-tsgolint",
+    bundled: exactVersionOf(bundled.tsrs),
+    declared: exactVersionOf(declared.tsrs),
+    label: "devDependencies.tsrs",
     source: VITE_PLUS,
   },
   {
