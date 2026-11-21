@@ -1,6 +1,7 @@
 import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { defaultExclude, defineConfig } from "vite-plus";
+import { DurationSequencer } from "./scripts/test-shards/duration-sequencer";
 
 const COVERED_ROOTS = "{src,scripts,tools}";
 
@@ -72,6 +73,7 @@ export default defineConfig({
       "src/shared/ui/**",
     ],
     setupFiles: ["./src/test/setup.ts"],
+    sequence: { sequencer: DurationSequencer },
     coverage: {
       include: coverageInclude,
       exclude: coverageExclude,
