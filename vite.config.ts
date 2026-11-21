@@ -187,6 +187,7 @@ export default defineConfig({
       "arch-rules/component-file-naming": "error",
       "arch-rules/test-naming-format": "error",
       "arch-rules/single-expect": "error",
+      "arch-rules/no-app-module-mock": "error",
       "start-rules/no-rewritten-factory-in-handler": "error",
     },
     env: {
