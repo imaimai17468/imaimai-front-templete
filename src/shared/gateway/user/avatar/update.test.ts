@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "@effect/vitest";
-import { DateTime, Effect, Layer, Option, Array as Arr, pipe } from "effect";
+import { DateTime, Effect, Layer, Option, Array, pipe } from "effect";
 import { SQLiteAsyncDialect } from "void/schema-d1";
 import { capturedReports } from "@/shared/gateway/error-reports";
 import { avatarUrlForKey } from "@/shared/gateway/user/avatar-url";
@@ -131,7 +131,7 @@ describe("AvatarWriter.replace", () => {
           result,
           updateCalls: pipe(
             setAvatarKey.mock.calls,
-            Arr.map(([userId, previousKey, avatarKey, updatedAt]) => [
+            Array.map(([userId, previousKey, avatarKey, updatedAt]) => [
               userId,
               previousKey,
               avatarKey,
@@ -168,7 +168,7 @@ describe("AvatarWriter.replace", () => {
           removeCalls: remove.mock.calls,
           reportedEvents: pipe(
             reported,
-            Arr.map(({ event }) => event)
+            Array.map(({ event }) => event)
           ),
           result,
           uploadKey: upload.mock.calls[0]?.[0],
@@ -387,7 +387,7 @@ describe("AvatarWriter.replace", () => {
         expect({
           previousKeys: pipe(
             setAvatarKey.mock.calls,
-            Arr.map(([, previousKey]) => previousKey)
+            Array.map(([, previousKey]) => previousKey)
           ),
           removeCalls: remove.mock.calls,
           result,
@@ -467,7 +467,7 @@ describe("AvatarWriter.replace racing another upload", () => {
           removeCalls: remove.mock.calls,
           reportedEvents: pipe(
             reported,
-            Arr.map(({ event }) => event)
+            Array.map(({ event }) => event)
           ),
           results,
           row: store.row,

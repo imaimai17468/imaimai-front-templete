@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "@effect/vitest";
-import { Effect, Layer, Option, Record as Rec } from "effect";
+import { Effect, Layer, Option, Record } from "effect";
 import { CurrentSession } from "@/lib/auth/session/current-session";
 import { capturedReports } from "@/shared/gateway/error-reports";
 import { DriverFailed } from "@/test/defect";
@@ -235,7 +235,7 @@ describe(getAvatarResponse, () => {
 
         expect({
           body,
-          headers: Rec.fromEntries(response.headers),
+          headers: Record.fromEntries(response.headers),
           status: response.status,
         }).toStrictEqual({
           body: "avatar-body",

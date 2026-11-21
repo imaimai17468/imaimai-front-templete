@@ -6,7 +6,7 @@
  * pinned to the `<userId>/avatar.<ext>` shape before any bucket access.
  */
 
-import { Option, Array as Arr, String as Str, pipe } from "effect";
+import { Option, Array, String, pipe } from "effect";
 
 /** The image types an avatar is stored and served as. */
 export type AvatarContentType =
@@ -38,7 +38,7 @@ const hasSignature = (
 ): boolean =>
   pipe(
     signature,
-    Arr.every((expected, index) => bytes[offset + index] === expected)
+    Array.every((expected, index) => bytes[offset + index] === expected)
   );
 
 const matchesSignature = (mimeType: string, bytes: Uint8Array): boolean => {
@@ -81,7 +81,7 @@ export const avatarContentMatchesMime = (file: File): Promise<boolean> =>
 const AVATAR_TYPE_FOR_KEY_EXTENSION = new Map<string, AvatarContentType>([
   ...pipe(
     AVATAR_FORMATS,
-    Arr.map(
+    Array.map(
       ([type, extension]) =>
         [extension, type] satisfies readonly [string, AvatarContentType]
     )
@@ -101,7 +101,7 @@ const parseAvatarKey = (
     ownerId: Option.fromUndefinedOr(groups?.ownerId),
   }).pipe(
     Option.filter(({ extension }) =>
-      AVATAR_TYPE_FOR_KEY_EXTENSION.has(Str.toLowerCase(extension))
+      AVATAR_TYPE_FOR_KEY_EXTENSION.has(String.toLowerCase(extension))
     )
   );
 };
@@ -116,7 +116,7 @@ export const avatarContentTypeForKey = (
   parseAvatarKey(key).pipe(
     Option.flatMap(({ extension }) =>
       Option.fromUndefinedOr(
-        AVATAR_TYPE_FOR_KEY_EXTENSION.get(Str.toLowerCase(extension))
+        AVATAR_TYPE_FOR_KEY_EXTENSION.get(String.toLowerCase(extension))
       )
     )
   );

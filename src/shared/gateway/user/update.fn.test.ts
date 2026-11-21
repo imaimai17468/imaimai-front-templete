@@ -1,4 +1,4 @@
-import { Array as Arr, String as Str, pipe } from "effect";
+import { Array, String, pipe } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import {
   MAX_AVATAR_BYTES,
@@ -20,7 +20,7 @@ const issueMessages = (form: ServerFnForm, input: FormData | URLSearchParams) =>
   validate(form, input).then((result) =>
     pipe(
       result.issues ?? [],
-      Arr.map(({ message }) => message)
+      Array.map(({ message }) => message)
     )
   );
 
@@ -46,7 +46,7 @@ describe("the profile update form", () => {
     ["empty", "", "Name is required"],
     [
       "over 50 characters",
-      Str.repeat(51)("a"),
+      String.repeat(51)("a"),
       "Name must be 50 characters or less",
     ],
   ])("should reject when the name is %s", (_label, name, message) => {

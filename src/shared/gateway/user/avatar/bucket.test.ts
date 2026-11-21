@@ -1,4 +1,4 @@
-import { Option, Record as Rec } from "effect";
+import { Option, Record } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { AvatarObject, avatarObjectFrom } from "./bucket.ts";
 
@@ -13,7 +13,7 @@ const bodyOf = (text: string) =>
 const served = (response: Response) =>
   response.text().then((body) => ({
     body,
-    headers: Rec.fromEntries(response.headers),
+    headers: Record.fromEntries(response.headers),
     status: response.status,
   }));
 
