@@ -128,14 +128,14 @@ them: `vitest.config.mts` holds this file at 100% branch coverage, so a pruned
 ban with a surviving test, or the reverse, fails `bun run test`. If every ban
 goes, the `layer-boundaries` rule and its entry in the `plugin` export go too.
 When that happens, also remove `"arch-rules/layer-boundaries": "error"` from
-`vite.config.ts`'s `lint.rules` map, because the plugin export and that entry name the same
+`oxlint.project.ts`'s `rules` map, because the plugin export and that entry name the same
 rule ID, so dropping only one half leaves the config pointing at a rule nothing
 supplies.
 
 **No plugin under `tools/oxlint-plugins/` is deleted.** `arch-rules.js` also
 carries the component and test-shape rules, `style-rules.js` and `start-rules.js`
-are untouched by this procedure, and `vite.config.ts` loads each by path under
-`lint.jsPlugins`, so removing any of them breaks the lint config for the whole fork.
+are untouched by this procedure, and `oxlint.project.ts` loads each by path under
+`jsPlugins`, so removing any of them breaks the lint config for the whole fork.
 
 ## 4. Local files
 
@@ -146,8 +146,9 @@ rm -f docs/DATABASE_SETUP.md
 ```
 
 The root dotenv file is gitignored, and once `env.ts` is gone nothing reads it.
-`.claude/hooks/pre-bash-guard/pre-bash-guard.sh` refuses any command naming it,
-so leave deleting it to the user.
+`.claude/hooks/pre-bash-guard/pre-bash-guard.entry.ts` refuses a command that
+names it outside the prose of a `git` or `gh` command, and `.claude/settings.json`
+denies reading and editing it, so leave deleting it to the user.
 
 `scripts/setup/setup.sh` ends by copying the placeholder file onto the root
 dotenv file, and `.claude/hooks/session-start-env-check/session-start-env-check.sh`
@@ -234,7 +235,7 @@ leads to deleting the deployment by mistake.
 
 ```bash
 grep -rn "better-auth\|BETTER_AUTH\|drizzle\|D1Database\|R2Bucket\|void/db\|void/storage\|@schema" \
-  src scripts tools package.json vite.config.ts vitest.config.mts tsconfig.json .fallowrc.jsonc void.config.ts \
+  src scripts tools package.json vite.config.ts oxlint.project.ts vitest.config.mts tsconfig.json .fallowrc.jsonc void.config.ts \
   README.md AGENTS.md .claude/settings.json docs/DEPLOYMENT.md docs/FORKING.md
 ```
 
