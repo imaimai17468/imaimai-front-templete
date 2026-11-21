@@ -129,7 +129,7 @@ export default defineConfig({
       "react/no-unknown-property": "error",
       "@nkzw/require-use-effect-arguments": "error",
       "rules/consistent-import-extension": "error",
-      "rules/effect-tracing": "error",
+      "rules/effect-tracing": ["error", "application"],
       "rules/no-effect-import-as": "error",
       "rules/no-import-from-barrel-package": "error",
       "rules/no-index-filename": "error",
