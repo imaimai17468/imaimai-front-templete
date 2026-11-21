@@ -22,7 +22,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { text } from "node:stream/consumers";
-import { z } from "zod";
+import { Effect, Schema } from "effect";
 import {
   HOOK_EVENTS,
   completeMarker,
@@ -38,16 +38,24 @@ import {
 } from "./scoped-guidance-decision.ts";
 import type { CallFacts, ScopedRule } from "./scoped-guidance-decision.ts";
 
-const HookPayloadSchema = z.object({
-  agent_id: z.string().default(""),
-  cwd: z.string(),
-  hook_event_name: z.enum(HOOK_EVENTS),
-  session_id: z.string().default(""),
-  tool_input: ToolInput.default({}),
-  tool_name: z.string().default(""),
+const StringEmptyWhenAbsent = Schema.String.pipe(
+  Schema.withDecodingDefault(Effect.succeed(""))
+);
+
+const HookPayloadSchema = Schema.Struct({
+  agent_id: StringEmptyWhenAbsent,
+  cwd: Schema.String,
+  hook_event_name: Schema.Literals(HOOK_EVENTS),
+  session_id: StringEmptyWhenAbsent,
+  tool_input: ToolInput.pipe(Schema.withDecodingDefault(Effect.succeed({}))),
+  tool_name: StringEmptyWhenAbsent,
 });
 
-type HookPayload = z.infer<typeof HookPayloadSchema>;
+type HookPayload = typeof HookPayloadSchema.Type;
+
+const decodeHookPayload = Schema.decodeUnknownSync(
+  Schema.fromJsonString(HookPayloadSchema)
+);
 
 /** The `.md` files under `.claude/hooks/guidance/`, and the scoped rules among them. */
 interface RuleFiles {
@@ -156,7 +164,7 @@ const run = (
   projectDir: string | undefined,
   tmpDir: string
 ): string => {
-  const payload = HookPayloadSchema.parse(JSON.parse(stdin));
+  const payload = decodeHookPayload(stdin);
   const root = projectDir ?? payload.cwd;
   const ruleFiles = readRuleFiles(root);
   const reaches = reachesFor(ruleFiles.rules, callFacts(payload, root));

@@ -1,5 +1,5 @@
 import path from "node:path";
-import { z } from "zod";
+import { Schema } from "effect";
 
 /** The hook events this hook answers. */
 export const HOOK_EVENTS = [
@@ -133,15 +133,15 @@ const FILE_PATH_TOOLS = new Set([
 const PATH_IN_COMMAND = /[\w.${}@~[\]/-]*\.[A-Za-z]\w*/gu;
 
 /** The fields of a tool call's input that name a file. */
-export const ToolInput = z.object({
-  command: z.string().optional(),
-  file_path: z.string().optional(),
+export const ToolInput = Schema.Struct({
+  command: Schema.optional(Schema.String),
+  file_path: Schema.optional(Schema.String),
 });
 
 /** The paths a tool call names, as the call wrote them. */
 export const namedPaths = (
   toolName: string,
-  input: z.infer<typeof ToolInput>
+  input: typeof ToolInput.Type
 ): string[] => {
   if (FILE_PATH_TOOLS.has(toolName)) {
     return input.file_path === undefined ? [] : [input.file_path];
