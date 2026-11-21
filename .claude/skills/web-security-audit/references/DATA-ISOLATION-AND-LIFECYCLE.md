@@ -2,7 +2,7 @@
 
 #### When to use this file
 
-Reach for this file when the target stores multi-tenant or access-controlled data, derives search/index/cache/analytics copies, issues object links, exports or restores records, migrates schemas, or promises deletion, revocation, and retention behavior. This domain follows one data item through every copy and state transition. Use `ATTACK-CLASSES.md` for endpoint-level access control.
+Reach for this file when the target stores multi-tenant or access-controlled data, derives search/index/cache/analytics copies, issues object links, exports or restores records, migrates schemas, or promises deletion, revocation, and retention behavior. This domain follows one data item through every copy and state transition. Use `ATTACK-CLASSES.md` for endpoint-level access control. The owner check on a D1 row or an R2 key, what a response reveals by existing, and what a log line may carry are covered by `webapp-security-review`'s `access-control.md`, `path-traversal.md`, `information-leakage.md`, and `logging.md`, which the hunter prompt carries alongside this file.
 
 Split large targets by primary storage, cache/search, object/blob storage, analytics/logging, export/backup, deletion/revocation, and migration.
 
@@ -18,9 +18,6 @@ Split large targets by primary storage, cache/search, object/blob storage, analy
 
 ## Tenant and object-isolation attack classes (subagent_type: `general`)
 
-**Missing tenant or owner enforcement**
-A read, update, delete, list, count, or bulk query identifies an object without binding it to the authenticated tenant/owner, or trusts body fields to supply that identity. Compare direct lookup, nested relationship, background, admin, import, and legacy paths.
-
 **Composite-key and namespace collision**
 Cache keys, object paths, database uniqueness, search document IDs, temporary files, or deduplication keys omit tenant or environment. Two principals can overwrite or retrieve the same logical key even though application records carry separate owners.
 
@@ -34,12 +31,6 @@ Object keys, attachment IDs, version IDs, shared links, or signed URLs permit op
 
 **Search, cache, and index ACL drift**
 A primary record's ACL or lifecycle changes without invalidating a searchable, cached, embedded, thumbnail, RSS, preview, or index copy. Validate filtering at retrieval time as well as document ingestion and invalidation.
-
-**Analytics, logs, traces, and diagnostics as alternate readers**
-Private content or credentials are emitted into systems with broader access, longer retention, or tenant mixing. Confirm the data class and realistic reader; field names, public identifiers, and operator-only content under intended policy are not enough.
-
-**Enumeration and aggregate oracles**
-Counts, filters, ordering, errors, unique constraints, timings, notification behavior, or existence checks disclose protected object or account state. Require a concrete confidential predicate and observable distinction, not general response variance.
 
 ## Export, backup, restore, and migration attack classes (subagent_type: `general`)
 

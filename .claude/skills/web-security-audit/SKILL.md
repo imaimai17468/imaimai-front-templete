@@ -7,6 +7,8 @@ description: Security guidance and vulnerability review for this repository's we
 
 Find vulnerabilities that violate a real trust boundary, then give owners the source evidence, safe reproduction, priority, and smallest effective fix. This is a defensive, source-first workflow. A candidate without a concrete affected principal, resource, or security outcome is not a confirmed finding.
 
+This skill decides how a review or an audit runs and how a finding is validated and reported. `webapp-security-review` holds the checks each vulnerability class takes in this repository, one reference per class, and a review of one class starts from that reference.
+
 ## Operating modes
 
 This skill is guidance by default. Loading it does not authorize the complete audit workflow or file creation.

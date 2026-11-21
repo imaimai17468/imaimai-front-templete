@@ -15,7 +15,7 @@ Every hunter prompt contains these parts in this order:
 1. A two-sentence role preamble: the hunter's goal is to find source-grounded security invariant failures in its assigned units, and it must return exactly one JSON object matching the structured-result contract at the end of this prompt.
 2. `architecture.md` verbatim.
 3. Assigned coverage IDs, subsystem, boundary, repository-relative starting paths, and each unit's assignment block map from `coverage-ledger.json`.
-4. The exact selected blocks, copied verbatim: each selected ordinary attack-class block from `ATTACK-CLASSES.md`, and from each selected companion its `Core discipline`, each chosen attack-class subsection, `Universal moves`, and `Validation rules`. Ordinary blocks are self-contained and carry no companion-style `Core discipline`, `Universal moves`, or `Validation rules` sections. Do not send block or companion names alone.
+4. The exact selected blocks, copied verbatim: each selected ordinary attack-class block from `ATTACK-CLASSES.md`, and from each selected companion its `Core discipline`, each chosen attack-class subsection, `Universal moves`, and `Validation rules`. Ordinary blocks carry no companion-style `Core discipline`, `Universal moves`, or `Validation rules` sections. Add, copied verbatim, every file under `.claude/skills/webapp-security-review/references/` that a selected block or companion names, because the blocks leave out the checks those files state for this stack. Do not send block, companion, or reference names alone.
 5. Explicit excluded ordinary and companion blocks with a reason for each exclusion.
 6. The core hunting method below, followed by the promotion procedure block.
 7. The core validation rules below.

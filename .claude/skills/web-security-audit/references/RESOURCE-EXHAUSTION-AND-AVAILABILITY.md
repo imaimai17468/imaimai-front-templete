@@ -4,7 +4,7 @@
 
 Reach for this file when untrusted requests, messages, files, tenant state, or agent work can consume CPU, memory, disk, connections, worker slots, paid APIs, or queue capacity, or can deadlock/crash a shared service. This domain distinguishes a source-reviewable availability vulnerability from a general performance issue. Never validate by stressing a shared or live service.
 
-Use `PROTOCOLS-RPC-AND-MESSAGING.md` for broker delivery logic. A reachable fatal error belongs here for shared impact even when the underlying parser is covered elsewhere.
+Use `PROTOCOLS-RPC-AND-MESSAGING.md` for broker delivery logic. The Worker's CPU, memory, and body limits, and the per-request and per-window bounds this app sets, are covered by `webapp-security-review`'s `deployment.md`, `api.md`, `data-processing.md`, and `file-upload.md`. A reachable fatal error belongs here for shared impact even when the underlying parser is covered elsewhere.
 
 ## Core discipline (include in every agent prompt for this domain)
 

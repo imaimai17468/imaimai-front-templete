@@ -62,7 +62,7 @@ Tool descriptions, resource metadata, prompts, completion hints, or schemas supp
 ## Output and disclosure attack classes (subagent_type: `general`)
 
 **Insecure output rendering**
-Model output reaches an executing HTML, Markdown, template, URL, or command sink without the sink's required encoding and policy. For browser rendering, verify auto-loaded resources and CSP or sanitization in `CLIENT-SIDE.md`; renderer behavior outside the repository makes the candidate `needs_validation`.
+Model output reaches an executing HTML, Markdown, template, URL, or command sink without the sink's required encoding and policy. For browser rendering, verify auto-loaded resources and CSP or sanitization with `webapp-security-review`'s `xss.md` and `browser-headers.md`; renderer behavior outside the repository makes the candidate `needs_validation`.
 
 **Sensitive context extraction**
 The assembled context contains credentials, another user's data, private source, or policy values that themselves grant access, and user-influenced output exposes them. Read prompt assembly and data-fetch code. Disclosure of generic instructions or behavior that does not cross a data boundary is not a finding.

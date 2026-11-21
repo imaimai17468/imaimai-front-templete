@@ -2,9 +2,9 @@
 
 #### When to use this file
 
-Reach for this file when the target resolves dependencies, builds from untrusted contributions, runs CI, or deploys from a pipeline. This domain covers trust handoffs from source and dependency to the Worker that runs. The app ships no updater and loads no plugins, so neither has a class here.
+Reach for this file when the target generates source, runs CI, or deploys from a pipeline. This domain covers trust handoffs from source and dependency to the Worker that runs. Lockfile installs, install scripts, the registry, pinned versions and actions, workflow triggers and permissions, secrets in history, and what the build output holds are covered by `webapp-security-review`'s `supply-chain.md` and `deployment.md`, which the hunter prompt carries alongside this file. The app ships no updater and loads no plugins, so neither has a class here.
 
-Split large targets into dependency resolution, CI isolation, artifact provenance, and deploy authorization.
+Split large targets into generated inputs, CI isolation, and deploy authorization.
 
 ## Core discipline (include in every agent prompt for this domain)
 
@@ -16,33 +16,18 @@ Split large targets into dependency resolution, CI isolation, artifact provenanc
 - Use `confirmed` for in-repo control-flow failures with bounded local validation. Use `needs_validation` for branch protection, hosted-runner, registry, or production deploy facts that are not observable.
 ```
 
-## Dependency and build-input attack classes (subagent_type: `general`)
-
-**Dependency source and namespace confusion**
-Resolver configuration can select an unintended public/private namespace, fallback registry, mirror, repository, or source URL. Review package names, source priority, lockfile and checksum use, alternate build files, platform-specific resolution, and first-install versus update behavior.
-
-**Mutable and unbound build inputs**
-Builds consume branches, tags, unverified submodules, downloaded tools, generated assets, remote includes, or floating CI actions whose content can change without source review. Require a lower-trust writer and a path into trusted build output; reproducibility by itself does not prove authenticity.
+## Build-input attack classes (subagent_type: `general`)
 
 **Generated-source and codegen provenance gaps**
 Schemas, vendored archives, generated clients, localization, documentation examples, or binary blobs produce executable or shipped content without the same review and integrity gate as source. Compare local regeneration with committed output and verify who controls input and generator.
 
-**Build-context inclusion**
-Secrets, local configuration, repository metadata, test fixtures, or developer artifacts enter the bundle because the build context and ignore rules exceed intended release inputs. Confirm that the resulting artifact exposes a real credential, private data, or privileged configuration.
-
 ## CI and automation attack classes (subagent_type: `general`)
-
-**Untrusted code in a privileged workflow**
-A pull request, issue comment, fork, dependency update, or external event runs contributor-controlled code with protected secrets, write tokens, deployment authority, or a trusted runner. Compare trigger type, checkout ref, approval gate, environment protection, and permission narrowing. Do not assume repository-host defaults that are not in source.
 
 **Workflow command and expression confusion**
 Attacker-controlled branch names, commit messages, issue fields, artifact names, matrix values, or generated output enter shell commands, template expressions, paths, or privileged workflow inputs without canonical validation.
 
 **Cache, artifact, and workspace trust mixing**
 A lower-trust job can populate a cache, artifact, shared workspace, or output that a higher-trust job later restores and executes or releases. Review cache keys and namespaces, artifact producer identity, digest binding, retention, and whether promotion re-resolves by mutable name.
-
-**Automation identity overreach**
-CI jobs receive permissions beyond the operation, repository, environment, or duration needed, and untrusted job inputs can select the affected resource. Missing least privilege alone is hardening; require a reachable privileged action.
 
 ## Deploy attack classes (subagent_type: `general`)
 

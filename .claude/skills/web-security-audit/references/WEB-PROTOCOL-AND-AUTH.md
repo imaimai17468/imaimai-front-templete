@@ -2,9 +2,9 @@
 
 #### When to use this file
 
-Reach for this file when the target speaks HTTP at a caching, browser-authentication, or identity boundary: routes and APIs cached at the edge or through the Cache API, and code implementing sessions, JWT, OAuth/OIDC, SAML, password recovery, MFA, passkeys, API keys, or mTLS. Request framing and response-header injection are left out, because Cloudflare parses the request before the Worker sees it, and the Fetch standard's `Headers` rejects a value containing CR or LF. Use this with `ATTACK-CLASSES.md`: access-control review asks whether a principal may perform an operation; this file asks whether the HTTP or identity layer can confuse which principal, request, assurance level, or token the operation belongs to.
+Reach for this file when the target caches responses at the edge or through the Cache API, or implements JWT, OAuth/OIDC, SAML, password recovery, MFA, passkeys, account linking, API keys, or mTLS. CSRF, the session cookie, and the request's host are covered by `webapp-security-review`'s `csrf.md`, `session.md`, `authentication.md`, and `deployment.md`, which the hunter prompt carries alongside this file. Request framing and response-header injection are left out, because Cloudflare parses the request before the Worker sees it, and the Fetch standard's `Headers` rejects a value containing CR or LF. Use this with `ATTACK-CLASSES.md`: access-control review asks whether a principal may perform an operation; this file asks whether the HTTP or identity layer can confuse which principal, request, assurance level, or token the operation belongs to.
 
-Pick classes from Phase 1. Split a large target into cache policy, browser authentication, federated identity, strong authentication and recovery, service credentials, and session lifecycle.
+Pick classes from Phase 1. Split a large target into cache policy, federated identity, strong authentication and recovery, and service credentials.
 
 ## Core discipline (include in every agent prompt for this domain)
 
@@ -23,20 +23,6 @@ A request value changes cached content or security-relevant headers but is absen
 
 **Cache deception and private-response caching**
 Cache routing treats a private dynamic path as a public static asset, or caches a response whose identity and authorization inputs are missing from policy. Compare edge cacheability with application route parsing, suffix/path-parameter normalization, and response cache directives.
-
-**Host and forwarded-header trust**
-Untrusted host/proxy metadata determines absolute URLs, tenant routing, callbacks, reset links, cache keys, or the client address used by authorization. Confirm who can supply the header and whether trusted ingress removes client-provided copies.
-
-## Browser-session attack classes (subagent_type: `general`)
-
-**Ordinary CSRF**
-A browser sends ambient credentials to a state-changing endpoint that accepts a cross-site request without an effective anti-CSRF token, same-site request binding, or strict Origin/Referer validation. Inventory every cookie-authenticated mutation, including form, JSON-like, multipart, method-override, and legacy routes. SameSite is effective only for the cookie and browser contexts actually used; login CSRF and cross-site subresource requests can have different requirements.
-
-**Session fixation and invalidation**
-Session identifiers are not rotated on login, account switch, MFA completion, impersonation, or other privilege changes, or remain valid after logout, password change, revocation, and account disable. Check server sessions, refresh tokens, signed cookies, websocket state, cache copies, and fallback endpoints.
-
-**Cookie scope and transport**
-A sensitive cookie has an over-broad `Domain` or `Path`, can cross an insecure transport, or conflicts with a sibling cookie that another component selects differently. Bare missing flags remain hardening notes unless a realistic less-trusted origin, network position, or browser path can gain or replace the credential.
 
 ## Federated-identity attack classes (subagent_type: `general`)
 
@@ -94,6 +80,5 @@ Expired, revoked, missing, or renewal-failed certificates cause silent fallback 
 1. Apply a source-visibility gate. Proxy chains, edge cache keys, IdP policy, certificate trust, browser cookie behavior, secrets, and deployed auth modes may be outside the repository. Record a precise `needs_validation` candidate instead of asserting missing infrastructure behavior.
 2. For cache findings, name both components and the divergent parse/key. Confirm cross-request, cross-user, or private-response impact with bounded local fixtures.
 3. For token, MFA, passkey, account-link, recovery, API-key, and mTLS findings, cite the verification line and missing principal/session/resource/origin/audience/action/assurance binding. Prove the server accepts the invalid transition or credential.
-4. For CSRF, name the ambient credential, state-changing route, accepted cross-site request shape, browser cookie policy, and missing effective check. Read-only actions and routes requiring a non-ambient bearer token do not qualify.
-5. Verify framework and library defaults. If version or configuration is unknown, use `needs_validation`; do not turn an unverified critical claim into a lower-severity confirmed finding.
-6. Return `confirmed` only with a complete source trace and observable unauthorized identity, state, or disclosure. For `needs_validation`, name the missing fact and safe local or owner-observed check that resolves it.
+4. Verify framework and library defaults. If version or configuration is unknown, use `needs_validation`; do not turn an unverified critical claim into a lower-severity confirmed finding.
+5. Return `confirmed` only with a complete source trace and observable unauthorized identity, state, or disclosure. For `needs_validation`, name the missing fact and safe local or owner-observed check that resolves it.
