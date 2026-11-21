@@ -49,9 +49,10 @@ available item. An auth-gated page you cannot reach is recorded as
 
 Where the MCP server answers that its browser profile is already running, another session
 holds it: run the same tools through the `chrome-devtools` CLI after
-`chrome-devtools start --isolated=true`. On 2026-10-15 that CLI's trace with `--reload true`
-recorded `about:blank`, and starting with `--reload false --autoStop false`, reloading with
-`navigate_page <id> --type reload`, then `performance_stop_trace` recorded the page.
+`chrome-devtools start --isolated=true`. Start that CLI's trace with
+`--reload false --autoStop false`, reload with `navigate_page <id> --type reload`, then run
+`performance_stop_trace`, because a CLI trace started with `--reload true` has recorded
+`about:blank` instead of the page.
 
 ## 5. Write the report
 
@@ -118,23 +119,22 @@ other case writes a value worse than the cell.
 ## 7. Hold each page to the targets
 
 Step 6 protects what an earlier audit reached. These targets are what every page is held to
-on top of that, so a page that has never been better than them is still a finding. They were
-set from what the 2026-10-15 baseline in `docs/lighthouse/` measured, and the row marked
-provisional waits for the first production-build run. web.dev
+on top of that, so a page that has never been better than them is still a finding. web.dev
 (https://web.dev/articles/vitals, read 2026-10-15) calls a page good at LCP within 2.5 s, INP
-of 200 ms or less and CLS of 0.1 or less, each at the 75th percentile of page loads, and a
-target below those numbers is set only where a measurement already sits under it.
+of 200 ms or less and CLS of 0.1 or less, each at the 75th percentile of page loads. Set a
+target below those numbers only where a measurement in `docs/lighthouse/` already sits under
+it. The first production-build audit confirms a row marked provisional or replaces it.
 
 | Metric | Target | Why this number |
 |---|---|---|
-| Accessibility | 100 on a production-build run | After the 2026-10-15 fixes the only failing audit left was `target-size` on the dev-only react-grab toolbar, which the production build does not ship |
-| SEO | 100 | Measured 100 once the description meta landed |
-| Best practices | 100 | Measured 100 on every page |
-| LCP | ≤ 1000 ms (provisional) | Set from dev-server LCP of 45 to 65 ms, which the paragraph below does not accept for LCP; every page's LCP is text the server renders, so an edge round trip and the stylesheet are what production adds. The first production-build audit confirms or replaces it |
-| CLS | ≤ 0.02 | Measured 0.00 on every page, and 0.1 is five times that margin |
+| Accessibility | 100 on a production-build run | The only audit failing is `target-size` on the dev-only react-grab toolbar, which the production build does not ship |
+| SEO | 100 | Every page has measured 100 |
+| Best practices | 100 | Every page has measured 100 |
+| LCP | ≤ 1000 ms (provisional) | Set from dev-server LCP of 45 to 65 ms, which the paragraph below does not accept for LCP; every page's LCP is text the server renders, so an edge round trip and the stylesheet are what production adds |
+| CLS | ≤ 0.02 | Every page has measured 0.00, and 0.1 is five times this target |
 | INP | ≤ 200 ms | web.dev's good threshold, kept until an audit measures one, because the trace carries no interaction |
-| Largest client chunk | < 500 kB minified | Vite's `build.chunkSizeWarningLimit` default, so `bun run build` prints no chunk warning; 601 kB before the split, 328 kB after |
-| Scripts every page loads | ≤ 250 kB gzip | The entry's chunks (`index`, `react`, `effect`, `utils`) total 207 kB gzip after the split |
+| Largest client chunk | < 500 kB minified | Vite's `build.chunkSizeWarningLimit` default, so `bun run build` prints no chunk warning |
+| Scripts every page loads | ≤ 250 kB gzip | The entry's chunks (`index`, `react`, `effect`, `utils`) total about 207 kB gzip |
 
 Read the two chunk rows from `bun run build`'s `dist/client/assets/` with the production build,
 and the rest from step 4's runs against the production build. A dev-server run settles only
