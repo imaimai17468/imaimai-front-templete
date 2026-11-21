@@ -57,7 +57,7 @@ const answerFromExit = <A>(exit: Exit.Exit<A>): Effect.Effect<A> =>
       Effect.forEach(
         defectsToLog(cause),
         (defect) => reportError(HANDLER_DEFECT_EVENT, defect),
-        { discard: true }
+        { concurrency: 1, discard: true }
       ).pipe(
         Effect.andThen(
           Effect.die(new HandlerFailed({ message: HANDLER_FAILED_MESSAGE }))

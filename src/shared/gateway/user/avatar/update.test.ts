@@ -451,10 +451,13 @@ describe("AvatarWriter.replace racing another upload", () => {
         const { remove, runOrFailure, store } = makeSharedStore();
 
         const results = yield* runOrFailure((writer) =>
-          Effect.all([
-            writer.replace("user-1", firstFile()),
-            writer.replace("user-1", secondFile()).pipe(Effect.flip),
-          ])
+          Effect.all(
+            [
+              writer.replace("user-1", firstFile()),
+              writer.replace("user-1", secondFile()).pipe(Effect.flip),
+            ],
+            { concurrency: 1 }
+          )
         );
         const reported = yield* capturedReports;
 
