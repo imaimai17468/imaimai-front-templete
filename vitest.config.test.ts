@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { globSync } from "tinyglobby";
 import { describe, expect, it, onTestFinished } from "vite-plus/test";
+import { WHOLE_SUITE_TRIGGERS } from "./scripts/test-shards/test-scope";
 import {
   coverageExclude,
   coverageInclude,
@@ -67,5 +68,22 @@ describe("coverage.include and coverage.exclude", () => {
 describe("test.exclude", () => {
   it("should report no stale pattern when the web-security-audit skill directory holds files", () => {
     expect(stalePatterns([nodeTestSkillExclude], ROOT)).toStrictEqual([]);
+  });
+});
+
+describe("test.forceRerunTriggers", () => {
+  // Vitest matches each trigger against absolute paths, so a trigger counts
+  // as live only when it matches the absolute path of a file it selects.
+  it("should report no stale trigger when every trigger matches a file in the working tree", () => {
+    const stale = WHOLE_SUITE_TRIGGERS.filter(
+      (pattern) =>
+        !globSync(pattern, {
+          absolute: true,
+          cwd: ROOT,
+          dot: true,
+          ignore: ["**/node_modules/**", ".claude/worktrees/**"],
+        }).some((file) => path.matchesGlob(file, pattern))
+    );
+    expect(stale).toStrictEqual([]);
   });
 });
