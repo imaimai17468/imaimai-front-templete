@@ -36,7 +36,7 @@ export const SPECS: readonly Spec[] = [
       {
         term: "言語",
         detail:
-          "TypeScript 7.1（beta）。型を使う lint と型検査は Rust 実装の tsrs が oxlint の中で走る",
+          "TypeScript 7.1（beta）。型を使う lint と型検査は、oxlint が起動する Rust 実装の tsrs が受け持つ",
       },
       { term: "テスト", detail: "Vitest と Testing Library" },
       {
