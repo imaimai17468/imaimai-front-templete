@@ -133,11 +133,35 @@ jobs:
   # of them are handed the same file, restored once here. A shard restoring
   # the cache on its own could read a newer save than another shard read, and
   # the two plans would then drop some test files and run others twice.
+  # It also decides, once for both test jobs, whether a pull request runs the
+  # whole suite or only the tests its diff reaches.
   test-plan:
-    name: test durations
+    name: test plan
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      shard-args: ${{ steps.scope.outputs.shard-args }}
+      merge-args: ${{ steps.scope.outputs.merge-args }}
     steps:
+      # A pull request checks out the merge of its branch into the base, whose
+      # first parent `HEAD^1` is the base. The second commit of depth is that
+      # parent, which the diff against it needs.
+      - name: Checkout repository
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+
+      - name: Install the toolchain from mise.toml
+        if: github.event_name == 'pull_request'
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+
+      # A push to main leaves both outputs empty and runs every test.
+      - name: Decide the pull request's test scope
+        id: scope
+        if: github.event_name == 'pull_request'
+        run: bun scripts/test-shards/decide-test-scope.entry.ts HEAD^1
+
       # The durations the last run on main recorded. A pull request reads the
       # cache main saved, and a miss leaves every file weighing the same.
       - name: Restore the recorded test durations
@@ -170,8 +194,11 @@ jobs:
       matrix:
         shard: [1, 2]
     steps:
+      # The second commit of depth is the base `--changed` diffs against.
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
 
       - name: Set up the toolchain and dependencies
         uses: ./.github/actions/setup
@@ -187,7 +214,13 @@ jobs:
       # it on the merged report. The blob reporter prints nothing about a
       # failure, which the default and github-actions reporters print here.
       - name: Run this shard's tests
-        run: bun run test --coverage.thresholds.branches=0 --reporter=default --reporter=github-actions --reporter=blob --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+        shell: bash
+        env:
+          SCOPE_ARGS: ${{ needs.test-plan.outputs.shard-args }}
+        run: |
+          set -euo pipefail
+          read -r -a scope_args <<< "$SCOPE_ARGS"
+          bun run test --coverage.thresholds.branches=0 --reporter=default --reporter=github-actions --reporter=blob --shard=${{ matrix.shard }}/${{ strategy.job-total }} "${scope_args[@]}"
 
       - name: Upload the shard's report and durations
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -202,12 +235,15 @@ jobs:
 
   test:
     name: tests
-    needs: test-shard
+    needs: [test-plan, test-shard]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # The second commit of depth is the base `--coverage.changed` diffs against.
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
 
       - name: Set up the toolchain and dependencies
         uses: ./.github/actions/setup
@@ -218,13 +254,26 @@ jobs:
           pattern: test-shard-*
           path: shards
 
+      # The branch threshold is judged over the files the shards ran every
+      # reaching test for: all of them, or on a narrowed pull request the
+      # files its diff changed.
       - name: Merge the reports and check coverage
         shell: bash
+        env:
+          SCOPE_ARGS: ${{ needs.test-plan.outputs.merge-args }}
         run: |
           set -euo pipefail
+          read -r -a scope_args <<< "$SCOPE_ARGS"
           mkdir -p .vitest/blob
           cp shards/*/.vitest/blob/*.json .vitest/blob/
-          bun run test --merge-reports
+          bun run test --merge-reports "${scope_args[@]}"
+
+      # These tests check that the patterns in vitest.config.mts still select
+      # files, which a deleted file breaks without changing any import, so a
+      # narrowed pull request would not reach them.
+      - name: Check the test configuration's path patterns
+        if: needs.test-plan.outputs.merge-args != ''
+        run: bun run test vitest.config.test.ts --coverage.enabled=false
 
       - name: Merge the shards' recorded durations
         if: github.event_name == 'push'
