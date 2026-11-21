@@ -4,12 +4,13 @@ import { defaultExclude, defineConfig } from "vite-plus";
 
 const COVERED_ROOTS = "{src,scripts,tools}";
 
-// The two script directories outside the roots take patterns of their own:
+// The script directories outside the roots take patterns of their own:
 // inside the brace, tinyglobby took longer than 5 s to expand it.
 export const coverageInclude = [
   `${COVERED_ROOTS}/**/*.ts`,
   "tools/**/*.js",
   ".claude/skills/dispatch-run/scripts/**/*.ts",
+  ".claude/hooks/pre-bash-guard/**/*.ts",
   ".github/scripts/**/*.ts",
 ];
 
@@ -32,6 +33,7 @@ export const coverageExclude = [
   "src/test/**",
   `${COVERED_ROOTS}/**/*.entry.ts`,
   ".github/scripts/**/*.entry.ts",
+  ".claude/hooks/pre-bash-guard/**/*.entry.ts",
   // `.claude/settings.json` の allow ルール `Bash(bun .claude/skills/dispatch-run/scripts/orchestrate.ts *)`
   // がこのパスを名指すので、改名はその設定ファイルの編集になる。
   ".claude/skills/dispatch-run/scripts/orchestrate.ts",
