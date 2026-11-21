@@ -1,8 +1,6 @@
 import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { defaultExclude, defineConfig } from "vite-plus";
-import { DurationSequencer } from "./scripts/test-shards/duration-sequencer.ts";
-import { WHOLE_SUITE_TRIGGERS } from "./scripts/test-shards/test-scope.ts";
 
 const COVERED_ROOTS = "{src,scripts,tools}";
 
@@ -74,8 +72,6 @@ export default defineConfig({
       "src/shared/ui/**",
     ],
     setupFiles: ["./src/test/setup.ts"],
-    sequence: { sequencer: DurationSequencer },
-    forceRerunTriggers: WHOLE_SUITE_TRIGGERS,
     coverage: {
       include: coverageInclude,
       exclude: coverageExclude,
