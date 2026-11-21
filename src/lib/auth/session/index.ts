@@ -20,7 +20,7 @@ const readCaller = (): Promise<Option.Option<Caller>> =>
 export class CurrentSession extends Context.Service<
   CurrentSession,
   { readonly read: Effect.Effect<Option.Option<Caller>> }
->()("app/lib/auth/session/CurrentSession") {
+>()("my-app/lib/auth/session/CurrentSession") {
   static readonly layer = Layer.succeed(
     CurrentSession,
     CurrentSession.of({ read: Effect.promise(readCaller) })

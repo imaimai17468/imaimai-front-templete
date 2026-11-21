@@ -57,7 +57,7 @@ export class UserProfiles extends Context.Service<
       userId: string
     ) => Effect.Effect<Option.Option<ProfileRow>, UserPersistenceError>;
   }
->()("app/gateways/user/UserProfiles") {
+>()("my-app/shared/gateway/user/read/UserProfiles") {
   static readonly layer = Layer.succeed(
     UserProfiles,
     UserProfiles.of({
@@ -86,7 +86,7 @@ export class CurrentUserReader extends Context.Service<
       UserPersistenceError
     >;
   }
->()("app/gateways/user/CurrentUserReader") {
+>()("my-app/shared/gateway/user/read/CurrentUserReader") {
   static readonly layerNoDeps = Layer.effect(
     CurrentUserReader,
     Effect.gen(function* buildCurrentUserReader() {

@@ -48,7 +48,7 @@ export class AvatarReader extends Context.Service<
       AvatarInvalidKey | AvatarNotFound | AvatarReadFailed | AvatarUnauthorized
     >;
   }
->()("app/gateways/user/avatar/AvatarReader") {
+>()("my-app/shared/gateway/user/avatar/read/AvatarReader") {
   static readonly layerNoDeps = Layer.effect(
     AvatarReader,
     Effect.gen(function* buildAvatarReader() {

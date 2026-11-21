@@ -86,7 +86,7 @@ export class UserAvatarKeys extends Context.Service<
       updatedAt: DateTime.Utc
     ) => Effect.Effect<number, UserPersistenceError>;
   }
->()("app/gateways/user/avatar/UserAvatarKeys") {
+>()("my-app/shared/gateway/user/avatar/update/UserAvatarKeys") {
   static readonly layer = Layer.succeed(
     UserAvatarKeys,
     UserAvatarKeys.of({
@@ -126,7 +126,7 @@ export class AvatarWriter extends Context.Service<
       AvatarTypeUnsupported | AvatarUploadFailed
     >;
   }
->()("app/gateways/user/avatar/AvatarWriter") {
+>()("my-app/shared/gateway/user/avatar/update/AvatarWriter") {
   static readonly layerNoDeps = Layer.effect(
     AvatarWriter,
     Effect.gen(function* buildAvatarWriter() {

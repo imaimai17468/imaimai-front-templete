@@ -37,7 +37,7 @@ export class UserNames extends Context.Service<
       updatedAt: DateTime.Utc
     ) => Effect.Effect<number, UserPersistenceError>;
   }
->()("app/gateways/user/UserNames") {
+>()("my-app/shared/gateway/user/update/UserNames") {
   static readonly layer = Layer.succeed(
     UserNames,
     UserNames.of({
@@ -74,7 +74,7 @@ export class ProfileWriter extends Context.Service<
       | UserPersistenceError
     >;
   }
->()("app/gateways/user/ProfileWriter") {
+>()("my-app/shared/gateway/user/update/ProfileWriter") {
   static readonly layerNoDeps = Layer.effect(
     ProfileWriter,
     Effect.gen(function* buildProfileWriter() {

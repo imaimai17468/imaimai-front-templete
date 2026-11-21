@@ -72,7 +72,7 @@ export class AvatarBucket extends Context.Service<
     ) => Effect.Effect<void, UserPersistenceError>;
     readonly remove: (key: string) => Effect.Effect<void, UserPersistenceError>;
   }
->()("app/gateways/user/avatar/AvatarBucket") {
+>()("my-app/shared/gateway/user/avatar/AvatarBucket") {
   static readonly layer = Layer.succeed(
     AvatarBucket,
     AvatarBucket.of({
@@ -115,7 +115,7 @@ const webCrypto = Crypto.make({
 export class AvatarKeyIds extends Context.Service<
   AvatarKeyIds,
   { readonly next: Effect.Effect<string> }
->()("app/gateways/user/avatar/AvatarKeyIds") {
+>()("my-app/shared/gateway/user/avatar/AvatarKeyIds") {
   static readonly layer = Layer.succeed(
     AvatarKeyIds,
     AvatarKeyIds.of({ next: webCrypto.randomUUIDv4.pipe(Effect.orDie) })
