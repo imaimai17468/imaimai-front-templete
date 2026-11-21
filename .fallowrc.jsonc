@@ -30,6 +30,7 @@
   "ignoreDependencies": [
     // Named as strings in the `lint.plugins` block of vite.config.ts, which
     // fallow reads as configuration data rather than as imports.
+    "@nkzw/eslint-plugin",
     "@shadcn/lint",
     "@tanstack/eslint-plugin-query",
     // peerDependency of @hookform/resolvers, whose standard-schema/dist/*.d.ts
