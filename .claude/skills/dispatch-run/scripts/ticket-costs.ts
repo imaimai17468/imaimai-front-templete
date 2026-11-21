@@ -221,6 +221,7 @@ export const costLog = (text: string): CostLog => {
 
 interface Ticket {
   readonly durationMs: number;
+  readonly effort: Effort;
   readonly kind: Kind;
   readonly model: Model;
   readonly subagentTokens: number;
@@ -327,6 +328,7 @@ const tickets = (events: readonly CostEvent[]): readonly Ticket[] => {
   ];
   return spans.map((span) => ({
     durationMs: span.done.duration_ms,
+    effort: span.dispatch.effort,
     kind: span.dispatch.kind,
     model: span.dispatch.model,
     subagentTokens: span.done.subagent_tokens,
@@ -350,6 +352,7 @@ const median = (values: readonly number[]): number => {
 
 interface CostGroup {
   readonly count: number;
+  readonly effort: Effort;
   readonly kind: Kind;
   readonly medianDurationMs: number;
   readonly medianSubagentTokens: number;
@@ -358,33 +361,47 @@ interface CostGroup {
   readonly soloMedianWindowSpent: number | undefined;
 }
 
-/** One group per model and kind that has a ticket, in `MODELS` × `KINDS` order. */
+const costGroup = (
+  model: Model,
+  effort: Effort,
+  kind: Kind,
+  all: readonly Ticket[]
+): CostGroup[] => {
+  const group = all.filter(
+    (ticket) =>
+      ticket.model === model && ticket.effort === effort && ticket.kind === kind
+  );
+  if (group.length === 0) {
+    return [];
+  }
+  const solo = group.flatMap((ticket) =>
+    ticket.windowSpent === undefined ? [] : [ticket.windowSpent]
+  );
+  return [
+    {
+      count: group.length,
+      effort,
+      kind,
+      medianDurationMs: median(group.map((ticket) => ticket.durationMs)),
+      medianSubagentTokens: median(
+        group.map((ticket) => ticket.subagentTokens)
+      ),
+      model,
+      soloCount: solo.length,
+      soloMedianWindowSpent: solo.length === 0 ? undefined : median(solo),
+    },
+  ];
+};
+
+/**
+ * One group per model, effort and kind that has a ticket, in
+ * `MODELS` × `EFFORTS` × `KINDS` order.
+ */
 const costGroups = (all: readonly Ticket[]): readonly CostGroup[] =>
   MODELS.flatMap((model) =>
-    KINDS.flatMap((kind): CostGroup[] => {
-      const group = all.filter(
-        (ticket) => ticket.model === model && ticket.kind === kind
-      );
-      if (group.length === 0) {
-        return [];
-      }
-      const solo = group.flatMap((ticket) =>
-        ticket.windowSpent === undefined ? [] : [ticket.windowSpent]
-      );
-      return [
-        {
-          count: group.length,
-          kind,
-          medianDurationMs: median(group.map((ticket) => ticket.durationMs)),
-          medianSubagentTokens: median(
-            group.map((ticket) => ticket.subagentTokens)
-          ),
-          model,
-          soloCount: solo.length,
-          soloMedianWindowSpent: solo.length === 0 ? undefined : median(solo),
-        },
-      ];
-    })
+    EFFORTS.flatMap((effort) =>
+      KINDS.flatMap((kind) => costGroup(model, effort, kind, all))
+    )
   );
 
 const MS_PER_MINUTE = 60_000;
@@ -394,7 +411,7 @@ const formatGroup = (group: CostGroup): string => {
     group.soloMedianWindowSpent === undefined
       ? "5h window per ticket unknown, no solo run yet"
       : `5h window ${group.soloMedianWindowSpent.toFixed(1)}% per ticket over ${group.soloCount} solo`;
-  return `${group.model} ${group.kind}: tickets ${group.count}, median ${Math.round(group.medianSubagentTokens)} subagent_tokens, ${(group.medianDurationMs / MS_PER_MINUTE).toFixed(1)} min, ${window}`;
+  return `${group.model} ${group.effort} ${group.kind}: tickets ${group.count}, median ${Math.round(group.medianSubagentTokens)} subagent_tokens, ${(group.medianDurationMs / MS_PER_MINUTE).toFixed(1)} min, ${window}`;
 };
 
 /** The lines `ticket-costs` prints. */
