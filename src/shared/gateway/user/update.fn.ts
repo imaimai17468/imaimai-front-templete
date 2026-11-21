@@ -6,6 +6,7 @@ import {
 } from "@/lib/storage/avatar-validation";
 import type { AvatarSizeRejection } from "@/lib/storage/avatar-validation";
 import { UpdateUserSchema } from "@/shared/entities/user";
+import type { UpdateUser } from "@/shared/entities/user";
 import { updateProfile, uploadAvatar } from "./update";
 
 // The wire hands `.validator` whatever the client sent, so the contract starts
@@ -45,6 +46,20 @@ export const AvatarUploadForm = Schema.toStandardSchemaV1(
     })
   )
 );
+
+/** The body `updateProfileFn` takes, keyed as `ProfileUpdateForm` reads it. */
+export const profileUpdateBody = (data: UpdateUser): FormData => {
+  const body = new globalThis.FormData();
+  body.append("name" satisfies keyof typeof ProfileUpdateForm.Type, data.name);
+  return body;
+};
+
+/** The body `uploadAvatarFn` takes, keyed as `AvatarUploadForm` reads it. */
+export const avatarUploadBody = (avatar: File): FormData => {
+  const body = new globalThis.FormData();
+  body.append("avatar" satisfies keyof typeof AvatarUploadForm.Type, avatar);
+  return body;
+};
 
 export const updateProfileFn = createServerFn({ method: "POST" })
   .validator(ProfileUpdateForm)
