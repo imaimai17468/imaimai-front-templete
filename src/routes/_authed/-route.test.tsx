@@ -2,7 +2,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { routeTree } from "@/routeTree.gen";
-import type { UserWithEmail } from "@/shared/entities/user";
+import type { UserWithEmail } from "@/shared/entities/user/user";
 import { currentUserQueryOptions } from "@/shared/gateway/user/read.fn";
 
 // The root route loads the dev overlay in a dev browser build, which this test

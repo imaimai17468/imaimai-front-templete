@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import { render } from "../render";
-import { SubmitLabel } from "./submit-label";
+import { render } from "../render.tsx";
+import { SubmitLabel } from "./submit-label.tsx";
 
 const rendered = (isPending: boolean) => {
   const { container } = render(<SubmitLabel isPending={isPending} />);

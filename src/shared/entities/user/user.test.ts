@@ -1,4 +1,4 @@
-import { DateTime, Option, Result, Schema, String as Str } from "effect";
+import { DateTime, Option, Result, Schema, String } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { ABSENT_FIELD } from "@/test/absent-field";
 import {
@@ -7,7 +7,7 @@ import {
   UpdateUserSchema,
   UserSchema,
   UserWithEmailSchema,
-} from "./index";
+} from "./user.ts";
 
 // The Standard Schema contract lets `validate` answer with the result or with
 // a Promise of it, and this resolves both arms the way react-hook-form's
@@ -28,7 +28,7 @@ describe("UpdateUserSchema Standard Schema validation", () => {
     }));
 
   it("should accept the name when it has the maximum length of 50", () => {
-    const name = Str.repeat(50)("a");
+    const name = String.repeat(50)("a");
 
     return validateUpdateUser({ name }).then((result) => {
       expect(result).toStrictEqual({ value: { name } });
@@ -44,7 +44,7 @@ describe("UpdateUserSchema Standard Schema validation", () => {
 
   it("should return the length message when the name has 51 characters", () =>
     validateUpdateUser({
-      name: Str.repeat(51)("a"),
+      name: String.repeat(51)("a"),
     }).then((result) => {
       expect(result).toStrictEqual({
         issues: [

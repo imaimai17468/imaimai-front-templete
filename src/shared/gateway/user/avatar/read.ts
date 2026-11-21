@@ -1,11 +1,11 @@
 import "@tanstack/react-start/server-only";
 import { Context, Effect, Layer, Option, Schema } from "effect";
-import { CurrentSession } from "@/lib/auth/session";
+import { CurrentSession } from "@/lib/auth/session/current-session";
 import { isOwnAvatarKey } from "@/lib/storage/avatar-validation";
-import { AvatarBucket } from ".";
-import type { AvatarObject } from ".";
-import { orNone } from "..";
-import { makeRunHandler } from "../../runtime";
+import { makeRunHandler } from "../../runtime.ts";
+import { orNone } from "../persistence.ts";
+import { AvatarBucket } from "./bucket.ts";
+import type { AvatarObject } from "./bucket.ts";
 
 export class AvatarUnauthorized extends Schema.TaggedError<
   AvatarUnauthorized,
@@ -51,11 +51,11 @@ export class AvatarReader extends Context.Service<
 >()("my-app/shared/gateway/user/avatar/read/AvatarReader") {
   static readonly layerNoDeps = Layer.effect(
     AvatarReader,
-    Effect.gen(function* buildAvatarReader() {
+    Effect.gen(function* () {
       const currentSession = yield* CurrentSession;
       const bucket = yield* AvatarBucket;
 
-      const read = Effect.fn("AvatarReader.read")(function* read(
+      const read = Effect.fn("AvatarReader.read")(function* (
         key: Option.Option<string>
       ) {
         const caller = yield* currentSession.read;
@@ -106,7 +106,7 @@ export const getAvatarResponse: (
 ) => Effect.Effect<Response, never, AvatarReader> = Effect.fn(
   "getAvatarResponse"
 )(
-  function* readRequestedAvatar(request: Request) {
+  function* (request: Request) {
     const reader = yield* AvatarReader;
     return yield* reader.read(
       Option.fromNullOr(new URL(request.url).searchParams.get("key"))

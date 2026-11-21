@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vite-plus/test";
 import { z } from "zod";
-import { EFFECT_LAYERS } from "./vite.config";
+import { EFFECT_LAYERS } from "./vite.config.ts";
 
 const ROOT = import.meta.dirname;
 

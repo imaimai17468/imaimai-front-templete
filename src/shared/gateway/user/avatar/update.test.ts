@@ -1,18 +1,18 @@
 import { describe, expect, it, vi } from "@effect/vitest";
-import { DateTime, Effect, Layer, Option, Array as Arr, pipe } from "effect";
+import { DateTime, Effect, Layer, Option, Array, pipe } from "effect";
 import { SQLiteAsyncDialect } from "void/schema-d1";
 import { capturedReports } from "@/shared/gateway/error-reports";
 import { avatarUrlForKey } from "@/shared/gateway/user/avatar-url";
 import { DriverFailed } from "@/test/defect";
-import { AvatarBucket, AvatarKeyIds } from ".";
-import { UserPersistenceError } from "..";
+import { UserPersistenceError } from "../persistence.ts";
+import { AvatarBucket, AvatarKeyIds } from "./bucket.ts";
 import {
   avatarKeyStillHeld,
   AvatarTypeUnsupported,
   AvatarUploadFailed,
   AvatarWriter,
   UserAvatarKeys,
-} from "./update";
+} from "./update.ts";
 
 const AVATAR_UUID = "123e4567-e89b-42d3-a456-426614174000";
 const NEW_KEY = `user-1/avatars/${AVATAR_UUID}.png`;
@@ -62,7 +62,7 @@ const makeFakes = () => {
   const runOrFailure = <A, E>(
     call: (writer: AvatarWriter["Service"]) => Effect.Effect<A, E>
   ): Effect.Effect<A | E> =>
-    Effect.gen(function* callGateway() {
+    Effect.gen(function* () {
       const writer = yield* AvatarWriter;
       return yield* call(writer);
     }).pipe(
@@ -95,7 +95,7 @@ describe("AvatarWriter.replace", () => {
   ] satisfies [string, File][])(
     "should avoid every mutation when %s",
     ([_label, file]) =>
-      Effect.gen(function* avoidEveryMutation() {
+      Effect.gen(function* () {
         const { remove, runOrFailure, setAvatarKey, upload } = makeFakes();
 
         const result = yield* runOrFailure((writer) =>
@@ -119,7 +119,7 @@ describe("AvatarWriter.replace", () => {
   it.effect(
     "should persist a unique key and remove the prior object when every step succeeds",
     () =>
-      Effect.gen(function* persistAUniqueKeyAndRemoveThePriorObject() {
+      Effect.gen(function* () {
         const { remove, runOrFailure, setAvatarKey, upload } = makeFakes();
 
         const result = yield* runOrFailure((writer) =>
@@ -131,7 +131,7 @@ describe("AvatarWriter.replace", () => {
           result,
           updateCalls: pipe(
             setAvatarKey.mock.calls,
-            Arr.map(([userId, previousKey, avatarKey, updatedAt]) => [
+            Array.map(([userId, previousKey, avatarKey, updatedAt]) => [
               userId,
               previousKey,
               avatarKey,
@@ -153,7 +153,7 @@ describe("AvatarWriter.replace", () => {
   it.effect(
     "should leave the object in place when the stored key names another owner",
     () =>
-      Effect.gen(function* leaveTheObjectInPlace() {
+      Effect.gen(function* () {
         const { findAvatarKey, remove, runOrFailure, upload } = makeFakes();
         findAvatarKey.mockReturnValue(
           Effect.succeedSome(Option.some("user-2/avatar.png"))
@@ -168,7 +168,7 @@ describe("AvatarWriter.replace", () => {
           removeCalls: remove.mock.calls,
           reportedEvents: pipe(
             reported,
-            Arr.map(({ event }) => event)
+            Array.map(({ event }) => event)
           ),
           result,
           uploadKey: upload.mock.calls[0]?.[0],
@@ -182,7 +182,7 @@ describe("AvatarWriter.replace", () => {
   );
 
   it.effect("should report a failure when the current row is absent", () =>
-    Effect.gen(function* failForAnAbsentRow() {
+    Effect.gen(function* () {
       const { findAvatarKey, runOrFailure, upload } = makeFakes();
       findAvatarKey.mockReturnValue(Effect.succeedNone);
 
@@ -198,7 +198,7 @@ describe("AvatarWriter.replace", () => {
   );
 
   it.effect("should report a failure when reading the current row fails", () =>
-    Effect.gen(function* reportTheFailedRowRead() {
+    Effect.gen(function* () {
       const { findAvatarKey, runOrFailure, upload } = makeFakes();
       findAvatarKey.mockReturnValue(persistenceFailure("D1 failed"));
 
@@ -226,7 +226,7 @@ describe("AvatarWriter.replace", () => {
   );
 
   it.effect("should report a failure when the upload fails", () =>
-    Effect.gen(function* reportTheFailedUpload() {
+    Effect.gen(function* () {
       const { remove, runOrFailure, upload } = makeFakes();
       upload.mockReturnValue(persistenceFailure("R2 put failed"));
 
@@ -256,7 +256,7 @@ describe("AvatarWriter.replace", () => {
   it.effect(
     "should remove the new object and preserve the old one when the update fails",
     () =>
-      Effect.gen(function* removeTheNewObjectAndPreserveTheOldOne() {
+      Effect.gen(function* () {
         const { remove, runOrFailure, setAvatarKey } = makeFakes();
         setAvatarKey.mockReturnValue(persistenceFailure("D1 failed"));
 
@@ -286,7 +286,7 @@ describe("AvatarWriter.replace", () => {
   it.effect(
     "should roll back the new object when the update touches zero rows",
     () =>
-      Effect.gen(function* rollBackTheNewObject() {
+      Effect.gen(function* () {
         const { remove, runOrFailure, setAvatarKey } = makeFakes();
         setAvatarKey.mockReturnValue(Effect.succeed(0));
 
@@ -314,7 +314,7 @@ describe("AvatarWriter.replace", () => {
   );
 
   it.effect("should report the orphaned key when rollback deletion fails", () =>
-    Effect.gen(function* reportTheOrphanedKey() {
+    Effect.gen(function* () {
       const { remove, runOrFailure, setAvatarKey } = makeFakes();
       setAvatarKey.mockReturnValue(persistenceFailure("D1 failed"));
       remove.mockReturnValue(persistenceFailure("R2 delete failed"));
@@ -350,7 +350,7 @@ describe("AvatarWriter.replace", () => {
   it.effect(
     "should return pending cleanup without failing the new avatar when old deletion fails",
     () =>
-      Effect.gen(function* returnPendingCleanupWithoutFailingTheNewAvatar() {
+      Effect.gen(function* () {
         const { remove, runOrFailure } = makeFakes();
         remove.mockReturnValue(persistenceFailure("R2 delete failed"));
 
@@ -375,7 +375,7 @@ describe("AvatarWriter.replace", () => {
   it.effect(
     "should require the row to hold no key when the row held no prior avatar",
     () =>
-      Effect.gen(function* requireTheRowToHoldNoKey() {
+      Effect.gen(function* () {
         const { findAvatarKey, remove, runOrFailure, setAvatarKey } =
           makeFakes();
         findAvatarKey.mockReturnValue(Effect.succeedSome(Option.none()));
@@ -387,7 +387,7 @@ describe("AvatarWriter.replace", () => {
         expect({
           previousKeys: pipe(
             setAvatarKey.mock.calls,
-            Arr.map(([, previousKey]) => previousKey)
+            Array.map(([, previousKey]) => previousKey)
           ),
           removeCalls: remove.mock.calls,
           result,
@@ -448,7 +448,7 @@ describe("AvatarWriter.replace racing another upload", () => {
   it.effect.each(raceCases)(
     "should leave only the winner's object and the row naming it when %s",
     ([_label, firstFile, secondFile, winnerKey, loserKey]) =>
-      Effect.gen(function* leaveOnlyTheWinnerObjectAndTheRowNamingIt() {
+      Effect.gen(function* () {
         const { remove, runOrFailure, store } = makeSharedStore();
 
         const results = yield* runOrFailure((writer) =>
@@ -467,7 +467,7 @@ describe("AvatarWriter.replace racing another upload", () => {
           removeCalls: remove.mock.calls,
           reportedEvents: pipe(
             reported,
-            Arr.map(({ event }) => event)
+            Array.map(({ event }) => event)
           ),
           results,
           row: store.row,

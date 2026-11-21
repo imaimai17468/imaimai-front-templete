@@ -5,7 +5,7 @@ import {
   auditOutcome,
   auditReportLines,
   directDependencyNames,
-} from "./dependency-audit";
+} from "./dependency-audit.ts";
 
 const ADVISORY = {
   severity: "high",

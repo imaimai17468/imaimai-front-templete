@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { describe, expect, it } from "vite-plus/test";
-import { decideTestScope, testScopeArgs } from "./test-scope";
+import { decideTestScope, testScopeArgs } from "./test-scope.ts";
 
 describe(decideTestScope, () => {
   it("should run only the reached tests when no changed path is a trigger", () => {

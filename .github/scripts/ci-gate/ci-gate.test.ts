@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { describe, expect, it } from "vite-plus/test";
-import { gateCoverage, gateCoverageReport } from "./ci-gate";
+import { gateCoverage, gateCoverageReport } from "./ci-gate.ts";
 
 describe(gateCoverage, () => {
   it("should report covered when the gate's needs list every other job", () => {

@@ -19,16 +19,11 @@ const unwrapChain = (node) =>
   node.type === "ChainExpression" ? unwrapChain(node.expression) : node;
 
 /** Walks a `a().b().c()` chain down to the call that starts it. */
-const rootCallOf = (node) => {
-  let current = node;
-  while (
-    current.callee.type === "MemberExpression" &&
-    current.callee.object.type === "CallExpression"
-  ) {
-    current = current.callee.object;
-  }
-  return current;
-};
+const rootCallOf = (node) =>
+  node.callee.type === "MemberExpression" &&
+  node.callee.object.type === "CallExpression"
+    ? rootCallOf(node.callee.object)
+    : node;
 
 /**
  * Resolves a callee that is a `@tanstack/react-start` import itself. A const

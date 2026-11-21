@@ -11,7 +11,7 @@
 
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
-import { gateCoverage, gateCoverageReport } from "./ci-gate";
+import { gateCoverage, gateCoverageReport } from "./ci-gate.ts";
 
 const GATE_JOB = "build";
 

@@ -1,4 +1,4 @@
-import type { UpdateUser } from "@/shared/entities/user";
+import type { UpdateUser } from "@/shared/entities/user/user";
 import type {
   UpdateProfileResult,
   UploadAvatarResult,

@@ -1,9 +1,9 @@
 import "@tanstack/react-start/server-only";
 import { getRequest } from "@tanstack/react-start/server";
 import { Context, Effect, Layer, Option } from "effect";
-import { getAuth } from "../better-auth";
-import type { Caller } from "./caller";
-import { pickCaller, pickUser } from "./caller";
+import { getAuth } from "../better-auth.ts";
+import type { Caller } from "./caller.ts";
+import { pickCaller, pickUser } from "./caller.ts";
 
 const readCaller = (): Promise<Option.Option<Caller>> =>
   getAuth()
@@ -22,7 +22,7 @@ const readCaller = (): Promise<Option.Option<Caller>> =>
 export class CurrentSession extends Context.Service<
   CurrentSession,
   { readonly read: Effect.Effect<Option.Option<Caller>> }
->()("my-app/lib/auth/session/CurrentSession") {
+>()("my-app/lib/auth/session/current-session/CurrentSession") {
   static readonly layer = Layer.succeed(
     CurrentSession,
     CurrentSession.of({ read: Effect.promise(readCaller) })

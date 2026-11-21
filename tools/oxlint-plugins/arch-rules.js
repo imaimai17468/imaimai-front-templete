@@ -208,23 +208,29 @@ const tableChain = (callee) => {
 
 const isTestIdentifier = (name) => name === "it" || name === "test";
 
-// Whether this callee reaches `it` or `test` through a chain that suppresses no
-// case. Walking the chain rather than matching a fixed depth is what lets
-// `it.concurrent.only` through to the root.
+/**
+ * Follows a member chain to its root, refusing any `.skip` or `.todo` on the
+ * way. Walking the chain rather than matching a fixed depth is what lets
+ * `it.concurrent.only` through to the root.
+ */
+const reachesTestIdentifier = (node) => {
+  if (node === null) {
+    return false;
+  }
+  if (node.type === "MemberExpression") {
+    if (node.property && SKIP_METHODS.has(node.property.name)) {
+      return false;
+    }
+    return reachesTestIdentifier(node.object);
+  }
+  return node.type === "Identifier" && isTestIdentifier(node.name);
+};
+
 const isTestCallee = (callee) => {
   if (!callee) {
     return false;
   }
-  let node = tableChain(callee) ?? callee;
-  while (node !== null && node.type === "MemberExpression") {
-    if (node.property && SKIP_METHODS.has(node.property.name)) {
-      return false;
-    }
-    node = node.object;
-  }
-  return (
-    node !== null && node.type === "Identifier" && isTestIdentifier(node.name)
-  );
+  return reachesTestIdentifier(tableChain(callee) ?? callee);
 };
 
 const testNamingFormat = {

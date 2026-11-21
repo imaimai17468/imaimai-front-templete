@@ -10,7 +10,7 @@ import {
   guidanceTriggerProblem,
   main,
   yamlParseErrorDetail,
-} from "./claude-frontmatter";
+} from "./claude-frontmatter.ts";
 
 const WORK = fs.mkdtempSync(path.join(os.tmpdir(), "claude-frontmatter-"));
 

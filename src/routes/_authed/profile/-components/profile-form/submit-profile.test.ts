@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vite-plus/test";
-import type { UpdateUser } from "@/shared/entities/user";
-import { createSubmitProfile } from "./submit-profile";
-import type { SubmitProfileDeps } from "./submit-profile";
+import type { UpdateUser } from "@/shared/entities/user/user";
+import { createSubmitProfile } from "./submit-profile.ts";
+import type { SubmitProfileDeps } from "./submit-profile.ts";
 
 const DATA: UpdateUser = { name: "New Name" };
 

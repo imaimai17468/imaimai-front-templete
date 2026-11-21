@@ -18,9 +18,15 @@ import {
 } from "@/lib/storage/avatar-validation";
 import { reportError } from "@/shared/gateway/report-error";
 import { avatarUrlForKey } from "@/shared/gateway/user/avatar-url";
-import { AvatarBucket, AvatarKeyIds } from ".";
-import { orNone, readUserRow, succeeded, writeUserRow, wroteOneRow } from "..";
-import type { UserPersistenceError } from "..";
+import {
+  orNone,
+  readUserRow,
+  succeeded,
+  writeUserRow,
+  wroteOneRow,
+} from "../persistence.ts";
+import type { UserPersistenceError } from "../persistence.ts";
+import { AvatarBucket, AvatarKeyIds } from "./bucket.ts";
 
 export class AvatarTypeUnsupported extends Schema.TaggedError<
   AvatarTypeUnsupported,
@@ -129,12 +135,12 @@ export class AvatarWriter extends Context.Service<
 >()("my-app/shared/gateway/user/avatar/update/AvatarWriter") {
   static readonly layerNoDeps = Layer.effect(
     AvatarWriter,
-    Effect.gen(function* buildAvatarWriter() {
+    Effect.gen(function* () {
       const bucket = yield* AvatarBucket;
       const keyIds = yield* AvatarKeyIds;
       const keys = yield* UserAvatarKeys;
 
-      const replace = Effect.fn("AvatarWriter.replace")(function* replace(
+      const replace = Effect.fn("AvatarWriter.replace")(function* (
         userId: string,
         file: File
       ) {

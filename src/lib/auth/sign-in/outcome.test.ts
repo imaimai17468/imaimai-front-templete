@@ -1,8 +1,8 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { DriverFailed } from "@/test/defect";
-import type { SignInFailure } from "./outcome";
-import { signInThrewOutcome, socialSignInOutcome } from "./outcome";
+import type { SignInFailure } from "./outcome.ts";
+import { signInThrewOutcome, socialSignInOutcome } from "./outcome.ts";
 
 describe(socialSignInOutcome, () => {
   it("should report a redirect when the provider call carries no failure", () => {

@@ -2,7 +2,7 @@ import { useSearch } from "@tanstack/react-router";
 import { AlertTriangle } from "lucide-react";
 import { PageTitle } from "@/shared/components/page-title/page-title";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
-import { SignInButton } from "./sign-in-button";
+import { SignInButton } from "./sign-in-button.tsx";
 
 export const LoginPage = () => {
   const { error } = useSearch({ from: "/login" });

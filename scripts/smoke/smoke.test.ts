@@ -19,8 +19,8 @@ import {
   ROUTES,
   served,
   signInBurstFailure,
-} from "./smoke";
-import type { Route, RouteResult } from "./smoke";
+} from "./smoke.ts";
+import type { Route, RouteResult } from "./smoke.ts";
 
 const ROUTE: Route = {
   headers: {},

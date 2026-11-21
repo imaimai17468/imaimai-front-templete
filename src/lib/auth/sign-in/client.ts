@@ -1,6 +1,6 @@
 import { createAuthClient } from "better-auth/react";
 import { Option } from "effect";
-import type { SignInFailure } from "./outcome";
+import type { SignInFailure } from "./outcome.ts";
 
 /**
  * Better Auth のクライアント。テンプレ用途で export を維持（派生プロジェクトが

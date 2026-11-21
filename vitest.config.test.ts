@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { globSync } from "tinyglobby";
 import { describe, expect, it, onTestFinished } from "vite-plus/test";
-import { WHOLE_SUITE_TRIGGERS } from "./scripts/test-shards/test-scope";
+import { WHOLE_SUITE_TRIGGERS } from "./scripts/test-shards/test-scope.ts";
 import {
   coverageExclude,
   coverageInclude,

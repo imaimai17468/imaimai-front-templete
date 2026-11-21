@@ -6,8 +6,8 @@
  * from every line on each read.
  */
 
-import { isRecord } from "./orchestrate-decisions";
-import type { RemainingBudget } from "./orchestrate-decisions";
+import { isRecord } from "./orchestrate-decisions.ts";
+import type { RemainingBudget } from "./orchestrate-decisions.ts";
 
 const MODELS = ["opus", "fable", "sonnet", "haiku"] as const;
 export type Model = (typeof MODELS)[number];

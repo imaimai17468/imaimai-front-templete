@@ -9,8 +9,8 @@ A session carries one sign-in forward to every later request, so whoever holds t
 The session is a row in the D1 `sessions` table (`db/schema.ts`), and the cookie carries that row's random token together with an HMAC of the token under `BETTER_AUTH_SECRET`. On each read, Better Auth's `/get-session` (`node_modules/better-auth/dist/api/routes/session.mjs`) verifies the HMAC, looks the token up in D1, and treats a missing or expired row as signed out. `session.cookieCache` is unset, so no read is answered from the cookie alone.
 
 - `authOptions` in `src/lib/auth/options.ts` sets the cookie's `Secure` flag through `advanced.useSecureCookies: !isDevBuild`, which `src/lib/auth/better-auth.ts` passes as `import.meta.env.DEV`, and the lifetime through `session.expiresIn` (7 days) and `session.updateAge` (1 day).
-- `CurrentSession` in `src/lib/auth/session/index.ts` calls `getAuth().api.getSession` with the request's headers, and `pickCaller` in `caller.ts` keeps only `id` and `email`. Every gateway boundary reads the caller through it.
-- Sign-out is `endSession` in `src/lib/auth/sign-in/client.ts`, which `src/lib/auth/sign-in/index.ts` re-exports as `signOut` and the header's user menu (`src/shared/components/header/user-menu/user-menu.tsx`) calls before reloading the page. It posts to `/api/auth/sign-out`, which deletes the row and expires the cookies.
+- `CurrentSession` in `src/lib/auth/session/current-session.ts` calls `getAuth().api.getSession` with the request's headers, and `pickCaller` in `caller.ts` keeps only `id` and `email`. Every gateway boundary reads the caller through it.
+- Sign-out is `endSession` in `src/lib/auth/sign-in/client.ts`, which `src/lib/auth/sign-in/sign-in.ts` re-exports as `signOut` and the header's user menu (`src/shared/components/header/user-menu/user-menu.tsx`) calls before reloading the page. It posts to `/api/auth/sign-out`, which deletes the row and expires the cookies.
 
 ## Checks
 

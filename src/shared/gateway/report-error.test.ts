@@ -4,7 +4,7 @@ import { Effect, Option } from "effect";
 import { TestConsole } from "effect/testing";
 import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";
-import { errorReport, reportError } from "./report-error";
+import { errorReport, reportError } from "./report-error.ts";
 
 const STACK = "DriverFailed: D1 failed\n    at report-error.test.ts:1:1";
 
@@ -98,7 +98,7 @@ describe("report-error", () => {
     it.effect(
       "should write a plain record rather than the Option report when run",
       () =>
-        Effect.gen(function* writePlainRecord() {
+        Effect.gen(function* () {
           yield* reportError("user.updateName", failureWithStack());
           const written = yield* TestConsole.errorLines;
 
@@ -116,7 +116,7 @@ describe("report-error", () => {
     it.effect(
       "should write an absent field rather than a None when the Error has no stack",
       () =>
-        Effect.gen(function* writeAbsentStack() {
+        Effect.gen(function* () {
           yield* reportError("user.updateName", failureWithoutStack());
           const written = yield* TestConsole.errorLines;
 

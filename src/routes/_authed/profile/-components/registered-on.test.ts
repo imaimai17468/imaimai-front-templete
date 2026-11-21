@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { formatRegisteredOn } from "./registered-on";
+import { formatRegisteredOn } from "./registered-on.ts";
 
 describe(formatRegisteredOn, () => {
   it("should show the next day when the instant is past midnight in Tokyo but not in UTC", () => {

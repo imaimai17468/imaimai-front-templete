@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { describe, expect, it } from "vite-plus/test";
-import { mergeDurations } from "./merge-durations";
+import { mergeDurations } from "./merge-durations.ts";
 
 const resultsOf = (
   files: Record<string, { duration: number; lastRun: number }>,

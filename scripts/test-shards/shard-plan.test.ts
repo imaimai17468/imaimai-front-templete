@@ -1,8 +1,8 @@
 // @vitest-environment node
 
 import { describe, expect, it } from "vite-plus/test";
-import { selectShardFiles } from "./shard-plan";
-import type { ShardCandidate } from "./shard-plan";
+import { selectShardFiles } from "./shard-plan.ts";
+import type { ShardCandidate } from "./shard-plan.ts";
 
 const file = (id: string, duration?: number): ShardCandidate => ({
   id,

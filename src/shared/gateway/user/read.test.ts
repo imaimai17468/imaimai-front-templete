@@ -1,15 +1,15 @@
 import { describe, expect, it, vi } from "@effect/vitest";
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import { DateTime, Effect, Layer, Option } from "effect";
-import { CurrentSession } from "@/lib/auth/session";
+import { CurrentSession } from "@/lib/auth/session/current-session";
 import { rejectionOf } from "@/shared/gateway/rejection";
 import { avatarUrlForKey } from "@/shared/gateway/user/avatar-url";
 import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";
-import { UserPersistenceError } from ".";
-import { makeRunHandler } from "../runtime";
-import { CurrentUserReader, readCurrentUser, UserProfiles } from "./read";
-import type { ProfileRow } from "./read";
+import { makeRunHandler } from "../runtime.ts";
+import { UserPersistenceError } from "./persistence.ts";
+import { CurrentUserReader, readCurrentUser, UserProfiles } from "./read.ts";
+import type { ProfileRow } from "./read.ts";
 
 const AVATAR_KEY = "user-1/avatar.jpg";
 const PROVIDER_IMAGE = "https://images.example.com/from-google.png";
@@ -79,7 +79,7 @@ describe("CurrentUserReader.read", () => {
   it.effect(
     "should return None without reading the profile when the request is anonymous",
     () =>
-      Effect.gen(function* returnNoneWithoutReadingTheProfile() {
+      Effect.gen(function* () {
         const { findProfile, readCurrentUser: read } = makeFakes(
           Effect.succeedNone
         );
@@ -96,7 +96,7 @@ describe("CurrentUserReader.read", () => {
   it.effect(
     "should look the row up by the server-derived identity when the request is authenticated",
     () =>
-      Effect.gen(function* lookTheRowUpByTheServerDerivedIdentity() {
+      Effect.gen(function* () {
         const { findProfile, readCurrentUser: read } = makeFakes(
           Effect.succeed(authenticatedCaller)
         );
@@ -109,7 +109,7 @@ describe("CurrentUserReader.read", () => {
   );
 
   it.effect("should return None when the caller has no profile row", () =>
-    Effect.gen(function* returnNone() {
+    Effect.gen(function* () {
       const { findProfile, readCurrentUser: read } = makeFakes(
         Effect.succeed(authenticatedCaller)
       );
@@ -124,7 +124,7 @@ describe("CurrentUserReader.read", () => {
   it.effect(
     "should encode the row with the session's email when a profile row exists",
     () =>
-      Effect.gen(function* encodeTheRowWithTheSessionEmail() {
+      Effect.gen(function* () {
         const { findProfile, readCurrentUser: read } = makeFakes(
           Effect.succeed(authenticatedCaller)
         );
@@ -139,7 +139,7 @@ describe("CurrentUserReader.read", () => {
   it.effect(
     "should encode an absent name as null when the row holds none",
     () =>
-      Effect.gen(function* encodeAnAbsentNameAsNull() {
+      Effect.gen(function* () {
         const { findProfile, readCurrentUser: read } = makeFakes(
           Effect.succeed(authenticatedCaller)
         );
@@ -158,7 +158,7 @@ describe("CurrentUserReader.read", () => {
   it.effect(
     "should serve the uploaded avatar when the row holds a key alongside a provider image",
     () =>
-      Effect.gen(function* serveTheUploadedAvatar() {
+      Effect.gen(function* () {
         const { findProfile, readCurrentUser: read } = makeFakes(
           Effect.succeed(authenticatedCaller)
         );
@@ -182,7 +182,7 @@ describe("CurrentUserReader.read", () => {
   it.effect(
     "should fall back to the provider's image when the row holds no key",
     () =>
-      Effect.gen(function* fallBackToTheProviderImage() {
+      Effect.gen(function* () {
         const { findProfile, readCurrentUser: read } = makeFakes(
           Effect.succeed(authenticatedCaller)
         );
@@ -199,7 +199,7 @@ describe("CurrentUserReader.read", () => {
   );
 
   it.effect("should propagate the defect when session resolution fails", () =>
-    Effect.gen(function* propagateTheDefect() {
+    Effect.gen(function* () {
       const sessionFailure = DriverFailed.make({ message: "session failed" });
       const { readCurrentUser: read } = makeFakes(Effect.die(sessionFailure));
 
@@ -212,7 +212,7 @@ describe("CurrentUserReader.read", () => {
   it.effect(
     "should answer with the fixed message rather than the query when the profile read fails",
     () =>
-      Effect.gen(function* answerWithTheFixedMessage() {
+      Effect.gen(function* () {
         vi.spyOn(console, "error").mockImplementation((): void => {});
         const { answer } = failingProfileRead();
 
@@ -228,7 +228,7 @@ describe("CurrentUserReader.read", () => {
   it.effect(
     "should log the query without its parameters when the profile read fails",
     () =>
-      Effect.gen(function* logTheQueryWithoutItsParameters() {
+      Effect.gen(function* () {
         const errorSpy = vi
           .spyOn(console, "error")
           .mockImplementation((): void => {});

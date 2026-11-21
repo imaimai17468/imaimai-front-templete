@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Navigate } from "@tanstack/react-router";
 import { currentUserQueryOptions } from "@/shared/gateway/user/read.fn";
-import { ProfilePage } from "./profile-page";
+import { ProfilePage } from "./profile-page.tsx";
 
 export const ProfileGate = () => {
   const { data: user } = useSuspenseQuery(currentUserQueryOptions());

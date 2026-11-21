@@ -7,7 +7,7 @@ import {
   avatarSizeVerdict,
   isOwnAvatarKey,
   MAX_AVATAR_BYTES,
-} from "./avatar-validation";
+} from "./avatar-validation.ts";
 
 describe(avatarExtensionForMime, () => {
   it.each([

@@ -26,7 +26,7 @@ The document's `Content-Security-Policy` is `frame-ancestors 'none'` and carries
 
 **Every page that shows the value is checked, not only the one that saves it.** A name saved on `/profile` is also rendered by `UserMenu` (`src/shared/components/header/user-menu/user-menu.tsx`) in the dropdown every page's header opens, and as the avatar's `alt` and first letter. A new view of stored text, such as an admin list, an e-mail body or an error page, is a new place to check with the same test.
 
-**Validation and escaping are not the same step.** `UpdateUserSchema` in `src/shared/entities/user/index.ts` limits the name to 1 to 50 characters and says nothing about what the name may contain, which is right: the value is stored as typed and escaped where it is written out. Replacing `<` with `&lt;` before storing it corrupts the value everywhere it is not HTML and is escaped a second time by React.
+**Validation and escaping are not the same step.** `UpdateUserSchema` in `src/shared/entities/user/user.ts` limits the name to 1 to 50 characters and says nothing about what the name may contain, which is right: the value is stored as typed and escaped where it is written out. Replacing `<` with `&lt;` before storing it corrupts the value everywhere it is not HTML and is escaped a second time by React.
 
 ## Reproduce locally
 

@@ -36,14 +36,23 @@ interface MalformedResults {
 
 type ParsedText = ParsedResults | MalformedResults;
 
-const parseResultsText = (text: string): ParsedText => {
-  let json: unknown;
+const parseJson = (
+  text: string
+): MalformedResults | { readonly value: unknown } => {
   try {
-    json = JSON.parse(text);
+    const value: unknown = JSON.parse(text);
+    return { value };
   } catch {
     return { detail: "A results.json is not JSON.", kind: "malformed" };
   }
-  const parsed = ResultsFileSchema.safeParse(json);
+};
+
+const parseResultsText = (text: string): ParsedText => {
+  const json = parseJson(text);
+  if ("kind" in json) {
+    return json;
+  }
+  const parsed = ResultsFileSchema.safeParse(json.value);
   return parsed.success
     ? { kind: "parsed", results: parsed.data }
     : {

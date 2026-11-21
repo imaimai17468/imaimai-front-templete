@@ -1,5 +1,5 @@
 import { Effect, Option, Predicate, Schema } from "effect";
-import type { SignInFailure, SignInOutcome } from "./outcome";
+import type { SignInFailure, SignInOutcome } from "./outcome.ts";
 
 /** The account a dev build signs in as, so a local session needs no Google credentials. */
 export interface DevUser {
@@ -44,7 +44,7 @@ export const createDevSignIn =
   ({ signIn, signUp }: DevSignInDeps) =>
   (user: DevUser): Promise<SignInOutcome> =>
     Effect.runPromise(
-      Effect.gen(function* attemptDevSignIn() {
+      Effect.gen(function* () {
         const signInFailure = yield* attempt(() => signIn(user));
         if (Option.isNone(signInFailure)) {
           return { kind: "signed-in" } satisfies SignInOutcome;

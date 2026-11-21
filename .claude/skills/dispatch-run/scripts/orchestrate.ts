@@ -71,7 +71,7 @@ import {
   watchedBranches,
   worktreeProbe,
   worktreeVerdict,
-} from "./orchestrate-decisions";
+} from "./orchestrate-decisions.ts";
 import type {
   Ancestry,
   MainFetch,
@@ -81,15 +81,15 @@ import type {
   Worktree,
   WorktreeFacts,
   WorktreeVerdict,
-} from "./orchestrate-decisions";
+} from "./orchestrate-decisions.ts";
 import {
   costLog,
   dispatchEvent,
   doneEvent,
   fiveHourSnapshot,
   formatCosts,
-} from "./ticket-costs";
-import type { CostEvent, Parsed } from "./ticket-costs";
+} from "./ticket-costs.ts";
+import type { CostEvent, Parsed } from "./ticket-costs.ts";
 
 const run = (file: string, args: readonly string[]): string =>
   execFileSync(file, args, { encoding: "utf-8" });

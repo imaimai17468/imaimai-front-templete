@@ -99,6 +99,19 @@ export const isRecord = (value: unknown): value is Record<string, unknown> =>
 /** The parsed file, carrying the epoch second its writer stamped on it. */
 type WrittenFile = Record<string, unknown> & { readonly written_at: number };
 
+type ParsedJson =
+  | { readonly kind: "json"; readonly value: unknown }
+  | { readonly kind: "not-json" };
+
+const jsonOf = (text: string): ParsedJson => {
+  try {
+    const value: unknown = JSON.parse(text);
+    return { kind: "json", value };
+  } catch {
+    return { kind: "not-json" };
+  }
+};
+
 const isWrittenFile = (value: unknown): value is WrittenFile =>
   isRecord(value) &&
   typeof value.written_at === "number" &&
@@ -156,12 +169,11 @@ export const remainingBudget = (
   if (file.kind === "unreadable") {
     return unknownBudget({ detail: file.detail, kind: "unreadable" });
   }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(file.text);
-  } catch {
+  const json = jsonOf(file.text);
+  if (json.kind === "not-json") {
     return unknownBudget({ kind: "no-json" });
   }
+  const parsed = json.value;
   if (!isWrittenFile(parsed)) {
     return unknownBudget({ kind: "no-written-at" });
   }

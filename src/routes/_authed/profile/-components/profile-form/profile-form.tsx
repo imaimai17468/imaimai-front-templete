@@ -10,8 +10,8 @@ import {
 } from "@/lib/storage/avatar-validation";
 import type { AvatarSizeRejection } from "@/lib/storage/avatar-validation";
 import { UserAvatar } from "@/shared/components/user-avatar/user-avatar";
-import type { UpdateUser, UserWithEmail } from "@/shared/entities/user";
-import { displayName, UpdateUserSchema } from "@/shared/entities/user";
+import type { UpdateUser, UserWithEmail } from "@/shared/entities/user/user";
+import { displayName, UpdateUserSchema } from "@/shared/entities/user/user";
 import { currentUserQueryOptions } from "@/shared/gateway/user/read.fn";
 import { Button } from "@/shared/ui/button";
 import {
@@ -24,8 +24,8 @@ import {
   FormMessage,
 } from "@/shared/ui/form";
 import { Input } from "@/shared/ui/input";
-import { SubmitLabel } from "./submit-label";
-import { submitProfile } from "./submit-profile";
+import { SubmitLabel } from "./submit-label.tsx";
+import { submitProfile } from "./submit-profile.ts";
 
 const AVATAR_SIZE_TOASTS = {
   empty: "That file is empty. Please select another one.",

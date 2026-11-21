@@ -1,22 +1,22 @@
 import { describe, expect, it, vi } from "@effect/vitest";
 import { DateTime, Effect, Layer, Option } from "effect";
-import type { UpdateUser, UserWithEmail } from "@/shared/entities/user";
+import type { UpdateUser, UserWithEmail } from "@/shared/entities/user/user";
 import { capturedReports } from "@/shared/gateway/error-reports";
 import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";
-import { UserPersistenceError } from ".";
 import {
   AvatarTypeUnsupported,
   AvatarUploadFailed,
   AvatarWriter,
-} from "./avatar/update";
-import { CurrentUserReader } from "./read";
+} from "./avatar/update.ts";
+import { UserPersistenceError } from "./persistence.ts";
+import { CurrentUserReader } from "./read.ts";
 import {
   ProfileWriter,
   UserNames,
   updateProfileResult,
   uploadAvatarResult,
-} from "./update";
+} from "./update.ts";
 
 const TEST_CLOCK_INSTANT = "1970-01-01T00:00:00.000Z";
 
@@ -68,7 +68,7 @@ describe(updateProfileResult, () => {
   it.effect(
     "should reject without writing persistence when the request is anonymous",
     () =>
-      Effect.gen(function* rejectWithoutWritingPersistence() {
+      Effect.gen(function* () {
         const { setName, updateProfile } = makeFakes(Effect.succeedNone);
 
         const result = yield* updateProfile({ name: "Updated User" });
@@ -83,7 +83,7 @@ describe(updateProfileResult, () => {
   it.effect(
     "should pass the server-derived identity when the request is authenticated",
     () =>
-      Effect.gen(function* passTheServerDerivedIdentity() {
+      Effect.gen(function* () {
         const { setName, updateProfile } = makeFakes(
           Effect.succeedSome(authenticatedUser)
         );
@@ -104,7 +104,7 @@ describe(updateProfileResult, () => {
   );
 
   it.effect("should report the write failure when the name update fails", () =>
-    Effect.gen(function* reportTheFailedNameWrite() {
+    Effect.gen(function* () {
       const { setName, updateProfile } = makeFakes(
         Effect.succeedSome(authenticatedUser)
       );
@@ -138,7 +138,7 @@ describe(updateProfileResult, () => {
   it.effect(
     "should report the write failure when the name update touches zero rows",
     () =>
-      Effect.gen(function* reportTheZeroRowNameWrite() {
+      Effect.gen(function* () {
         const { setName, updateProfile } = makeFakes(
           Effect.succeedSome(authenticatedUser)
         );
@@ -166,7 +166,7 @@ describe(updateProfileResult, () => {
   it.effect(
     "should propagate the cause as a defect when the identity read fails",
     () =>
-      Effect.gen(function* propagateTheCauseAsADefect() {
+      Effect.gen(function* () {
         const driverFailure = DriverFailed.make({ message: "D1 failed" });
         const { updateProfile } = makeFakes(
           Effect.fail(UserPersistenceError.make({ cause: driverFailure }))
@@ -185,7 +185,7 @@ describe(uploadAvatarResult, () => {
   it.effect(
     "should reject without writing persistence when the request is anonymous",
     () =>
-      Effect.gen(function* rejectWithoutWritingPersistence() {
+      Effect.gen(function* () {
         const { replaceAvatar, uploadAvatar } = makeFakes(Effect.succeedNone);
 
         const result = yield* uploadAvatar(pngFile(1));
@@ -206,7 +206,7 @@ describe(uploadAvatarResult, () => {
   it.effect(
     "should pass the server-derived identity when the request is authenticated",
     () =>
-      Effect.gen(function* passTheServerDerivedIdentity() {
+      Effect.gen(function* () {
         const { replaceAvatar, uploadAvatar } = makeFakes(
           Effect.succeedSome(authenticatedUser)
         );
@@ -231,7 +231,7 @@ describe(uploadAvatarResult, () => {
   it.effect(
     "should report the rejected type when the gateway refuses the image",
     () =>
-      Effect.gen(function* reportTheRejectedType() {
+      Effect.gen(function* () {
         const { replaceAvatar, uploadAvatar } = makeFakes(
           Effect.succeedSome(authenticatedUser)
         );
@@ -251,7 +251,7 @@ describe(uploadAvatarResult, () => {
   it.effect(
     "should report a failed upload when the gateway could not store the object",
     () =>
-      Effect.gen(function* reportAFailedUpload() {
+      Effect.gen(function* () {
         const { replaceAvatar, uploadAvatar } = makeFakes(
           Effect.succeedSome(authenticatedUser)
         );
@@ -269,7 +269,7 @@ describe(uploadAvatarResult, () => {
   it.effect(
     "should propagate the cause as a defect when the identity read fails",
     () =>
-      Effect.gen(function* propagateTheCauseAsADefect() {
+      Effect.gen(function* () {
         const driverFailure = DriverFailed.make({ message: "D1 failed" });
         const { uploadAvatar } = makeFakes(
           Effect.fail(UserPersistenceError.make({ cause: driverFailure }))

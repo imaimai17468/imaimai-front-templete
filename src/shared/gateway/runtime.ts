@@ -1,6 +1,6 @@
 import "@tanstack/react-start/server-only";
 import {
-  Array as Arr,
+  Array,
   Cause,
   Effect,
   Exit,
@@ -39,8 +39,8 @@ const HANDLER_DEFECT_EVENT = "gateway.handlerDefect";
  * `Cause.squash` builds for it.
  */
 const defectsToLog = (cause: Cause.Cause<never>): readonly unknown[] =>
-  Arr.match(
-    Arr.filterMap(cause.reasons, (reason) =>
+  Array.match(
+    Array.filterMap(cause.reasons, (reason) =>
       Result.liftPredicate(reason, Cause.isDieReason, identity).pipe(
         Result.map((die) => die.defect)
       )

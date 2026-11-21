@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import type { UserWithEmail } from "@/shared/entities/user";
-import { AuthNavigation } from "./auth-navigation/auth-navigation";
-import { ModeToggle } from "./mode-toggle/mode-toggle";
+import type { UserWithEmail } from "@/shared/entities/user/user";
+import { AuthNavigation } from "./auth-navigation/auth-navigation.tsx";
+import { ModeToggle } from "./mode-toggle/mode-toggle.tsx";
 
 export const Header = ({ user }: { readonly user: UserWithEmail | null }) => (
   <header className="sticky top-0 z-50 bg-background backdrop-blur-md supports-backdrop-filter:bg-transparent">

@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
-import { getCurrentUser } from "./read";
+import { getCurrentUser } from "./read.ts";
 
 const getCurrentUserFn = createServerFn({ method: "GET" }).handler(
   getCurrentUser

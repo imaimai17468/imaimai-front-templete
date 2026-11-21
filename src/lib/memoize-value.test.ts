@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { DriverFailed } from "@/test/defect";
-import { memoizeValue } from "./memoize-value";
+import { memoizeValue } from "./memoize-value.ts";
 
 describe(memoizeValue, () => {
   it("should return what build produced when the reader is called the first time", () => {

@@ -1,13 +1,13 @@
 import "@tanstack/react-start/server-only";
 import { Context, Effect, flow, Layer, Option, Schema } from "effect";
-import { CurrentSession } from "@/lib/auth/session";
-import { UserWithEmailSchema } from "@/shared/entities/user";
-import type { UserWithEmail } from "@/shared/entities/user";
+import { CurrentSession } from "@/lib/auth/session/current-session";
+import { UserWithEmailSchema } from "@/shared/entities/user/user";
+import type { UserWithEmail } from "@/shared/entities/user/user";
 import { avatarUrlForKey } from "@/shared/gateway/user/avatar-url";
 import { httpsUrl } from "@/shared/gateway/user/https-url";
-import { dieOnPersistenceError, readUserRow } from ".";
-import type { UserPersistenceError } from ".";
-import { makeRunHandler } from "../runtime";
+import { makeRunHandler } from "../runtime.ts";
+import { dieOnPersistenceError, readUserRow } from "./persistence.ts";
+import type { UserPersistenceError } from "./persistence.ts";
 
 /**
  * Turns a row's `DateTime.Utc` instants into the ISO-8601 strings of
@@ -89,11 +89,11 @@ export class CurrentUserReader extends Context.Service<
 >()("my-app/shared/gateway/user/read/CurrentUserReader") {
   static readonly layerNoDeps = Layer.effect(
     CurrentUserReader,
-    Effect.gen(function* buildCurrentUserReader() {
+    Effect.gen(function* () {
       const currentSession = yield* CurrentSession;
       const profiles = yield* UserProfiles;
 
-      const read = Effect.gen(function* readCurrentUser() {
+      const read = Effect.gen(function* () {
         const caller = yield* currentSession.read;
         if (Option.isNone(caller)) {
           return Option.none();
@@ -143,7 +143,7 @@ export const readCurrentUser: Effect.Effect<
   Option.Option<UserWithEmail>,
   never,
   CurrentUserReader
-> = Effect.gen(function* readCurrentUser() {
+> = Effect.gen(function* () {
   const reader = yield* CurrentUserReader;
   return yield* reader.read;
 }).pipe(Effect.catchTags(dieOnPersistenceError));

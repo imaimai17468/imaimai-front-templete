@@ -1,8 +1,8 @@
 import { describe, expect, it } from "@effect/vitest";
 import { betterAuth } from "better-auth";
 import { memoryAdapter } from "better-auth/adapters/memory";
-import { Effect, Array as Arr } from "effect";
-import { authOptions } from "./options";
+import { Effect, Array } from "effect";
+import { authOptions } from "./options.ts";
 
 const buildTestAuth = (isDevBuild: boolean) =>
   betterAuth(
@@ -75,10 +75,10 @@ describe(authOptions, () => {
   it.effect(
     "should answer 429 to the fourth sign-in within ten seconds when cf-connecting-ip stays the same and x-forwarded-for changes",
     () =>
-      Effect.gen(function* limitTheFourthSignIn() {
+      Effect.gen(function* () {
         const statuses = yield* signInStatuses(
           buildTestAuth(false),
-          Arr.map(
+          Array.map(
             ["198.51.100.1", "198.51.100.2", "198.51.100.3", "198.51.100.4"],
             (xForwardedFor) => ({
               cfConnectingIp: "203.0.113.7",
@@ -94,7 +94,7 @@ describe(authOptions, () => {
   it.effect(
     "should count a sign-in in its own bucket when it comes from another cf-connecting-ip",
     () =>
-      Effect.gen(function* countEachAddressSeparately() {
+      Effect.gen(function* () {
         const statuses = yield* signInStatuses(buildTestAuth(false), [
           { cfConnectingIp: "203.0.113.7", xForwardedFor: "198.51.100.1" },
           { cfConnectingIp: "203.0.113.7", xForwardedFor: "198.51.100.1" },

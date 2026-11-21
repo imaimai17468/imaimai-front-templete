@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { DriverFailed } from "@/test/defect";
-import type { DevSignInDeps } from "./dev";
-import { createDevSignIn, DEV_USER } from "./dev";
+import type { DevSignInDeps } from "./dev.ts";
+import { createDevSignIn, DEV_USER } from "./dev.ts";
 
 const RECOVERY =
   "Restart bun run dev, which applies the D1 migrations. If that does not help, reset the local D1.";
@@ -20,7 +20,7 @@ describe("devSignIn", () => {
   it.effect(
     "should sign in without creating a user when the account already exists",
     () =>
-      Effect.gen(function* signInWithoutCreatingAUser() {
+      Effect.gen(function* () {
         const { devSignIn, signIn, signUp } = makeFakes();
         signIn.mockResolvedValue(Option.none());
 
@@ -36,7 +36,7 @@ describe("devSignIn", () => {
   it.effect(
     "should create the account and reach a session when the first sign-in is rejected",
     () =>
-      Effect.gen(function* createTheAccountAndReachASession() {
+      Effect.gen(function* () {
         const { devSignIn, signIn, signUp } = makeFakes();
         signIn.mockResolvedValue(reported("invalid credentials"));
         signUp.mockResolvedValue(Option.none());
@@ -53,7 +53,7 @@ describe("devSignIn", () => {
   it.effect(
     "should fail with the recovery step when the sign-up is rejected",
     () =>
-      Effect.gen(function* failWithTheRecoveryStep() {
+      Effect.gen(function* () {
         const { devSignIn, signIn, signUp } = makeFakes();
         signIn.mockResolvedValue(reported("invalid credentials"));
         signUp.mockResolvedValue(reported("User already exists."));
@@ -70,7 +70,7 @@ describe("devSignIn", () => {
   it.effect(
     "should name the sign-up when the rejection carries no message",
     () =>
-      Effect.gen(function* nameTheSignUp() {
+      Effect.gen(function* () {
         const { devSignIn, signIn, signUp } = makeFakes();
         signIn.mockResolvedValue(reported("invalid credentials"));
         signUp.mockResolvedValue(Option.some({ message: Option.none() }));
@@ -87,7 +87,7 @@ describe("devSignIn", () => {
   it.effect(
     "should fail with the thrown message when the request never reaches the server",
     () =>
-      Effect.gen(function* failWithTheThrownMessage() {
+      Effect.gen(function* () {
         const { devSignIn, signIn } = makeFakes();
         signIn.mockRejectedValue(
           DriverFailed.make({ message: "Failed to fetch" })
@@ -105,7 +105,7 @@ describe("devSignIn", () => {
   it.effect(
     "should fail with the recovery step when the thrown value is not an error",
     () =>
-      Effect.gen(function* failWithTheRecoveryStepForANonError() {
+      Effect.gen(function* () {
         const { devSignIn, signIn } = makeFakes();
         signIn.mockRejectedValue("offline");
 

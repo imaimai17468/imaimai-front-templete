@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "@effect/vitest";
-import { Effect, Layer, Option, Record as Rec } from "effect";
-import { CurrentSession } from "@/lib/auth/session";
+import { Effect, Layer, Option, Record } from "effect";
+import { CurrentSession } from "@/lib/auth/session/current-session";
 import { capturedReports } from "@/shared/gateway/error-reports";
 import { DriverFailed } from "@/test/defect";
-import { AvatarBucket, AvatarObject } from ".";
-import { UserPersistenceError } from "..";
+import { UserPersistenceError } from "../persistence.ts";
+import { AvatarBucket, AvatarObject } from "./bucket.ts";
 import {
   AvatarInvalidKey,
   AvatarNotFound,
@@ -12,7 +12,7 @@ import {
   AvatarReader,
   AvatarUnauthorized,
   getAvatarResponse,
-} from "./read";
+} from "./read.ts";
 
 const makeFakes = (read: CurrentSession["Service"]["read"]) => {
   const fetchAvatar = vi.fn<AvatarBucket["Service"]["get"]>();
@@ -34,7 +34,7 @@ const makeFakes = (read: CurrentSession["Service"]["read"]) => {
   return {
     fetchAvatar,
     readAvatarOrFailure: (key: Option.Option<string>) =>
-      Effect.gen(function* callRead() {
+      Effect.gen(function* () {
         const reader = yield* AvatarReader;
         return yield* reader.read(key);
       }).pipe(
@@ -59,7 +59,7 @@ describe("AvatarReader.read", () => {
   it.effect(
     "should reject without reading persistence when the request is anonymous",
     () =>
-      Effect.gen(function* rejectAnAnonymousRequest() {
+      Effect.gen(function* () {
         const { fetchAvatar, readAvatarOrFailure } = makeFakes(
           Effect.succeedNone
         );
@@ -76,7 +76,7 @@ describe("AvatarReader.read", () => {
   it.effect.each(rejectedKeyCases)(
     "should reject without reading persistence when %s",
     ([_label, key]) =>
-      Effect.gen(function* rejectAnInvalidKey() {
+      Effect.gen(function* () {
         const { fetchAvatar, readAvatarOrFailure } = makeFakes(
           Effect.succeed(signedInAs("user-1"))
         );
@@ -91,7 +91,7 @@ describe("AvatarReader.read", () => {
   );
 
   it.effect("should fail with not-found when the owned object is absent", () =>
-    Effect.gen(function* failWithNotFound() {
+    Effect.gen(function* () {
       const { fetchAvatar, readAvatarOrFailure } = makeFakes(
         Effect.succeed(signedInAs("user-1"))
       );
@@ -109,7 +109,7 @@ describe("AvatarReader.read", () => {
   it.effect(
     "should return the gateway object when the owned object exists",
     () =>
-      Effect.gen(function* returnTheGatewayObject() {
+      Effect.gen(function* () {
         const { fetchAvatar, readAvatarOrFailure } = makeFakes(
           Effect.succeed(signedInAs("user-1"))
         );
@@ -129,7 +129,7 @@ describe("AvatarReader.read", () => {
   );
 
   it.effect("should propagate the defect when session resolution fails", () =>
-    Effect.gen(function* propagateTheSessionDefect() {
+    Effect.gen(function* () {
       const sessionFailure = DriverFailed.make({ message: "session failed" });
       const { readAvatarOrFailure } = makeFakes(Effect.die(sessionFailure));
 
@@ -144,7 +144,7 @@ describe("AvatarReader.read", () => {
   it.effect(
     "should fail with read-failed and report the cause when persistence fails",
     () =>
-      Effect.gen(function* failWithReadFailed() {
+      Effect.gen(function* () {
         const { fetchAvatar, readAvatarOrFailure } = makeFakes(
           Effect.succeed(signedInAs("user-1"))
         );
@@ -209,7 +209,7 @@ describe(getAvatarResponse, () => {
   it.effect.each(errorCases)(
     "should answer $status with $error when the authorization boundary fails with $failure._tag",
     ({ error, failure, status }) =>
-      Effect.gen(function* answerTheRejection() {
+      Effect.gen(function* () {
         const respond = respondThrough(() => Effect.fail(failure));
 
         const response = yield* respond(avatarRequest());
@@ -225,7 +225,7 @@ describe(getAvatarResponse, () => {
   it.effect(
     "should return the object's own response when the authorization boundary returns an avatar",
     () =>
-      Effect.gen(function* serveTheObject() {
+      Effect.gen(function* () {
         const respond = respondThrough(() =>
           Effect.succeed(new AvatarObject(avatarBody(), "image/webp"))
         );
@@ -235,7 +235,7 @@ describe(getAvatarResponse, () => {
 
         expect({
           body,
-          headers: Rec.fromEntries(response.headers),
+          headers: Record.fromEntries(response.headers),
           status: response.status,
         }).toStrictEqual({
           body: "avatar-body",
@@ -253,7 +253,7 @@ describe(getAvatarResponse, () => {
   it.effect(
     "should pass the query string's key to the authorization boundary when the request carries one",
     () =>
-      Effect.gen(function* passTheQueryKey() {
+      Effect.gen(function* () {
         const read = vi.fn<AvatarReader["Service"]["read"]>();
         read.mockReturnValue(Effect.fail(AvatarNotFound.make()));
 
@@ -268,7 +268,7 @@ describe(getAvatarResponse, () => {
   it.effect(
     "should pass an absent key to the authorization boundary when the request carries no key",
     () =>
-      Effect.gen(function* passAnAbsentKey() {
+      Effect.gen(function* () {
         const read = vi.fn<AvatarReader["Service"]["read"]>();
         read.mockReturnValue(Effect.fail(AvatarInvalidKey.make()));
 
@@ -283,7 +283,7 @@ describe(getAvatarResponse, () => {
   it.effect(
     "should propagate the defect when the authorization boundary dies",
     () =>
-      Effect.gen(function* propagateTheDefect() {
+      Effect.gen(function* () {
         const readFailure = DriverFailed.make({
           message: "avatar read failed",
         });

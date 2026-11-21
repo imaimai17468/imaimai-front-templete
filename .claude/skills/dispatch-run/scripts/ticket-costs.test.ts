@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { RemainingBudget } from "./orchestrate-decisions";
+import type { RemainingBudget } from "./orchestrate-decisions.ts";
 import {
   costLog,
   dispatchEvent,
   doneEvent,
   fiveHourSnapshot,
   formatCosts,
-} from "./ticket-costs";
-import type { CostEvent, DispatchEvent, DoneEvent } from "./ticket-costs";
+} from "./ticket-costs.ts";
+import type { CostEvent, DispatchEvent, DoneEvent } from "./ticket-costs.ts";
 
 const NOW = 1_791_964_866;
 const RESETS_AT = NOW + 3600;

@@ -34,8 +34,8 @@ import {
   served,
   SIGN_IN_BURST,
   signInBurstFailure,
-} from "./smoke";
-import type { Route, RouteResult } from "./smoke";
+} from "./smoke.ts";
+import type { Route, RouteResult } from "./smoke.ts";
 
 /**
  * The environment the dev server runs under. `SMOKE_STATE_DIR` is where
@@ -72,15 +72,15 @@ const readyUrl = async (child: ChildProcess, stdout: Readable) => {
     process.stdout.write(String(chunk));
   });
 
-  let buffered = "";
+  const pending = { text: "" };
   const scan = (chunk: unknown) => {
-    buffered += String(chunk);
-    const lastBreak = buffered.lastIndexOf("\n");
+    pending.text += String(chunk);
+    const lastBreak = pending.text.lastIndexOf("\n");
     if (lastBreak === -1) {
       return;
     }
-    const found = readyUrlIn(buffered.slice(0, lastBreak));
-    buffered = buffered.slice(lastBreak + 1);
+    const found = readyUrlIn(pending.text.slice(0, lastBreak));
+    pending.text = pending.text.slice(lastBreak + 1);
     if (found !== null) {
       stdout.off("data", scan);
       resolve(found);

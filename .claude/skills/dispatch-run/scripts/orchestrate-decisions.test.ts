@@ -18,13 +18,13 @@ import {
   watchedBranches,
   worktreeProbe,
   worktreeVerdict,
-} from "./orchestrate-decisions";
+} from "./orchestrate-decisions.ts";
 import type {
   Ancestry,
   PullRequest,
   RateLimitsFile,
   Worktree,
-} from "./orchestrate-decisions";
+} from "./orchestrate-decisions.ts";
 
 const GIB = 1024 ** 3;
 
