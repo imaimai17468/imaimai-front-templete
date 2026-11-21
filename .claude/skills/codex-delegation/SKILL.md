@@ -5,7 +5,7 @@ description: "Hand a ticket's mechanical implementation to the Codex CLI (`codex
 
 # Codex delegation
 
-What a Claude worker spends on one ticket counts against the usage windows AGENTS.md's dispatch bullet reads. The part of a ticket a gate can accept or reject does not need this repository's judgment, so it goes to Codex, and the worker keeps the ticket.
+What a Claude worker spends on one ticket counts against the usage windows `ticket-work`'s *Tickets and waves* bounds a dispatch by. The part of a ticket a gate can accept or reject does not need this repository's judgment, so it goes to Codex, and the worker keeps the ticket.
 
 ## What Codex is handed
 
@@ -33,7 +33,7 @@ Codex runs in the ticket's own worktree and writes its last message to a file th
 codex exec -C .claude/worktrees/<ticket> -s workspace-write -o <scratchpad>/codex-<ticket>.md - < <scratchpad>/codex-<ticket>-prompt.md
 ```
 
-Both paths are written out as literals and the prompt arrives on stdin behind a `-` argument, because the Bash guards AGENTS.md's Degraded Environments names refuse the same call with the worktree path, the `-o` path or the prompt held in a variable. `/usr/bin/time -p codex exec …` is refused as well, so a `date` call on either side records the wall clock.
+Write both paths out as literals and send the prompt on stdin behind a `-` argument, because in a worktree-isolated session the guard AGENTS.md's Degraded Environments names refuses a command it cannot verify stays inside the worktree, and a path or a prompt held in a variable can make it one.
 
 `-o` points outside the worktree because a path inside it turns up in `git status` and muddies the diff the worker is about to review.
 
@@ -41,7 +41,7 @@ Both paths are written out as literals and the prompt arrives on stdin behind a 
 
 The prompt carries the ticket's own text, the command that accepts the work (`bun run check`, `bun run test`, or the one test file), and the constraint that Codex commits nothing and pushes nothing, leaving every change in the working tree. Add AGENTS.md's layering rule when the change crosses the layers its Rules section names.
 
-Handing Codex the target as literal code does not settle what it writes: told to write `const AVATAR_REJECTION_MESSAGES: Record<AvatarSizeRejection, string> = {…}` and `describe("parseProfileUpdate", …)`, it shipped `satisfies Record<…>` and `describe(parseProfileUpdate, …)`, which `bun run lint` then reported as `anti-slop(no-known-value-widening)` and `vitest(prefer-describe-function-title)`. Name the branch a test must reach together with the input that reaches it, because a branch named alone gets the cheapest input rather than the one production sends: told to cover a size limit, Codex redefined a `File`'s `size` with `Object.defineProperty` instead of allocating the bytes.
+Codex can write code other than the literal code the prompt hands it, so read the diff against the pasted target rather than trusting that it landed as pasted. Name the branch a test must reach together with the input that reaches it, because a branch named alone gets the cheapest input rather than the one production sends, such as a `File` whose `size` is redefined in place of one holding the bytes.
 
 Outbound network inside this sandbox is a separate opt-in (`sandbox_workspace_write.network_access`), so the `bun run setup` that `ticket-work` opens with runs in the worktree before delegating rather than the sandbox widening for `bun install`. Where a command Codex needs is refused, the worker runs that command itself.
 
@@ -61,10 +61,3 @@ Three things the diff and the exit code report differently from what happened:
 
 The commit takes no second `Co-Authored-By:` trailer for Codex, because after the worker has read the whole diff and changed what it disagreed with, the commit is the worker's to answer for. The PR body names the delegation, where a reviewer can act on it.
 
-## What has been measured
-
-Three delegations ran on 2026-09-09, the three tickets of one series: five renames with their reference updates and a rewritten `coverageExclude` array in `vitest.config.mts`, then four renames to `*.live.ts` with five `coverageExclude` entries deleted, then two renames with a restructure of `src/server/fn/profile.ts` into the deps-injecting shape its siblings already use and a new `src/server/fn/profile.test.ts` covering that file's 14 branches. Each inherited `gpt-6-astra` at `model_reasoning_effort = "low"`, exited 0, and made every edit its prompt named, in 2m35s, 5m07s and 4m38s of wall clock. The second run's diff needed one change on review, a file name made false as the rename lesson above describes.
-
-`codex exec` printed 57,463, 42,237 and 49,743 tokens used, each run's uncached input plus its output. That order matches neither the ticket's file count nor the wall clock, so these three measurements separate nothing about what makes a ticket cost more. What they do bound is the printed figure itself, which stayed between 42k and 58k while the rollout under `~/.codex/sessions/` ended between 436,343 and 996,477 total tokens, the gap being cached input. The Claude worker holding each ticket spent 225k, 170k and 200k by the counter AGENTS.md's dispatch bullet measures, three to five times what Codex printed, with the design, the prose, the review and the pull request its own work each time.
-
-Executed on 2026-09-09: `codex --version` (`codex-cli 0.153.4` at `~/.local/bin/codex`), `codex login status` (`Logged in using ChatGPT`), `~/.codex/config.toml`'s two model keys, and the `--help` output of `codex exec`, `codex exec resume` and `codex sandbox`. Read rather than run: every flag's effect, what `workspace-write` leaves writable, and the network opt-in, which come from `--help` and Codex's configuration reference.
