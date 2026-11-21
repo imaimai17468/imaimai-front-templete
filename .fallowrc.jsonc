@@ -28,8 +28,8 @@
     "db/schema.ts",
   ],
   "ignoreDependencies": [
-    // Named as strings in the `jsPlugins` block of vite.config.ts, which
-    // fallow reads as configuration data rather than as imports.
+    // Named as strings in the lint config's `jsPlugins` block, which fallow
+    // reads as configuration data rather than as imports.
     "@nkzw/eslint-plugin",
     "@shadcn/lint",
     "@tanstack/eslint-plugin-query",
