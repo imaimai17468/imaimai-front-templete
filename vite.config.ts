@@ -22,15 +22,51 @@ const SCRIPT_FILES = [
 const FILES_VITEST_NEVER_LOADS = [CONFIG_FILES, ...SCRIPT_FILES];
 const CLI_ENTRYPOINTS = [...SCRIPT_FILES, ".claude/hooks/**"];
 
+/** The layers of `src/` that hold the entities, which import only `Schema`. */
+const ENTITY_LAYERS = ["src/shared/entities/**", "src/routes/**/-entities/**"];
+
+const ENTITY_TESTS = ENTITY_LAYERS.map((layer) => `${layer}/*.test.ts`);
+
 /** The layers of `src/` that import Effect. */
 export const EFFECT_LAYERS = [
   "src/shared/gateway/**",
   "src/routes/**/-gateway/**",
   "src/lib/**",
-  "src/shared/entities/**",
-  "src/routes/**/-entities/**",
+  ...ENTITY_LAYERS,
   "src/test/**",
 ];
+// Rules a module meets with `Schema` alone, so they reach every layer that
+// imports Effect, entities included.
+const SCHEMA_RULES = {
+  "rules/no-sync-decode": "error",
+  "rules/prefer-non-unknown-decode": "error",
+  "rules/prefer-schema-format-validation": "error",
+  "rules/require-tagged-data": "error",
+  "rules/require-tagged-error": "error",
+  "rules/require-top-level-decoder": "error",
+} satisfies DummyRuleMap;
+
+// Rules that ask for parts of Effect beyond `Schema`, so they reach only code
+// that may import all of it. `no-fetch`, `no-js-date` and `no-node-imports`
+// overlap `effect/noGlobals` and `effect/noNodeBuiltinImport`, so a file that
+// needs one of those globals turns off the rule from both plugins.
+const EFFECT_CODE_RULES = {
+  "rules/force-array-empty": "error",
+  "rules/force-iterable-empty": "error",
+  "rules/force-predicate": "error",
+  "rules/force-string-empty": "error",
+  "rules/no-direct-tag-access": "error",
+  "rules/no-effect-runtime-run": "error",
+  "rules/no-effect-subpath-import": "error",
+  "rules/no-error-property-access": "error",
+  "rules/no-fetch": "error",
+  "rules/no-instanceof-error": "error",
+  "rules/no-js-date": "error",
+  "rules/no-node-imports": "error",
+  "rules/no-opaque-instance-fields": "error",
+  "rules/no-optional-error-cause": "error",
+  "rules/prefer-is-nullish": "error",
+} satisfies DummyRuleMap;
 
 // `bun run smoke` names a directory of its own here, so its local D1 and R2
 // start empty and the rate-limit rows it writes never reach `bun run dev`.
@@ -67,6 +103,7 @@ export default defineConfig({
       { name: "tailwindcss", specifier: "oxlint-tailwindcss" },
       { name: "shadcn", specifier: "@shadcn/lint" },
       { name: "@nkzw", specifier: "@nkzw/eslint-plugin" },
+      { name: "rules", specifier: "@totto2727/oxlint" },
     ],
     settings: {
       tailwindcss: {
@@ -88,6 +125,13 @@ export default defineConfig({
       "typescript/no-require-imports": "error",
       "react/no-unknown-property": "error",
       "@nkzw/require-use-effect-arguments": "error",
+      "rules/no-bigint-literals": "error",
+      "rules/no-eslint-disable-comments": "error",
+      "rules/no-jsx-script-tag": "error",
+      "rules/no-redundant-alias": "error",
+      "rules/no-string-style": "error",
+      "rules/no-unused-internal": "error",
+      "rules/require-disable-reason": "error",
       complexity: "error",
       "prefer-const": "error",
       "no-var": "error",
@@ -367,8 +411,8 @@ export default defineConfig({
         // An entity is a `Schema`, so `Schema` is the one part of Effect it
         // holds. Its tests read the decoded values, which carry `Option` and
         // `DateTime`.
-        files: ["src/shared/entities/**", "src/routes/**/-entities/**"],
-        excludeFiles: ["**/*.test.ts"],
+        files: ENTITY_LAYERS,
+        excludeFiles: ENTITY_TESTS,
         rules: {
           "no-restricted-imports": [
             "error",
@@ -478,6 +522,38 @@ export default defineConfig({
           ],
           "vitest/prefer-import-in-mock": "off",
         },
+      },
+      {
+        files: [...EFFECT_LAYERS],
+        rules: SCHEMA_RULES,
+      },
+      {
+        // An entity may import only `Schema` from Effect, so it takes these
+        // in its tests alone.
+        files: [...EFFECT_LAYERS],
+        excludeFiles: ENTITY_LAYERS,
+        rules: EFFECT_CODE_RULES,
+      },
+      {
+        files: ENTITY_TESTS,
+        rules: EFFECT_CODE_RULES,
+      },
+      {
+        // Where the request handler hands an Effect's result back to the
+        // framework as a Promise.
+        files: ["src/shared/gateway/runtime.ts"],
+        rules: { "rules/no-effect-runtime-run": "off" },
+      },
+      {
+        // Where the dev sign-in hands an Effect's result back to the sign-in
+        // button, which awaits a Promise.
+        files: ["src/lib/auth/sign-in/dev.ts"],
+        rules: { "rules/no-effect-runtime-run": "off" },
+      },
+      {
+        // TestConsole hands its captured lines over as `unknown`.
+        files: ["src/shared/gateway/error-reports.ts"],
+        rules: { "rules/prefer-non-unknown-decode": "off" },
       },
       {
         files: ["src/routes/index/-components/code-block.tsx"],
