@@ -58,7 +58,7 @@ db/              # D1 のスキーマとマイグレーション
 ## 技術スタック
 
 - フレームワーク: TanStack Start（データ取得は TanStack Query）
-- 言語: TypeScript 7
+- 言語: TypeScript 7.1（beta）。型を使う lint と型検査は [tsrs](https://github.com/oxc-project/tsrs) が受け持つ
 - スタイル: Tailwind CSS v4、shadcn/ui
 - 認証: Better Auth（Google OAuth。dev ビルドに限り、固定ユーザーでワンクリックログインできる）
 - データベース: Cloudflare D1、Drizzle ORM
