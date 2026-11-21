@@ -39,7 +39,7 @@ const ProfileRowSchema = Schema.Struct({
 export type ProfileRow = typeof ProfileRowSchema.Type;
 
 const decodeProfileRow = flow(
-  Schema.decodeUnknownEffect(ProfileRowSchema),
+  Schema.decodeEffect(ProfileRowSchema),
   Effect.orDie
 );
 
