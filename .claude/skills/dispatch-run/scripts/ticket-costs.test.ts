@@ -216,10 +216,10 @@ const costs = (events: readonly CostEvent[]): readonly string[] =>
 const UNKNOWN_SOLO = "5h window per ticket unknown, no solo run yet";
 
 const soloLine = (percent: string, solo: number, count = solo): string =>
-  `opus gate: tickets ${count}, median 100000 subagent_tokens, 10.0 min, 5h window ${percent}% per ticket over ${solo} solo`;
+  `opus high gate: tickets ${count}, median 100000 subagent_tokens, 10.0 min, 5h window ${percent}% per ticket over ${solo} solo`;
 
 const unknownLine = (count: number): string =>
-  `opus gate: tickets ${count}, median 100000 subagent_tokens, 10.0 min, ${UNKNOWN_SOLO}`;
+  `opus high gate: tickets ${count}, median 100000 subagent_tokens, 10.0 min, ${UNKNOWN_SOLO}`;
 
 describe(formatCosts, () => {
   it("should count the window spent when a ticket ran alone inside one window", () => {
@@ -340,7 +340,7 @@ describe(formatCosts, () => {
     ).toStrictEqual([unknownLine(1)]);
   });
 
-  it("should take medians per model and kind when some runs were solo", () => {
+  it("should take medians per model, effort and kind when some runs were solo", () => {
     expect(
       costs([
         dispatch("feat/a", NOW, { window: at(10) }),
@@ -370,8 +370,22 @@ describe(formatCosts, () => {
         done("feat/e", NOW + 500, { subagent_tokens: 900 }),
       ])
     ).toStrictEqual([
-      "opus gate: tickets 4, median 250 subagent_tokens, 2.5 min, 5h window 4.0% per ticket over 3 solo",
-      `fable judgment: tickets 1, median 900 subagent_tokens, 10.0 min, ${UNKNOWN_SOLO}`,
+      "opus high gate: tickets 4, median 250 subagent_tokens, 2.5 min, 5h window 4.0% per ticket over 3 solo",
+      `fable high judgment: tickets 1, median 900 subagent_tokens, 10.0 min, ${UNKNOWN_SOLO}`,
+    ]);
+  });
+
+  it("should keep two efforts of one model and kind apart when both completed a ticket", () => {
+    expect(
+      costs([
+        dispatch("feat/a", NOW, { effort: "high" }),
+        done("feat/a", NOW + 100, { subagent_tokens: 300 }),
+        dispatch("feat/b", NOW + 100, { effort: "medium" }),
+        done("feat/b", NOW + 200, { subagent_tokens: 100 }),
+      ])
+    ).toStrictEqual([
+      `opus medium gate: tickets 1, median 100 subagent_tokens, 10.0 min, ${UNKNOWN_SOLO}`,
+      `opus high gate: tickets 1, median 300 subagent_tokens, 10.0 min, ${UNKNOWN_SOLO}`,
     ]);
   });
 
