@@ -15,32 +15,21 @@ concurrency:
 permissions:
   contents: read
 
+# Each job pays the shared setup once and runs beside the others, so the run
+# takes as long as its slowest job rather than the sum of them. A new check
+# goes into the job whose length it fits, or into a job of its own listed in
+# the `needs` of `build` below, which the static job fails without.
 jobs:
-  build:
+  static:
+    name: static checks
     runs-on: ubuntu-latest
-    # The smoke step starts a server and waits on it. Its own timers bound the
-    # boot and each request; this bounds whatever they cannot.
-    timeout-minutes: 20
-
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Installs every tool in mise.toml and exports them on PATH for the
-      # steps below, so mise.toml is the one place those versions are written.
-      - name: Install the toolchain from mise.toml
-        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Generate route tree
-        run: bun run generate-routes
-
-      # tsconfig.json extends .void/tsconfig.json, which carries the types of
-      # `void/env`, `void/db` and `@schema`, so the type check needs it first.
-      - name: Generate Void types
-        run: bun run generate-void
+      - name: Set up the toolchain and dependencies
+        uses: ./.github/actions/setup
 
       # Fails on vulnerabilities in direct dependencies, and fails when `bun audit`
       # prints no JSON advisory report, which is what a registry or network error
@@ -57,9 +46,7 @@ jobs:
         run: actionlint
 
       # The shell counterpart of the step above, over every tracked `*.sh`: the
-      # PreToolUse, Stop and SessionStart hooks and the two setup scripts. It
-      # sits here rather than beside "Run Tests" so a finding in a hook fails
-      # ahead of the check, dead-code, doctor, test and build steps below.
+      # PreToolUse, Stop and SessionStart hooks and the two setup scripts.
       - name: Lint the shell hooks and scripts (shellcheck)
         run: bun run check:shell
 
@@ -97,10 +84,8 @@ jobs:
       - name: Check Claude frontmatter parses
         run: bun scripts/claude-frontmatter/check-claude-frontmatter.entry.ts
 
-      # `vp check` runs format, lint and type checks in one pass, which is why
-      # this workflow has no separate tsc step.
-      - name: Run format, lint and type checks
-        run: bun run check
+      - name: Check the build job waits on every other job
+        run: bun .github/scripts/ci-gate/check-ci-gate.entry.ts
 
       - name: Detect unused code (fallow)
         run: bun run dead-code
@@ -112,21 +97,105 @@ jobs:
       - name: Detect duplication (fallow)
         run: bun run dupes
 
+  check:
+    name: format, lint and type checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up the toolchain and dependencies
+        uses: ./.github/actions/setup
+
+      # `vp check` runs format, lint and type checks in one pass, which is why
+      # this workflow has no separate tsc step.
+      - name: Run format, lint and type checks
+        run: bun run check
+
+  doctor:
+    name: react-doctor
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up the toolchain and dependencies
+        uses: ./.github/actions/setup
+
       # Whole-tree counterpart of lefthook's pre-commit `--staged` run. `--no-score`
       # keeps the diagnostics off the vendor's score API; the exit code is what gates.
       - name: Scan React diagnostics (react-doctor)
         run: bun run doctor --no-score
 
+  test:
+    name: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up the toolchain and dependencies
+        uses: ./.github/actions/setup
+
       - name: Run Tests
         run: bun run test
+
+  bundle:
+    name: worker build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up the toolchain and dependencies
+        uses: ./.github/actions/setup
 
       # The build `void deploy` runs, without deploying, so a change that
       # breaks the production bundle fails here.
       - name: Build the Worker
         run: bun run build
 
+  smoke:
+    name: smoke
+    runs-on: ubuntu-latest
+    # The smoke step starts a server and waits on it. Its own timers bound the
+    # boot and each request; this bounds whatever they cannot.
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up the toolchain and dependencies
+        uses: ./.github/actions/setup
+
       # Boots the dev server on an empty local D1 and R2, which applies the D1
       # migrations, requests the routes scripts/smoke/smoke.ts names, and sends
       # its sign-in burst. It reads no Cloudflare account.
       - name: Boot the app and request its routes (smoke)
         run: bun run smoke
+
+  # Reports every job above as one check, which fails when any of them did not
+  # succeed. `!cancelled()` runs it after a failed job too, where
+  # a plain `needs` would skip it and leave the check with neither a pass nor
+  # a fail to report.
+  build:
+    name: build
+    if: ${{ !cancelled() }}
+    needs: [static, check, doctor, test, bundle, smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fail unless every job passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          for result in $RESULTS; do
+            if [ "$result" != success ]; then
+              echo "::error::a job this check waits on ended as $result"
+              exit 1
+            fi
+          done
