@@ -1,16 +1,14 @@
 import { Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { DriverFailed } from "@/test/defect";
-import { signIn } from "./index";
+import type { SignInClient } from "./index";
+import { createSignIn } from "./index";
 
-const client = vi.hoisted(() => ({
-  endSession: vi.fn<() => Promise<never>>(),
-  signInWithEmail: vi.fn<() => Promise<never>>(),
-  signUpWithEmail: vi.fn<() => Promise<never>>(),
-  startGoogleSignIn: vi.fn<() => Promise<never>>(),
-}));
-
-vi.mock("./client", () => client);
+const client = {
+  signInWithEmail: vi.fn<SignInClient["signInWithEmail"]>(),
+  signUpWithEmail: vi.fn<SignInClient["signUpWithEmail"]>(),
+  startGoogleSignIn: vi.fn<SignInClient["startGoogleSignIn"]>(),
+};
 
 /**
  * Both calls reject, which names the provider through the call count and needs
@@ -27,7 +25,7 @@ const pressSignIn = (dev: boolean, googleSignIn: Option.Option<string>) => {
   client.startGoogleSignIn.mockRejectedValue(
     new DriverFailed({ message: "unreachable in a test" })
   );
-  return signIn();
+  return createSignIn(client)();
 };
 
 const providerCalls = () => ({
@@ -35,7 +33,7 @@ const providerCalls = () => ({
   google: client.startGoogleSignIn.mock.calls.length,
 });
 
-describe(signIn, () => {
+describe(createSignIn, () => {
   it("should sign in with the dev user's credentials when a dev build has not turned Google on", () =>
     pressSignIn(true, Option.none()).then(() => {
       expect(providerCalls()).toStrictEqual({ email: 1, google: 0 });
