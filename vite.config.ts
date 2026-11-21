@@ -128,6 +128,15 @@ export default defineConfig({
       "typescript/no-require-imports": "error",
       "react/no-unknown-property": "error",
       "@nkzw/require-use-effect-arguments": "error",
+      "rules/consistent-import-extension": "error",
+      "rules/effect-tracing": "error",
+      "rules/no-effect-import-as": "error",
+      "rules/no-import-from-barrel-package": "error",
+      "rules/no-index-filename": "error",
+      "rules/no-let": "error",
+      "rules/no-local-export-list": "error",
+      "rules/require-import-extension": "error",
+      "rules/require-vitest-hooks": "error",
       "rules/no-bigint-literals": "error",
       "rules/no-eslint-disable-comments": "error",
       "rules/no-jsx-script-tag": "error",
@@ -331,10 +340,12 @@ export default defineConfig({
         // Untyped ESLint-style plugin code walking an ESTree union. `typeof` is
         // the discriminator available here, and `no-loops` is dropped so that
         // `for...of` satisfies unicorn/no-array-for-each, whose only remedy the
-        // rule otherwise forbids.
+        // rule otherwise forbids. The tests import the plugins' own `.js`
+        // files, which consistent-import-extension would rename to `.ts`.
         files: ["tools/oxlint-plugins/**"],
         rules: {
           "anti-slop/no-runtime-typeof": "off",
+          "rules/consistent-import-extension": "off",
           "style-rules/no-loops": "off",
           "@typescript-eslint/no-unsafe-assignment": "off",
           "@typescript-eslint/no-unsafe-argument": "off",
@@ -444,6 +455,8 @@ export default defineConfig({
         files: ["src/shared/ui/**"],
         rules: {
           "arch-rules/one-component-per-file": "off",
+          "rules/no-let": "off",
+          "rules/no-local-export-list": "off",
           "style-rules/no-restyle-shared-ui-at-call-site": "off",
           "style-rules/no-tailwind-arbitrary": "off",
           "style-rules/no-tailwind-ease-in": "off",
