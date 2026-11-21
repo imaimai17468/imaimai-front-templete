@@ -208,10 +208,11 @@ const tableChain = (callee) => {
 
 const isTestIdentifier = (name) => name === "it" || name === "test";
 
-// Whether this callee reaches `it` or `test` through a chain that suppresses no
-// case. Walking the chain rather than matching a fixed depth is what lets
-// `it.concurrent.only` through to the root.
-/** Follows a member chain to its root, refusing any `.skip` or `.todo` on the way. */
+/**
+ * Follows a member chain to its root, refusing any `.skip` or `.todo` on the
+ * way. Walking the chain rather than matching a fixed depth is what lets
+ * `it.concurrent.only` through to the root.
+ */
 const reachesTestIdentifier = (node) => {
   if (node === null) {
     return false;
