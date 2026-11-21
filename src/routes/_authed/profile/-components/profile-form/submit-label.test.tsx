@@ -5,8 +5,9 @@ import { SubmitLabel } from "./submit-label";
 const rendered = (isPending: boolean) => {
   const { container } = render(<SubmitLabel isPending={isPending} />);
   return {
-    spinnerCount: container.querySelectorAll("svg.motion-safe\\:animate-spin")
-      .length,
+    spinnerCount: container.querySelectorAll(
+      String.raw`svg.motion-safe\:animate-spin`
+    ).length,
     text: container.textContent,
   };
 };

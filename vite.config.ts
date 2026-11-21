@@ -45,6 +45,7 @@ export default defineConfig({
       "vitest",
       "import",
       "jsx-a11y",
+      "promise",
     ],
     jsPlugins: [
       "./tools/oxlint-plugins/style-rules.js",
@@ -71,6 +72,10 @@ export default defineConfig({
       nursery: "error",
     },
     rules: {
+      "unicorn/prefer-string-raw": "error",
+      "unicorn/prefer-top-level-await": "error",
+      "typescript/no-require-imports": "error",
+      "react/no-unknown-property": "error",
       complexity: "error",
       "prefer-const": "error",
       "no-var": "error",
