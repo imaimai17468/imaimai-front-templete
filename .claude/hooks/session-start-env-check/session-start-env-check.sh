@@ -29,8 +29,8 @@ GATE=()
 SETUP=()
 CREATED=()
 
-command -v jq >/dev/null 2>&1 || GATE+=("jq (ALL guard hooks parse their input with jq — the gates are effectively OFF)")
-command -v bun >/dev/null 2>&1 || GATE+=("bun (the Stop quality gate and lefthook's pre-commit/pre-push checks cannot run)")
+command -v jq >/dev/null 2>&1 || GATE+=("jq (the env-file Bash guard lets every command through, the Stop gate cannot block, and scoped guidance does not point at a rule again after compaction; the permissions.deny rules in .claude/settings.json still apply)")
+command -v bun >/dev/null 2>&1 || GATE+=("bun (the env-file Bash guard lets every command through, scoped guidance points at no rule, and the Stop quality gate and lefthook's pre-commit/pre-push checks cannot run)")
 # `mise`, not `actionlint` or `shellcheck`: lefthook runs both static checks
 # through `mise exec --` and skips each on a missing mise, so mise is the
 # condition that decides whether they run. mise.toml pins the versions it
