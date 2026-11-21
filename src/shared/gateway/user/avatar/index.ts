@@ -1,5 +1,6 @@
 import "@tanstack/react-start/server-only";
-import { Context, Crypto, Effect, Layer, Option } from "effect";
+import { Context, Effect, Layer, Option } from "effect";
+import { SecureRandom } from "effect/crypto";
 import { storage } from "void/storage";
 import { avatarContentTypeForKey } from "@/lib/storage/avatar-validation";
 import type { AvatarContentType } from "@/lib/storage/avatar-validation";
@@ -95,16 +96,6 @@ export class AvatarBucket extends Context.Service<
   );
 }
 
-// Workers' Web Crypto. Only `randomBytes` is reached: the UUID below is built
-// from it, and nothing here takes a digest.
-const webCrypto = Crypto.make({
-  digest: (algorithm, data) =>
-    Effect.promise(() =>
-      crypto.subtle.digest(algorithm, new Uint8Array(data))
-    ).pipe(Effect.map((buffer) => new Uint8Array(buffer))),
-  randomBytes: (size) => crypto.getRandomValues(new Uint8Array(size)),
-});
-
 /**
  * The identifier that makes a new avatar key unique.
  *
@@ -116,8 +107,11 @@ export class AvatarKeyIds extends Context.Service<
   AvatarKeyIds,
   { readonly next: Effect.Effect<string> }
 >()("my-app/shared/gateway/user/avatar/AvatarKeyIds") {
-  static readonly layer = Layer.succeed(
+  static readonly layer = Layer.effect(
     AvatarKeyIds,
-    AvatarKeyIds.of({ next: webCrypto.randomUUIDv4.pipe(Effect.orDie) })
-  );
+    Effect.gen(function* buildAvatarKeyIds() {
+      const random = yield* SecureRandom.SecureRandom;
+      return AvatarKeyIds.of({ next: random.uuidV4() });
+    })
+  ).pipe(Layer.provide(SecureRandom.layerWebCrypto));
 }
