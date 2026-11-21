@@ -56,6 +56,7 @@ export default defineConfig({
       { name: "react-doctor", specifier: "oxlint-plugin-react-doctor" },
       { name: "tailwindcss", specifier: "oxlint-tailwindcss" },
       { name: "shadcn", specifier: "@shadcn/lint" },
+      { name: "@nkzw", specifier: "@nkzw/eslint-plugin" },
     ],
     settings: {
       tailwindcss: {
@@ -76,6 +77,7 @@ export default defineConfig({
       "unicorn/prefer-top-level-await": "error",
       "typescript/no-require-imports": "error",
       "react/no-unknown-property": "error",
+      "@nkzw/require-use-effect-arguments": "error",
       complexity: "error",
       "prefer-const": "error",
       "no-var": "error",
