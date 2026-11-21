@@ -13,7 +13,7 @@
  * bun .claude/skills/dispatch-run/scripts/orchestrate.ts clean-worktrees feat/a feat/b # removes the worktrees of these finished branches
  * bun .claude/skills/dispatch-run/scripts/orchestrate.ts record-dispatch feat/a opus high gate      # logs a dispatch and the 5h window
  * bun .claude/skills/dispatch-run/scripts/orchestrate.ts record-done feat/a 101648 27 277919        # logs a completion and the 5h window
- * bun .claude/skills/dispatch-run/scripts/orchestrate.ts ticket-costs      # what a ticket spent, per model and kind
+ * bun .claude/skills/dispatch-run/scripts/orchestrate.ts ticket-costs      # what a ticket spent, per model, effort and kind
  * ```
  *
  * `watch-prs` and `clean-worktrees` name the run by the branches the session
