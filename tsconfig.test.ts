@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { Schema } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { EFFECT_LAYERS } from "./vite.config.ts";
+import { EFFECT_LAYERS } from "./oxlint.project.ts";
 
 const ROOT = import.meta.dirname;
 
@@ -88,7 +88,7 @@ const effectNativeGlobs = (layer: string) =>
     : [`${layer}/*.ts`, `${layer}/*.tsx`];
 
 describe("the overrides in tsconfig.json", () => {
-  it("should raise the Effect-native rules in exactly the layers vite.config.ts lets import Effect when a layer is added or removed", () => {
+  it("should raise the Effect-native rules in exactly the layers oxlint.project.ts lets import Effect when a layer is added or removed", () => {
     expect(
       overrideIncluding("src/lib/**/*.ts")?.include.toSorted()
     ).toStrictEqual(EFFECT_LAYERS.flatMap(effectNativeGlobs).toSorted());

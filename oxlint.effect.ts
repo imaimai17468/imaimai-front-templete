@@ -1,8 +1,8 @@
 import type { DummyRuleMap } from "oxlint";
 import type { recommended } from "oxlint-plugin-effect/presets/recommended";
 
-// `complexity` is the one entry the preset does not namespace, and
-// `vite.config.ts` already sets it for every file.
+// `complexity` is the one entry the preset does not namespace, so it names the
+// core rule rather than an Effect one.
 type EffectRuleName = Exclude<keyof typeof recommended, "complexity">;
 
 /**
@@ -12,8 +12,8 @@ type EffectRuleName = Exclude<keyof typeof recommended, "complexity">;
  * adds or renames fail to compile here, rather than arrive silently enabled or
  * leave a dead key behind.
  *
- * A rule a named path cannot satisfy is turned off in `vite.config.ts`, in the
- * override block that names that path, with the reason beside it.
+ * A rule a named path cannot satisfy is turned off in the override block that
+ * names that path, with the reason beside it.
  */
 export const effectRules = {
   "effect/maxCognitiveComplexity": ["error", { max: 21 }],

@@ -28,12 +28,19 @@
     "db/schema.ts",
   ],
   "ignoreDependencies": [
-    // Named as strings in the `jsPlugins` block of vite.config.ts, which
-    // fallow reads as configuration data rather than as imports.
+    // Named as strings in the lint config's `jsPlugins` block, which fallow
+    // reads as configuration data rather than as imports.
     "@nkzw/eslint-plugin",
     "@shadcn/lint",
     "@tanstack/eslint-plugin-query",
     "@totto2727/oxlint",
+    "oxlint-tailwindcss",
+    // Run as the `effect-tsgo` binary and read for its `schema.json` by path,
+    // so no import names it.
+    "@effect/tsgo",
+    // Restates the exact tsrs version vite-plus depends on, so the pin check
+    // can compare the two.
+    "tsrs",
     // peerDependency of @hookform/resolvers, whose standard-schema/dist/*.d.ts
     // imports StandardSchemaV1 from it. No file here names it, so dropping it
     // fails the type check rather than the analysis.

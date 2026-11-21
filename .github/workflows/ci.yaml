@@ -125,8 +125,10 @@ jobs:
       - name: Set up the toolchain and dependencies
         uses: ./.github/actions/setup
 
-      # Whole-tree counterpart of lefthook's pre-commit `--staged` run. `--no-score`
-      # keeps the diagnostics off the vendor's score API; the exit code is what gates.
+      # `bun run check` runs react-doctor's lint rules as an oxlint plugin, but
+      # its security-scan rules, such as `artifact-secret-leak`, run only in
+      # this CLI's file scan. `--no-score` keeps the diagnostics off the
+      # vendor's score API; the exit code is what gates.
       - name: Scan React diagnostics (react-doctor)
         run: bun run doctor --no-score
 
