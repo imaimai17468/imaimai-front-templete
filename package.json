@@ -95,8 +95,7 @@
     "vite-plus": "1.7.0",
     "vitest": "5.1.0",
     "void": "1.11.0",
-    "yaml": "2.9.0",
-    "zod": "4.6.7"
+    "yaml": "2.9.0"
   },
   "overrides": {
     "@cloudflare/workers-types": "4.20260501.1",

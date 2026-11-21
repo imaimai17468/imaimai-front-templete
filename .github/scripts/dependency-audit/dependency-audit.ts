@@ -6,17 +6,21 @@
  * answered.
  */
 
-import { z } from "zod";
+import { Result, Schema } from "effect";
 
-const Advisory = z.object({
-  severity: z.string(),
-  title: z.string(),
-  url: z.string(),
+const Advisory = Schema.Struct({
+  severity: Schema.String,
+  title: Schema.String,
+  url: Schema.String,
 });
 
-const AuditReportSchema = z.record(z.string(), z.array(Advisory));
+const AuditReportSchema = Schema.Record(Schema.String, Schema.Array(Advisory));
 
-type AuditReport = z.infer<typeof AuditReportSchema>;
+type AuditReport = typeof AuditReportSchema.Type;
+
+const decodeAuditReport = Schema.decodeUnknownResult(AuditReportSchema, {
+  errors: "all",
+});
 
 export interface AuditRun {
   readonly exitCode: number | null;
@@ -26,7 +30,7 @@ export interface AuditRun {
 }
 
 export interface VulnerablePackage {
-  readonly advisories: readonly z.infer<typeof Advisory>[];
+  readonly advisories: readonly (typeof Advisory.Type)[];
   readonly name: string;
 }
 
@@ -66,10 +70,10 @@ const parseReport = (stdout: string): ParsedReport => {
   if (json.kind === "not-json") {
     return json;
   }
-  const parsed = AuditReportSchema.safeParse(json.value);
-  return parsed.success
-    ? { kind: "report", report: parsed.data }
-    : { issues: z.prettifyError(parsed.error), kind: "unexpected-shape" };
+  const decoded = decodeAuditReport(json.value);
+  return Result.isSuccess(decoded)
+    ? { kind: "report", report: decoded.success }
+    : { issues: decoded.failure.message, kind: "unexpected-shape" };
 };
 
 const stderrLine = (run: AuditRun): string =>

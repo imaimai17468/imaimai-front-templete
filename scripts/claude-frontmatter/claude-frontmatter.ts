@@ -6,8 +6,14 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import {
+  Effect,
+  Predicate,
+  Result,
+  Schema,
+  SchemaTransformation,
+} from "effect";
 import { parse } from "yaml";
-import { z } from "zod";
 import { HOOK_EVENTS } from "../../.claude/hooks/scoped-guidance/scoped-guidance-decision.ts";
 
 const REPO = path.resolve(import.meta.dirname, "../..");
@@ -90,18 +96,30 @@ export const frontmatterText = (
 
 const GUIDANCE_DIR = ".claude/hooks/guidance/";
 
-const TriggerList = z
-  .union([z.string().transform((list) => list.split(",")), z.array(z.string())])
-  .default([])
-  .transform((items) =>
-    items.flatMap((item) => (item.trim() === "" ? [] : [item.trim()]))
-  );
+const TriggerList = Schema.Union([
+  Schema.String,
+  Schema.Array(Schema.String),
+]).pipe(
+  Schema.decodeTo(
+    Schema.Array(Schema.String),
+    SchemaTransformation.transform({
+      decode: (list): readonly string[] =>
+        (Predicate.isString(list) ? list.split(",") : list).flatMap((item) =>
+          item.trim() === "" ? [] : [item.trim()]
+        ),
+      encode: (items) => items,
+    })
+  ),
+  Schema.withDecodingDefault(Effect.succeed([]))
+);
 
-const GuidanceTriggers = z.object({
-  commands: TriggerList,
-  events: TriggerList,
-  paths: TriggerList,
-});
+const decodeGuidanceTriggers = Schema.decodeUnknownResult(
+  Schema.Struct({
+    commands: TriggerList,
+    events: TriggerList,
+    paths: TriggerList,
+  })
+);
 
 /**
  * Why a guidance file would never reach a session, or `undefined` where it
@@ -110,11 +128,11 @@ const GuidanceTriggers = z.object({
  * mistake is reported.
  */
 export const guidanceTriggerProblem = (data: unknown): string | undefined => {
-  const triggers = GuidanceTriggers.safeParse(data);
-  if (!triggers.success) {
+  const triggers = decodeGuidanceTriggers(data);
+  if (Result.isFailure(triggers)) {
     return "paths, commands and events must each be a string or a list of strings";
   }
-  const { commands, events, paths } = triggers.data;
+  const { commands, events, paths } = triggers.success;
   const unanswered = events.filter(
     (event) => !HOOK_EVENTS.some((answered) => answered === event)
   );

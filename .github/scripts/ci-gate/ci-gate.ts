@@ -4,15 +4,18 @@
  * no longer fails the gate.
  */
 
-import { z } from "zod";
+import { Result, Schema } from "effect";
 
-const Job = z.object({
-  needs: z.union([z.string(), z.array(z.string())]).optional(),
+const Job = Schema.Struct({
+  needs: Schema.optional(
+    Schema.Union([Schema.String, Schema.Array(Schema.String)])
+  ),
 });
 
-const Workflow = z.object({
-  jobs: z.record(z.string(), Job),
-});
+const decodeWorkflow = Schema.decodeUnknownResult(
+  Schema.Struct({ jobs: Schema.Record(Schema.String, Job) }),
+  { errors: "all" }
+);
 
 export type GateCoverage =
   | { readonly kind: "covered" }
@@ -24,11 +27,11 @@ export const gateCoverage = (
   workflow: unknown,
   gateJob: string
 ): GateCoverage => {
-  const parsed = Workflow.safeParse(workflow);
-  if (!parsed.success) {
-    return { detail: parsed.error.message, kind: "malformed" };
+  const decoded = decodeWorkflow(workflow);
+  if (Result.isFailure(decoded)) {
+    return { detail: decoded.failure.message, kind: "malformed" };
   }
-  const { jobs } = parsed.data;
+  const { jobs } = decoded.success;
   const gate = jobs[gateJob];
   if (gate === undefined) {
     return { kind: "gate-missing" };
