@@ -5,7 +5,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "void/db";
 import { env } from "void/env";
 import { memoizeValue } from "@/lib/memoize-value";
-import { authOptions } from "./options";
+import { authOptions } from "./options.ts";
 
 const buildAuth = () =>
   betterAuth(

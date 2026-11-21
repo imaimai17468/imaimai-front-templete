@@ -4,15 +4,15 @@ import { SQLiteAsyncDialect } from "void/schema-d1";
 import { capturedReports } from "@/shared/gateway/error-reports";
 import { avatarUrlForKey } from "@/shared/gateway/user/avatar-url";
 import { DriverFailed } from "@/test/defect";
-import { UserPersistenceError } from "../persistence";
-import { AvatarBucket, AvatarKeyIds } from "./bucket";
+import { UserPersistenceError } from "../persistence.ts";
+import { AvatarBucket, AvatarKeyIds } from "./bucket.ts";
 import {
   avatarKeyStillHeld,
   AvatarTypeUnsupported,
   AvatarUploadFailed,
   AvatarWriter,
   UserAvatarKeys,
-} from "./update";
+} from "./update.ts";
 
 const AVATAR_UUID = "123e4567-e89b-42d3-a456-426614174000";
 const NEW_KEY = `user-1/avatars/${AVATAR_UUID}.png`;

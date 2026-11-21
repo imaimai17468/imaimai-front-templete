@@ -1,8 +1,8 @@
 import { PageTitle } from "@/shared/components/page-title/page-title";
-import { CodeBlock } from "./code-block";
-import { ExternalLink } from "./external-link";
-import { LINKS, SETUP, SPECS } from "./home-content";
-import { Section } from "./section";
+import { CodeBlock } from "./code-block.tsx";
+import { ExternalLink } from "./external-link.tsx";
+import { LINKS, SETUP, SPECS } from "./home-content.ts";
+import { Section } from "./section.tsx";
 
 export const HomePage = () => (
   <div className="flex flex-col gap-12 pb-16">

@@ -1,20 +1,20 @@
 import "@tanstack/react-start/server-only";
 import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
 import type { UpdateUser } from "@/shared/entities/user/user";
-import { makeRunHandler } from "../runtime";
-import { AvatarWriter } from "./avatar/update";
+import { makeRunHandler } from "../runtime.ts";
+import { AvatarWriter } from "./avatar/update.ts";
 import type {
   AvatarTypeUnsupported,
   AvatarUpdated,
   AvatarUploadFailed,
-} from "./avatar/update";
+} from "./avatar/update.ts";
 import {
   dieOnPersistenceError,
   writeUserRow,
   wroteOneRow,
-} from "./persistence";
-import type { UserPersistenceError } from "./persistence";
-import { CurrentUserReader } from "./read";
+} from "./persistence.ts";
+import type { UserPersistenceError } from "./persistence.ts";
+import { CurrentUserReader } from "./read.ts";
 
 class NotAuthenticated extends Schema.TaggedError<
   NotAuthenticated,

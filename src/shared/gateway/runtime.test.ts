@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import { rejectionOf } from "@/shared/gateway/rejection";
 import { DriverFailed } from "@/test/defect";
-import { makeRunHandler } from "./runtime";
+import { makeRunHandler } from "./runtime.ts";
 
 const STACK = "DriverFailed: marker-secret\n    at runtime.test.ts:1:1";
 

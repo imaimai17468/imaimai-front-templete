@@ -4,7 +4,7 @@ import {
   MAX_AVATAR_BYTES,
   MAX_AVATAR_MEGABYTES,
 } from "@/lib/storage/avatar-validation";
-import { AvatarUploadForm, ProfileUpdateForm } from "./update.fn";
+import { AvatarUploadForm, ProfileUpdateForm } from "./update.fn.ts";
 
 const pngFile = (byteLength: number) =>
   new File([new Uint8Array(byteLength)], "a.png", { type: "image/png" });

@@ -5,9 +5,9 @@ import { UserWithEmailSchema } from "@/shared/entities/user/user";
 import type { UserWithEmail } from "@/shared/entities/user/user";
 import { avatarUrlForKey } from "@/shared/gateway/user/avatar-url";
 import { httpsUrl } from "@/shared/gateway/user/https-url";
-import { makeRunHandler } from "../runtime";
-import { dieOnPersistenceError, readUserRow } from "./persistence";
-import type { UserPersistenceError } from "./persistence";
+import { makeRunHandler } from "../runtime.ts";
+import { dieOnPersistenceError, readUserRow } from "./persistence.ts";
+import type { UserPersistenceError } from "./persistence.ts";
 
 /**
  * Turns a row's `DateTime.Utc` instants into the ISO-8601 strings of

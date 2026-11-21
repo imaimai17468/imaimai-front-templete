@@ -4,7 +4,7 @@ import { Effect, Option } from "effect";
 import { TestConsole } from "effect/testing";
 import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";
-import { errorReport, reportError } from "./report-error";
+import { errorReport, reportError } from "./report-error.ts";
 
 const STACK = "DriverFailed: D1 failed\n    at report-error.test.ts:1:1";
 

@@ -10,6 +10,6 @@
  * which `claude-frontmatter.ts` decides and prints.
  */
 
-import { main } from "./claude-frontmatter";
+import { main } from "./claude-frontmatter.ts";
 
 process.exit(main(process.argv.slice(2)));

@@ -7,7 +7,7 @@ import {
 import type { AvatarSizeRejection } from "@/lib/storage/avatar-validation";
 import { UpdateUserSchema } from "@/shared/entities/user/user";
 import type { UpdateUser } from "@/shared/entities/user/user";
-import { updateProfile, uploadAvatar } from "./update";
+import { updateProfile, uploadAvatar } from "./update.ts";
 
 // The wire hands `.validator` whatever the client sent, so the contract starts
 // at this schema rather than at a parameter annotation.

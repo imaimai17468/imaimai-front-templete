@@ -9,7 +9,7 @@ import {
 import type { AnyRoute } from "@tanstack/react-router";
 import type { RenderOptions } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { render } from "./render";
+import { render } from "./render.tsx";
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,

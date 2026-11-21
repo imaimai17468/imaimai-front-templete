@@ -2,7 +2,7 @@ import { describe, expect, it } from "@effect/vitest";
 import { betterAuth } from "better-auth";
 import { memoryAdapter } from "better-auth/adapters/memory";
 import { Effect, Array as Arr } from "effect";
-import { authOptions } from "./options";
+import { authOptions } from "./options.ts";
 
 const buildTestAuth = (isDevBuild: boolean) =>
   betterAuth(

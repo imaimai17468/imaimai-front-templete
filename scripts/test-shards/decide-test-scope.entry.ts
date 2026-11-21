@@ -11,7 +11,7 @@
 
 import { spawnSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
-import { decideTestScope, testScopeArgs } from "./test-scope";
+import { decideTestScope, testScopeArgs } from "./test-scope.ts";
 
 const [since] = process.argv.slice(2);
 const output = process.env.GITHUB_OUTPUT;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { AVATAR_ROUTE_PATH, avatarUrlForKey } from "./avatar-url";
+import { AVATAR_ROUTE_PATH, avatarUrlForKey } from "./avatar-url.ts";
 
 describe(avatarUrlForKey, () => {
   it("should percent-encode the key into the query when the key holds slashes", () => {

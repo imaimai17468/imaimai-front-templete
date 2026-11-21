@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { cn } from "./utils";
+import { cn } from "./utils.ts";
 
 const withOptionalClassName = ({
   className,

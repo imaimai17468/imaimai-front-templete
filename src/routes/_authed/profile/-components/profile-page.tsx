@@ -1,8 +1,8 @@
 import { PageTitle } from "@/shared/components/page-title/page-title";
 import type { UserWithEmail } from "@/shared/entities/user/user";
-import { ProfileForm } from "./profile-form/profile-form";
-import { formatRegisteredOn } from "./registered-on";
-import { SectionCard } from "./section-card";
+import { ProfileForm } from "./profile-form/profile-form.tsx";
+import { formatRegisteredOn } from "./registered-on.ts";
+import { SectionCard } from "./section-card.tsx";
 
 export const ProfilePage = ({ user }: { readonly user: UserWithEmail }) => (
   <div className="container mx-auto flex min-h-dvh max-w-2xl flex-col items-center justify-center gap-8">

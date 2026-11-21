@@ -1,5 +1,5 @@
 import { Effect, Option, Predicate, Schema } from "effect";
-import type { SignInFailure, SignInOutcome } from "./outcome";
+import type { SignInFailure, SignInOutcome } from "./outcome.ts";
 
 /** The account a dev build signs in as, so a local session needs no Google credentials. */
 export interface DevUser {

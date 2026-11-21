@@ -24,9 +24,9 @@ import {
   succeeded,
   writeUserRow,
   wroteOneRow,
-} from "../persistence";
-import type { UserPersistenceError } from "../persistence";
-import { AvatarBucket, AvatarKeyIds } from "./bucket";
+} from "../persistence.ts";
+import type { UserPersistenceError } from "../persistence.ts";
+import { AvatarBucket, AvatarKeyIds } from "./bucket.ts";
 
 export class AvatarTypeUnsupported extends Schema.TaggedError<
   AvatarTypeUnsupported,

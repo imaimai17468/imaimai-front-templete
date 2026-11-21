@@ -3,8 +3,8 @@ import {
   needsThemeNormalization,
   resolveThemeCycle,
   toggleLabel,
-} from "./theme-cycle";
-import type { Theme } from "./theme-cycle";
+} from "./theme-cycle.ts";
+import type { Theme } from "./theme-cycle.ts";
 
 describe(resolveThemeCycle, () => {
   it.each([

@@ -8,7 +8,7 @@ import {
   needsThemeNormalization,
   resolveThemeCycle,
   toggleLabel,
-} from "./theme-cycle";
+} from "./theme-cycle.ts";
 
 // ハイドレーション検出用。購読対象の外部システムは存在しないため subscribe は
 // 何も通知しない。サーバスナップショット false がそのまま SSR ガードになる。

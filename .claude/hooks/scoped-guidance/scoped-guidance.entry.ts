@@ -35,8 +35,8 @@ import {
   rulesCountedForCompletion,
   ruleMarker,
   ToolInput,
-} from "./scoped-guidance-decision";
-import type { CallFacts, ScopedRule } from "./scoped-guidance-decision";
+} from "./scoped-guidance-decision.ts";
+import type { CallFacts, ScopedRule } from "./scoped-guidance-decision.ts";
 
 const HookPayloadSchema = z.object({
   agent_id: z.string().default(""),

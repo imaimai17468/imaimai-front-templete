@@ -4,7 +4,7 @@ import type {
   TestSpecification,
   Vitest,
 } from "vite-plus/test/node";
-import { selectShardFiles } from "./shard-plan";
+import { selectShardFiles } from "./shard-plan.ts";
 
 /**
  * Replaces Vitest's split, which gives each shard the same number of files,

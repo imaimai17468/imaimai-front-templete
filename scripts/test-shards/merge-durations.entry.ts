@@ -11,7 +11,7 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { mergeDurations } from "./merge-durations";
+import { mergeDurations } from "./merge-durations.ts";
 
 const [output, ...inputs] = process.argv.slice(2);
 

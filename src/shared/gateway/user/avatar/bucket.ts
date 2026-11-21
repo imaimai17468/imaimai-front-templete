@@ -4,8 +4,8 @@ import { SecureRandom } from "effect/crypto";
 import { storage } from "void/storage";
 import { avatarContentTypeForKey } from "@/lib/storage/avatar-validation";
 import type { AvatarContentType } from "@/lib/storage/avatar-validation";
-import { persistenceEffect } from "../persistence";
-import type { UserPersistenceError } from "../persistence";
+import { persistenceEffect } from "../persistence.ts";
+import type { UserPersistenceError } from "../persistence.ts";
 
 /**
  * An avatar object as it leaves the bucket.

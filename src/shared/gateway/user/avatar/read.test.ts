@@ -3,8 +3,8 @@ import { Effect, Layer, Option, Record as Rec } from "effect";
 import { CurrentSession } from "@/lib/auth/session/current-session";
 import { capturedReports } from "@/shared/gateway/error-reports";
 import { DriverFailed } from "@/test/defect";
-import { UserPersistenceError } from "../persistence";
-import { AvatarBucket, AvatarObject } from "./bucket";
+import { UserPersistenceError } from "../persistence.ts";
+import { AvatarBucket, AvatarObject } from "./bucket.ts";
 import {
   AvatarInvalidKey,
   AvatarNotFound,
@@ -12,7 +12,7 @@ import {
   AvatarReader,
   AvatarUnauthorized,
   getAvatarResponse,
-} from "./read";
+} from "./read.ts";
 
 const makeFakes = (read: CurrentSession["Service"]["read"]) => {
   const fetchAvatar = vi.fn<AvatarBucket["Service"]["get"]>();

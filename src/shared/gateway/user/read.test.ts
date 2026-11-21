@@ -6,10 +6,10 @@ import { rejectionOf } from "@/shared/gateway/rejection";
 import { avatarUrlForKey } from "@/shared/gateway/user/avatar-url";
 import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";
-import { makeRunHandler } from "../runtime";
-import { UserPersistenceError } from "./persistence";
-import { CurrentUserReader, readCurrentUser, UserProfiles } from "./read";
-import type { ProfileRow } from "./read";
+import { makeRunHandler } from "../runtime.ts";
+import { UserPersistenceError } from "./persistence.ts";
+import { CurrentUserReader, readCurrentUser, UserProfiles } from "./read.ts";
+import type { ProfileRow } from "./read.ts";
 
 const AVATAR_KEY = "user-1/avatar.jpg";
 const PROVIDER_IMAGE = "https://images.example.com/from-google.png";

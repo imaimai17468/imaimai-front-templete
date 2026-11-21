@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { UserWithEmail } from "@/shared/entities/user/user";
 import { Button } from "@/shared/ui/button";
-import { UserMenu } from "../user-menu/user-menu";
+import { UserMenu } from "../user-menu/user-menu.tsx";
 
 export const AuthNavigation = ({
   user,

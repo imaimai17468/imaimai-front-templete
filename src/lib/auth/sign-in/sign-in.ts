@@ -1,7 +1,11 @@
-import { signInWithEmail, signUpWithEmail, startGoogleSignIn } from "./client";
-import { createDevSignIn, DEV_USER } from "./dev";
-import type { SignIn } from "./outcome";
-import { signInThrewOutcome, socialSignInOutcome } from "./outcome";
+import {
+  signInWithEmail,
+  signUpWithEmail,
+  startGoogleSignIn,
+} from "./client.ts";
+import { createDevSignIn, DEV_USER } from "./dev.ts";
+import type { SignIn } from "./outcome.ts";
+import { signInThrewOutcome, socialSignInOutcome } from "./outcome.ts";
 
 /** The auth client calls a sign-in makes. */
 export interface SignInClient {
@@ -56,4 +60,4 @@ export const signIn: SignIn = createSignIn({
   startGoogleSignIn,
 });
 
-export { endSession as signOut } from "./client";
+export { endSession as signOut } from "./client.ts";

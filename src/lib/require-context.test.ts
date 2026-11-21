@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { requireContext } from "./require-context";
+import { requireContext } from "./require-context.ts";
 
 // `effect/noNullish` reports a written `null` or `undefined`, so a missing
 // context value is built from a `None` rather than spelled out.

@@ -34,8 +34,8 @@ import {
   served,
   SIGN_IN_BURST,
   signInBurstFailure,
-} from "./smoke";
-import type { Route, RouteResult } from "./smoke";
+} from "./smoke.ts";
+import type { Route, RouteResult } from "./smoke.ts";
 
 /**
  * The environment the dev server runs under. `SMOKE_STATE_DIR` is where

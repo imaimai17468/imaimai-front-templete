@@ -15,7 +15,7 @@ import {
   auditOutcome,
   auditReportLines,
   directDependencyNames,
-} from "./dependency-audit";
+} from "./dependency-audit.ts";
 
 const audit = spawnSync(process.execPath, ["audit", "--json"], {
   encoding: "utf-8",

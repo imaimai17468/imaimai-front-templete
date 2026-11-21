@@ -8,15 +8,15 @@ import {
   AvatarTypeUnsupported,
   AvatarUploadFailed,
   AvatarWriter,
-} from "./avatar/update";
-import { UserPersistenceError } from "./persistence";
-import { CurrentUserReader } from "./read";
+} from "./avatar/update.ts";
+import { UserPersistenceError } from "./persistence.ts";
+import { CurrentUserReader } from "./read.ts";
 import {
   ProfileWriter,
   UserNames,
   updateProfileResult,
   uploadAvatarResult,
-} from "./update";
+} from "./update.ts";
 
 const TEST_CLOCK_INSTANT = "1970-01-01T00:00:00.000Z";
 

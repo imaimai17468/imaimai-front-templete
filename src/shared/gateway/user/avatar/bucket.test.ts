@@ -1,6 +1,6 @@
 import { Option, Record as Rec } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { AvatarObject, avatarObjectFrom } from "./bucket";
+import { AvatarObject, avatarObjectFrom } from "./bucket.ts";
 
 const bodyOf = (text: string) =>
   new ReadableStream<Uint8Array>({

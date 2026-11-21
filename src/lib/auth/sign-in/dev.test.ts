@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { DriverFailed } from "@/test/defect";
-import type { DevSignInDeps } from "./dev";
-import { createDevSignIn, DEV_USER } from "./dev";
+import type { DevSignInDeps } from "./dev.ts";
+import { createDevSignIn, DEV_USER } from "./dev.ts";
 
 const RECOVERY =
   "Restart bun run dev, which applies the D1 migrations. If that does not help, reset the local D1.";
