@@ -1,25 +1,18 @@
 import { createServerFn } from "@tanstack/react-start";
-import { flow, Schema } from "effect";
+import { Schema } from "effect";
 import {
   avatarSizeVerdict,
   MAX_AVATAR_MEGABYTES,
 } from "@/lib/storage/avatar-validation";
 import type { AvatarSizeRejection } from "@/lib/storage/avatar-validation";
 import { UpdateUserSchema } from "@/shared/entities/user";
+import type { UpdateUser } from "@/shared/entities/user";
 import { updateProfile, uploadAvatar } from "./update";
 
 // The wire hands `.validator` whatever the client sent, so the contract starts
 // at this schema rather than at a parameter annotation.
-const FormDataSchema = Schema.declare<FormData>(
-  (input): input is FormData => input instanceof FormData,
-  { message: "Expected FormData" }
-);
-
-const decodeFormData = Schema.decodeUnknownSync(FormDataSchema);
-const decodeUpdateUser = Schema.decodeUnknownSync(UpdateUserSchema);
-
-export const parseProfileUpdate = flow(decodeFormData, (form) =>
-  decodeUpdateUser({ name: form.get("name") })
+export const ProfileUpdateForm = Schema.toStandardSchemaV1(
+  Schema.fromFormData(UpdateUserSchema)
 );
 
 const AVATAR_REJECTION_MESSAGES = {
@@ -42,16 +35,36 @@ const AvatarFileSchema = Schema.declare<File>(
   { message: AVATAR_REJECTION_MESSAGES.empty }
 ).check(rejectsFor("empty"), rejectsFor("too-large"));
 
-const decodeAvatarFile = Schema.decodeUnknownSync(AvatarFileSchema);
+export const AvatarUploadForm = Schema.toStandardSchemaV1(
+  Schema.fromFormData(
+    Schema.Struct({
+      avatar: AvatarFileSchema.pipe(
+        Schema.annotateKey({
+          messageMissingKey: AVATAR_REJECTION_MESSAGES.empty,
+        })
+      ),
+    })
+  )
+);
 
-export const parseAvatarUpload = flow(decodeFormData, (form) => ({
-  file: decodeAvatarFile(form.get("avatar")),
-}));
+/** The body `updateProfileFn` takes, keyed as `ProfileUpdateForm` reads it. */
+export const profileUpdateBody = (data: UpdateUser): FormData => {
+  const body = new globalThis.FormData();
+  body.append("name" satisfies keyof typeof ProfileUpdateForm.Type, data.name);
+  return body;
+};
+
+/** The body `uploadAvatarFn` takes, keyed as `AvatarUploadForm` reads it. */
+export const avatarUploadBody = (avatar: File): FormData => {
+  const body = new globalThis.FormData();
+  body.append("avatar" satisfies keyof typeof AvatarUploadForm.Type, avatar);
+  return body;
+};
 
 export const updateProfileFn = createServerFn({ method: "POST" })
-  .validator(parseProfileUpdate)
+  .validator(ProfileUpdateForm)
   .handler(({ data }) => updateProfile(data));
 
 export const uploadAvatarFn = createServerFn({ method: "POST" })
-  .validator(parseAvatarUpload)
-  .handler(({ data }) => uploadAvatar(data.file));
+  .validator(AvatarUploadForm)
+  .handler(({ data }) => uploadAvatar(data.avatar));

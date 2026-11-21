@@ -4,6 +4,8 @@ import type {
   UploadAvatarResult,
 } from "@/shared/gateway/user/update";
 import {
+  avatarUploadBody,
+  profileUpdateBody,
   updateProfileFn,
   uploadAvatarFn,
 } from "@/shared/gateway/user/update.fn";
@@ -30,20 +32,14 @@ interface ProfileSubmission {
 const uploadPendingAvatar = (
   uploadAvatar: SubmitProfileDeps["uploadAvatar"],
   pendingFile: File
-): Promise<UploadAvatarResult> => {
-  const avatarForm = new globalThis.FormData();
-  avatarForm.append("avatar", pendingFile);
-  return uploadAvatar(avatarForm);
-};
+): Promise<UploadAvatarResult> => uploadAvatar(avatarUploadBody(pendingFile));
 
 const saveName = (
   updateProfile: SubmitProfileDeps["updateProfile"],
   data: UpdateUser,
   avatarUploaded: boolean
-): Promise<ProfileSubmission> => {
-  const profileForm = new globalThis.FormData();
-  profileForm.append("name", data.name);
-  return updateProfile(profileForm).then((updated) => {
+): Promise<ProfileSubmission> =>
+  updateProfile(profileUpdateBody(data)).then((updated) => {
     if (updated.status === "failed") {
       return {
         avatarUploaded,
@@ -55,7 +51,6 @@ const saveName = (
       outcome: { status: "saved" },
     } satisfies ProfileSubmission;
   });
-};
 
 /**
  * Runs one profile submission: the pending avatar first, so a failed upload
