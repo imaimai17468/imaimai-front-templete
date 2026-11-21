@@ -383,6 +383,11 @@
               }
             }
           }
+        ],
+        "allowedUnstableApis": [
+          "@effect/vitest",
+          "effect/crypto/SecureRandom",
+          "effect/testing"
         ]
       }
     ],
