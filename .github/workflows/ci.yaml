@@ -130,40 +130,11 @@ jobs:
       - name: Scan React diagnostics (react-doctor)
         run: bun run doctor --no-score
 
-  # Every shard plans the whole split from the durations it is handed, so all
-  # of them are handed the same file, restored once here. A shard restoring
-  # the cache on its own could read a newer save than another shard read, and
-  # the two plans would then drop some test files and run others twice.
-  test-plan:
-    name: test plan
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      # The durations the last run on main recorded. A pull request reads the
-      # cache main saved, and a miss leaves every file weighing the same.
-      - name: Restore the recorded test durations
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: node_modules/.vite/vitest
-          key: vitest-durations-${{ github.run_id }}
-          restore-keys: vitest-durations-
-
-      # Gives the upload a file to carry when the restore missed.
-      - name: Mark the durations directory
-        run: mkdir -p node_modules/.vite/vitest && touch node_modules/.vite/vitest/.keep
-
-      - name: Hand the durations to the shards
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: test-durations
-          path: node_modules/.vite/vitest
-          include-hidden-files: true
-          retention-days: 1
-
-  # Adding an entry to `shard` adds a shard.
+  # Vitest's `--shard` splits the test files by count, whatever each one takes
+  # to run, so the shards' file counts differ by at most one. Adding an entry
+  # to `shard` adds a shard.
   test-shard:
     name: tests (shard ${{ matrix.shard }})
-    needs: test-plan
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -177,12 +148,6 @@ jobs:
       - name: Set up the toolchain and dependencies
         uses: ./.github/actions/setup
 
-      - name: Receive the recorded test durations
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: test-durations
-          path: node_modules/.vite/vitest
-
       # A shard's tests reach only some branches of each source file, so this
       # step turns the per-file branch threshold off and the tests job checks
       # it on the merged report. The blob reporter prints nothing about a
@@ -190,20 +155,18 @@ jobs:
       - name: Run this shard's tests
         run: bun run test --coverage.thresholds.branches=0 --reporter=default --reporter=github-actions --reporter=blob --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
-      - name: Upload the shard's report and durations
+      - name: Upload the shard's report
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-shard-${{ matrix.shard }}
-          path: |
-            .vitest/blob
-            node_modules/.vite/vitest/*/results.json
+          path: .vitest/blob
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 1
 
   test:
     name: tests
-    needs: [test-plan, test-shard]
+    needs: test-shard
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -213,35 +176,17 @@ jobs:
       - name: Set up the toolchain and dependencies
         uses: ./.github/actions/setup
 
-      - name: Download every shard's report and durations
+      # Each shard names its blob after its index, so the reports land side by
+      # side in the directory `--merge-reports` reads.
+      - name: Download every shard's report
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: test-shard-*
-          path: shards
+          path: .vitest/blob
+          merge-multiple: true
 
       - name: Merge the reports and check coverage
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p .vitest/blob
-          cp shards/*/.vitest/blob/*.json .vitest/blob/
-          bun run test --merge-reports
-
-      - name: Merge the shards' recorded durations
-        if: github.event_name == 'push'
-        shell: bash
-        run: |
-          set -euo pipefail
-          inputs=(shards/*/node_modules/.vite/vitest/*/results.json)
-          output=${inputs[0]#shards/*/}
-          bun scripts/test-shards/merge-durations.entry.ts "$output" "${inputs[@]}"
-
-      - name: Save the recorded durations for the next run
-        if: github.event_name == 'push'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: node_modules/.vite/vitest
-          key: vitest-durations-${{ github.run_id }}-${{ github.run_attempt }}
+        run: bun run test --merge-reports
 
   bundle:
     name: worker build
@@ -285,7 +230,7 @@ jobs:
   build:
     name: build
     if: ${{ !cancelled() }}
-    needs: [static, check, doctor, test-plan, test-shard, test, bundle, smoke]
+    needs: [static, check, doctor, test-shard, test, bundle, smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
