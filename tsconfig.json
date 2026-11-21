@@ -223,10 +223,6 @@
             }
           },
           {
-            "include": ["src/shared/gateway/user/update.fn.ts"],
-            "options": { "diagnosticSeverity": { "schemaSync": "suggestion" } }
-          },
-          {
             "include": ["src/shared/ui/**/*.ts", "src/shared/ui/**/*.tsx"],
             "options": {
               "diagnosticSeverity": {

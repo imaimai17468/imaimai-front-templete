@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { flow, Schema } from "effect";
+import { Schema } from "effect";
 import {
   avatarSizeVerdict,
   MAX_AVATAR_MEGABYTES,
@@ -10,16 +10,8 @@ import { updateProfile, uploadAvatar } from "./update";
 
 // The wire hands `.validator` whatever the client sent, so the contract starts
 // at this schema rather than at a parameter annotation.
-const FormDataSchema = Schema.declare<FormData>(
-  (input): input is FormData => input instanceof FormData,
-  { message: "Expected FormData" }
-);
-
-const decodeFormData = Schema.decodeUnknownSync(FormDataSchema);
-const decodeUpdateUser = Schema.decodeUnknownSync(UpdateUserSchema);
-
-export const parseProfileUpdate = flow(decodeFormData, (form) =>
-  decodeUpdateUser({ name: form.get("name") })
+export const ProfileUpdateForm = Schema.toStandardSchemaV1(
+  Schema.fromFormData(UpdateUserSchema)
 );
 
 const AVATAR_REJECTION_MESSAGES = {
@@ -42,16 +34,22 @@ const AvatarFileSchema = Schema.declare<File>(
   { message: AVATAR_REJECTION_MESSAGES.empty }
 ).check(rejectsFor("empty"), rejectsFor("too-large"));
 
-const decodeAvatarFile = Schema.decodeUnknownSync(AvatarFileSchema);
-
-export const parseAvatarUpload = flow(decodeFormData, (form) => ({
-  file: decodeAvatarFile(form.get("avatar")),
-}));
+export const AvatarUploadForm = Schema.toStandardSchemaV1(
+  Schema.fromFormData(
+    Schema.Struct({
+      avatar: AvatarFileSchema.pipe(
+        Schema.annotateKey({
+          messageMissingKey: AVATAR_REJECTION_MESSAGES.empty,
+        })
+      ),
+    })
+  )
+);
 
 export const updateProfileFn = createServerFn({ method: "POST" })
-  .validator(parseProfileUpdate)
+  .validator(ProfileUpdateForm)
   .handler(({ data }) => updateProfile(data));
 
 export const uploadAvatarFn = createServerFn({ method: "POST" })
-  .validator(parseAvatarUpload)
-  .handler(({ data }) => uploadAvatar(data.file));
+  .validator(AvatarUploadForm)
+  .handler(({ data }) => uploadAvatar(data.avatar));

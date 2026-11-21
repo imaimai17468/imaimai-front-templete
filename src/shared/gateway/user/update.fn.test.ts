@@ -1,30 +1,45 @@
-import { String as Str } from "effect";
+import { Array as Arr, String as Str, pipe } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import {
   MAX_AVATAR_BYTES,
   MAX_AVATAR_MEGABYTES,
 } from "@/lib/storage/avatar-validation";
-import { parseAvatarUpload, parseProfileUpdate } from "./update.fn";
+import { AvatarUploadForm, ProfileUpdateForm } from "./update.fn";
 
 const pngFile = (byteLength: number) =>
   new File([new Uint8Array(byteLength)], "a.png", { type: "image/png" });
 
-describe(parseProfileUpdate, () => {
+type ServerFnForm = typeof AvatarUploadForm | typeof ProfileUpdateForm;
+
+// The Standard Schema contract lets `validate` answer with the result or with
+// a Promise of it, and this resolves both arms.
+const validate = (form: ServerFnForm, input: FormData | URLSearchParams) =>
+  globalThis.Promise.resolve(form["~standard"].validate(input));
+
+const issueMessages = (form: ServerFnForm, input: FormData | URLSearchParams) =>
+  validate(form, input).then((result) =>
+    pipe(
+      result.issues ?? [],
+      Arr.map(({ message }) => message)
+    )
+  );
+
+describe("the profile update form", () => {
   it("should reject when the input is not FormData", () => {
-    const data = {};
+    const data = new URLSearchParams({ name: "Updated User" });
 
-    const parse = () => parseProfileUpdate(data);
-
-    expect(parse).toThrow("Expected FormData");
+    return expect(
+      issueMessages(ProfileUpdateForm, data)
+    ).resolves.toStrictEqual(["Expected FormData"]);
   });
 
   it("should return the parsed name when the name is valid", () => {
     const data = new FormData();
     data.set("name", "Updated User");
 
-    const result = parseProfileUpdate(data);
-
-    expect(result).toStrictEqual({ name: "Updated User" });
+    return expect(validate(ProfileUpdateForm, data)).resolves.toStrictEqual({
+      value: { name: "Updated User" },
+    });
   });
 
   it.each([
@@ -38,55 +53,53 @@ describe(parseProfileUpdate, () => {
     const data = new FormData();
     data.set("name", name);
 
-    const parse = () => parseProfileUpdate(data);
-
-    expect(parse).toThrow(message);
+    return expect(
+      issueMessages(ProfileUpdateForm, data)
+    ).resolves.toStrictEqual([message]);
   });
 });
 
-describe(parseAvatarUpload, () => {
+describe("the avatar upload form", () => {
   it("should reject when the input is not FormData", () => {
-    const data = {};
+    const data = new URLSearchParams({ name: "Updated User" });
 
-    const parse = () => parseAvatarUpload(data);
-
-    expect(parse).toThrow("Expected FormData");
+    return expect(issueMessages(AvatarUploadForm, data)).resolves.toStrictEqual(
+      ["Expected FormData"]
+    );
   });
 
   it("should reject when the avatar entry is absent", () => {
     const data = new FormData();
 
-    const parse = () => parseAvatarUpload(data);
-
-    expect(parse).toThrow("No file selected");
+    return expect(issueMessages(AvatarUploadForm, data)).resolves.toStrictEqual(
+      ["No file selected"]
+    );
   });
 
   it("should reject when the avatar entry is not a File", () => {
     const data = new FormData();
     data.set("avatar", "a.png");
 
-    const parse = () => parseAvatarUpload(data);
-
-    expect(parse).toThrow("No file selected");
+    return expect(issueMessages(AvatarUploadForm, data)).resolves.toStrictEqual(
+      ["No file selected"]
+    );
   });
 
   it("should reject when the avatar is empty", () => {
     const data = new FormData();
     data.set("avatar", pngFile(0));
 
-    const parse = () => parseAvatarUpload(data);
-
-    expect(parse).toThrow("No file selected");
+    return expect(issueMessages(AvatarUploadForm, data)).resolves.toStrictEqual(
+      ["No file selected"]
+    );
   });
 
   it("should reject when the avatar exceeds the size limit", () => {
     const data = new FormData();
     data.set("avatar", pngFile(MAX_AVATAR_BYTES + 1));
 
-    const parse = () => parseAvatarUpload(data);
-
-    expect(parse).toThrow(
-      `Avatar must be ${MAX_AVATAR_MEGABYTES}MB or smaller`
+    return expect(issueMessages(AvatarUploadForm, data)).resolves.toStrictEqual(
+      [`Avatar must be ${MAX_AVATAR_MEGABYTES}MB or smaller`]
     );
   });
 
@@ -95,8 +108,8 @@ describe(parseAvatarUpload, () => {
     const data = new FormData();
     data.set("avatar", file);
 
-    const result = parseAvatarUpload(data);
-
-    expect(result).toStrictEqual({ file });
+    return expect(validate(AvatarUploadForm, data)).resolves.toStrictEqual({
+      value: { avatar: file },
+    });
   });
 });
