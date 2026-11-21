@@ -48,14 +48,25 @@ type ParsedReport =
   | { readonly kind: "not-json" }
   | { readonly kind: "unexpected-shape"; readonly issues: string };
 
-const parseReport = (stdout: string): ParsedReport => {
-  let json: unknown;
+type ParsedJson =
+  | { readonly kind: "json"; readonly value: unknown }
+  | { readonly kind: "not-json" };
+
+const parseJson = (text: string): ParsedJson => {
   try {
-    json = JSON.parse(stdout);
+    const value: unknown = JSON.parse(text);
+    return { kind: "json", value };
   } catch {
     return { kind: "not-json" };
   }
-  const parsed = AuditReportSchema.safeParse(json);
+};
+
+const parseReport = (stdout: string): ParsedReport => {
+  const json = parseJson(stdout);
+  if (json.kind === "not-json") {
+    return json;
+  }
+  const parsed = AuditReportSchema.safeParse(json.value);
   return parsed.success
     ? { kind: "report", report: parsed.data }
     : { issues: z.prettifyError(parsed.error), kind: "unexpected-shape" };

@@ -6,12 +6,12 @@ import { Option } from "effect";
  * runs it again.
  */
 export const memoizeValue = <T>(build: () => T): (() => T) => {
-  let cached = Option.none<T>();
+  const cache = { value: Option.none<T>() };
 
   return () =>
-    Option.getOrElse(cached, () => {
+    Option.getOrElse(cache.value, () => {
       const fresh = build();
-      cached = Option.some(fresh);
+      cache.value = Option.some(fresh);
       return fresh;
     });
 };

@@ -53,11 +53,11 @@ export const selectShardFiles = <T extends ShardCandidate>(
       (a, b) =>
         b.weight - a.weight || a.candidate.id.localeCompare(b.candidate.id)
     );
-  let loads = Array.from({ length: slot.count }, () => 0);
+  const loads = Array.from({ length: slot.count }, () => 0);
   const shardIndexes = weighted.map(({ weight }) => {
     const least = Math.min(...loads);
     const lightest = loads.indexOf(least);
-    loads = loads.with(lightest, least + weight);
+    loads[lightest] = least + weight;
     return lightest;
   });
   return weighted

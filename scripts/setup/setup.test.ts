@@ -88,14 +88,14 @@ const localEnvBody = (dir: string): string | null => {
 };
 
 describe("setup.sh", { timeout: FORKING_CASE_TIMEOUT_MS }, () => {
-  let scratchRoot = "";
+  const scratch = { root: "" };
 
   beforeAll(() => {
-    scratchRoot = mkdtempSync(path.join(tmpdir(), "setup-"));
+    scratch.root = mkdtempSync(path.join(tmpdir(), "setup-"));
   });
 
   afterAll(() => {
-    rmSync(scratchRoot, { force: true, recursive: true });
+    rmSync(scratch.root, { force: true, recursive: true });
   });
 
   /**
@@ -104,7 +104,7 @@ describe("setup.sh", { timeout: FORKING_CASE_TIMEOUT_MS }, () => {
    * repository.
    */
   const scratchCheckout = (): string => {
-    const dir = mkdtempSync(path.join(scratchRoot, "checkout-"));
+    const dir = mkdtempSync(path.join(scratch.root, "checkout-"));
     mkdirSync(path.join(dir, "scripts", "setup"), { recursive: true });
     copyFileSync(SETUP, path.join(dir, "scripts", "setup", "setup.sh"));
     writeFileSync(path.join(dir, EXAMPLE), EXAMPLE_BODY);
@@ -113,7 +113,7 @@ describe("setup.sh", { timeout: FORKING_CASE_TIMEOUT_MS }, () => {
 
   /** A PATH that holds these stand-ins and nothing else, so no directory outside it answers `command -v mise`. */
   const stubPath = (names: readonly StubName[]): string => {
-    const dir = mkdtempSync(path.join(scratchRoot, "stubs-"));
+    const dir = mkdtempSync(path.join(scratch.root, "stubs-"));
     names.forEach((name) => {
       const stub = path.join(dir, name);
       writeFileSync(stub, STUB_BODIES[name]);
@@ -226,7 +226,7 @@ describe("setup.sh", { timeout: FORKING_CASE_TIMEOUT_MS }, () => {
 
   it("should report the path and write nothing through the link when a dangling symlink sits at the local env path", () => {
     const dir = scratchCheckout();
-    const outside = path.join(scratchRoot, `${path.basename(dir)}-outside`);
+    const outside = path.join(scratch.root, `${path.basename(dir)}-outside`);
     symlinkSync(outside, path.join(dir, LOCAL_ENV));
 
     const run = runSetup(dir, WITHOUT_MISE);
