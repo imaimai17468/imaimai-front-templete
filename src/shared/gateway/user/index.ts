@@ -11,16 +11,16 @@ import { reportError } from "@/shared/gateway/report-error";
  *
  * One type covers both stores because nothing above discriminates them.
  */
-export class UserPersistenceError extends Schema.TaggedError<UserPersistenceError>()(
-  "UserPersistenceError",
-  { cause: Schema.Defect() }
-) {}
+export class UserPersistenceError extends Schema.TaggedError<
+  UserPersistenceError,
+  { readonly brand: unique symbol }
+>()("UserPersistenceError", { cause: Schema.Defect() }) {}
 
 /** A write the store reported as touching a number of rows nobody expects. */
-class UnexpectedRowCount extends Schema.TaggedError<UnexpectedRowCount>()(
-  "UnexpectedRowCount",
-  { message: Schema.String }
-) {}
+class UnexpectedRowCount extends Schema.TaggedError<
+  UnexpectedRowCount,
+  { readonly brand: unique symbol }
+>()("UnexpectedRowCount", { message: Schema.String }) {}
 
 export const persistenceEffect = <A>(
   run: () => Promise<A>

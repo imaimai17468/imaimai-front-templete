@@ -24,10 +24,10 @@ const appMemoMap = Layer.makeMemoMapUnsafe();
  * answer and into the document's inline script, so the message is fixed here
  * and the defect itself goes to Workers Logs.
  */
-class HandlerFailed extends Schema.TaggedError<HandlerFailed>()(
-  "HandlerFailed",
-  { message: Schema.String }
-) {}
+class HandlerFailed extends Schema.TaggedError<
+  HandlerFailed,
+  { readonly brand: unique symbol }
+>()("HandlerFailed", { message: Schema.String }) {}
 
 const HANDLER_FAILED_MESSAGE = "The request could not be completed";
 

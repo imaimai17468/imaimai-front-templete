@@ -7,29 +7,29 @@ import type { AvatarObject } from ".";
 import { orNone } from "..";
 import { makeRunHandler } from "../../runtime";
 
-export class AvatarUnauthorized extends Schema.TaggedError<AvatarUnauthorized>()(
-  "AvatarUnauthorized",
-  {}
-) {}
+export class AvatarUnauthorized extends Schema.TaggedError<
+  AvatarUnauthorized,
+  { readonly brand: unique symbol }
+>()("AvatarUnauthorized", {}) {}
 
-export class AvatarInvalidKey extends Schema.TaggedError<AvatarInvalidKey>()(
-  "AvatarInvalidKey",
-  {}
-) {}
+export class AvatarInvalidKey extends Schema.TaggedError<
+  AvatarInvalidKey,
+  { readonly brand: unique symbol }
+>()("AvatarInvalidKey", {}) {}
 
-export class AvatarNotFound extends Schema.TaggedError<AvatarNotFound>()(
-  "AvatarNotFound",
-  {}
-) {}
+export class AvatarNotFound extends Schema.TaggedError<
+  AvatarNotFound,
+  { readonly brand: unique symbol }
+>()("AvatarNotFound", {}) {}
 
 /**
  * A bucket read that failed for a key the caller owns. It carries no fields,
  * so nothing of the bucket's error reaches whoever receives it.
  */
-export class AvatarReadFailed extends Schema.TaggedError<AvatarReadFailed>()(
-  "AvatarReadFailed",
-  {}
-) {}
+export class AvatarReadFailed extends Schema.TaggedError<
+  AvatarReadFailed,
+  { readonly brand: unique symbol }
+>()("AvatarReadFailed", {}) {}
 
 /**
  * The authorization boundary between an HTTP handler and the avatar bucket.

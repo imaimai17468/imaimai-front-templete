@@ -12,15 +12,15 @@ import type {
 } from "./avatar/update";
 import { CurrentUserReader } from "./read";
 
-class NotAuthenticated extends Schema.TaggedError<NotAuthenticated>()(
-  "NotAuthenticated",
-  {}
-) {}
+class NotAuthenticated extends Schema.TaggedError<
+  NotAuthenticated,
+  { readonly brand: unique symbol }
+>()("NotAuthenticated", {}) {}
 
-class UserNameUpdateFailed extends Schema.TaggedError<UserNameUpdateFailed>()(
-  "UserNameUpdateFailed",
-  {}
-) {}
+class UserNameUpdateFailed extends Schema.TaggedError<
+  UserNameUpdateFailed,
+  { readonly brand: unique symbol }
+>()("UserNameUpdateFailed", {}) {}
 
 /**
  * The `name` column of a user's own row.

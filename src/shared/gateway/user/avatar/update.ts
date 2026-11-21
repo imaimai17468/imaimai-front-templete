@@ -22,27 +22,27 @@ import { AvatarBucket, AvatarKeyIds } from ".";
 import { orNone, readUserRow, succeeded, writeUserRow, wroteOneRow } from "..";
 import type { UserPersistenceError } from "..";
 
-export class AvatarTypeUnsupported extends Schema.TaggedError<AvatarTypeUnsupported>()(
-  "AvatarTypeUnsupported",
-  {}
-) {}
+export class AvatarTypeUnsupported extends Schema.TaggedError<
+  AvatarTypeUnsupported,
+  { readonly brand: unique symbol }
+>()("AvatarTypeUnsupported", {}) {}
 
-export class AvatarUploadFailed extends Schema.TaggedError<AvatarUploadFailed>()(
-  "AvatarUploadFailed",
-  {}
-) {}
+export class AvatarUploadFailed extends Schema.TaggedError<
+  AvatarUploadFailed,
+  { readonly brand: unique symbol }
+>()("AvatarUploadFailed", {}) {}
 
 /** An uploaded object the rollback delete failed to remove from the bucket. */
-class AvatarObjectOrphaned extends Schema.TaggedError<AvatarObjectOrphaned>()(
-  "AvatarObjectOrphaned",
-  { message: Schema.String }
-) {}
+class AvatarObjectOrphaned extends Schema.TaggedError<
+  AvatarObjectOrphaned,
+  { readonly brand: unique symbol }
+>()("AvatarObjectOrphaned", { message: Schema.String }) {}
 
 /** A stored key the cleanup refused, because it names no object of this owner's. */
-class AvatarKeyNotOwned extends Schema.TaggedError<AvatarKeyNotOwned>()(
-  "AvatarKeyNotOwned",
-  { message: Schema.String }
-) {}
+class AvatarKeyNotOwned extends Schema.TaggedError<
+  AvatarKeyNotOwned,
+  { readonly brand: unique symbol }
+>()("AvatarKeyNotOwned", { message: Schema.String }) {}
 
 export interface AvatarUpdated {
   readonly avatarUrl: string;
