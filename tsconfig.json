@@ -387,7 +387,7 @@
         "allowedUnstableApis": [
           "@effect/vitest",
           "effect/crypto/SecureRandom",
-          "effect/testing"
+          "effect/testing/TestConsole"
         ]
       }
     ],
