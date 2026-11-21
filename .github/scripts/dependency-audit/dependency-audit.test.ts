@@ -51,7 +51,7 @@ describe(auditOutcome, () => {
     {
       detail: [
         "bun audit exited 0 and printed JSON this step cannot read as an advisory report:",
-        "✖ Invalid input: expected record, received array",
+        "Expected object",
       ].join("\n"),
       name: "stdout is a JSON array",
       run: { exitCode: 0, spawnError: undefined, stderr: "", stdout: "[]" },
@@ -59,7 +59,7 @@ describe(auditOutcome, () => {
     {
       detail: [
         "bun audit exited 1 and printed JSON this step cannot read as an advisory report:",
-        "✖ Invalid input: expected string, received undefined\n  → at x[0].title",
+        'Missing key\n  at ["x"][0]["title"]',
       ].join("\n"),
       name: "an advisory is missing its title",
       run: {
@@ -67,6 +67,19 @@ describe(auditOutcome, () => {
         spawnError: undefined,
         stderr: "",
         stdout: JSON.stringify({ x: [{ severity: "low", url: "u" }] }),
+      },
+    },
+    {
+      detail: [
+        "bun audit exited 1 and printed JSON this step cannot read as an advisory report:",
+        'Missing key\n  at ["x"][0]["title"]\nMissing key\n  at ["x"][0]["url"]',
+      ].join("\n"),
+      name: "an advisory is missing two fields",
+      run: {
+        exitCode: 1,
+        spawnError: undefined,
+        stderr: "",
+        stdout: JSON.stringify({ x: [{ severity: "low" }] }),
       },
     },
     {
