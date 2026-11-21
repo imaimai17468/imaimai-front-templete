@@ -1,5 +1,8 @@
 import { defineConfig } from "oxlint";
-import { ALL_REACT_DOCTOR_RULES } from "oxlint-plugin-react-doctor";
+import {
+  ALL_REACT_DOCTOR_RULES,
+  PREACT_RULES,
+} from "oxlint-plugin-react-doctor";
 
 const portsOfOxlintBuiltinRules = {
   "react-doctor/alt-text": "off",
@@ -106,19 +109,15 @@ const portsOfOxlintBuiltinRules = {
   "react-doctor/void-dom-elements-no-children": "off",
 } as const;
 
-const preactAndReactCompilerRules = {
-  "react-doctor/preact-no-children-length": "off",
-  "react-doctor/preact-no-react-hooks-import": "off",
-  "react-doctor/preact-no-render-arguments": "off",
-  "react-doctor/preact-prefer-ondblclick": "off",
-  "react-doctor/preact-prefer-oninput": "off",
-  "react-doctor/react-compiler-no-manual-memoization": "off",
-} as const;
+const preactRules = Object.fromEntries(
+  Object.keys(PREACT_RULES).map((rule) => [rule, "off"] as const)
+);
 
 export default defineConfig({
   rules: {
     ...ALL_REACT_DOCTOR_RULES,
     ...portsOfOxlintBuiltinRules,
-    ...preactAndReactCompilerRules,
+    ...preactRules,
+    "react-doctor/react-compiler-no-manual-memoization": "off",
   },
 });
