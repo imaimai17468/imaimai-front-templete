@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { LogOut, User as UserIcon } from "lucide-react";
-import { signOut } from "@/lib/auth/sign-in";
+import { signOut } from "@/lib/auth/sign-in/sign-in";
 import { UserAvatar } from "@/shared/components/user-avatar/user-avatar";
-import { displayName } from "@/shared/entities/user";
-import type { UserWithEmail } from "@/shared/entities/user";
+import { displayName } from "@/shared/entities/user/user";
+import type { UserWithEmail } from "@/shared/entities/user/user";
 import {
   DropdownMenu,
   DropdownMenuContent,

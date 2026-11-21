@@ -7,7 +7,7 @@ import {
   UpdateUserSchema,
   UserSchema,
   UserWithEmailSchema,
-} from "./index";
+} from "./user";
 
 // The Standard Schema contract lets `validate` answer with the result or with
 // a Promise of it, and this resolves both arms the way react-hook-form's

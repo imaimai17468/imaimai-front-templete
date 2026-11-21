@@ -4,8 +4,8 @@ import { SecureRandom } from "effect/crypto";
 import { storage } from "void/storage";
 import { avatarContentTypeForKey } from "@/lib/storage/avatar-validation";
 import type { AvatarContentType } from "@/lib/storage/avatar-validation";
-import { persistenceEffect } from "..";
-import type { UserPersistenceError } from "..";
+import { persistenceEffect } from "../persistence";
+import type { UserPersistenceError } from "../persistence";
 
 /**
  * An avatar object as it leaves the bucket.
@@ -73,7 +73,7 @@ export class AvatarBucket extends Context.Service<
     ) => Effect.Effect<void, UserPersistenceError>;
     readonly remove: (key: string) => Effect.Effect<void, UserPersistenceError>;
   }
->()("my-app/shared/gateway/user/avatar/AvatarBucket") {
+>()("my-app/shared/gateway/user/avatar/bucket/AvatarBucket") {
   static readonly layer = Layer.succeed(
     AvatarBucket,
     AvatarBucket.of({
@@ -106,7 +106,7 @@ export class AvatarBucket extends Context.Service<
 export class AvatarKeyIds extends Context.Service<
   AvatarKeyIds,
   { readonly next: Effect.Effect<string> }
->()("my-app/shared/gateway/user/avatar/AvatarKeyIds") {
+>()("my-app/shared/gateway/user/avatar/bucket/AvatarKeyIds") {
   static readonly layer = Layer.effect(
     AvatarKeyIds,
     Effect.gen(function* buildAvatarKeyIds() {

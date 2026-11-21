@@ -1,7 +1,7 @@
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { signIn } from "@/lib/auth/sign-in";
+import { signIn } from "@/lib/auth/sign-in/sign-in";
 import { Button } from "@/shared/ui/button";
 
 export const SignInButton = () => {

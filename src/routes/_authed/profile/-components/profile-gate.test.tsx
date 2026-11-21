@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vite-plus/test";
-import type { UserWithEmail } from "@/shared/entities/user";
+import type { UserWithEmail } from "@/shared/entities/user/user";
 import { currentUserQueryOptions } from "@/shared/gateway/user/read.fn";
 import { ProfileGate } from "./profile-gate";
 import { renderWithRouter } from "./router-utils";

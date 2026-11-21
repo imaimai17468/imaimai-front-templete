@@ -1,11 +1,11 @@
 import "@tanstack/react-start/server-only";
 import { Context, Effect, Layer, Option, Schema } from "effect";
-import { CurrentSession } from "@/lib/auth/session";
+import { CurrentSession } from "@/lib/auth/session/current-session";
 import { isOwnAvatarKey } from "@/lib/storage/avatar-validation";
-import { AvatarBucket } from ".";
-import type { AvatarObject } from ".";
-import { orNone } from "..";
 import { makeRunHandler } from "../../runtime";
+import { orNone } from "../persistence";
+import { AvatarBucket } from "./bucket";
+import type { AvatarObject } from "./bucket";
 
 export class AvatarUnauthorized extends Schema.TaggedError<
   AvatarUnauthorized,

@@ -5,8 +5,8 @@ import {
   MAX_AVATAR_MEGABYTES,
 } from "@/lib/storage/avatar-validation";
 import type { AvatarSizeRejection } from "@/lib/storage/avatar-validation";
-import { UpdateUserSchema } from "@/shared/entities/user";
-import type { UpdateUser } from "@/shared/entities/user";
+import { UpdateUserSchema } from "@/shared/entities/user/user";
+import type { UpdateUser } from "@/shared/entities/user/user";
 import { updateProfile, uploadAvatar } from "./update";
 
 // The wire hands `.validator` whatever the client sent, so the contract starts

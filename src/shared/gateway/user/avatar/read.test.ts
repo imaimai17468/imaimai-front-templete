@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "@effect/vitest";
 import { Effect, Layer, Option, Record as Rec } from "effect";
-import { CurrentSession } from "@/lib/auth/session";
+import { CurrentSession } from "@/lib/auth/session/current-session";
 import { capturedReports } from "@/shared/gateway/error-reports";
 import { DriverFailed } from "@/test/defect";
-import { AvatarBucket, AvatarObject } from ".";
-import { UserPersistenceError } from "..";
+import { UserPersistenceError } from "../persistence";
+import { AvatarBucket, AvatarObject } from "./bucket";
 import {
   AvatarInvalidKey,
   AvatarNotFound,

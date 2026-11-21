@@ -18,9 +18,15 @@ import {
 } from "@/lib/storage/avatar-validation";
 import { reportError } from "@/shared/gateway/report-error";
 import { avatarUrlForKey } from "@/shared/gateway/user/avatar-url";
-import { AvatarBucket, AvatarKeyIds } from ".";
-import { orNone, readUserRow, succeeded, writeUserRow, wroteOneRow } from "..";
-import type { UserPersistenceError } from "..";
+import {
+  orNone,
+  readUserRow,
+  succeeded,
+  writeUserRow,
+  wroteOneRow,
+} from "../persistence";
+import type { UserPersistenceError } from "../persistence";
+import { AvatarBucket, AvatarKeyIds } from "./bucket";
 
 export class AvatarTypeUnsupported extends Schema.TaggedError<
   AvatarTypeUnsupported,

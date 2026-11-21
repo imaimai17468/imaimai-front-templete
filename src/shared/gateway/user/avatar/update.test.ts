@@ -4,8 +4,8 @@ import { SQLiteAsyncDialect } from "void/schema-d1";
 import { capturedReports } from "@/shared/gateway/error-reports";
 import { avatarUrlForKey } from "@/shared/gateway/user/avatar-url";
 import { DriverFailed } from "@/test/defect";
-import { AvatarBucket, AvatarKeyIds } from ".";
-import { UserPersistenceError } from "..";
+import { UserPersistenceError } from "../persistence";
+import { AvatarBucket, AvatarKeyIds } from "./bucket";
 import {
   avatarKeyStillHeld,
   AvatarTypeUnsupported,

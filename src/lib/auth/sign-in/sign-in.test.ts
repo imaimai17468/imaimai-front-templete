@@ -1,8 +1,8 @@
 import { Option } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { DriverFailed } from "@/test/defect";
-import type { SignInClient } from "./index";
-import { createSignIn } from "./index";
+import type { SignInClient } from "./sign-in";
+import { createSignIn } from "./sign-in";
 
 const client = {
   signInWithEmail: vi.fn<SignInClient["signInWithEmail"]>(),

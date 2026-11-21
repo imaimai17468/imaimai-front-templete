@@ -1,5 +1,5 @@
 import { PageTitle } from "@/shared/components/page-title/page-title";
-import type { UserWithEmail } from "@/shared/entities/user";
+import type { UserWithEmail } from "@/shared/entities/user/user";
 import { ProfileForm } from "./profile-form/profile-form";
 import { formatRegisteredOn } from "./registered-on";
 import { SectionCard } from "./section-card";

@@ -476,7 +476,7 @@ export default defineConfig({
         // the avatar directory's: it holds the R2 binding and is the single
         // place `crypto` is read. Effect's `Random` reaches the same global for
         // its seed, so no layer removes it.
-        files: ["src/shared/gateway/user/avatar/index.ts"],
+        files: ["src/shared/gateway/user/avatar/bucket.ts"],
         rules: { "effect/noGlobals": "off" },
       },
       {

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import type { UserWithEmail } from "@/shared/entities/user";
+import type { UserWithEmail } from "@/shared/entities/user/user";
 import { AuthNavigation } from "./auth-navigation/auth-navigation";
 import { ModeToggle } from "./mode-toggle/mode-toggle";
 

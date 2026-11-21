@@ -1,13 +1,13 @@
 import "@tanstack/react-start/server-only";
 import { Context, Effect, flow, Layer, Option, Schema } from "effect";
-import { CurrentSession } from "@/lib/auth/session";
-import { UserWithEmailSchema } from "@/shared/entities/user";
-import type { UserWithEmail } from "@/shared/entities/user";
+import { CurrentSession } from "@/lib/auth/session/current-session";
+import { UserWithEmailSchema } from "@/shared/entities/user/user";
+import type { UserWithEmail } from "@/shared/entities/user/user";
 import { avatarUrlForKey } from "@/shared/gateway/user/avatar-url";
 import { httpsUrl } from "@/shared/gateway/user/https-url";
-import { dieOnPersistenceError, readUserRow } from ".";
-import type { UserPersistenceError } from ".";
 import { makeRunHandler } from "../runtime";
+import { dieOnPersistenceError, readUserRow } from "./persistence";
+import type { UserPersistenceError } from "./persistence";
 
 /**
  * Turns a row's `DateTime.Utc` instants into the ISO-8601 strings of

@@ -1,8 +1,6 @@
 import "@tanstack/react-start/server-only";
 import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
-import type { UpdateUser } from "@/shared/entities/user";
-import { dieOnPersistenceError, writeUserRow, wroteOneRow } from ".";
-import type { UserPersistenceError } from ".";
+import type { UpdateUser } from "@/shared/entities/user/user";
 import { makeRunHandler } from "../runtime";
 import { AvatarWriter } from "./avatar/update";
 import type {
@@ -10,6 +8,12 @@ import type {
   AvatarUpdated,
   AvatarUploadFailed,
 } from "./avatar/update";
+import {
+  dieOnPersistenceError,
+  writeUserRow,
+  wroteOneRow,
+} from "./persistence";
+import type { UserPersistenceError } from "./persistence";
 import { CurrentUserReader } from "./read";
 
 class NotAuthenticated extends Schema.TaggedError<

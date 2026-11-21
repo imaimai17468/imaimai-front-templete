@@ -1,15 +1,15 @@
 import { describe, expect, it, vi } from "@effect/vitest";
 import { DateTime, Effect, Layer, Option } from "effect";
-import type { UpdateUser, UserWithEmail } from "@/shared/entities/user";
+import type { UpdateUser, UserWithEmail } from "@/shared/entities/user/user";
 import { capturedReports } from "@/shared/gateway/error-reports";
 import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";
-import { UserPersistenceError } from ".";
 import {
   AvatarTypeUnsupported,
   AvatarUploadFailed,
   AvatarWriter,
 } from "./avatar/update";
+import { UserPersistenceError } from "./persistence";
 import { CurrentUserReader } from "./read";
 import {
   ProfileWriter,
