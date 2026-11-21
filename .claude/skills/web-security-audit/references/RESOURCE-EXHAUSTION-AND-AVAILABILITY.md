@@ -4,7 +4,7 @@
 
 Reach for this file when untrusted requests, messages, files, tenant state, or agent work can consume CPU, memory, disk, connections, worker slots, paid APIs, or queue capacity, or can deadlock/crash a shared service. This domain distinguishes a source-reviewable availability vulnerability from a general performance issue. Never validate by stressing a shared or live service.
 
-Use `MEMORY-SAFETY-AND-BINARY.md` for memory-integrity defects and `PROTOCOLS-RPC-AND-MESSAGING.md` for broker delivery logic. A reachable fatal error belongs here for shared impact even when the underlying parser is covered elsewhere.
+Use `PROTOCOLS-RPC-AND-MESSAGING.md` for broker delivery logic. A reachable fatal error belongs here for shared impact even when the underlying parser is covered elsewhere.
 
 ## Core discipline (include in every agent prompt for this domain)
 
@@ -33,7 +33,7 @@ A small request creates broad scans, pathological joins, fan-out, unbounded sort
 Bodies, out-of-order streams, uploads, sessions, unique cache keys, metrics labels, log fields, subscriptions, or pending jobs accumulate without per-item and aggregate limits. Find cleanup and expiration on disconnect, timeout, cancellation, and partial parse.
 
 **File descriptor, handle, and temporary-resource leaks**
-Malformed or canceled work misses cleanup and retains sockets, files, database cursors, timers, subprocesses, temporary files, or object references. Confirm the leak repeats through bounded local iterations and affects a shared pool.
+Malformed or canceled work misses cleanup and retains sockets, files, database cursors, timers, or object references. Confirm the leak repeats through bounded local iterations and affects a shared pool.
 
 **Detached work after cancellation**
 Client timeout, disconnect, canceled job, or failed authorization returns control but leaves database, model, network, or worker work running. Trace cancellation and deadline propagation through every layer.
@@ -52,7 +52,7 @@ Low-priority or attacker-controlled jobs hold shared locks, workers, database po
 ## Failure and recovery attack classes (subagent_type: `general`)
 
 **Reachable fatal error or deadlock**
-An untrusted input reaches `panic`, abort, fatal assertion, unhandled exception, process exit, lock cycle, or infinite loop in a shared process. Confirm supervisor scope and whether one worker or the whole service becomes unavailable. A restarted isolated worker may reduce impact but does not erase the defect.
+An untrusted input reaches an unhandled exception, a lock cycle, an infinite loop, or memory growth in code that other requests share, such as a Durable Object, a queue consumer, or the isolate itself. Confirm whether one request fails or the state other requests depend on becomes unavailable. A reset isolate may reduce impact but does not erase the defect.
 
 **Retry storm and fail-open amplification**
 Timeouts, dependency errors, partially processed messages, or health-check failures trigger synchronized or unbounded retries without jitter, ceilings, circuit breaking, or deduplication. Verify one bounded failure source can create persistent aggregate work.
@@ -73,6 +73,6 @@ A restart, restore, fallback, or cleanup path rebuilds unbounded state, ignores 
 
 1. Name untrusted input, requester work, service amplification or retained resource, shared blast radius, and recovery. Missing limits without concrete shared impact are hardening.
 2. Confirm no source-visible upstream, parser, queue, tenant, or framework bound prevents the path. Unknown deployed controls require `needs_validation`.
-3. For superlinear behavior, establish the accepted complexity and bounded local growth. For leaks, show repeatable retention after cleanup should occur. For fatal paths, identify process/supervisor isolation.
+3. For superlinear behavior, establish the accepted complexity and bounded local growth. For leaks, show repeatable retention after cleanup should occur. For fatal paths, identify which requests share the failing isolate, object, or batch.
 4. Prioritize by low requester work, unauthenticated reachability, cross-tenant scope, persistence, and poor recovery; do not validate with availability impact.
 5. Return `confirmed` only with safe local proof and meaningful shared effect. Return `needs_validation` with the exact upstream limit, topology, quota, or recovery observation an owner must check.
