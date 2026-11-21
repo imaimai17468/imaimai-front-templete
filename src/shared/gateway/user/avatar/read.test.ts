@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "@effect/vitest";
-import { Effect, Layer, Option } from "effect";
+import { Effect, Layer, Option, Record as Rec } from "effect";
 import { CurrentSession } from "@/lib/auth/session";
 import { capturedReports } from "@/shared/gateway/error-reports";
 import { DriverFailed } from "@/test/defect";
@@ -61,7 +61,7 @@ describe("AvatarReader.read", () => {
     () =>
       Effect.gen(function* rejectAnAnonymousRequest() {
         const { fetchAvatar, readAvatarOrFailure } = makeFakes(
-          Effect.succeed(Option.none())
+          Effect.succeedNone
         );
 
         const result = yield* readAvatarOrFailure(ownKey);
@@ -95,7 +95,7 @@ describe("AvatarReader.read", () => {
       const { fetchAvatar, readAvatarOrFailure } = makeFakes(
         Effect.succeed(signedInAs("user-1"))
       );
-      fetchAvatar.mockReturnValue(Effect.succeed(Option.none()));
+      fetchAvatar.mockReturnValue(Effect.succeedNone);
 
       const result = yield* readAvatarOrFailure(ownKey);
 
@@ -114,7 +114,7 @@ describe("AvatarReader.read", () => {
           Effect.succeed(signedInAs("user-1"))
         );
         const avatar = new AvatarObject(new ReadableStream(), "image/png");
-        fetchAvatar.mockReturnValue(Effect.succeed(Option.some(avatar)));
+        fetchAvatar.mockReturnValue(Effect.succeedSome(avatar));
 
         const result = yield* readAvatarOrFailure(ownKey);
 
@@ -235,7 +235,7 @@ describe(getAvatarResponse, () => {
 
         expect({
           body,
-          headers: Object.fromEntries(response.headers),
+          headers: Rec.fromEntries(response.headers),
           status: response.status,
         }).toStrictEqual({
           body: "avatar-body",

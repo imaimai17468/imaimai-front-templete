@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "@effect/vitest";
-import { DateTime, Effect, Layer, Option } from "effect";
+import { DateTime, Effect, Layer, Option, Array as Arr, pipe } from "effect";
 import { SQLiteAsyncDialect } from "void/schema-d1";
 import { capturedReports } from "@/shared/gateway/error-reports";
 import { avatarUrlForKey } from "@/shared/gateway/user/avatar-url";
@@ -31,9 +31,7 @@ const makeFakes = () => {
   const remove = vi.fn<AvatarBucket["Service"]["remove"]>();
   const upload = vi.fn<AvatarBucket["Service"]["put"]>();
 
-  findAvatarKey.mockReturnValue(
-    Effect.succeed(Option.some(Option.some(OLD_KEY)))
-  );
+  findAvatarKey.mockReturnValue(Effect.succeedSome(Option.some(OLD_KEY)));
   setAvatarKey.mockReturnValue(Effect.succeed(1));
   remove.mockReturnValue(Effect.void);
   upload.mockReturnValue(Effect.void);
@@ -131,13 +129,14 @@ describe("AvatarWriter.replace", () => {
         expect({
           removeCalls: remove.mock.calls,
           result,
-          updateCalls: setAvatarKey.mock.calls.map(
-            ([userId, previousKey, avatarKey, updatedAt]) => [
+          updateCalls: pipe(
+            setAvatarKey.mock.calls,
+            Arr.map(([userId, previousKey, avatarKey, updatedAt]) => [
               userId,
               previousKey,
               avatarKey,
               DateTime.formatIso(updatedAt),
-            ]
+            ])
           ),
           uploadKey: upload.mock.calls[0]?.[0],
         }).toStrictEqual({
@@ -157,7 +156,7 @@ describe("AvatarWriter.replace", () => {
       Effect.gen(function* leaveTheObjectInPlace() {
         const { findAvatarKey, remove, runOrFailure, upload } = makeFakes();
         findAvatarKey.mockReturnValue(
-          Effect.succeed(Option.some(Option.some("user-2/avatar.png")))
+          Effect.succeedSome(Option.some("user-2/avatar.png"))
         );
 
         const result = yield* runOrFailure((writer) =>
@@ -167,7 +166,10 @@ describe("AvatarWriter.replace", () => {
 
         expect({
           removeCalls: remove.mock.calls,
-          reportedEvents: reported.map(({ event }) => event),
+          reportedEvents: pipe(
+            reported,
+            Arr.map(({ event }) => event)
+          ),
           result,
           uploadKey: upload.mock.calls[0]?.[0],
         }).toStrictEqual({
@@ -182,7 +184,7 @@ describe("AvatarWriter.replace", () => {
   it.effect("should report a failure when the current row is absent", () =>
     Effect.gen(function* failForAnAbsentRow() {
       const { findAvatarKey, runOrFailure, upload } = makeFakes();
-      findAvatarKey.mockReturnValue(Effect.succeed(Option.none()));
+      findAvatarKey.mockReturnValue(Effect.succeedNone);
 
       const result = yield* runOrFailure((writer) =>
         writer.replace("user-1", validPng())
@@ -376,17 +378,16 @@ describe("AvatarWriter.replace", () => {
       Effect.gen(function* requireTheRowToHoldNoKey() {
         const { findAvatarKey, remove, runOrFailure, setAvatarKey } =
           makeFakes();
-        findAvatarKey.mockReturnValue(
-          Effect.succeed(Option.some(Option.none()))
-        );
+        findAvatarKey.mockReturnValue(Effect.succeedSome(Option.none()));
 
         const result = yield* runOrFailure((writer) =>
           writer.replace("user-1", validPng())
         );
 
         expect({
-          previousKeys: setAvatarKey.mock.calls.map(
-            ([, previousKey]) => previousKey
+          previousKeys: pipe(
+            setAvatarKey.mock.calls,
+            Arr.map(([, previousKey]) => previousKey)
           ),
           removeCalls: remove.mock.calls,
           result,
@@ -464,7 +465,10 @@ describe("AvatarWriter.replace racing another upload", () => {
         expect({
           objects: [...store.objects],
           removeCalls: remove.mock.calls,
-          reportedEvents: reported.map(({ event }) => event),
+          reportedEvents: pipe(
+            reported,
+            Arr.map(({ event }) => event)
+          ),
           results,
           row: store.row,
         }).toStrictEqual({

@@ -69,9 +69,7 @@ describe(updateProfileResult, () => {
     "should reject without writing persistence when the request is anonymous",
     () =>
       Effect.gen(function* rejectWithoutWritingPersistence() {
-        const { setName, updateProfile } = makeFakes(
-          Effect.succeed(Option.none())
-        );
+        const { setName, updateProfile } = makeFakes(Effect.succeedNone);
 
         const result = yield* updateProfile({ name: "Updated User" });
 
@@ -87,7 +85,7 @@ describe(updateProfileResult, () => {
     () =>
       Effect.gen(function* passTheServerDerivedIdentity() {
         const { setName, updateProfile } = makeFakes(
-          Effect.succeed(Option.some(authenticatedUser))
+          Effect.succeedSome(authenticatedUser)
         );
 
         const result = yield* updateProfile({ name: "Updated User" });
@@ -108,7 +106,7 @@ describe(updateProfileResult, () => {
   it.effect("should report the write failure when the name update fails", () =>
     Effect.gen(function* reportTheFailedNameWrite() {
       const { setName, updateProfile } = makeFakes(
-        Effect.succeed(Option.some(authenticatedUser))
+        Effect.succeedSome(authenticatedUser)
       );
       setName.mockReturnValue(
         Effect.fail(
@@ -142,7 +140,7 @@ describe(updateProfileResult, () => {
     () =>
       Effect.gen(function* reportTheZeroRowNameWrite() {
         const { setName, updateProfile } = makeFakes(
-          Effect.succeed(Option.some(authenticatedUser))
+          Effect.succeedSome(authenticatedUser)
         );
         setName.mockReturnValue(Effect.succeed(0));
 
@@ -188,9 +186,7 @@ describe(uploadAvatarResult, () => {
     "should reject without writing persistence when the request is anonymous",
     () =>
       Effect.gen(function* rejectWithoutWritingPersistence() {
-        const { replaceAvatar, uploadAvatar } = makeFakes(
-          Effect.succeed(Option.none())
-        );
+        const { replaceAvatar, uploadAvatar } = makeFakes(Effect.succeedNone);
 
         const result = yield* uploadAvatar(pngFile(1));
 
@@ -212,7 +208,7 @@ describe(uploadAvatarResult, () => {
     () =>
       Effect.gen(function* passTheServerDerivedIdentity() {
         const { replaceAvatar, uploadAvatar } = makeFakes(
-          Effect.succeed(Option.some(authenticatedUser))
+          Effect.succeedSome(authenticatedUser)
         );
         const file = pngFile(1);
 
@@ -242,7 +238,6 @@ describe(uploadAvatarResult, () => {
         replaceAvatar.mockReturnValue(
           Effect.fail(AvatarTypeUnsupported.make())
         );
-        replaceAvatar.mockReturnValue(Effect.fail(new AvatarTypeUnsupported()));
 
         const result = yield* uploadAvatar(pngFile(1));
 
@@ -258,7 +253,7 @@ describe(uploadAvatarResult, () => {
     () =>
       Effect.gen(function* reportAFailedUpload() {
         const { replaceAvatar, uploadAvatar } = makeFakes(
-          Effect.succeed(Option.some(authenticatedUser))
+          Effect.succeedSome(authenticatedUser)
         );
         replaceAvatar.mockReturnValue(Effect.fail(AvatarUploadFailed.make()));
 

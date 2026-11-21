@@ -56,7 +56,7 @@ export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) {
+    if (file === undefined) {
       return;
     }
     // 選択は pendingFile が持つので、同じファイルを選び直しても change が届く。

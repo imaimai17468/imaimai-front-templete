@@ -8,7 +8,9 @@ import { pickCaller, pickUser } from "./caller";
 const readCaller = (): Promise<Option.Option<Caller>> =>
   getAuth()
     .api.getSession({ headers: getRequest().headers })
-    .then((session) => pickCaller(pickUser(Option.fromNullishOr(session))));
+    .then((session) =>
+      Option.fromNullishOr(session).pipe(pickUser, pickCaller)
+    );
 
 /**
  * The caller's session, as a service.
