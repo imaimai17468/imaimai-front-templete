@@ -26,7 +26,7 @@ Read all source that establishes identity, authorization, isolation, and privile
 1. Each lower-trust principal and the actions it has by design.
 2. Authentication or peer identity at each entry surface.
 3. Per-resource authorization and tenant/owner scope.
-4. Process, browser, workload, CI, plugin, model/tool, device, or local-IPC authority.
+4. Worker, browser, binding, CI, model/tool, or service-binding authority.
 5. Privilege changes, confirmation, revocation, recovery, and fallback paths.
 6. Which controls are source-visible and which depend on an unobserved deployment fact.
 Return trust boundaries and control locations with repository-relative file:line references. Do not infer live reachability.
@@ -36,7 +36,7 @@ Return trust boundaries and control locations with repository-relative file:line
 
 ```text
 Inventory every source-visible place external or lower-trust input enters:
-- HTTP/browser, RPC/message/protocol, files/archive/document, CLI/env/config, plugins/dependencies/CI, cloud events/IAM selectors, model context/tool arguments, mobile/deep-link/webview, and local IPC.
+- HTTP/browser (routes, server functions, the Better Auth catch-all), RPC/message/protocol, files/archive/document, CLI/env/config, dependencies/CI, Cloudflare bindings and events, and model context/tool arguments.
 For each surface, follow major transformations, stored or derived copies, and security-relevant sinks. Record source-visible limits and parallel paths to the same effect.
 Return repository-relative paths and line numbers. Be complete, but do not execute or send inputs.
 ```
