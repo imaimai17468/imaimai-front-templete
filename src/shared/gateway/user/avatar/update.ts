@@ -140,13 +140,13 @@ export class AvatarWriter extends Context.Service<
       ) {
         const fileExt = avatarExtensionForMime(file.type);
         if (Option.isNone(fileExt)) {
-          return yield* new AvatarTypeUnsupported();
+          return yield* AvatarTypeUnsupported.make();
         }
         const contentMatches = yield* Effect.promise(() =>
           avatarContentMatchesMime(file)
         );
         if (!contentMatches) {
-          return yield* new AvatarTypeUnsupported();
+          return yield* AvatarTypeUnsupported.make();
         }
 
         const current = yield* orNone(
@@ -154,7 +154,7 @@ export class AvatarWriter extends Context.Service<
           keys.find(userId)
         ).pipe(Effect.map(Option.flatten));
         if (Option.isNone(current)) {
-          return yield* new AvatarUploadFailed();
+          return yield* AvatarUploadFailed.make();
         }
 
         const previousKey = current.value;
@@ -166,7 +166,7 @@ export class AvatarWriter extends Context.Service<
           bucket.put(key, file, file.type)
         );
         if (!uploaded) {
-          return yield* new AvatarUploadFailed();
+          return yield* AvatarUploadFailed.make();
         }
         const publicUrl = avatarUrlForKey(key);
 
@@ -185,14 +185,14 @@ export class AvatarWriter extends Context.Service<
             Match.when(false, () =>
               reportError(
                 "user.rollbackUpload",
-                new AvatarObjectOrphaned({
+                AvatarObjectOrphaned.make({
                   message: `${key} was left in the bucket`,
                 })
               )
             ),
             Match.exhaustive
           );
-          return yield* new AvatarUploadFailed();
+          return yield* AvatarUploadFailed.make();
         }
 
         if (Option.isNone(previousKey)) {
@@ -206,7 +206,7 @@ export class AvatarWriter extends Context.Service<
         if (!isOwnAvatarKey(previousKey.value, userId)) {
           yield* reportError(
             "user.removePrevious",
-            new AvatarKeyNotOwned({
+            AvatarKeyNotOwned.make({
               message: `${previousKey.value} does not belong to ${userId}`,
             })
           );

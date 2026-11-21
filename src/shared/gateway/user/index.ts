@@ -26,7 +26,7 @@ export const persistenceEffect = <A>(
   run: () => Promise<A>
 ): Effect.Effect<A, UserPersistenceError> =>
   Effect.tryPromise({
-    catch: (cause) => new UserPersistenceError({ cause }),
+    catch: (cause) => UserPersistenceError.make({ cause }),
     try: run,
   });
 
@@ -129,7 +129,7 @@ export const wroteOneRow = Effect.fn("wroteOneRow")(function* wroteOneRow(
   }
   yield* reportError(
     event,
-    new UnexpectedRowCount({
+    UnexpectedRowCount.make({
       message: `expected 1 row, got ${String(rowsTouched.value)}`,
     })
   );

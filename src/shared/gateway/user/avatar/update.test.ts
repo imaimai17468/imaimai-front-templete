@@ -22,7 +22,7 @@ const TEST_CLOCK_INSTANT = "1970-01-01T00:00:00.000Z";
 
 const persistenceFailure = (message: string) =>
   Effect.fail(
-    new UserPersistenceError({ cause: new DriverFailed({ message }) })
+    UserPersistenceError.make({ cause: DriverFailed.make({ message }) })
   );
 
 const makeFakes = () => {
@@ -111,7 +111,7 @@ describe("AvatarWriter.replace", () => {
           uploadCalls: upload.mock.calls,
         }).toStrictEqual({
           removeCalls: [],
-          result: new AvatarTypeUnsupported(),
+          result: AvatarTypeUnsupported.make(),
           updateCalls: [],
           uploadCalls: [],
         });
@@ -189,7 +189,7 @@ describe("AvatarWriter.replace", () => {
       );
 
       expect({ result, uploadCalls: upload.mock.calls }).toStrictEqual({
-        result: new AvatarUploadFailed(),
+        result: AvatarUploadFailed.make(),
         uploadCalls: [],
       });
     })
@@ -217,7 +217,7 @@ describe("AvatarWriter.replace", () => {
             name: "DriverFailed",
           },
         ],
-        result: new AvatarUploadFailed(),
+        result: AvatarUploadFailed.make(),
         uploadCalls: [],
       });
     })
@@ -246,7 +246,7 @@ describe("AvatarWriter.replace", () => {
             name: "DriverFailed",
           },
         ],
-        result: new AvatarUploadFailed(),
+        result: AvatarUploadFailed.make(),
       });
     })
   );
@@ -276,7 +276,7 @@ describe("AvatarWriter.replace", () => {
               name: "DriverFailed",
             },
           ],
-          result: new AvatarUploadFailed(),
+          result: AvatarUploadFailed.make(),
         });
       })
   );
@@ -306,7 +306,7 @@ describe("AvatarWriter.replace", () => {
               name: "UnexpectedRowCount",
             },
           ],
-          result: new AvatarUploadFailed(),
+          result: AvatarUploadFailed.make(),
         });
       })
   );
@@ -340,7 +340,7 @@ describe("AvatarWriter.replace", () => {
             name: "AvatarObjectOrphaned",
           },
         ],
-        result: new AvatarUploadFailed(),
+        result: AvatarUploadFailed.make(),
       });
     })
   );
@@ -473,7 +473,7 @@ describe("AvatarWriter.replace racing another upload", () => {
           reportedEvents: ["user.setAvatarKey"],
           results: [
             { avatarUrl: avatarUrlForKey(winnerKey), cleanup: "complete" },
-            new AvatarUploadFailed(),
+            AvatarUploadFailed.make(),
           ],
           row: Option.some(winnerKey),
         });

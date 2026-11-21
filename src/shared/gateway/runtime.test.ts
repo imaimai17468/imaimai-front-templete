@@ -7,7 +7,7 @@ import { makeRunHandler } from "./runtime";
 const STACK = "DriverFailed: marker-secret\n    at runtime.test.ts:1:1";
 
 const defectWithStack = (): DriverFailed => {
-  const error = new DriverFailed({ message: "marker-secret" });
+  const error = DriverFailed.make({ message: "marker-secret" });
   Object.defineProperty(error, "stack", { configurable: true, value: STACK });
   return error;
 };
@@ -58,7 +58,7 @@ describe(makeRunHandler, () => {
       Effect.gen(function* logTheFinalizerDefectBesideTheHandlers() {
         const errorSpy = silenceConsoleError();
         const run = makeRunHandler(Layer.empty);
-        const finalizerDefect = new DriverFailed({
+        const finalizerDefect = DriverFailed.make({
           message: "finalizer-secret",
         });
         Object.defineProperty(finalizerDefect, "stack", {

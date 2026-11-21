@@ -32,7 +32,7 @@ const SIGN_UP_FALLBACK_MESSAGE = "sign-up failed";
 
 const attempt = (run: () => Promise<Option.Option<SignInFailure>>) =>
   Effect.tryPromise({
-    catch: (cause) => new DevSignInThrew({ cause }),
+    catch: (cause) => DevSignInThrew.make({ cause }),
     try: run,
   });
 

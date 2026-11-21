@@ -9,13 +9,13 @@ import { errorReport, reportError } from "./report-error";
 const STACK = "DriverFailed: D1 failed\n    at report-error.test.ts:1:1";
 
 const failureWithStack = (): DriverFailed => {
-  const error = new DriverFailed({ message: "D1 failed" });
+  const error = DriverFailed.make({ message: "D1 failed" });
   Object.defineProperty(error, "stack", { configurable: true, value: STACK });
   return error;
 };
 
 const failureWithoutStack = (): DriverFailed => {
-  const error = new DriverFailed({ message: "D1 failed" });
+  const error = DriverFailed.make({ message: "D1 failed" });
   Reflect.deleteProperty(error, "stack");
   return error;
 };
@@ -26,7 +26,7 @@ const PARAMS = ["Probe Person Name", 0, "user-123"];
 const DRIVER_STACK = "DriverFailed: D1_ERROR: probe\n    at d1.ts:1:1";
 
 const driverFailure = (): DriverFailed => {
-  const error = new DriverFailed({ message: "D1_ERROR: probe" });
+  const error = DriverFailed.make({ message: "D1_ERROR: probe" });
   Object.defineProperty(error, "stack", {
     configurable: true,
     value: DRIVER_STACK,

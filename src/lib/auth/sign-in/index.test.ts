@@ -20,10 +20,10 @@ const pressSignIn = (dev: boolean, googleSignIn: Option.Option<string>) => {
   vi.stubEnv("VITE_GOOGLE_SIGN_IN", Option.getOrUndefined(googleSignIn));
   vi.clearAllMocks();
   client.signInWithEmail.mockRejectedValue(
-    new DriverFailed({ message: "unreachable in a test" })
+    DriverFailed.make({ message: "unreachable in a test" })
   );
   client.startGoogleSignIn.mockRejectedValue(
-    new DriverFailed({ message: "unreachable in a test" })
+    DriverFailed.make({ message: "unreachable in a test" })
   );
   return createSignIn(client)();
 };

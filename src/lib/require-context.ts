@@ -15,7 +15,6 @@ class ContextMissing extends Schema.TaggedError<
  * its absence survives to runtime.
  */
 export const requireContext = <T>(value: T, message: string): NonNullable<T> =>
-  Option.getOrThrowWith(
-    Option.fromNullishOr(value),
-    () => new ContextMissing({ message })
+  Option.getOrThrowWith(Option.fromNullishOr(value), () =>
+    ContextMissing.make({ message })
   );

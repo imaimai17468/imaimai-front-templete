@@ -68,7 +68,7 @@ describe("AvatarReader.read", () => {
 
         expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
           fetchCalls: [],
-          result: new AvatarUnauthorized(),
+          result: AvatarUnauthorized.make(),
         });
       })
   );
@@ -85,7 +85,7 @@ describe("AvatarReader.read", () => {
 
         expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
           fetchCalls: [],
-          result: new AvatarInvalidKey(),
+          result: AvatarInvalidKey.make(),
         });
       })
   );
@@ -101,7 +101,7 @@ describe("AvatarReader.read", () => {
 
       expect({ fetchCalls: fetchAvatar.mock.calls, result }).toStrictEqual({
         fetchCalls: [["user-1/avatar.png"]],
-        result: new AvatarNotFound(),
+        result: AvatarNotFound.make(),
       });
     })
   );
@@ -130,7 +130,7 @@ describe("AvatarReader.read", () => {
 
   it.effect("should propagate the defect when session resolution fails", () =>
     Effect.gen(function* propagateTheSessionDefect() {
-      const sessionFailure = new DriverFailed({ message: "session failed" });
+      const sessionFailure = DriverFailed.make({ message: "session failed" });
       const { readAvatarOrFailure } = makeFakes(Effect.die(sessionFailure));
 
       const defect = yield* readAvatarOrFailure(ownKey).pipe(
@@ -150,8 +150,8 @@ describe("AvatarReader.read", () => {
         );
         fetchAvatar.mockReturnValue(
           Effect.fail(
-            new UserPersistenceError({
-              cause: new DriverFailed({ message: "R2 failed" }),
+            UserPersistenceError.make({
+              cause: DriverFailed.make({ message: "R2 failed" }),
             })
           )
         );
@@ -167,7 +167,7 @@ describe("AvatarReader.read", () => {
               name: "DriverFailed",
             },
           ],
-          result: new AvatarReadFailed(),
+          result: AvatarReadFailed.make(),
         });
       })
   );
@@ -191,12 +191,12 @@ const avatarBody = () =>
   });
 
 const errorCases = [
-  { error: "Unauthorized", failure: new AvatarUnauthorized(), status: 401 },
-  { error: "Invalid key", failure: new AvatarInvalidKey(), status: 400 },
-  { error: "Not found", failure: new AvatarNotFound(), status: 404 },
+  { error: "Unauthorized", failure: AvatarUnauthorized.make(), status: 401 },
+  { error: "Invalid key", failure: AvatarInvalidKey.make(), status: 400 },
+  { error: "Not found", failure: AvatarNotFound.make(), status: 404 },
   {
     error: "Failed to read avatar",
-    failure: new AvatarReadFailed(),
+    failure: AvatarReadFailed.make(),
     status: 500,
   },
 ] satisfies {
@@ -255,7 +255,7 @@ describe(getAvatarResponse, () => {
     () =>
       Effect.gen(function* passTheQueryKey() {
         const read = vi.fn<AvatarReader["Service"]["read"]>();
-        read.mockReturnValue(Effect.fail(new AvatarNotFound()));
+        read.mockReturnValue(Effect.fail(AvatarNotFound.make()));
 
         yield* respondThrough(read)(avatarRequest());
 
@@ -270,7 +270,7 @@ describe(getAvatarResponse, () => {
     () =>
       Effect.gen(function* passAnAbsentKey() {
         const read = vi.fn<AvatarReader["Service"]["read"]>();
-        read.mockReturnValue(Effect.fail(new AvatarInvalidKey()));
+        read.mockReturnValue(Effect.fail(AvatarInvalidKey.make()));
 
         yield* respondThrough(read)(
           new Request("https://example.com/api/avatars")
@@ -284,7 +284,9 @@ describe(getAvatarResponse, () => {
     "should propagate the defect when the authorization boundary dies",
     () =>
       Effect.gen(function* propagateTheDefect() {
-        const readFailure = new DriverFailed({ message: "avatar read failed" });
+        const readFailure = DriverFailed.make({
+          message: "avatar read failed",
+        });
         const respond = respondThrough(() => Effect.die(readFailure));
 
         const defect = yield* respond(avatarRequest()).pipe(

@@ -85,7 +85,7 @@ export class ProfileWriter extends Context.Service<
       const requireUser = Effect.gen(function* requireUser() {
         const user = yield* reader.read;
         if (Option.isNone(user)) {
-          return yield* new NotAuthenticated();
+          return yield* NotAuthenticated.make();
         }
         return user.value;
       });
@@ -99,7 +99,7 @@ export class ProfileWriter extends Context.Service<
             names.set(user.id, Option.some(data.name), updatedAt)
           );
           if (!wrote) {
-            return yield* new UserNameUpdateFailed();
+            return yield* UserNameUpdateFailed.make();
           }
           return yield* Effect.void;
         }

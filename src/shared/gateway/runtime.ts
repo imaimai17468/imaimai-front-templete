@@ -60,7 +60,7 @@ const answerFromExit = <A>(exit: Exit.Exit<A>): Effect.Effect<A> =>
         { concurrency: 1, discard: true }
       ).pipe(
         Effect.andThen(
-          Effect.die(new HandlerFailed({ message: HANDLER_FAILED_MESSAGE }))
+          Effect.die(HandlerFailed.make({ message: HANDLER_FAILED_MESSAGE }))
         )
       ),
     onSuccess: Effect.succeed,

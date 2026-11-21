@@ -60,7 +60,7 @@ export class AvatarReader extends Context.Service<
       ) {
         const caller = yield* currentSession.read;
         if (Option.isNone(caller)) {
-          return yield* new AvatarUnauthorized();
+          return yield* AvatarUnauthorized.make();
         }
         const ownKey = key.pipe(
           Option.filter((candidate) =>
@@ -68,18 +68,18 @@ export class AvatarReader extends Context.Service<
           )
         );
         if (Option.isNone(ownKey)) {
-          return yield* new AvatarInvalidKey();
+          return yield* AvatarInvalidKey.make();
         }
         const answer = yield* orNone(
           "user.readAvatar",
           bucket.get(ownKey.value)
         );
         if (Option.isNone(answer)) {
-          return yield* new AvatarReadFailed();
+          return yield* AvatarReadFailed.make();
         }
         const avatar = answer.value;
         if (Option.isNone(avatar)) {
-          return yield* new AvatarNotFound();
+          return yield* AvatarNotFound.make();
         }
         return avatar.value;
       });

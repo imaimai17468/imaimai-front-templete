@@ -48,7 +48,7 @@ const failingProfileRead = () => {
   const fakes = makeFakes(Effect.succeed(authenticatedCaller));
   fakes.findProfile.mockReturnValue(
     Effect.fail(
-      new UserPersistenceError({
+      UserPersistenceError.make({
         cause: new DrizzleQueryError(PROFILE_QUERY, ["user-1-marker"]),
       })
     )
@@ -204,7 +204,7 @@ describe("CurrentUserReader.read", () => {
 
   it.effect("should propagate the defect when session resolution fails", () =>
     Effect.gen(function* propagateTheDefect() {
-      const sessionFailure = new DriverFailed({ message: "session failed" });
+      const sessionFailure = DriverFailed.make({ message: "session failed" });
       const { readCurrentUser: read } = makeFakes(Effect.die(sessionFailure));
 
       const defect = yield* read().pipe(Effect.catchDefect(Effect.succeed));
