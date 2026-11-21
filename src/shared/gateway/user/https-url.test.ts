@@ -1,9 +1,9 @@
-import { Option } from "effect";
+import { Option, Array as Arr } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { httpsUrl } from "./https-url";
 
 // Assembled rather than written out, because the lint forbids the literal.
-const SCRIPT_URL = ["javascript", "alert(1)"].join(":");
+const SCRIPT_URL = Arr.join(["javascript", "alert(1)"], ":");
 
 describe(httpsUrl, () => {
   it.each([

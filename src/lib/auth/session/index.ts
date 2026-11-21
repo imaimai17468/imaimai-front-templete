@@ -8,7 +8,9 @@ import { pickCaller, pickUser } from "./caller";
 const readCaller = (): Promise<Option.Option<Caller>> =>
   getAuth()
     .api.getSession({ headers: getRequest().headers })
-    .then((session) => pickCaller(pickUser(Option.fromNullishOr(session))));
+    .then((session) =>
+      Option.fromNullishOr(session).pipe(pickUser, pickCaller)
+    );
 
 /**
  * The caller's session, as a service.
@@ -20,7 +22,7 @@ const readCaller = (): Promise<Option.Option<Caller>> =>
 export class CurrentSession extends Context.Service<
   CurrentSession,
   { readonly read: Effect.Effect<Option.Option<Caller>> }
->()("app/lib/auth/session/CurrentSession") {
+>()("my-app/lib/auth/session/CurrentSession") {
   static readonly layer = Layer.succeed(
     CurrentSession,
     CurrentSession.of({ read: Effect.promise(readCaller) })

@@ -15,7 +15,7 @@
     "lint:fix": "vp lint --fix",
     "format": "vp fmt --check .",
     "format:fix": "vp fmt .",
-    "check": "vp check",
+    "check": "bun scripts/check/check.entry.ts",
     "check:fix": "vp check --fix",
     "check:pins": "bun scripts/check-toolchain-pins.entry.ts",
     "check:shell": "git ls-files -z '*.sh' | xargs -0r shellcheck -x",
@@ -53,6 +53,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20260501.1",
+    "@effect/tsgo": "0.73.2",
     "@effect/vitest": "4.0.0",
     "@nkzw/eslint-plugin": "2.0.0",
     "@shadcn/lint": "0.1.0",

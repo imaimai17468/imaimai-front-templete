@@ -98,7 +98,7 @@ jobs:
         run: bun run dupes
 
   check:
-    name: format, lint and type checks
+    name: format, lint, type and Effect checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -109,8 +109,9 @@ jobs:
         uses: ./.github/actions/setup
 
       # `vp check` runs format, lint and type checks in one pass, which is why
-      # this workflow has no separate tsc step.
-      - name: Run format, lint and type checks
+      # this workflow has no separate tsc step. The script runs the Effect
+      # diagnostics `tsconfig.json` configures beside it.
+      - name: Run format, lint, type and Effect checks
         run: bun run check
 
   doctor:

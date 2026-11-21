@@ -1,3 +1,4 @@
+import { String as Str } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import {
   MAX_AVATAR_BYTES,
@@ -30,7 +31,7 @@ describe(parseProfileUpdate, () => {
     ["empty", "", "Name is required"],
     [
       "over 50 characters",
-      "a".repeat(51),
+      Str.repeat(51)("a"),
       "Name must be 50 characters or less",
     ],
   ])("should reject when the name is %s", (_label, name, message) => {

@@ -38,7 +38,7 @@ describe(socialSignInOutcome, () => {
 
 describe(signInThrewOutcome, () => {
   it("should carry the thrown message when the request never reached the server", () => {
-    const cause = new DriverFailed({ message: "Failed to fetch" });
+    const cause = DriverFailed.make({ message: "Failed to fetch" });
 
     const outcome = signInThrewOutcome(cause);
 

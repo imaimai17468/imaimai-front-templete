@@ -22,6 +22,16 @@ const SCRIPT_FILES = [
 const FILES_VITEST_NEVER_LOADS = [CONFIG_FILES, ...SCRIPT_FILES];
 const CLI_ENTRYPOINTS = [...SCRIPT_FILES, ".claude/hooks/**"];
 
+/** The layers of `src/` that import Effect. */
+export const EFFECT_LAYERS = [
+  "src/shared/gateway/**",
+  "src/routes/**/-gateway/**",
+  "src/lib/**",
+  "src/shared/entities/**",
+  "src/routes/**/-entities/**",
+  "src/test/**",
+];
+
 // `bun run smoke` names a directory of its own here, so its local D1 and R2
 // start empty and the rate-limit rows it writes never reach `bun run dev`.
 const { SMOKE_STATE_DIR } = process.env;
@@ -336,14 +346,7 @@ export default defineConfig({
         // otherwise send back to `Option`. The scope is all of `src/` minus
         // those layers, so a new directory falls under it without an edit.
         files: ["src/**"],
-        excludeFiles: [
-          "src/shared/gateway/**",
-          "src/routes/**/-gateway/**",
-          "src/lib/**",
-          "src/shared/entities/**",
-          "src/routes/**/-entities/**",
-          "src/test/**",
-        ],
+        excludeFiles: [...EFFECT_LAYERS],
         rules: {
           "effect/noNullish": "off",
           "no-restricted-imports": [

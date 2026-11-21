@@ -1,10 +1,10 @@
 import { Option, Schema } from "effect";
 
 /** A component read a context whose provider was not above it. */
-class ContextMissing extends Schema.TaggedError<ContextMissing>()(
-  "ContextMissing",
-  { message: Schema.String }
-) {}
+class ContextMissing extends Schema.TaggedError<
+  ContextMissing,
+  { readonly brand: unique symbol }
+>()("ContextMissing", { message: Schema.String }) {}
 
 /**
  * Returns a mandatory context value as `React.useContext` handed it over,
@@ -15,7 +15,6 @@ class ContextMissing extends Schema.TaggedError<ContextMissing>()(
  * its absence survives to runtime.
  */
 export const requireContext = <T>(value: T, message: string): NonNullable<T> =>
-  Option.getOrThrowWith(
-    Option.fromNullishOr(value),
-    () => new ContextMissing({ message })
+  Option.getOrThrowWith(Option.fromNullishOr(value), () =>
+    ContextMissing.make({ message })
   );

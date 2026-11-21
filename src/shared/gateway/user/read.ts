@@ -1,5 +1,5 @@
 import "@tanstack/react-start/server-only";
-import { Context, Effect, Layer, Option, Schema } from "effect";
+import { Context, Effect, flow, Layer, Option, Schema } from "effect";
 import { CurrentSession } from "@/lib/auth/session";
 import { UserWithEmailSchema } from "@/shared/entities/user";
 import type { UserWithEmail } from "@/shared/entities/user";
@@ -11,10 +11,13 @@ import { makeRunHandler } from "../runtime";
 
 /**
  * Turns a row's `DateTime.Utc` instants into the ISO-8601 strings of
- * `UserWithEmail` and throws when a field fails its check, such as an email the
+ * `UserWithEmail`, and dies when a field fails its check, such as an email the
  * session carried that is not an address.
  */
-const encodeUserWithEmail = Schema.encodeSync(UserWithEmailSchema);
+const encodeUserWithEmail = flow(
+  Schema.encodeEffect(UserWithEmailSchema),
+  Effect.orDie
+);
 
 /**
  * A `users` row as this gateway reads it.
@@ -35,7 +38,10 @@ const ProfileRowSchema = Schema.Struct({
 
 export type ProfileRow = typeof ProfileRowSchema.Type;
 
-const decodeProfileRow = Schema.decodeUnknownSync(ProfileRowSchema);
+const decodeProfileRow = flow(
+  Schema.decodeUnknownEffect(ProfileRowSchema),
+  Effect.orDie
+);
 
 /**
  * The profile row a caller's own id addresses.
@@ -51,12 +57,16 @@ export class UserProfiles extends Context.Service<
       userId: string
     ) => Effect.Effect<Option.Option<ProfileRow>, UserPersistenceError>;
   }
->()("app/gateways/user/UserProfiles") {
+>()("my-app/shared/gateway/user/read/UserProfiles") {
   static readonly layer = Layer.succeed(
     UserProfiles,
     UserProfiles.of({
       findProfile: (userId) =>
-        readUserRow(userId).pipe(Effect.map(Option.map(decodeProfileRow))),
+        readUserRow(userId).pipe(
+          Effect.flatMap(
+            flow(Option.map(decodeProfileRow), Effect.transposeOption)
+          )
+        ),
     })
   );
 }
@@ -76,7 +86,7 @@ export class CurrentUserReader extends Context.Service<
       UserPersistenceError
     >;
   }
->()("app/gateways/user/CurrentUserReader") {
+>()("my-app/shared/gateway/user/read/CurrentUserReader") {
   static readonly layerNoDeps = Layer.effect(
     CurrentUserReader,
     Effect.gen(function* buildCurrentUserReader() {
@@ -93,24 +103,23 @@ export class CurrentUserReader extends Context.Service<
           return Option.none();
         }
         const row = profile.value;
-        return Option.some(
-          encodeUserWithEmail({
-            // An avatar this app uploaded wins over the social provider's
-            // image, because the provider's URL is frozen at signup while the
-            // key addresses whatever the user last uploaded. That column
-            // holds a value this app did not build, so it leaves here only as
-            // an https URL.
-            avatarUrl: row.avatarKey.pipe(
-              Option.map(avatarUrlForKey),
-              Option.orElse(() => row.image.pipe(Option.flatMap(httpsUrl)))
-            ),
-            createdAt: row.createdAt,
-            email: caller.value.email,
-            id: row.id,
-            name: row.name,
-            updatedAt: row.updatedAt,
-          })
-        );
+        const user = yield* encodeUserWithEmail({
+          // An avatar this app uploaded wins over the social provider's
+          // image, because the provider's URL is frozen at signup while the
+          // key addresses whatever the user last uploaded. That column
+          // holds a value this app did not build, so it leaves here only as
+          // an https URL.
+          avatarUrl: row.avatarKey.pipe(
+            Option.map(avatarUrlForKey),
+            Option.orElse(() => row.image.pipe(Option.flatMap(httpsUrl)))
+          ),
+          createdAt: row.createdAt,
+          email: caller.value.email,
+          id: row.id,
+          name: row.name,
+          updatedAt: row.updatedAt,
+        });
+        return Option.some(user);
       });
 
       return CurrentUserReader.of({ read });

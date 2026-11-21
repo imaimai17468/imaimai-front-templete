@@ -69,9 +69,7 @@ describe(updateProfileResult, () => {
     "should reject without writing persistence when the request is anonymous",
     () =>
       Effect.gen(function* rejectWithoutWritingPersistence() {
-        const { setName, updateProfile } = makeFakes(
-          Effect.succeed(Option.none())
-        );
+        const { setName, updateProfile } = makeFakes(Effect.succeedNone);
 
         const result = yield* updateProfile({ name: "Updated User" });
 
@@ -87,7 +85,7 @@ describe(updateProfileResult, () => {
     () =>
       Effect.gen(function* passTheServerDerivedIdentity() {
         const { setName, updateProfile } = makeFakes(
-          Effect.succeed(Option.some(authenticatedUser))
+          Effect.succeedSome(authenticatedUser)
         );
 
         const result = yield* updateProfile({ name: "Updated User" });
@@ -108,12 +106,12 @@ describe(updateProfileResult, () => {
   it.effect("should report the write failure when the name update fails", () =>
     Effect.gen(function* reportTheFailedNameWrite() {
       const { setName, updateProfile } = makeFakes(
-        Effect.succeed(Option.some(authenticatedUser))
+        Effect.succeedSome(authenticatedUser)
       );
       setName.mockReturnValue(
         Effect.fail(
-          new UserPersistenceError({
-            cause: new DriverFailed({ message: "D1 failed" }),
+          UserPersistenceError.make({
+            cause: DriverFailed.make({ message: "D1 failed" }),
           })
         )
       );
@@ -142,7 +140,7 @@ describe(updateProfileResult, () => {
     () =>
       Effect.gen(function* reportTheZeroRowNameWrite() {
         const { setName, updateProfile } = makeFakes(
-          Effect.succeed(Option.some(authenticatedUser))
+          Effect.succeedSome(authenticatedUser)
         );
         setName.mockReturnValue(Effect.succeed(0));
 
@@ -169,9 +167,9 @@ describe(updateProfileResult, () => {
     "should propagate the cause as a defect when the identity read fails",
     () =>
       Effect.gen(function* propagateTheCauseAsADefect() {
-        const driverFailure = new DriverFailed({ message: "D1 failed" });
+        const driverFailure = DriverFailed.make({ message: "D1 failed" });
         const { updateProfile } = makeFakes(
-          Effect.fail(new UserPersistenceError({ cause: driverFailure }))
+          Effect.fail(UserPersistenceError.make({ cause: driverFailure }))
         );
 
         const defect = yield* updateProfile({ name: "Updated User" }).pipe(
@@ -188,9 +186,7 @@ describe(uploadAvatarResult, () => {
     "should reject without writing persistence when the request is anonymous",
     () =>
       Effect.gen(function* rejectWithoutWritingPersistence() {
-        const { replaceAvatar, uploadAvatar } = makeFakes(
-          Effect.succeed(Option.none())
-        );
+        const { replaceAvatar, uploadAvatar } = makeFakes(Effect.succeedNone);
 
         const result = yield* uploadAvatar(pngFile(1));
 
@@ -212,7 +208,7 @@ describe(uploadAvatarResult, () => {
     () =>
       Effect.gen(function* passTheServerDerivedIdentity() {
         const { replaceAvatar, uploadAvatar } = makeFakes(
-          Effect.succeed(Option.some(authenticatedUser))
+          Effect.succeedSome(authenticatedUser)
         );
         const file = pngFile(1);
 
@@ -237,9 +233,11 @@ describe(uploadAvatarResult, () => {
     () =>
       Effect.gen(function* reportTheRejectedType() {
         const { replaceAvatar, uploadAvatar } = makeFakes(
-          Effect.succeed(Option.some(authenticatedUser))
+          Effect.succeedSome(authenticatedUser)
         );
-        replaceAvatar.mockReturnValue(Effect.fail(new AvatarTypeUnsupported()));
+        replaceAvatar.mockReturnValue(
+          Effect.fail(AvatarTypeUnsupported.make())
+        );
 
         const result = yield* uploadAvatar(pngFile(1));
 
@@ -255,9 +253,9 @@ describe(uploadAvatarResult, () => {
     () =>
       Effect.gen(function* reportAFailedUpload() {
         const { replaceAvatar, uploadAvatar } = makeFakes(
-          Effect.succeed(Option.some(authenticatedUser))
+          Effect.succeedSome(authenticatedUser)
         );
-        replaceAvatar.mockReturnValue(Effect.fail(new AvatarUploadFailed()));
+        replaceAvatar.mockReturnValue(Effect.fail(AvatarUploadFailed.make()));
 
         const result = yield* uploadAvatar(pngFile(1));
 
@@ -272,9 +270,9 @@ describe(uploadAvatarResult, () => {
     "should propagate the cause as a defect when the identity read fails",
     () =>
       Effect.gen(function* propagateTheCauseAsADefect() {
-        const driverFailure = new DriverFailed({ message: "D1 failed" });
+        const driverFailure = DriverFailed.make({ message: "D1 failed" });
         const { uploadAvatar } = makeFakes(
-          Effect.fail(new UserPersistenceError({ cause: driverFailure }))
+          Effect.fail(UserPersistenceError.make({ cause: driverFailure }))
         );
 
         const defect = yield* uploadAvatar(pngFile(1)).pipe(

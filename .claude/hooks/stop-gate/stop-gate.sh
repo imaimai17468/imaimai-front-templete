@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stop gate: `bun run check` (typecheck / lint / format) when the turn changed a
+# Stop gate: `bun run check` (typecheck / lint / format / Effect) when the turn changed a
 # code-relevant file. A failure blocks the turn once; when the payload says this
 # Stop already triggered a followup, it warns instead, so a failure the agent
 # cannot fix does not loop.
@@ -82,5 +82,5 @@ if ! OUT=$(bun run check 2>&1); then
 $OUT"
 fi
 
-jq -n '{systemMessage: "✅ Stop gate: typecheck / lint / format pass"}'
+jq -n '{systemMessage: "✅ Stop gate: typecheck / lint / format / Effect pass"}'
 exit 0

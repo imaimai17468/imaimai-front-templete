@@ -48,7 +48,7 @@ const failingProfileRead = () => {
   const fakes = makeFakes(Effect.succeed(authenticatedCaller));
   fakes.findProfile.mockReturnValue(
     Effect.fail(
-      new UserPersistenceError({
+      UserPersistenceError.make({
         cause: new DrizzleQueryError(PROFILE_QUERY, ["user-1-marker"]),
       })
     )
@@ -81,7 +81,7 @@ describe("CurrentUserReader.read", () => {
     () =>
       Effect.gen(function* returnNoneWithoutReadingTheProfile() {
         const { findProfile, readCurrentUser: read } = makeFakes(
-          Effect.succeed(Option.none())
+          Effect.succeedNone
         );
 
         const result = yield* read();
@@ -100,7 +100,7 @@ describe("CurrentUserReader.read", () => {
         const { findProfile, readCurrentUser: read } = makeFakes(
           Effect.succeed(authenticatedCaller)
         );
-        findProfile.mockReturnValue(Effect.succeed(Option.some(profileRow())));
+        findProfile.mockReturnValue(Effect.succeedSome(profileRow()));
 
         yield* read();
 
@@ -113,7 +113,7 @@ describe("CurrentUserReader.read", () => {
       const { findProfile, readCurrentUser: read } = makeFakes(
         Effect.succeed(authenticatedCaller)
       );
-      findProfile.mockReturnValue(Effect.succeed(Option.none()));
+      findProfile.mockReturnValue(Effect.succeedNone);
 
       const result = yield* read();
 
@@ -128,7 +128,7 @@ describe("CurrentUserReader.read", () => {
         const { findProfile, readCurrentUser: read } = makeFakes(
           Effect.succeed(authenticatedCaller)
         );
-        findProfile.mockReturnValue(Effect.succeed(Option.some(profileRow())));
+        findProfile.mockReturnValue(Effect.succeedSome(profileRow()));
 
         const result = yield* read();
 
@@ -144,7 +144,7 @@ describe("CurrentUserReader.read", () => {
           Effect.succeed(authenticatedCaller)
         );
         findProfile.mockReturnValue(
-          Effect.succeed(Option.some(profileRow({ name: Option.none() })))
+          Effect.succeedSome(profileRow({ name: Option.none() }))
         );
 
         const result = yield* read();
@@ -163,13 +163,11 @@ describe("CurrentUserReader.read", () => {
           Effect.succeed(authenticatedCaller)
         );
         findProfile.mockReturnValue(
-          Effect.succeed(
-            Option.some(
-              profileRow({
-                avatarKey: Option.some(AVATAR_KEY),
-                image: Option.some(PROVIDER_IMAGE),
-              })
-            )
+          Effect.succeedSome(
+            profileRow({
+              avatarKey: Option.some(AVATAR_KEY),
+              image: Option.some(PROVIDER_IMAGE),
+            })
           )
         );
 
@@ -189,9 +187,7 @@ describe("CurrentUserReader.read", () => {
           Effect.succeed(authenticatedCaller)
         );
         findProfile.mockReturnValue(
-          Effect.succeed(
-            Option.some(profileRow({ image: Option.some(PROVIDER_IMAGE) }))
-          )
+          Effect.succeedSome(profileRow({ image: Option.some(PROVIDER_IMAGE) }))
         );
 
         const result = yield* read();
@@ -204,7 +200,7 @@ describe("CurrentUserReader.read", () => {
 
   it.effect("should propagate the defect when session resolution fails", () =>
     Effect.gen(function* propagateTheDefect() {
-      const sessionFailure = new DriverFailed({ message: "session failed" });
+      const sessionFailure = DriverFailed.make({ message: "session failed" });
       const { readCurrentUser: read } = makeFakes(Effect.die(sessionFailure));
 
       const defect = yield* read().pipe(Effect.catchDefect(Effect.succeed));

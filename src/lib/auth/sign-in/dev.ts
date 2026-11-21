@@ -20,10 +20,10 @@ export interface DevSignInDeps {
 }
 
 /** A rejection from the auth client, which carries no `failed` message of its own. */
-class DevSignInThrew extends Schema.TaggedError<DevSignInThrew>()(
-  "DevSignInThrew",
-  { cause: Schema.Defect() }
-) {}
+class DevSignInThrew extends Schema.TaggedError<
+  DevSignInThrew,
+  { readonly brand: unique symbol }
+>()("DevSignInThrew", { cause: Schema.Defect() }) {}
 
 const RECOVERY =
   "Restart bun run dev, which applies the D1 migrations. If that does not help, reset the local D1.";
@@ -32,7 +32,7 @@ const SIGN_UP_FALLBACK_MESSAGE = "sign-up failed";
 
 const attempt = (run: () => Promise<Option.Option<SignInFailure>>) =>
   Effect.tryPromise({
-    catch: (cause) => new DevSignInThrew({ cause }),
+    catch: (cause) => DevSignInThrew.make({ cause }),
     try: run,
   });
 

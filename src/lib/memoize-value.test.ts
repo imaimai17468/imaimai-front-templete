@@ -32,9 +32,8 @@ describe(memoizeValue, () => {
     const attempts: number[] = [];
     const read = memoizeValue(() => {
       attempts.push(attempts.length);
-      return Option.getOrThrowWith(
-        Option.none<{ id: string }>(),
-        () => new DriverFailed({ message: "build failed" })
+      return Option.getOrThrowWith(Option.none<{ id: string }>(), () =>
+        DriverFailed.make({ message: "build failed" })
       );
     });
     const readOption = Option.liftThrowable(read);

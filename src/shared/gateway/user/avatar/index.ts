@@ -1,5 +1,5 @@
 import "@tanstack/react-start/server-only";
-import { Context, Effect, Layer, Option } from "effect";
+import { Context, Crypto, Effect, Layer, Option } from "effect";
 import { storage } from "void/storage";
 import { avatarContentTypeForKey } from "@/lib/storage/avatar-validation";
 import type { AvatarContentType } from "@/lib/storage/avatar-validation";
@@ -72,7 +72,7 @@ export class AvatarBucket extends Context.Service<
     ) => Effect.Effect<void, UserPersistenceError>;
     readonly remove: (key: string) => Effect.Effect<void, UserPersistenceError>;
   }
->()("app/gateways/user/avatar/AvatarBucket") {
+>()("my-app/shared/gateway/user/avatar/AvatarBucket") {
   static readonly layer = Layer.succeed(
     AvatarBucket,
     AvatarBucket.of({
@@ -95,19 +95,29 @@ export class AvatarBucket extends Context.Service<
   );
 }
 
+// Workers' Web Crypto. Only `randomBytes` is reached: the UUID below is built
+// from it, and nothing here takes a digest.
+const webCrypto = Crypto.make({
+  digest: (algorithm, data) =>
+    Effect.promise(() =>
+      crypto.subtle.digest(algorithm, new Uint8Array(data))
+    ).pipe(Effect.map((buffer) => new Uint8Array(buffer))),
+  randomBytes: (size) => crypto.getRandomValues(new Uint8Array(size)),
+});
+
 /**
  * The identifier that makes a new avatar key unique.
  *
- * A service rather than a direct `crypto.randomUUID()` call so a test fixes the
+ * A service rather than a direct call to Web Crypto so a test fixes the
  * key the upload writes. The value has to be unguessable because it names a
  * bucket object, and `crypto` crosses no further than this layer.
  */
 export class AvatarKeyIds extends Context.Service<
   AvatarKeyIds,
   { readonly next: Effect.Effect<string> }
->()("app/gateways/user/avatar/AvatarKeyIds") {
+>()("my-app/shared/gateway/user/avatar/AvatarKeyIds") {
   static readonly layer = Layer.succeed(
     AvatarKeyIds,
-    AvatarKeyIds.of({ next: Effect.sync(() => crypto.randomUUID()) })
+    AvatarKeyIds.of({ next: webCrypto.randomUUIDv4.pipe(Effect.orDie) })
   );
 }

@@ -6,7 +6,7 @@ import { Schema } from "effect";
  * A tagged class rather than `new Error`, so a fixture carries the shape the
  * rest of the codebase raises, and the log records which driver failed.
  */
-export class DriverFailed extends Schema.TaggedError<DriverFailed>()(
-  "DriverFailed",
-  { message: Schema.String }
-) {}
+export class DriverFailed extends Schema.TaggedError<
+  DriverFailed,
+  { readonly brand: unique symbol }
+>()("DriverFailed", { message: Schema.String }) {}

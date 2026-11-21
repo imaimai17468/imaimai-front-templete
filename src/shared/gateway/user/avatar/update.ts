@@ -22,27 +22,27 @@ import { AvatarBucket, AvatarKeyIds } from ".";
 import { orNone, readUserRow, succeeded, writeUserRow, wroteOneRow } from "..";
 import type { UserPersistenceError } from "..";
 
-export class AvatarTypeUnsupported extends Schema.TaggedError<AvatarTypeUnsupported>()(
-  "AvatarTypeUnsupported",
-  {}
-) {}
+export class AvatarTypeUnsupported extends Schema.TaggedError<
+  AvatarTypeUnsupported,
+  { readonly brand: unique symbol }
+>()("AvatarTypeUnsupported", {}) {}
 
-export class AvatarUploadFailed extends Schema.TaggedError<AvatarUploadFailed>()(
-  "AvatarUploadFailed",
-  {}
-) {}
+export class AvatarUploadFailed extends Schema.TaggedError<
+  AvatarUploadFailed,
+  { readonly brand: unique symbol }
+>()("AvatarUploadFailed", {}) {}
 
 /** An uploaded object the rollback delete failed to remove from the bucket. */
-class AvatarObjectOrphaned extends Schema.TaggedError<AvatarObjectOrphaned>()(
-  "AvatarObjectOrphaned",
-  { message: Schema.String }
-) {}
+class AvatarObjectOrphaned extends Schema.TaggedError<
+  AvatarObjectOrphaned,
+  { readonly brand: unique symbol }
+>()("AvatarObjectOrphaned", { message: Schema.String }) {}
 
 /** A stored key the cleanup refused, because it names no object of this owner's. */
-class AvatarKeyNotOwned extends Schema.TaggedError<AvatarKeyNotOwned>()(
-  "AvatarKeyNotOwned",
-  { message: Schema.String }
-) {}
+class AvatarKeyNotOwned extends Schema.TaggedError<
+  AvatarKeyNotOwned,
+  { readonly brand: unique symbol }
+>()("AvatarKeyNotOwned", { message: Schema.String }) {}
 
 export interface AvatarUpdated {
   readonly avatarUrl: string;
@@ -86,7 +86,7 @@ export class UserAvatarKeys extends Context.Service<
       updatedAt: DateTime.Utc
     ) => Effect.Effect<number, UserPersistenceError>;
   }
->()("app/gateways/user/avatar/UserAvatarKeys") {
+>()("my-app/shared/gateway/user/avatar/update/UserAvatarKeys") {
   static readonly layer = Layer.succeed(
     UserAvatarKeys,
     UserAvatarKeys.of({
@@ -126,7 +126,7 @@ export class AvatarWriter extends Context.Service<
       AvatarTypeUnsupported | AvatarUploadFailed
     >;
   }
->()("app/gateways/user/avatar/AvatarWriter") {
+>()("my-app/shared/gateway/user/avatar/update/AvatarWriter") {
   static readonly layerNoDeps = Layer.effect(
     AvatarWriter,
     Effect.gen(function* buildAvatarWriter() {
@@ -140,13 +140,13 @@ export class AvatarWriter extends Context.Service<
       ) {
         const fileExt = avatarExtensionForMime(file.type);
         if (Option.isNone(fileExt)) {
-          return yield* new AvatarTypeUnsupported();
+          return yield* AvatarTypeUnsupported.make();
         }
         const contentMatches = yield* Effect.promise(() =>
           avatarContentMatchesMime(file)
         );
         if (!contentMatches) {
-          return yield* new AvatarTypeUnsupported();
+          return yield* AvatarTypeUnsupported.make();
         }
 
         const current = yield* orNone(
@@ -154,7 +154,7 @@ export class AvatarWriter extends Context.Service<
           keys.find(userId)
         ).pipe(Effect.map(Option.flatten));
         if (Option.isNone(current)) {
-          return yield* new AvatarUploadFailed();
+          return yield* AvatarUploadFailed.make();
         }
 
         const previousKey = current.value;
@@ -166,7 +166,7 @@ export class AvatarWriter extends Context.Service<
           bucket.put(key, file, file.type)
         );
         if (!uploaded) {
-          return yield* new AvatarUploadFailed();
+          return yield* AvatarUploadFailed.make();
         }
         const publicUrl = avatarUrlForKey(key);
 
@@ -185,14 +185,14 @@ export class AvatarWriter extends Context.Service<
             Match.when(false, () =>
               reportError(
                 "user.rollbackUpload",
-                new AvatarObjectOrphaned({
+                AvatarObjectOrphaned.make({
                   message: `${key} was left in the bucket`,
                 })
               )
             ),
             Match.exhaustive
           );
-          return yield* new AvatarUploadFailed();
+          return yield* AvatarUploadFailed.make();
         }
 
         if (Option.isNone(previousKey)) {
@@ -206,7 +206,7 @@ export class AvatarWriter extends Context.Service<
         if (!isOwnAvatarKey(previousKey.value, userId)) {
           yield* reportError(
             "user.removePrevious",
-            new AvatarKeyNotOwned({
+            AvatarKeyNotOwned.make({
               message: `${previousKey.value} does not belong to ${userId}`,
             })
           );

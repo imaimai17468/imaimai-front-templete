@@ -6,7 +6,7 @@
  * pinned to the `<userId>/avatar.<ext>` shape before any bucket access.
  */
 
-import { Option } from "effect";
+import { Option, Array as Arr, String as Str, pipe } from "effect";
 
 /** The image types an avatar is stored and served as. */
 export type AvatarContentType =
@@ -36,7 +36,10 @@ const hasSignature = (
   signature: number[],
   offset = 0
 ): boolean =>
-  signature.every((expected, index) => bytes[offset + index] === expected);
+  pipe(
+    signature,
+    Arr.every((expected, index) => bytes[offset + index] === expected)
+  );
 
 const matchesSignature = (mimeType: string, bytes: Uint8Array): boolean => {
   switch (mimeType) {
@@ -76,9 +79,12 @@ export const avatarContentMatchesMime = (file: File): Promise<boolean> =>
 // told the bytes are. Those older keys may carry ".jpeg" or uppercase
 // variants, so the lookup is case-insensitive and admits "jpeg".
 const AVATAR_TYPE_FOR_KEY_EXTENSION = new Map<string, AvatarContentType>([
-  ...AVATAR_FORMATS.map(
-    ([type, extension]) =>
-      [extension, type] satisfies readonly [string, AvatarContentType]
+  ...pipe(
+    AVATAR_FORMATS,
+    Arr.map(
+      ([type, extension]) =>
+        [extension, type] satisfies readonly [string, AvatarContentType]
+    )
   ),
   ["jpeg", "image/jpeg"],
 ]);
@@ -95,7 +101,7 @@ const parseAvatarKey = (
     ownerId: Option.fromUndefinedOr(groups?.ownerId),
   }).pipe(
     Option.filter(({ extension }) =>
-      AVATAR_TYPE_FOR_KEY_EXTENSION.has(extension.toLowerCase())
+      AVATAR_TYPE_FOR_KEY_EXTENSION.has(Str.toLowerCase(extension))
     )
   );
 };
@@ -110,7 +116,7 @@ export const avatarContentTypeForKey = (
   parseAvatarKey(key).pipe(
     Option.flatMap(({ extension }) =>
       Option.fromUndefinedOr(
-        AVATAR_TYPE_FOR_KEY_EXTENSION.get(extension.toLowerCase())
+        AVATAR_TYPE_FOR_KEY_EXTENSION.get(Str.toLowerCase(extension))
       )
     )
   );

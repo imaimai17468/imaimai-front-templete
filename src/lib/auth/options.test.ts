@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
 import { betterAuth } from "better-auth";
 import { memoryAdapter } from "better-auth/adapters/memory";
-import { Effect } from "effect";
+import { Effect, Array as Arr } from "effect";
 import { authOptions } from "./options";
 
 const buildTestAuth = (isDevBuild: boolean) =>
@@ -78,7 +78,8 @@ describe(authOptions, () => {
       Effect.gen(function* limitTheFourthSignIn() {
         const statuses = yield* signInStatuses(
           buildTestAuth(false),
-          ["198.51.100.1", "198.51.100.2", "198.51.100.3", "198.51.100.4"].map(
+          Arr.map(
+            ["198.51.100.1", "198.51.100.2", "198.51.100.3", "198.51.100.4"],
             (xForwardedFor) => ({
               cfConnectingIp: "203.0.113.7",
               xForwardedFor,

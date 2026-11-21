@@ -12,15 +12,15 @@ import type {
 } from "./avatar/update";
 import { CurrentUserReader } from "./read";
 
-class NotAuthenticated extends Schema.TaggedError<NotAuthenticated>()(
-  "NotAuthenticated",
-  {}
-) {}
+class NotAuthenticated extends Schema.TaggedError<
+  NotAuthenticated,
+  { readonly brand: unique symbol }
+>()("NotAuthenticated", {}) {}
 
-class UserNameUpdateFailed extends Schema.TaggedError<UserNameUpdateFailed>()(
-  "UserNameUpdateFailed",
-  {}
-) {}
+class UserNameUpdateFailed extends Schema.TaggedError<
+  UserNameUpdateFailed,
+  { readonly brand: unique symbol }
+>()("UserNameUpdateFailed", {}) {}
 
 /**
  * The `name` column of a user's own row.
@@ -37,7 +37,7 @@ export class UserNames extends Context.Service<
       updatedAt: DateTime.Utc
     ) => Effect.Effect<number, UserPersistenceError>;
   }
->()("app/gateways/user/UserNames") {
+>()("my-app/shared/gateway/user/update/UserNames") {
   static readonly layer = Layer.succeed(
     UserNames,
     UserNames.of({
@@ -74,7 +74,7 @@ export class ProfileWriter extends Context.Service<
       | UserPersistenceError
     >;
   }
->()("app/gateways/user/ProfileWriter") {
+>()("my-app/shared/gateway/user/update/ProfileWriter") {
   static readonly layerNoDeps = Layer.effect(
     ProfileWriter,
     Effect.gen(function* buildProfileWriter() {
@@ -85,7 +85,7 @@ export class ProfileWriter extends Context.Service<
       const requireUser = Effect.gen(function* requireUser() {
         const user = yield* reader.read;
         if (Option.isNone(user)) {
-          return yield* new NotAuthenticated();
+          return yield* NotAuthenticated.make();
         }
         return user.value;
       });
@@ -99,7 +99,7 @@ export class ProfileWriter extends Context.Service<
             names.set(user.id, Option.some(data.name), updatedAt)
           );
           if (!wrote) {
-            return yield* new UserNameUpdateFailed();
+            return yield* UserNameUpdateFailed.make();
           }
           return yield* Effect.void;
         }

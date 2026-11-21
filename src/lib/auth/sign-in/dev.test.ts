@@ -90,7 +90,7 @@ describe("devSignIn", () => {
       Effect.gen(function* failWithTheThrownMessage() {
         const { devSignIn, signIn } = makeFakes();
         signIn.mockRejectedValue(
-          new DriverFailed({ message: "Failed to fetch" })
+          DriverFailed.make({ message: "Failed to fetch" })
         );
 
         const outcome = yield* Effect.promise(() => devSignIn(DEV_USER));

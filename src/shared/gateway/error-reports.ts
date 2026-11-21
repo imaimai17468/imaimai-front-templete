@@ -20,5 +20,6 @@ const CapturedReports = Schema.Array(
  */
 export const capturedReports: Effect.Effect<readonly CapturedReport[]> =
   TestConsole.errorLines.pipe(
-    Effect.map(Schema.decodeUnknownSync(CapturedReports))
+    Effect.flatMap(Schema.decodeUnknownEffect(CapturedReports)),
+    Effect.orDie
   );
