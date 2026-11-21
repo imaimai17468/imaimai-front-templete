@@ -113,6 +113,9 @@ const preactRules = Object.fromEntries(
   Object.keys(PREACT_RULES).map((rule) => [rule, "off"] as const)
 );
 
+// A plugin upgrade enables every rule it adds at the plugin's own severity,
+// including a new port of an oxlint builtin rule, so a bump lists the rules it
+// newly enables and turns off the ones that duplicate a builtin.
 export default defineConfig({
   rules: {
     ...ALL_REACT_DOCTOR_RULES,
