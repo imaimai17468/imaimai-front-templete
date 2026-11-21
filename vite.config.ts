@@ -120,6 +120,9 @@ export default defineConfig({
       nursery: "error",
     },
     rules: {
+      // Effect's generators stay anonymous: `Effect.fn("name")` and spans
+      // carry the name.
+      "func-names": ["error", "always", { generators: "never" }],
       "unicorn/prefer-string-raw": "error",
       "unicorn/prefer-top-level-await": "error",
       "typescript/no-require-imports": "error",

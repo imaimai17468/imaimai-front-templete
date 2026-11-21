@@ -75,7 +75,7 @@ describe(authOptions, () => {
   it.effect(
     "should answer 429 to the fourth sign-in within ten seconds when cf-connecting-ip stays the same and x-forwarded-for changes",
     () =>
-      Effect.gen(function* limitTheFourthSignIn() {
+      Effect.gen(function* () {
         const statuses = yield* signInStatuses(
           buildTestAuth(false),
           Array.map(
@@ -94,7 +94,7 @@ describe(authOptions, () => {
   it.effect(
     "should count a sign-in in its own bucket when it comes from another cf-connecting-ip",
     () =>
-      Effect.gen(function* countEachAddressSeparately() {
+      Effect.gen(function* () {
         const statuses = yield* signInStatuses(buildTestAuth(false), [
           { cfConnectingIp: "203.0.113.7", xForwardedFor: "198.51.100.1" },
           { cfConnectingIp: "203.0.113.7", xForwardedFor: "198.51.100.1" },

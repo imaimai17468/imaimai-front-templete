@@ -135,12 +135,12 @@ export class AvatarWriter extends Context.Service<
 >()("my-app/shared/gateway/user/avatar/update/AvatarWriter") {
   static readonly layerNoDeps = Layer.effect(
     AvatarWriter,
-    Effect.gen(function* buildAvatarWriter() {
+    Effect.gen(function* () {
       const bucket = yield* AvatarBucket;
       const keyIds = yield* AvatarKeyIds;
       const keys = yield* UserAvatarKeys;
 
-      const replace = Effect.fn("AvatarWriter.replace")(function* replace(
+      const replace = Effect.fn("AvatarWriter.replace")(function* (
         userId: string,
         file: File
       ) {

@@ -30,7 +30,7 @@ describe(makeRunHandler, () => {
   it.effect(
     "should resolve with the handler's value when the handler succeeds",
     () =>
-      Effect.gen(function* resolveWithTheHandlerValue() {
+      Effect.gen(function* () {
         const run = makeRunHandler(Layer.empty);
 
         const answer = yield* Effect.promise(() =>
@@ -42,7 +42,7 @@ describe(makeRunHandler, () => {
   );
 
   it.effect("should log nothing when the handler succeeds", () =>
-    Effect.gen(function* logNothing() {
+    Effect.gen(function* () {
       const errorSpy = silenceConsoleError();
       const run = makeRunHandler(Layer.empty);
 
@@ -55,7 +55,7 @@ describe(makeRunHandler, () => {
   it.effect(
     "should log the finalizer's defect beside the handler's when both die",
     () =>
-      Effect.gen(function* logTheFinalizerDefectBesideTheHandlers() {
+      Effect.gen(function* () {
         const errorSpy = silenceConsoleError();
         const run = makeRunHandler(Layer.empty);
         const finalizerDefect = DriverFailed.make({
@@ -90,7 +90,7 @@ describe(makeRunHandler, () => {
   it.effect(
     "should reject with the fixed message when the handler is interrupted",
     () =>
-      Effect.gen(function* rejectWithTheFixedMessageOnInterrupt() {
+      Effect.gen(function* () {
         silenceConsoleError();
         const run = makeRunHandler(Layer.empty);
 
@@ -101,7 +101,7 @@ describe(makeRunHandler, () => {
   );
 
   it.effect("should log one record when the handler is interrupted", () =>
-    Effect.gen(function* logOneRecord() {
+    Effect.gen(function* () {
       const errorSpy = silenceConsoleError();
       const run = makeRunHandler(Layer.empty);
 
@@ -114,7 +114,7 @@ describe(makeRunHandler, () => {
   it.effect(
     "should reject with the fixed message rather than the defect's when the handler dies",
     () =>
-      Effect.gen(function* rejectWithTheFixedMessageOnHandlerDefect() {
+      Effect.gen(function* () {
         silenceConsoleError();
         const run = makeRunHandler(Layer.empty);
 
@@ -129,7 +129,7 @@ describe(makeRunHandler, () => {
   it.effect(
     "should log the defect under the handler event when the handler dies",
     () =>
-      Effect.gen(function* logTheHandlerDefect() {
+      Effect.gen(function* () {
         const errorSpy = silenceConsoleError();
         const run = makeRunHandler(Layer.empty);
 
@@ -142,7 +142,7 @@ describe(makeRunHandler, () => {
   it.effect(
     "should reject with the fixed message rather than the defect's when building the layer dies",
     () =>
-      Effect.gen(function* rejectWithTheFixedMessageOnLayerDefect() {
+      Effect.gen(function* () {
         silenceConsoleError();
         const run = makeRunHandler(dyingLayer());
 
@@ -157,7 +157,7 @@ describe(makeRunHandler, () => {
   it.effect(
     "should log the defect under the handler event when building the layer dies",
     () =>
-      Effect.gen(function* logTheLayerDefect() {
+      Effect.gen(function* () {
         const errorSpy = silenceConsoleError();
         const run = makeRunHandler(dyingLayer());
 

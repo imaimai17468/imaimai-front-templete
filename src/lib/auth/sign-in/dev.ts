@@ -44,7 +44,7 @@ export const createDevSignIn =
   ({ signIn, signUp }: DevSignInDeps) =>
   (user: DevUser): Promise<SignInOutcome> =>
     Effect.runPromise(
-      Effect.gen(function* attemptDevSignIn() {
+      Effect.gen(function* () {
         const signInFailure = yield* attempt(() => signIn(user));
         if (Option.isNone(signInFailure)) {
           return { kind: "signed-in" } satisfies SignInOutcome;

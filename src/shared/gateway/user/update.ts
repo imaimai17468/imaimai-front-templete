@@ -81,12 +81,12 @@ export class ProfileWriter extends Context.Service<
 >()("my-app/shared/gateway/user/update/ProfileWriter") {
   static readonly layerNoDeps = Layer.effect(
     ProfileWriter,
-    Effect.gen(function* buildProfileWriter() {
+    Effect.gen(function* () {
       const reader = yield* CurrentUserReader;
       const names = yield* UserNames;
       const avatars = yield* AvatarWriter;
 
-      const requireUser = Effect.gen(function* requireUser() {
+      const requireUser = Effect.gen(function* () {
         const user = yield* reader.read;
         if (Option.isNone(user)) {
           return yield* NotAuthenticated.make();
@@ -94,27 +94,27 @@ export class ProfileWriter extends Context.Service<
         return user.value;
       });
 
-      const updateProfile = Effect.fn("ProfileWriter.updateProfile")(
-        function* updateProfile(data: UpdateUser) {
-          const user = yield* requireUser;
-          const updatedAt = yield* DateTime.now;
-          const wrote = yield* wroteOneRow(
-            "user.updateName",
-            names.set(user.id, Option.some(data.name), updatedAt)
-          );
-          if (!wrote) {
-            return yield* UserNameUpdateFailed.make();
-          }
-          return yield* Effect.void;
+      const updateProfile = Effect.fn("ProfileWriter.updateProfile")(function* (
+        data: UpdateUser
+      ) {
+        const user = yield* requireUser;
+        const updatedAt = yield* DateTime.now;
+        const wrote = yield* wroteOneRow(
+          "user.updateName",
+          names.set(user.id, Option.some(data.name), updatedAt)
+        );
+        if (!wrote) {
+          return yield* UserNameUpdateFailed.make();
         }
-      );
+        return yield* Effect.void;
+      });
 
-      const uploadAvatar = Effect.fn("ProfileWriter.uploadAvatar")(
-        function* uploadAvatar(file: File) {
-          const user = yield* requireUser;
-          return yield* avatars.replace(user.id, file);
-        }
-      );
+      const uploadAvatar = Effect.fn("ProfileWriter.uploadAvatar")(function* (
+        file: File
+      ) {
+        const user = yield* requireUser;
+        return yield* avatars.replace(user.id, file);
+      });
 
       return ProfileWriter.of({ updateProfile, uploadAvatar });
     })
@@ -161,7 +161,7 @@ export const updateProfileResult: (
 ) => Effect.Effect<UpdateProfileResult, never, ProfileWriter> = Effect.fn(
   "updateProfileResult"
 )(
-  function* writeProfile(data: UpdateUser) {
+  function* (data: UpdateUser) {
     const writer = yield* ProfileWriter;
     yield* writer.updateProfile(data);
     return { status: "updated" } satisfies UpdateProfileResult;
@@ -186,7 +186,7 @@ export const uploadAvatarResult: (
 ) => Effect.Effect<UploadAvatarResult, never, ProfileWriter> = Effect.fn(
   "uploadAvatarResult"
 )(
-  function* writeAvatar(file: File) {
+  function* (file: File) {
     const writer = yield* ProfileWriter;
     const updated = yield* writer.uploadAvatar(file);
     return {

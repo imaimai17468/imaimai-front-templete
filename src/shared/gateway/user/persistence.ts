@@ -116,7 +116,7 @@ export const orNone = <A>(
  * by `orNone`. Both answer `false`, because a caller that cannot tell them
  * apart still has to reject the write.
  */
-export const wroteOneRow = Effect.fn("wroteOneRow")(function* wroteOneRow(
+export const wroteOneRow = Effect.fn("wroteOneRow")(function* (
   event: string,
   write: Effect.Effect<number, UserPersistenceError>
 ) {

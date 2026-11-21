@@ -109,7 +109,7 @@ export class AvatarKeyIds extends Context.Service<
 >()("my-app/shared/gateway/user/avatar/bucket/AvatarKeyIds") {
   static readonly layer = Layer.effect(
     AvatarKeyIds,
-    Effect.gen(function* buildAvatarKeyIds() {
+    Effect.gen(function* () {
       const random = yield* SecureRandom.SecureRandom;
       return AvatarKeyIds.of({ next: random.uuidV4() });
     })

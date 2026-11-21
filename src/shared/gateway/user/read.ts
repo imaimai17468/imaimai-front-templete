@@ -89,11 +89,11 @@ export class CurrentUserReader extends Context.Service<
 >()("my-app/shared/gateway/user/read/CurrentUserReader") {
   static readonly layerNoDeps = Layer.effect(
     CurrentUserReader,
-    Effect.gen(function* buildCurrentUserReader() {
+    Effect.gen(function* () {
       const currentSession = yield* CurrentSession;
       const profiles = yield* UserProfiles;
 
-      const read = Effect.gen(function* readCurrentUser() {
+      const read = Effect.gen(function* () {
         const caller = yield* currentSession.read;
         if (Option.isNone(caller)) {
           return Option.none();
@@ -143,7 +143,7 @@ export const readCurrentUser: Effect.Effect<
   Option.Option<UserWithEmail>,
   never,
   CurrentUserReader
-> = Effect.gen(function* readCurrentUser() {
+> = Effect.gen(function* () {
   const reader = yield* CurrentUserReader;
   return yield* reader.read;
 }).pipe(Effect.catchTags(dieOnPersistenceError));
