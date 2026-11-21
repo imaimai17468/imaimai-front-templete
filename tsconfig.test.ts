@@ -2,52 +2,65 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { Schema } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { z } from "zod";
 import { EFFECT_LAYERS } from "./vite.config.ts";
 
 const ROOT = import.meta.dirname;
 
-const readJson = <S extends z.ZodType>(file: string, schema: S): z.infer<S> =>
-  schema.parse(JSON.parse(fs.readFileSync(path.join(ROOT, file), "utf-8")));
+const readText = (file: string): string =>
+  fs.readFileSync(path.join(ROOT, file), "utf-8");
 
-const Severities = z.record(z.string(), z.string());
+const Severities = Schema.Record(Schema.String, Schema.String);
 
-const Override = z.object({
-  include: z.array(z.string()),
-  options: z.object({ diagnosticSeverity: Severities }),
+const Override = Schema.Struct({
+  include: Schema.Array(Schema.String),
+  options: Schema.Struct({ diagnosticSeverity: Severities }),
 });
 
-const TsConfig = z.object({
-  compilerOptions: z.object({
-    plugins: z.tuple([
-      z.object({
-        diagnosticSeverity: Severities,
-        overrides: z.array(Override),
+const decodeTsConfig = Schema.decodeUnknownSync(
+  Schema.fromJsonString(
+    Schema.Struct({
+      compilerOptions: Schema.Struct({
+        plugins: Schema.Tuple([
+          Schema.Struct({
+            diagnosticSeverity: Severities,
+            overrides: Schema.Array(Override),
+          }),
+        ]),
       }),
-    ]),
-  }),
-});
+    })
+  )
+);
 
-const [plugin] = readJson("tsconfig.json", TsConfig).compilerOptions.plugins;
+const [plugin] = decodeTsConfig(readText("tsconfig.json")).compilerOptions
+  .plugins;
 
 const overrideIncluding = (glob: string) =>
   plugin.overrides.find(({ include }) => include.includes(glob));
 
-const PluginSchema = z.object({
-  definitions: z.object({
-    effectLanguageServicePluginDiagnosticSeverityDefinition: z.object({
-      properties: z.record(z.string(), z.looseObject({})),
-    }),
-  }),
-});
+const decodePluginSchema = Schema.decodeUnknownSync(
+  Schema.fromJsonString(
+    Schema.Struct({
+      definitions: Schema.Struct({
+        effectLanguageServicePluginDiagnosticSeverityDefinition: Schema.Struct({
+          properties: Schema.Record(
+            Schema.String,
+            Schema.Record(Schema.String, Schema.Unknown)
+          ),
+        }),
+      }),
+    })
+  )
+);
 
 const decidedRules = new Set(Object.keys(plugin.diagnosticSeverity));
 
 const knownRules = new Set(
   Object.keys(
-    readJson("node_modules/@effect/tsgo/schema.json", PluginSchema).definitions
-      .effectLanguageServicePluginDiagnosticSeverityDefinition.properties
+    decodePluginSchema(readText("node_modules/@effect/tsgo/schema.json"))
+      .definitions.effectLanguageServicePluginDiagnosticSeverityDefinition
+      .properties
   )
 );
 
