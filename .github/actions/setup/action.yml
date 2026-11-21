@@ -1,0 +1,24 @@
+name: Set up the toolchain and dependencies
+description: Installs the mise toolchain and the locked dependencies, then generates the route tree and the Void types every check reads.
+
+runs:
+  using: composite
+  steps:
+    # Installs every tool in mise.toml and exports them on PATH for the
+    # steps that follow, so mise.toml is the one place those versions are written.
+    - name: Install the toolchain from mise.toml
+      uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+
+    - name: Install dependencies
+      shell: bash
+      run: bun install --frozen-lockfile
+
+    - name: Generate route tree
+      shell: bash
+      run: bun run generate-routes
+
+    # tsconfig.json extends .void/tsconfig.json, which carries the types of
+    # `void/env`, `void/db` and `@schema`, so the type check needs it first.
+    - name: Generate Void types
+      shell: bash
+      run: bun run generate-void
