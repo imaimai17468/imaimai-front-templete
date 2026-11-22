@@ -238,12 +238,15 @@ export default defineConfig({
     "arch-rules/server-only-marker": "error",
     "arch-rules/layer-boundaries": "error",
     "arch-rules/no-size-props": "error",
-    "arch-rules/one-component-per-file": "error",
+    "react/no-multi-comp": "error",
     "arch-rules/route-imports-its-component": "error",
     "arch-rules/component-file-naming": "error",
-    "arch-rules/test-naming-format": "error",
-    "arch-rules/single-expect": "error",
     "arch-rules/no-app-module-mock": "error",
+    // It reports `vi.mock` where `vi` is a global or comes from "vitest"; this
+    // project imports it from "vite-plus/test", so it never fires here.
+    // `arch-rules/no-app-module-mock` limits mocking instead, to modules
+    // outside the app.
+    "anti-slop/no-module-mocking": "off",
     "start-rules/no-rewritten-factory-in-handler": "error",
   },
   env: {
@@ -443,7 +446,7 @@ export default defineConfig({
       // each `shadcn add`.
       files: ["src/shared/ui/**"],
       rules: {
-        "arch-rules/one-component-per-file": "off",
+        "react/no-multi-comp": "off",
         "rules/no-let": "off",
         "rules/no-local-export-list": "off",
         "tailwindcss/no-restricted-classes": "off",
@@ -557,6 +560,22 @@ export default defineConfig({
       files: ["src/routes/index/-components/code-block.tsx"],
       rules: {
         "jsx-a11y/no-noninteractive-tabindex": ["error", { tags: ["section"] }],
+      },
+    },
+    {
+      files: ["**/*.{test,spec}.{ts,tsx,js,jsx}"],
+      rules: {
+        "vitest/max-expects": ["error", { max: 1 }],
+        "vitest/valid-title": [
+          "error",
+          {
+            ignoreTypeOfDescribeName: true,
+            mustMatch: {
+              it: String.raw`^(?:should\s+.+\s+when\s+|[$%])`,
+              test: String.raw`^(?:should\s+.+\s+when\s+|[$%])`,
+            },
+          },
+        ],
       },
     },
   ],

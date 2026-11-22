@@ -133,7 +133,7 @@ rule ID, so dropping only one half leaves the config pointing at a rule nothing
 supplies.
 
 **No plugin under `tools/oxlint-plugins/` is deleted.** `arch-rules.js` also
-carries the component and test-shape rules, `style-rules.js` and `start-rules.js`
+carries the component rules, `server-only-marker` and `no-app-module-mock`, `style-rules.js` and `start-rules.js`
 are untouched by this procedure, and `oxlint.project.ts` loads each by path under
 `jsPlugins`, so removing any of them breaks the lint config for the whole fork.
 
