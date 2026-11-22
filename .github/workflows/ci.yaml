@@ -225,14 +225,16 @@ jobs:
       - name: Boot the app and request its routes (smoke)
         run: bun run smoke
 
-  # Runs mutation testing and uploads its HTML report for reading; the job
-  # passes whatever the score or the run's outcome. The incremental file
+  # Runs mutation testing and uploads its HTML report for reading. On a pull
+  # request the job fails while a file the pull request changes holds a
+  # mutant no test notices (Survived or NoCoverage), or when the run wrote no
+  # report; on a push to main it only reports. The incremental file
   # restored below reuses the result of every mutant whose code and covering
   # tests are unchanged, so a run without a cache is the slow one, and the
   # cache key changes with the dependencies and the test setup, which can
   # change a result without changing either.
   mutation:
-    name: mutation report
+    name: mutation testing
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -253,6 +255,34 @@ jobs:
         continue-on-error: true
         run: bun run mutate
 
+      - name: Upload the mutation report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-report
+          path: reports/mutation/mutation.html
+
+      # The incremental run above keeps a cached Survived result for a mutant
+      # no test covers per test, such as one in a module-level value, after a
+      # test that kills it lands, and keeps a cached Killed result after a
+      # change to a module the mutant calls. So the modules this pull request
+      # changes are mutated again with `--force` before the gate reads the
+      # report. A two-dot diff from the base commit to the merge commit the
+      # checkout holds names the changed files, and the checkout fetches the
+      # merge commit alone, so the base commit is fetched first.
+      - name: Fail on a mutant no test notices in a changed file
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          git diff -z --name-only --no-renames "$BASE_SHA" HEAD > "$RUNNER_TEMP/changed-files"
+          modules="$(bun .github/scripts/mutation-gate/list-changed-modules.entry.ts < "$RUNNER_TEMP/changed-files")"
+          if [ -n "$modules" ]; then
+            bun run mutate --force --mutate "$modules"
+          fi
+          bun .github/scripts/mutation-gate/check-mutation-gate.entry.ts < "$RUNNER_TEMP/changed-files"
+
       # Stryker writes the mutants it finished when it exits on an error, so
       # saving after a failed run lets the next run resume from them.
       - name: Save the incremental mutation results
@@ -261,13 +291,6 @@ jobs:
         with:
           path: reports/stryker-incremental.json
           key: stryker-incremental-${{ hashFiles('bun.lock', 'vitest.config.mts', 'stryker.config.mjs', 'src/test/**') }}-${{ github.sha }}
-
-      - name: Upload the mutation report
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: mutation-report
-          path: reports/mutation/mutation.html
 
   # Reports every job above as one check, which fails when any of them did not
   # succeed. `!cancelled()` runs it after a failed job too, where
