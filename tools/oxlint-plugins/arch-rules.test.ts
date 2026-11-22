@@ -8,7 +8,7 @@ import routeImportsItsComponent from "./arch-rules/route-imports-its-component.j
 import serverOnlyMarker from "./arch-rules/server-only-marker.js";
 
 describe("arch-rules", () => {
-  it("should register each rule under the name the lint config uses when oxlint loads the plugin", () => {
+  it("should expose each rule module under its rule key when the plugin named arch-rules is loaded", () => {
     expect(plugin).toStrictEqual({
       meta: { name: "arch-rules" },
       rules: {
