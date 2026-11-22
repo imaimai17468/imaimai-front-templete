@@ -1,6 +1,6 @@
 import path from "node:path";
+import { srcPathOf } from "./file-paths.js";
 import { layerOf } from "./layers.js";
-import { srcPathOf } from "./src-paths.js";
 
 // A route file and a component are both reached through the browser build, so
 // they carry the same bans.

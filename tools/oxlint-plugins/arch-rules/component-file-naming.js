@@ -1,5 +1,5 @@
 import { isComponentName } from "./component-names.js";
-import { isTestStem } from "./test-stems.js";
+import { filenameOf, isTestStem, stripSourceExtension } from "./file-paths.js";
 
 const SKIP_STEMS = new Set(["index"]);
 
@@ -10,7 +10,7 @@ const SKIP_STEMS = new Set(["index"]);
  */
 const expectedComponentName = (filename) => {
   const basename = filename.slice(filename.lastIndexOf("/") + 1);
-  const stem = basename.replace(/\.(?:tsx?|jsx?)$/u, "");
+  const stem = stripSourceExtension(basename);
   if (stem === "" || SKIP_STEMS.has(stem) || isTestStem(stem)) {
     return null;
   }
@@ -25,7 +25,7 @@ const expectedComponentName = (filename) => {
 
 const componentFileNaming = {
   create(context) {
-    const filename = context.filename ?? context.getFilename?.();
+    const filename = filenameOf(context);
     if (!filename) {
       return {};
     }

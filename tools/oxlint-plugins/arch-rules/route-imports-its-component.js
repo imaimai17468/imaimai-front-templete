@@ -1,7 +1,6 @@
 import { isComponentName } from "./component-names.js";
+import { isTestStem, srcPathOf, stripSourceExtension } from "./file-paths.js";
 import { layerOf } from "./layers.js";
-import { srcPathOf } from "./src-paths.js";
-import { isTestStem } from "./test-stems.js";
 
 const COMPONENT_WRAPPERS = new Set(["forwardRef", "memo"]);
 
@@ -87,7 +86,7 @@ const routeImportsItsComponent = {
     if (
       srcPath === null ||
       layerOf(srcPath) !== "route" ||
-      isTestStem(srcPath.replace(/\.(?:tsx?|jsx?)$/u, ""))
+      isTestStem(stripSourceExtension(srcPath))
     ) {
       return {};
     }

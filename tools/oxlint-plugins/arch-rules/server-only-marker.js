@@ -1,5 +1,5 @@
+import { srcPathOf } from "./file-paths.js";
 import { layerOf } from "./layers.js";
-import { srcPathOf } from "./src-paths.js";
 
 const SERVER_ONLY_MARKER = "@tanstack/react-start/server-only";
 
