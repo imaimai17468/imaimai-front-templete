@@ -11,7 +11,7 @@ const parseTypeScript = (source: string) => {
     babelrc: false,
     configFile: false,
     filename: "module.ts",
-    plugins: ["@babel/plugin-syntax-typescript"],
+    parserOpts: { plugins: ["typescript"] },
   });
   if (file === null) {
     throw new Error("Babel returned no syntax tree");
