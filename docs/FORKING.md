@@ -34,7 +34,7 @@ Better Auth はリクエストの origin を base URL にするので、環境�
 **再利用する（そのまま持っていく）**: 規約とゲートを成立させているもの全部。
 規約そのもの（`AGENTS.md`, `CLAUDE.md`, `.claude/`）、それを機械的に強制する側
 （`lefthook.yml`, `vite.config.ts`, `oxlint.project.ts` とそれが読む
-`oxlint.effect.ts`・`oxlint.react-doctor.ts`, `.fallowrc.jsonc`, `vitest.config.mts`, `tools/oxlint-plugins/`, `scripts/` のゲートスクリプト）。
+`oxlint.effect.ts`・`oxlint.react-doctor.ts`・`oxlint.restricted-classes.ts`, `.fallowrc.jsonc`, `vitest.config.mts`, `tools/oxlint-plugins/`, `scripts/` のゲートスクリプト）。
 規約は文書だけに書かれているわけではないので、強制側を置いていくと規約が黙って
 効かなくなる。
 

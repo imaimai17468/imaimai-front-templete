@@ -7,6 +7,7 @@ import tanstack from "ultracite/oxlint/tanstack";
 import ultraciteVitest from "ultracite/oxlint/vitest";
 import { effectRules } from "./oxlint.effect.ts";
 import reactDoctor from "./oxlint.react-doctor.ts";
+import { restrictedClassPatterns } from "./oxlint.restricted-classes.ts";
 
 const CONFIG_FILES = "*.config.{js,ts,mjs,mts}";
 const LINT_CONFIG_FILE = "oxlint.project.ts";
@@ -217,14 +218,10 @@ export default defineConfig({
     "react/jsx-no-constructed-context-values": "error",
     "vitest/no-conditional-in-test": "error",
     "style-rules/no-loops": "error",
-    "style-rules/no-restyle-shared-ui-at-call-site": "error",
-    "style-rules/no-tailwind-arbitrary": "error",
-    "style-rules/no-tailwind-ease-in": "error",
-    "style-rules/no-tailwind-opacity": "error",
-    "style-rules/no-tailwind-palette-color": "error",
-    "style-rules/no-tailwind-shadow": "error",
-    "style-rules/no-tailwind-sibling-margin": "error",
-    "style-rules/no-tailwind-transition-all": "error",
+    "tailwindcss/no-restricted-classes": [
+      "error",
+      { patterns: restrictedClassPatterns },
+    ],
     "tailwindcss/no-conflicting-classes": "error",
     "tailwindcss/no-deprecated-classes": "error",
     "tailwindcss/no-duplicate-classes": "error",
@@ -449,14 +446,7 @@ export default defineConfig({
         "arch-rules/one-component-per-file": "off",
         "rules/no-let": "off",
         "rules/no-local-export-list": "off",
-        "style-rules/no-restyle-shared-ui-at-call-site": "off",
-        "style-rules/no-tailwind-arbitrary": "off",
-        "style-rules/no-tailwind-ease-in": "off",
-        "style-rules/no-tailwind-opacity": "off",
-        "style-rules/no-tailwind-palette-color": "off",
-        "style-rules/no-tailwind-shadow": "off",
-        "style-rules/no-tailwind-sibling-margin": "off",
-        "style-rules/no-tailwind-transition-all": "off",
+        "tailwindcss/no-restricted-classes": "off",
         "func-style": "off",
         "react/function-component-definition": "off",
         "sort-keys": "off",
