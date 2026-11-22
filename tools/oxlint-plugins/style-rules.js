@@ -1,20 +1,4 @@
-const noLoops = {
-  create(context) {
-    const report = (node) =>
-      context.report({
-        message:
-          "Loops are forbidden. Use functional alternatives: map, filter, reduce, flatMap, forEach, some, every, find.",
-        node,
-      });
-    return {
-      DoWhileStatement: report,
-      ForInStatement: report,
-      ForOfStatement: report,
-      ForStatement: report,
-      WhileStatement: report,
-    };
-  },
-};
+import noLoops from "./style-rules/no-loops.js";
 
 const plugin = {
   meta: { name: "style-rules" },
