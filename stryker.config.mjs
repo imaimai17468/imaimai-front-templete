@@ -16,12 +16,7 @@ export default {
     // the text rather than what the code does.
     "!src/**/*.content.ts",
   ],
-  // Listing `plugins` replaces Stryker's default, so the vitest runner the
-  // default loaded is named next to the local ignorer.
-  plugins: [
-    "@stryker-mutator/vitest-runner",
-    "./tools/stryker/ignore-identifiers.ts",
-  ],
+  plugins: ["@stryker-mutator/*", "./tools/stryker/ignore-identifiers.ts"],
   ignorers: ["identifiers"],
   // An empty name skips the tsconfig rewrite, which calls a JavaScript API
   // the TypeScript 7 package does not ship. The sandbox copies the whole
