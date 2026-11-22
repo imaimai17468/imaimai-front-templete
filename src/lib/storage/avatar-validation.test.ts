@@ -6,7 +6,6 @@ import {
   avatarExtensionForMime,
   avatarSizeVerdict,
   isOwnAvatarKey,
-  MAX_AVATAR_BYTES,
 } from "./avatar-validation.ts";
 
 describe(avatarExtensionForMime, () => {
@@ -43,6 +42,8 @@ describe(avatarExtensionForMime, () => {
 });
 
 describe(avatarSizeVerdict, () => {
+  const fiveMiB = 5_242_880;
+
   it.each([
     ["zero bytes", 0],
     ["negative size", -1],
@@ -51,15 +52,15 @@ describe(avatarSizeVerdict, () => {
   });
 
   it.each([
-    ["one byte over the ceiling", MAX_AVATAR_BYTES + 1],
-    ["far over the ceiling", MAX_AVATAR_BYTES * 10],
+    ["one byte over 5 MiB", fiveMiB + 1],
+    ["far over 5 MiB", fiveMiB * 10],
   ])("should return too-large when the size is %s", (_label, size) => {
     expect(avatarSizeVerdict(size)).toBe("too-large");
   });
 
   it.each([
     ["the smallest non-empty size", 1],
-    ["exactly the ceiling", MAX_AVATAR_BYTES],
+    ["exactly 5 MiB", fiveMiB],
   ])("should return accepted when the size is %s", (_label, size) => {
     expect(avatarSizeVerdict(size)).toBe("accepted");
   });
