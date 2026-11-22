@@ -45,6 +45,7 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
     alias: {
+      "void/db": "void/_db",
       "cloudflare:workers": path.resolve(
         import.meta.dirname,
         "src/test/cloudflare-workers-stub.ts"

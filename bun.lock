@@ -53,6 +53,7 @@
         "fallow": "3.34.1",
         "jsdom": "30.0.1",
         "lefthook": "2.1.10",
+        "miniflare": "5.20261116.0-beta",
         "oxfmt": "0.79.0",
         "oxlint": "1.94.0",
         "oxlint-plugin-effect": "0.12.1",
