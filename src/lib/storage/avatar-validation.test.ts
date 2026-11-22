@@ -1,5 +1,5 @@
 import { Option } from "effect";
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 import {
   avatarContentMatchesMime,
   avatarContentTypeForKey,
@@ -157,13 +157,34 @@ describe(avatarContentMatchesMime, () => {
       "image/webp",
       [0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x4e, 0x4f, 0x50, 0x45],
     ],
+    [
+      "WebP MIME with a WEBP marker but no RIFF signature",
+      "image/webp",
+      [0, 0, 0, 0, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50],
+    ],
     ["GIF MIME with a truncated header", "image/gif", [0x47, 0x49, 0x46]],
     ["unsupported MIME", "image/svg+xml", [0x3c, 0x73, 0x76, 0x67]],
   ])("should reject content when %s", (_label, mimeType, bytes) =>
-    expect(
-      avatarContentMatchesMime(imageFile(mimeType, bytes))
-    ).resolves.toBeFalsy()
+    avatarContentMatchesMime(imageFile(mimeType, bytes)).then((matches) => {
+      expect({ matches }).toStrictEqual({ matches: false });
+    })
   );
+
+  it("should buffer only the first 12 bytes when checking a WebP file with a payload", () => {
+    const file = imageFile(
+      "image/webp",
+      [0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0]
+    );
+    const readBytes = vi.spyOn(Blob.prototype, "arrayBuffer");
+    const expectedHeader: unknown = expect.objectContaining({ size: 12 });
+
+    return avatarContentMatchesMime(file).then((matches) => {
+      expect({ matches, reads: readBytes.mock.contexts }).toStrictEqual({
+        matches: true,
+        reads: [expectedHeader],
+      });
+    });
+  });
 });
 
 describe(avatarContentTypeForKey, () => {
