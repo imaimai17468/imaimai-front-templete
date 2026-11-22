@@ -12,6 +12,9 @@ export default {
     // the test files under `.claude/` and `.github/` take a pattern of their own.
     "!**/*.test.ts",
     "!{.claude,.github}/**/*.test.ts",
+    // A `*.content.ts` module holds page copy alone, so its mutants change
+    // the text rather than what the code does.
+    "!src/**/*.content.ts",
   ],
   // An empty name skips the tsconfig rewrite, which calls a JavaScript API
   // the TypeScript 7 package does not ship. The sandbox copies the whole

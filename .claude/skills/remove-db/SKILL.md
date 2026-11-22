@@ -65,7 +65,7 @@ Leave the rest of the markup as it is.
 - Delete the `currentUserQueryOptions` import and the `loader` option.
 - Delete `const { data: user } = useSuspenseQuery(currentUserQueryOptions());` and render `<Header />` without props.
 
-### `src/routes/index/-components/home-content.ts`
+### `src/routes/index/-components/home.content.ts`
 
 The sample home page hardcodes the stack. Remove the `認証`, `データ` and `ファイル` rows
 from the `同梱されているもの` section of the `SPECS` array, which carry
