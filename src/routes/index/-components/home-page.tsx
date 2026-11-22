@@ -1,7 +1,7 @@
 import { PageTitle } from "@/shared/components/page-title/page-title";
 import { CodeBlock } from "./code-block.tsx";
 import { ExternalLink } from "./external-link.tsx";
-import { LINKS, SETUP, SPECS } from "./home-content.ts";
+import { LINKS, SETUP, SPECS } from "./home.content.ts";
 import { Section } from "./section.tsx";
 
 export const HomePage = () => (
