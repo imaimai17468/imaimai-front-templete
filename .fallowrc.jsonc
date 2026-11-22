@@ -20,7 +20,8 @@
   // .claude/hooks/scoped-guidance/scoped-guidance.sh and by the PreToolUse hook
   // .claude/settings.json registers for pre-bash-guard, and loaded by the void
   // CLI and plugin (the config, the env schema, and the D1 schema the `@schema`
-  // alias names), none of which an import graph reaches.
+  // alias names), and loaded by Stryker from the `plugins` list in
+  // stryker.config.mjs, none of which an import graph reaches.
   "dynamicallyLoaded": [
     "doctor.config.ts",
     ".claude/hooks/scoped-guidance/scoped-guidance.entry.ts",
@@ -28,6 +29,7 @@
     "void.config.ts",
     "env.ts",
     "db/schema.ts",
+    "tools/stryker/ignore-identifiers.ts",
   ],
   "ignoreDependencies": [
     // Named as strings in the lint config's `jsPlugins` block, which fallow
