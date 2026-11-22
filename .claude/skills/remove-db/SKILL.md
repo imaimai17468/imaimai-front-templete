@@ -113,27 +113,31 @@ other one that names a file it deleted.
 
 Remove `env.ts` and `db/schema.ts` from `dynamicallyLoaded`.
 
-### `tools/oxlint-plugins/arch-rules.js`: prune the dead layer bans
+### `tools/oxlint-plugins/arch-rules/`: prune the dead layer bans
 
-`LAYER_RULES` encodes as import bans the layer order AGENTS.md's Rules section
-names. Each key is a layer `layerOf` returns, and its entry bans a target by
-path (`paths`), by the layer `layerOf` gives that target (`layers`), or by bare
-specifier (`externals`). Step 1 deletes the gateway and entity layers and the
-`src/lib/` adapters the browser bans name, so drop the `gateway` and `entity`
-keys, every `layers` entry naming one of them, and every `paths` or `externals`
-entry whose target step 1 removed (`void/db`, `void/storage`, `void/env`,
-`@schema`). Drop the matching names from `ROLE_BY_SEGMENT` and `layerOf`.
-Remove those entries together with the cases in `arch-rules.test.ts` that cover
-them: `vitest.config.mts` holds this file at 100% branch coverage, so a pruned
-ban with a surviving test, or the reverse, fails `bun run test`. If every ban
-goes, the `layer-boundaries` rule and its entry in the `plugin` export go too.
-When that happens, also remove `"arch-rules/layer-boundaries": "error"` from
-`oxlint.project.ts`'s `rules` map, because the plugin export and that entry name the same
-rule ID, so dropping only one half leaves the config pointing at a rule nothing
-supplies.
+`LAYER_RULES` in `arch-rules/layer-boundaries.js` encodes as import bans the
+layer order AGENTS.md's Rules section names. Each key is a layer `layerOf`
+(`arch-rules/layers.js`) returns, and its entry bans a target by path (`paths`),
+by the layer `layerOf` gives that target (`layers`), or by bare specifier
+(`externals`). Step 1 deletes the gateway and entity layers and the `src/lib/`
+adapters the browser bans name, so drop the `gateway` and `entity` keys, every
+`layers` entry naming one of them, and every `paths` or `externals` entry whose
+target step 1 removed (`void/db`, `void/storage`, `void/env`, `@schema`). Drop
+the matching names from `ROLE_BY_SEGMENT` and `layerOf` in `arch-rules/layers.js`,
+which `server-only-marker.js` and `route-imports-its-component.js` also import.
+Remove those entries together with the cases in `arch-rules/layer-boundaries.test.ts`
+that cover them: `vitest.config.mts` holds each file at 100% branch coverage, so
+a pruned ban with a surviving test, or the reverse, fails `bun run test`. If
+every ban goes, the `layer-boundaries` rule goes too, from four places together:
+delete `arch-rules/layer-boundaries.js` and its test file, remove its import and
+`rules` entry in `arch-rules.js`, remove its key from the object the test in
+`arch-rules.test.ts` compares the plugin against, and remove
+`"arch-rules/layer-boundaries": "error"` from `oxlint.project.ts`'s `rules` map.
+The plugin export and that config entry name the same rule ID, so dropping only
+one half leaves the config pointing at a rule nothing supplies.
 
 **No plugin under `tools/oxlint-plugins/` is deleted.** `arch-rules.js` also
-carries the component rules, `server-only-marker` and `no-app-module-mock`, `style-rules.js` and `start-rules.js`
+loads the component rules, `server-only-marker` and `no-app-module-mock`, `style-rules.js` and `start-rules.js`
 are untouched by this procedure, and `oxlint.project.ts` loads each by path under
 `jsPlugins`, so removing any of them breaks the lint config for the whole fork.
 
