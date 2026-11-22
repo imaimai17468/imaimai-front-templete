@@ -78,32 +78,37 @@ export const avatarContentMatchesMime = (file: File): Promise<boolean> =>
 // before the MIME allow-list took from the client) decides what a browser is
 // told the bytes are. Those older keys may carry ".jpeg" or uppercase
 // variants, so the lookup is case-insensitive and admits "jpeg".
-const AVATAR_TYPE_FOR_KEY_EXTENSION = new Map<string, AvatarContentType>([
-  ...pipe(
+const canonicalAvatarExtension = (extension: string): string => {
+  const lowerCaseExtension = String.toLowerCase(extension);
+  if (lowerCaseExtension === "jpeg") {
+    return "jpg";
+  }
+  return lowerCaseExtension;
+};
+
+const contentTypeForExtension = (
+  extension: string
+): Option.Option<AvatarContentType> => {
+  const canonical = canonicalAvatarExtension(extension);
+  return Array.findFirst(
     AVATAR_FORMATS,
-    Array.map(
-      ([type, extension]) =>
-        [extension, type] satisfies readonly [string, AvatarContentType]
-    )
-  ),
-  ["jpeg", "image/jpeg"],
-]);
+    ([, storedExtension]) => storedExtension === canonical
+  ).pipe(Option.map(([contentType]) => contentType));
+};
 
 const AVATAR_KEY_PATTERN =
   /^(?<ownerId>[A-Za-z0-9_-]+)\/(?:avatar|avatars\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.(?<extension>[A-Za-z0-9]+)$/u;
 
 const parseAvatarKey = (
   key: string
-): Option.Option<{ ownerId: string; extension: string }> => {
+): Option.Option<{ ownerId: string; contentType: AvatarContentType }> => {
   const groups = AVATAR_KEY_PATTERN.exec(key)?.groups;
   return Option.all({
-    extension: Option.fromUndefinedOr(groups?.extension),
+    contentType: Option.fromUndefinedOr(groups?.extension).pipe(
+      Option.flatMap(contentTypeForExtension)
+    ),
     ownerId: Option.fromUndefinedOr(groups?.ownerId),
-  }).pipe(
-    Option.filter(({ extension }) =>
-      AVATAR_TYPE_FOR_KEY_EXTENSION.has(String.toLowerCase(extension))
-    )
-  );
+  });
 };
 
 /**
@@ -113,13 +118,7 @@ const parseAvatarKey = (
 export const avatarContentTypeForKey = (
   key: string
 ): Option.Option<AvatarContentType> =>
-  parseAvatarKey(key).pipe(
-    Option.flatMap(({ extension }) =>
-      Option.fromUndefinedOr(
-        AVATAR_TYPE_FOR_KEY_EXTENSION.get(String.toLowerCase(extension))
-      )
-    )
-  );
+  parseAvatarKey(key).pipe(Option.map(({ contentType }) => contentType));
 
 /**
  * Returns the storage extension for an allow-listed image MIME type, or a
