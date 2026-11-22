@@ -139,194 +139,6 @@ const expectedComponentName = (filename) => {
   return isComponentName(name) ? name : null;
 };
 
-const oneComponentPerFile = {
-  create(context) {
-    const filename = context.filename ?? context.getFilename?.();
-    const namesake = filename ? expectedComponentName(filename) : null;
-
-    return {
-      Program(node) {
-        const declared = node.body.flatMap((statement) =>
-          componentsDeclaredBy(statement).map((name) => ({ name, statement }))
-        );
-        if (declared.length < 2) {
-          return;
-        }
-        // The file's namesake stays, so the report lands on the intruder even
-        // where it was declared first, as `SubmitLabel` was above `ProfileForm`.
-        const keeper =
-          declared.find((entry) => entry.name === namesake) ?? declared[0];
-        for (const entry of declared) {
-          if (entry === keeper) {
-            continue;
-          }
-          context.report({
-            message: `A file declares one component, exported or not. '${entry.name}' shares this file with '${keeper.name}'. Move '${entry.name}' to a file named after it.`,
-            node: entry.statement,
-          });
-        }
-      },
-    };
-  },
-};
-
-const TEST_NAME_RE = /^should\s+.+\s+when\s+/iu;
-
-// A row name opening with a `%s` or `$field` placeholder gets its opening words
-// from the table row, so no row value can make it match TEST_NAME_RE and this
-// rule cannot read what the composed name says.
-const ROW_PLACEHOLDER_LEAD_RE = /^[$%]/u;
-
-const SKIP_METHODS = new Set(["skip", "todo"]);
-
-const TABLE_METHODS = new Set(["each", "for"]);
-
-// `it.each(table)(name, fn)` and `` it.each`table`(name, fn) `` hang the row's
-// name and callback off an outer call, so the chain naming the case is inside
-// that outer call's own callee.
-const tableCallee = (callee) => {
-  if (callee.type === "CallExpression") {
-    return callee.callee;
-  }
-  if (callee.type === "TaggedTemplateExpression") {
-    return callee.tag;
-  }
-  return null;
-};
-
-const tableChain = (callee) => {
-  const inner = tableCallee(callee);
-  if (
-    inner !== null &&
-    inner.type === "MemberExpression" &&
-    TABLE_METHODS.has(inner.property.name)
-  ) {
-    return inner;
-  }
-  return null;
-};
-
-const isTestIdentifier = (name) => name === "it" || name === "test";
-
-/**
- * Follows a member chain to its root, refusing any `.skip` or `.todo` on the
- * way. Walking the chain rather than matching a fixed depth is what lets
- * `it.concurrent.only` through to the root.
- */
-const reachesTestIdentifier = (node) => {
-  if (node === null) {
-    return false;
-  }
-  if (node.type === "MemberExpression") {
-    if (node.property && SKIP_METHODS.has(node.property.name)) {
-      return false;
-    }
-    return reachesTestIdentifier(node.object);
-  }
-  return node.type === "Identifier" && isTestIdentifier(node.name);
-};
-
-const isTestCallee = (callee) => {
-  if (!callee) {
-    return false;
-  }
-  return reachesTestIdentifier(tableChain(callee) ?? callee);
-};
-
-const testNamingFormat = {
-  create(context) {
-    return {
-      CallExpression(node) {
-        if (!isTestCallee(node.callee)) {
-          return;
-        }
-        const [firstArg] = node.arguments;
-        if (!firstArg) {
-          return;
-        }
-        const testName =
-          firstArg.type === "Literal" || firstArg.type === "StringLiteral"
-            ? firstArg.value
-            : null;
-        if (typeof testName !== "string") {
-          return;
-        }
-        if (TEST_NAME_RE.test(testName)) {
-          return;
-        }
-        if (
-          ROW_PLACEHOLDER_LEAD_RE.test(testName) &&
-          tableChain(node.callee) !== null
-        ) {
-          return;
-        }
-        context.report({
-          message: `Test name must follow the format: 'should [expected behavior] when [condition]'. Got: '${testName}'`,
-          node,
-        });
-      },
-    };
-  },
-};
-
-const isExpectCall = (node) => {
-  const { callee } = node;
-  if (!callee) {
-    return false;
-  }
-  if (callee.type === "Identifier" && callee.name === "expect") {
-    return true;
-  }
-  if (callee.type === "MemberExpression" && callee.object?.name === "expect") {
-    return true;
-  }
-  return false;
-};
-
-const declaresCase = (node) => {
-  if (!isTestCallee(node.callee)) {
-    return false;
-  }
-  const [, secondArg] = node.arguments;
-  return (
-    secondArg !== undefined &&
-    (secondArg.type === "ArrowFunctionExpression" ||
-      secondArg.type === "FunctionExpression")
-  );
-};
-
-const singleExpect = {
-  create(context) {
-    const scopeStack = [];
-
-    return {
-      CallExpression(node) {
-        if (declaresCase(node)) {
-          scopeStack.push({ count: 0, testNode: node });
-          return;
-        }
-        if (scopeStack.length > 0 && isExpectCall(node)) {
-          const current = scopeStack.at(-1);
-          current.count += 1;
-        }
-      },
-      "CallExpression:exit"(node) {
-        const scope = scopeStack.at(-1);
-        if (scope?.testNode !== node) {
-          return;
-        }
-        scopeStack.pop();
-        if (scope.count > 1) {
-          context.report({
-            message: `Each test case should have exactly one expect(). Found ${scope.count} expect() calls.`,
-            node: scope.testNode,
-          });
-        }
-      },
-    };
-  },
-};
-
 const componentFileNaming = {
   create(context) {
     const filename = context.filename ?? context.getFilename?.();
@@ -790,9 +602,8 @@ const serverOnlyMarker = {
 /**
  * A route file declares `Route` and imports the component it draws.
  *
- * `one-component-per-file` does not reach this: `export const Route =
- * createFileRoute(...)({...})` is a declarator whose init is a `CallExpression`,
- * so a route file holding one inline component counts one, not two.
+ * `export const Route = createFileRoute(...)({...})` is a declarator whose
+ * init is a `CallExpression`, so `Route` itself is never counted as one.
  */
 const routeImportsItsComponent = {
   create(context) {
@@ -869,11 +680,8 @@ const plugin = {
     "layer-boundaries": layerBoundaries,
     "no-app-module-mock": noAppModuleMock,
     "no-size-props": noSizeProps,
-    "one-component-per-file": oneComponentPerFile,
     "route-imports-its-component": routeImportsItsComponent,
     "server-only-marker": serverOnlyMarker,
-    "single-expect": singleExpect,
-    "test-naming-format": testNamingFormat,
   },
 };
 

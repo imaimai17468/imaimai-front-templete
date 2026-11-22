@@ -43,8 +43,9 @@ interface DeclaratorFixture {
 }
 
 /**
- * A module-scope statement, carrying the fields `one-component-per-file` reads
- * and no others, so a fixture cannot satisfy the rule by a field it ignores.
+ * A module-scope statement, carrying the fields `route-imports-its-component`
+ * reads and no others, so a fixture cannot satisfy the rule by a field it
+ * ignores.
  */
 interface StatementFixture {
   type: string;
@@ -57,16 +58,6 @@ interface StatementFixture {
 /** A `Program` whose body is the module-scope statements passed to it. */
 const moduleBody = (...body: StatementFixture[]) => ({ body, type: "Program" });
 
-const exported = (declaration: StatementFixture): StatementFixture => ({
-  declaration,
-  type: "ExportNamedDeclaration",
-});
-
-const functionDeclaration = (name: string) => ({
-  id: { name },
-  type: "FunctionDeclaration",
-});
-
 const arrowDeclarator = (name: string) => ({
   id: { name, type: "Identifier" },
   init: { type: "ArrowFunctionExpression" },
@@ -77,6 +68,22 @@ const arrowDeclaration = (name: string) => ({
   type: "VariableDeclaration",
 });
 
+/** A `Page` declarator whose value is built by calling `callee`. */
+const wrapped = (
+  callee: NonNullable<InitFixture["callee"]>,
+  argument: { type: string }
+): StatementFixture => ({
+  declarations: [
+    {
+      id: { name: "Page", type: "Identifier" },
+      init: { arguments: [argument], callee, type: "CallExpression" },
+    },
+  ],
+  type: "VariableDeclaration",
+});
+
+const arrow = { type: "ArrowFunctionExpression" };
+
 const importNode = (specifier: ImportSource, importedNames: string[] = []) => ({
   source: { value: specifier },
   specifiers: importedNames.map((name) => ({
@@ -84,62 +91,6 @@ const importNode = (specifier: ImportSource, importedNames: string[] = []) => ({
     type: "ImportSpecifier",
   })),
 });
-
-// The callee fixtures reach only as deep as the rules under test read, so an
-// `it.skip.each` chain is a MemberExpression whose object is another one.
-interface CalleeNode {
-  type: string;
-  name?: string;
-  object?: CalleeNode;
-  property?: { name: string };
-  callee?: CalleeNode;
-  tag?: CalleeNode;
-}
-
-const memberCallee = (
-  object: CalleeNode,
-  propertyName: string
-): CalleeNode => ({
-  object,
-  property: { name: propertyName },
-  type: "MemberExpression",
-});
-
-const identifier = (name: string): CalleeNode => ({
-  name,
-  type: "Identifier",
-});
-
-const arrowBody = { type: "ArrowFunctionExpression" };
-
-const expectCall = {
-  arguments: [],
-  callee: identifier("expect"),
-  type: "CallExpression",
-};
-
-const caseCall = (name: string, callee: CalleeNode) => ({
-  arguments: [{ type: "Literal", value: name }, arrowBody],
-  callee,
-  type: "CallExpression",
-});
-
-// `it.each(table)(name, fn)` and `` it.each`table`(name, fn) `` hang the row's
-// name and callback off an outer call, so the chain sits inside that call.
-const callWrapper = (chain: CalleeNode): CalleeNode => ({
-  callee: chain,
-  type: "CallExpression",
-});
-
-const taggedWrapper = (chain: CalleeNode): CalleeNode => ({
-  tag: chain,
-  type: "TaggedTemplateExpression",
-});
-
-const eachChain = (base: string) => memberCallee(identifier(base), "each");
-
-const eachRowCall = (name: string) =>
-  caseCall(name, callWrapper(eachChain("it")));
 
 describe("no-size-props", () => {
   const rule = plugin.rules["no-size-props"];
@@ -279,230 +230,6 @@ describe("no-size-props", () => {
   });
 });
 
-describe("one-component-per-file", () => {
-  const rule = plugin.rules["one-component-per-file"];
-
-  it("should not report when the only component is declared via FunctionDeclaration", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody(exported(functionDeclaration("MyComponent")));
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should report on the second component when both are declared via FunctionDeclaration", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody(
-      exported(functionDeclaration("ComponentA")),
-      exported(functionDeclaration("ComponentB"))
-    );
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should report when the second component is declared without export", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody(
-      arrowDeclaration("SubmitLabel"),
-      exported(arrowDeclaration("ProfileForm"))
-    );
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should keep the file's namesake when the intruder is declared first", () => {
-    // Arrange
-    const context = makeLayerContext(
-      "/repo/src/routes/_authed/profile/-components/profile-form/profile-form.tsx"
-    );
-    const visitors = rule.create(context);
-    const intruder = arrowDeclaration("SubmitLabel");
-    const program = moduleBody(
-      intruder,
-      exported(arrowDeclaration("ProfileForm"))
-    );
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report.mock.calls[0]?.[0].node).toBe(intruder);
-  });
-
-  it("should name the intruder as the one to move when it reports", () => {
-    // Arrange
-    const context = makeLayerContext(
-      "/repo/src/routes/_authed/profile/-components/profile-form/profile-form.tsx"
-    );
-    const visitors = rule.create(context);
-    const program = moduleBody(
-      arrowDeclaration("SubmitLabel"),
-      exported(arrowDeclaration("ProfileForm"))
-    );
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report.mock.calls[0]?.[0].message).toBe(
-      "A file declares one component, exported or not. 'SubmitLabel' shares this file with 'ProfileForm'. Move 'SubmitLabel' to a file named after it."
-    );
-  });
-
-  it("should keep the first declaration when the file name names neither", () => {
-    // Arrange
-    const context = makeLayerContext("/repo/src/shared/components/index.ts");
-    const visitors = rule.create(context);
-    const second = exported(arrowDeclaration("ComponentB"));
-    const program = moduleBody(arrowDeclaration("ComponentA"), second);
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report.mock.calls[0]?.[0].node).toBe(second);
-  });
-
-  it("should not report when the only component is declared via ArrowFunctionExpression", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody(exported(arrowDeclaration("MyComponent")));
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should report on the second component when both are declared via ArrowFunctionExpression", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody(
-      exported(arrowDeclaration("ComponentA")),
-      exported(arrowDeclaration("ComponentB"))
-    );
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should report twice when a third component shares the file", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody(
-      arrowDeclaration("ComponentA"),
-      arrowDeclaration("ComponentB"),
-      exported(arrowDeclaration("ComponentC"))
-    );
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledTimes(2);
-  });
-
-  it("should report once when one statement declares two components", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody({
-      declarations: [
-        arrowDeclarator("ComponentA"),
-        arrowDeclarator("ComponentB"),
-      ],
-      type: "VariableDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should not report when a declaration has a lowercase name", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody(
-      exported(functionDeclaration("MyComponent")),
-      exported(functionDeclaration("helperFn"))
-    );
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when a second declaration is a hook starting with use", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody(
-      exported(arrowDeclaration("MyComponent")),
-      exported(arrowDeclaration("useMyHook"))
-    );
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when a component-named arrow sits inside the only component", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const inner = arrowDeclaration("Inner");
-    const program = moduleBody({
-      declaration: {
-        declarations: [
-          {
-            id: { name: "Outer", type: "Identifier" },
-            init: { body: moduleBody(inner), type: "ArrowFunctionExpression" },
-          },
-        ],
-        type: "VariableDeclaration",
-      },
-      type: "ExportNamedDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-});
-
 describe("route-imports-its-component", () => {
   const rule = plugin.rules["route-imports-its-component"];
 
@@ -611,281 +338,107 @@ describe("route-imports-its-component", () => {
     // Assert
     expect(visitors.Program).toBeUndefined();
   });
-});
 
-describe("test-naming-format", () => {
-  const rule = plugin.rules["test-naming-format"];
-
-  it("should report when it() test name does not follow should...when... format", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = {
-      arguments: [{ type: "Literal", value: "renders the component" }],
-      callee: { name: "it", type: "Identifier" },
-    };
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should report when test() test name does not follow should...when... format", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = {
-      arguments: [{ type: "Literal", value: "returns the correct value" }],
-      callee: { name: "test", type: "Identifier" },
-    };
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should not report when it() test name follows the should...when... format", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = {
-      arguments: [
-        { type: "Literal", value: "should return true when input is valid" },
-      ],
-      callee: { name: "it", type: "Identifier" },
-    };
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when test() test name follows the should...when... format", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = {
-      arguments: [
-        {
-          type: "Literal",
-          value: "should render correctly when props are provided",
-        },
-      ],
-      callee: { name: "test", type: "Identifier" },
-    };
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when callee is describe", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = {
-      arguments: [{ type: "Literal", value: "MyComponent" }],
-      callee: { name: "describe", type: "Identifier" },
-    };
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should report when an it.each row name does not follow should...when... format", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = eachRowCall("bad name");
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should not report when an it.each row name follows the should...when... format", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = eachRowCall("should reject the key when %s");
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when an it.each row name opens with a placeholder", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = eachRowCall("$label");
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should report when a plain it() name opens with a placeholder", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = caseCall("$label", identifier("it"));
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it.each([
-    ["test.each(table)(...)", callWrapper(eachChain("test"))],
-    ["it.for(table)(...)", callWrapper(memberCallee(identifier("it"), "for"))],
-    ["it.each`table`(...)", taggedWrapper(eachChain("it"))],
-    [
-      "it.only.each(table)(...)",
-      callWrapper(memberCallee(memberCallee(identifier("it"), "only"), "each")),
-    ],
-  ])(
-    "should report when a bad row name is declared under %s",
-    (_label, callee) => {
-      // Arrange
-      const context = makeContext();
-      const visitors = rule.create(context);
-      const node = caseCall("bad name", callee);
-
-      // Act
-      visitors.CallExpression(node);
-
-      // Assert
-      expect(context.report).toHaveBeenCalledOnce();
-    }
-  );
-
-  it.each([
-    [
-      "it.skip.each(table)(...)",
-      callWrapper(memberCallee(memberCallee(identifier("it"), "skip"), "each")),
-    ],
-    ["describe.each(table)(...)", callWrapper(eachChain("describe"))],
-    ["a factory call result", callWrapper(identifier("makeIt"))],
-    [
-      "a non-table it.only(table) result",
-      callWrapper(memberCallee(identifier("it"), "only")),
-    ],
-  ])(
-    "should not report when a bad row name is declared under %s",
-    (_label, callee) => {
-      // Arrange
-      const context = makeContext();
-      const visitors = rule.create(context);
-      const node = caseCall("bad name", callee);
-
-      // Act
-      visitors.CallExpression(node);
-
-      // Assert
-      expect(context.report).not.toHaveBeenCalled();
-    }
-  );
-
-  it("should report when a chained it.concurrent.only name does not follow should...when... format", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = caseCall(
-      "bad name",
-      memberCallee(memberCallee(identifier("it"), "concurrent"), "only")
-    );
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should not report when callee is it.skip", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = caseCall("bad name", memberCallee(identifier("it"), "skip"));
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when callee is it.todo", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = caseCall("bad name", memberCallee(identifier("it"), "todo"));
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should report when it.only() test name does not follow should...when... format", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = {
-      arguments: [{ type: "Literal", value: "bad name" }],
-      callee: {
-        object: { name: "it", type: "Identifier" },
-        property: { name: "only" },
-        type: "MemberExpression",
+  it.each<{ name: string; statement: StatementFixture; reports: number }>([
+    {
+      name: "should report when a component is a function declaration",
+      reports: 1,
+      statement: { id: { name: "Page" }, type: "FunctionDeclaration" },
+    },
+    {
+      name: "should report when a component is a named default-exported function expression",
+      reports: 1,
+      statement: {
+        declaration: { id: { name: "Page" }, type: "FunctionExpression" },
+        type: "ExportDefaultDeclaration",
       },
-    };
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should report when test.only() test name does not follow should...when... format", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = {
-      arguments: [{ type: "Literal", value: "bad name" }],
-      callee: {
-        object: { name: "test", type: "Identifier" },
-        property: { name: "only" },
-        type: "MemberExpression",
+    },
+    {
+      name: "should report when a component is exported by name",
+      reports: 1,
+      statement: {
+        declaration: arrowDeclaration("Page"),
+        type: "ExportNamedDeclaration",
       },
-    };
+    },
+    {
+      name: "should report when a component is a function expression bound to a name",
+      reports: 1,
+      statement: {
+        declarations: [
+          {
+            id: { name: "Page", type: "Identifier" },
+            init: { type: "FunctionExpression" },
+          },
+        ],
+        type: "VariableDeclaration",
+      },
+    },
+    {
+      name: "should report when a component is wrapped in memo",
+      reports: 1,
+      statement: wrapped({ name: "memo", type: "Identifier" }, arrow),
+    },
+    {
+      name: "should report when a component is wrapped in React.forwardRef",
+      reports: 1,
+      statement: wrapped(
+        { property: { name: "forwardRef" }, type: "MemberExpression" },
+        arrow
+      ),
+    },
+    {
+      name: "should not report when memo wraps something that is not a function",
+      reports: 0,
+      statement: wrapped(
+        { name: "memo", type: "Identifier" },
+        { type: "Identifier" }
+      ),
+    },
+    {
+      name: "should not report when a call that is not a component wrapper builds the value",
+      reports: 0,
+      statement: wrapped({ type: "CallExpression" }, arrow),
+    },
+    {
+      name: "should not report when an export lists names without declaring one",
+      reports: 0,
+      statement: { declaration: null, type: "ExportNamedDeclaration" },
+    },
+    {
+      name: "should not report when a function declaration has no name",
+      reports: 0,
+      statement: { id: null, type: "FunctionDeclaration" },
+    },
+    {
+      name: "should not report when a function declaration has a lowercase name",
+      reports: 0,
+      statement: { id: { name: "helper" }, type: "FunctionDeclaration" },
+    },
+    {
+      name: "should not report when a declarator destructures instead of naming",
+      reports: 0,
+      statement: {
+        declarations: [
+          {
+            id: { type: "ObjectPattern" },
+            init: { type: "ArrowFunctionExpression" },
+          },
+        ],
+        type: "VariableDeclaration",
+      },
+    },
+    {
+      name: "should not report when a statement is neither a function nor a variable",
+      reports: 0,
+      statement: { type: "ClassDeclaration" },
+    },
+  ])("$name", ({ reports, statement }) => {
+    const context = makeLayerContext("/repo/src/routes/index/route.tsx");
 
-    // Act
-    visitors.CallExpression(node);
+    rule.create(context).Program?.(moduleBody(statement));
 
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
+    expect(context.report).toHaveBeenCalledTimes(reports);
   });
 });
 
@@ -1012,233 +565,6 @@ describe("component-file-naming", () => {
 
     visitors.ExportNamedDeclaration?.(node);
 
-    expect(context.report).not.toHaveBeenCalled();
-  });
-});
-
-describe("single-expect", () => {
-  const rule = plugin.rules["single-expect"];
-
-  it("should not report when test has exactly one expect", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const itNode = {
-      arguments: [
-        { type: "Literal", value: "should do X when Y" },
-        { type: "ArrowFunctionExpression" },
-      ],
-      callee: { name: "it", type: "Identifier" },
-      type: "CallExpression",
-    };
-
-    // Act
-    visitors.CallExpression(itNode);
-    visitors.CallExpression(expectCall);
-    visitors["CallExpression:exit"](itNode);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should report when test has more than one expect", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const itNode = {
-      arguments: [
-        { type: "Literal", value: "should do X when Y" },
-        { type: "ArrowFunctionExpression" },
-      ],
-      callee: { name: "it", type: "Identifier" },
-      type: "CallExpression",
-    };
-
-    // Act
-    visitors.CallExpression(itNode);
-    visitors.CallExpression(expectCall);
-    visitors.CallExpression(expectCall);
-    visitors["CallExpression:exit"](itNode);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should report when test() block has more than one expect", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const testNode = {
-      arguments: [
-        { type: "Literal", value: "should do X when Y" },
-        { type: "ArrowFunctionExpression" },
-      ],
-      callee: { name: "test", type: "Identifier" },
-      type: "CallExpression",
-    };
-
-    // Act
-    visitors.CallExpression(testNode);
-    visitors.CallExpression(expectCall);
-    visitors.CallExpression(expectCall);
-    visitors["CallExpression:exit"](testNode);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should report when an it.each row has more than one expect", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const rowNode = eachRowCall("should do X when Y");
-    const tableNode = {
-      arguments: [{ type: "ArrayExpression" }],
-      callee: rowNode.callee.callee,
-      type: "CallExpression",
-    };
-
-    // Act
-    visitors.CallExpression(rowNode);
-    visitors.CallExpression(tableNode);
-    visitors["CallExpression:exit"](tableNode);
-    visitors.CallExpression(expectCall);
-    visitors.CallExpression(expectCall);
-    visitors["CallExpression:exit"](rowNode);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should not report when an it.each row has exactly one expect", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const rowNode = eachRowCall("should do X when Y");
-
-    // Act
-    visitors.CallExpression(rowNode);
-    visitors.CallExpression(expectCall);
-    visitors["CallExpression:exit"](rowNode);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should still report when the expect calls exit before the test does", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const rowNode = eachRowCall("should do X when Y");
-
-    // Act
-    visitors.CallExpression(rowNode);
-    visitors.CallExpression(expectCall);
-    visitors["CallExpression:exit"](expectCall);
-    visitors.CallExpression(expectCall);
-    visitors["CallExpression:exit"](expectCall);
-    visitors["CallExpression:exit"](rowNode);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should not report when it.skip.each is used", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const rowNode = caseCall(
-      "should do X when Y",
-      callWrapper(memberCallee(memberCallee(identifier("it"), "skip"), "each"))
-    );
-
-    // Act
-    visitors.CallExpression(rowNode);
-    visitors.CallExpression(expectCall);
-    visitors.CallExpression(expectCall);
-    visitors["CallExpression:exit"](rowNode);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should report when it.only() has more than one expect", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const onlyNode = {
-      arguments: [
-        { type: "Literal", value: "should do X when Y" },
-        { type: "ArrowFunctionExpression" },
-      ],
-      callee: {
-        object: { name: "it", type: "Identifier" },
-        property: { name: "only" },
-        type: "MemberExpression",
-      },
-      type: "CallExpression",
-    };
-
-    // Act
-    visitors.CallExpression(onlyNode);
-    visitors.CallExpression(expectCall);
-    visitors.CallExpression(expectCall);
-    visitors["CallExpression:exit"](onlyNode);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should not report when it.skip() is used", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const skipNode = {
-      arguments: [
-        { type: "Literal", value: "should do X when Y" },
-        { type: "ArrowFunctionExpression" },
-      ],
-      callee: {
-        object: { name: "it", type: "Identifier" },
-        property: { name: "skip" },
-        type: "MemberExpression",
-      },
-      type: "CallExpression",
-    };
-
-    // Act
-    visitors.CallExpression(skipNode);
-    visitors.CallExpression(expectCall);
-    visitors.CallExpression(expectCall);
-    visitors["CallExpression:exit"](skipNode);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when test.todo() is used", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const todoNode = {
-      arguments: [
-        { type: "Literal", value: "should do X when Y" },
-        { type: "ArrowFunctionExpression" },
-      ],
-      callee: {
-        object: { name: "test", type: "Identifier" },
-        property: { name: "todo" },
-        type: "MemberExpression",
-      },
-      type: "CallExpression",
-    };
-
-    // Act
-    visitors.CallExpression(todoNode);
-    visitors.CallExpression(expectCall);
-    visitors["CallExpression:exit"](todoNode);
-
-    // Assert
     expect(context.report).not.toHaveBeenCalled();
   });
 });
@@ -1973,643 +1299,6 @@ describe("no-size-props (defensive branches)", () => {
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
-  });
-});
-
-describe("one-component-per-file (defensive branches)", () => {
-  const rule = plugin.rules["one-component-per-file"];
-
-  it("should report when a default-exported component follows an already-declared one", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody(exported(arrowDeclaration("Card")), {
-      declaration: { id: { name: "Page" }, type: "FunctionDeclaration" },
-      type: "ExportDefaultDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should not report when a function declaration has no name", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody({
-      declaration: { id: {}, type: "FunctionDeclaration" },
-      type: "ExportNamedDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when a named export has no declaration", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody({
-      declaration: null,
-      type: "ExportNamedDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when a declaration is a class", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody({
-      declaration: { id: { name: "Card" }, type: "ClassDeclaration" },
-      type: "ExportNamedDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when a function declaration is anonymous", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody({
-      declaration: { id: null, type: "FunctionDeclaration" },
-      type: "ExportNamedDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when a variable declarator uses a destructuring pattern", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody({
-      declarations: [{ id: { type: "ObjectPattern" } }],
-      type: "VariableDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when a component-named variable has no initializer", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody({
-      declarations: [{ id: { name: "Card", type: "Identifier" }, init: null }],
-      type: "VariableDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should report when a second component is wrapped in memo", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody(exported(arrowDeclaration("Probe")), {
-      declarations: [
-        {
-          id: { name: "Inner", type: "Identifier" },
-          init: {
-            arguments: [{ type: "ArrowFunctionExpression" }],
-            callee: { name: "memo", type: "Identifier" },
-            type: "CallExpression",
-          },
-        },
-      ],
-      type: "VariableDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should report when a second component is wrapped in a namespaced forwardRef", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody(exported(arrowDeclaration("Probe")), {
-      declarations: [
-        {
-          id: { name: "Inner", type: "Identifier" },
-          init: {
-            arguments: [{ type: "FunctionExpression" }],
-            callee: {
-              property: { name: "forwardRef" },
-              type: "MemberExpression",
-            },
-            type: "CallExpression",
-          },
-        },
-      ],
-      type: "VariableDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should not report when memo wraps something other than a function", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody(exported(arrowDeclaration("Probe")), {
-      declarations: [
-        {
-          id: { name: "Inner", type: "Identifier" },
-          init: {
-            arguments: [{ type: "Identifier" }],
-            callee: { name: "memo", type: "Identifier" },
-            type: "CallExpression",
-          },
-        },
-      ],
-      type: "VariableDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when memo is called with no argument", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody(exported(arrowDeclaration("Probe")), {
-      declarations: [
-        {
-          id: { name: "Inner", type: "Identifier" },
-          init: {
-            arguments: [],
-            callee: { name: "memo", type: "Identifier" },
-            type: "CallExpression",
-          },
-        },
-      ],
-      type: "VariableDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when a call expression has no callee", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody(exported(arrowDeclaration("Probe")), {
-      declarations: [
-        {
-          id: { name: "Inner", type: "Identifier" },
-          init: { arguments: [], type: "CallExpression" },
-        },
-      ],
-      type: "VariableDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when a component-named variable is initialized by a call", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody({
-      declarations: [
-        {
-          id: { name: "Card", type: "Identifier" },
-          init: { type: "CallExpression" },
-        },
-      ],
-      type: "VariableDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when a default export has no declaration", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody({
-      declaration: null,
-      type: "ExportDefaultDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when a default export is an arrow function", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody({
-      declaration: { type: "ArrowFunctionExpression" },
-      type: "ExportDefaultDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when a default export is an anonymous function expression", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody({
-      declaration: { id: null, type: "FunctionExpression" },
-      type: "ExportDefaultDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when a default export function has a lowercase name", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody({
-      declaration: { id: { name: "helper" }, type: "FunctionDeclaration" },
-      type: "ExportDefaultDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when a statement is neither a declaration nor an export", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const program = moduleBody({
-      source: { value: "react" },
-      type: "ImportDeclaration",
-    });
-
-    // Act
-    visitors.Program(program);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-});
-
-describe("test-naming-format (defensive branches)", () => {
-  const rule = plugin.rules["test-naming-format"];
-
-  it("should report when it.only() has a non-conforming name", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = {
-      arguments: [{ type: "Literal", value: "bad name" }],
-      callee: {
-        object: { name: "it", type: "Identifier" },
-        property: { name: "only" },
-        type: "MemberExpression",
-      },
-    };
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should report when the member callee has no property and the name is bad", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = {
-      arguments: [{ type: "Literal", value: "bad name" }],
-      callee: {
-        object: { name: "it", type: "Identifier" },
-        property: null,
-        type: "MemberExpression",
-      },
-    };
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should not report when it() is called without arguments", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = {
-      arguments: [],
-      callee: { name: "it", type: "Identifier" },
-    };
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when the test name is a template literal", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = {
-      arguments: [{ type: "TemplateLiteral" }],
-      callee: { name: "it", type: "Identifier" },
-    };
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when the test name is a numeric literal", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = {
-      arguments: [{ type: "Literal", value: 42 }],
-      callee: { name: "it", type: "Identifier" },
-    };
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when it.skip() has a non-conforming name", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = {
-      arguments: [{ type: "Literal", value: "bad name" }],
-      callee: {
-        object: { name: "it", type: "Identifier" },
-        property: { name: "skip" },
-        type: "MemberExpression",
-      },
-    };
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when a non-test object method is called with a bad name", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const node = {
-      arguments: [{ type: "Literal", value: "bad name" }],
-      callee: {
-        object: { name: "foo", type: "Identifier" },
-        property: { name: "only" },
-        type: "MemberExpression",
-      },
-    };
-
-    // Act
-    visitors.CallExpression(node);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-});
-
-describe("single-expect (defensive branches)", () => {
-  const rule = plugin.rules["single-expect"];
-
-  const testNode = {
-    arguments: [
-      { type: "Literal", value: "should do X when Y" },
-      { type: "ArrowFunctionExpression" },
-    ],
-    callee: { name: "it", type: "Identifier" },
-    type: "CallExpression",
-  };
-
-  it("should not report when a call inside a test has no callee", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-
-    // Act
-    visitors.CallExpression(testNode);
-    visitors.CallExpression({ callee: null, type: "CallExpression" });
-    visitors.CallExpression(expectCall);
-    visitors["CallExpression:exit"](testNode);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when a member call inside a test targets a non-expect object", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const memberCall = {
-      callee: {
-        object: { name: "foo", type: "Identifier" },
-        property: { name: "bar" },
-        type: "MemberExpression",
-      },
-      type: "CallExpression",
-    };
-
-    // Act
-    visitors.CallExpression(testNode);
-    visitors.CallExpression(memberCall);
-    visitors.CallExpression(memberCall);
-    visitors["CallExpression:exit"](testNode);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not report when a member call inside a test has no callee object", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const memberCall = {
-      callee: {
-        object: null,
-        property: { name: "x" },
-        type: "MemberExpression",
-      },
-      type: "CallExpression",
-    };
-
-    // Act
-    visitors.CallExpression(testNode);
-    visitors.CallExpression(memberCall);
-    visitors.CallExpression(memberCall);
-    visitors["CallExpression:exit"](testNode);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not track a test call when it has no callback", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const bareTest = {
-      arguments: [{ type: "Literal", value: "should do X when Y" }],
-      callee: { name: "it", type: "Identifier" },
-      type: "CallExpression",
-    };
-
-    // Act
-    visitors.CallExpression(bareTest);
-    visitors["CallExpression:exit"](bareTest);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should not track a test call when its second argument is not a function", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const stringTest = {
-      arguments: [
-        { type: "Literal", value: "should do X when Y" },
-        { type: "Literal", value: "not a function" },
-      ],
-      callee: { name: "it", type: "Identifier" },
-      type: "CallExpression",
-    };
-
-    // Act
-    visitors.CallExpression(stringTest);
-    visitors["CallExpression:exit"](stringTest);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should ignore an exit event when the call is not a test", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const plainCall = {
-      callee: { name: "helper", type: "Identifier" },
-      type: "CallExpression",
-    };
-
-    // Act
-    visitors["CallExpression:exit"](plainCall);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should ignore an exit event when no test scope was entered", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-
-    // Act
-    visitors["CallExpression:exit"](testNode);
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
-  it("should report when member-style expect calls exceed one inside a test", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-    const softExpect = {
-      callee: {
-        object: { name: "expect", type: "Identifier" },
-        property: { name: "soft" },
-        type: "MemberExpression",
-      },
-      type: "CallExpression",
-    };
-
-    // Act
-    visitors.CallExpression(testNode);
-    visitors.CallExpression(softExpect);
-    visitors.CallExpression(softExpect);
-    visitors["CallExpression:exit"](testNode);
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
   });
 });
 

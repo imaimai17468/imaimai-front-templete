@@ -7,6 +7,7 @@ import tanstack from "ultracite/oxlint/tanstack";
 import ultraciteVitest from "ultracite/oxlint/vitest";
 import { effectRules } from "./oxlint.effect.ts";
 import reactDoctor from "./oxlint.react-doctor.ts";
+import { restrictedClassPatterns } from "./oxlint.restricted-classes.ts";
 
 const CONFIG_FILES = "*.config.{js,ts,mjs,mts}";
 const LINT_CONFIG_FILE = "oxlint.project.ts";
@@ -217,14 +218,10 @@ export default defineConfig({
     "react/jsx-no-constructed-context-values": "error",
     "vitest/no-conditional-in-test": "error",
     "style-rules/no-loops": "error",
-    "style-rules/no-restyle-shared-ui-at-call-site": "error",
-    "style-rules/no-tailwind-arbitrary": "error",
-    "style-rules/no-tailwind-ease-in": "error",
-    "style-rules/no-tailwind-opacity": "error",
-    "style-rules/no-tailwind-palette-color": "error",
-    "style-rules/no-tailwind-shadow": "error",
-    "style-rules/no-tailwind-sibling-margin": "error",
-    "style-rules/no-tailwind-transition-all": "error",
+    "tailwindcss/no-restricted-classes": [
+      "error",
+      { patterns: restrictedClassPatterns },
+    ],
     "tailwindcss/no-conflicting-classes": "error",
     "tailwindcss/no-deprecated-classes": "error",
     "tailwindcss/no-duplicate-classes": "error",
@@ -241,12 +238,15 @@ export default defineConfig({
     "arch-rules/server-only-marker": "error",
     "arch-rules/layer-boundaries": "error",
     "arch-rules/no-size-props": "error",
-    "arch-rules/one-component-per-file": "error",
+    "react/no-multi-comp": "error",
     "arch-rules/route-imports-its-component": "error",
     "arch-rules/component-file-naming": "error",
-    "arch-rules/test-naming-format": "error",
-    "arch-rules/single-expect": "error",
     "arch-rules/no-app-module-mock": "error",
+    // It reports `vi.mock` where `vi` is a global or comes from "vitest"; this
+    // project imports it from "vite-plus/test", so it never fires here.
+    // `arch-rules/no-app-module-mock` limits mocking instead, to modules
+    // outside the app.
+    "anti-slop/no-module-mocking": "off",
     "start-rules/no-rewritten-factory-in-handler": "error",
   },
   env: {
@@ -446,17 +446,10 @@ export default defineConfig({
       // each `shadcn add`.
       files: ["src/shared/ui/**"],
       rules: {
-        "arch-rules/one-component-per-file": "off",
+        "react/no-multi-comp": "off",
         "rules/no-let": "off",
         "rules/no-local-export-list": "off",
-        "style-rules/no-restyle-shared-ui-at-call-site": "off",
-        "style-rules/no-tailwind-arbitrary": "off",
-        "style-rules/no-tailwind-ease-in": "off",
-        "style-rules/no-tailwind-opacity": "off",
-        "style-rules/no-tailwind-palette-color": "off",
-        "style-rules/no-tailwind-shadow": "off",
-        "style-rules/no-tailwind-sibling-margin": "off",
-        "style-rules/no-tailwind-transition-all": "off",
+        "tailwindcss/no-restricted-classes": "off",
         "func-style": "off",
         "react/function-component-definition": "off",
         "sort-keys": "off",
@@ -567,6 +560,22 @@ export default defineConfig({
       files: ["src/routes/index/-components/code-block.tsx"],
       rules: {
         "jsx-a11y/no-noninteractive-tabindex": ["error", { tags: ["section"] }],
+      },
+    },
+    {
+      files: ["**/*.{test,spec}.{ts,tsx,js,jsx}"],
+      rules: {
+        "vitest/max-expects": ["error", { max: 1 }],
+        "vitest/valid-title": [
+          "error",
+          {
+            ignoreTypeOfDescribeName: true,
+            mustMatch: {
+              it: String.raw`^(?:should\s+.+\s+when\s+|[$%])`,
+              test: String.raw`^(?:should\s+.+\s+when\s+|[$%])`,
+            },
+          },
+        ],
       },
     },
   ],
