@@ -65,3 +65,7 @@ storybook-static
 
 # per-account ticket cost log that `bun .claude/skills/dispatch-run/scripts/orchestrate.ts record-*` appends to
 .claude/ticket-costs.jsonl
+
+# StrykerJS sandbox and reports
+/.stryker-tmp/
+/reports/
