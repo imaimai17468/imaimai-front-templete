@@ -74,6 +74,14 @@ would have survived.
   special case shows as an `if` on one specific value, a parameter one caller passes, or a
   wait (`setTimeout`, a sleep) or a retry standing in for an order the code does not
   guarantee. Its first fix is the mechanism change that makes it unnecessary
+- **mutation**: a surviving mutant answered in a way `.claude/skills/ticket-work/SKILL.md`
+  step 6 does not allow. One form is a test that cannot say which caller expectation it
+  protects, such as one asserting a span name or restating how the implementation reaches
+  its result, written only so a mutant dies; its fix is to delete the test and give that
+  survivor the second or third answer. The other is a survivor taken out of mutation by the
+  third answer, through a `stryker.config.mjs` change or a file renamed into a pattern that
+  config excludes, where the code it removes carries behaviour rather than only a value;
+  its fix is the test a caller's reliance calls for, or the deletion
 - **rules**: read `AGENTS.md`, `.claude/hooks/guidance/prose.md`, and every path-scoped file under
   `.claude/hooks/guidance/` whose scope matches the diff, whichever of them is not already in your
   context. Set `rule` to the one violated. Invent no rule beyond those files, and never
@@ -83,7 +91,7 @@ Each candidate needs a location (`file:line`), a one-line title, the failure sce
 first idea for the fix, a severity of critical / major / minor, and the rule it violates
 where one applies.
 
-Coverage-first applies fully to logic, state, integrity and rules. For cleanup, reuse,
+Coverage-first applies fully to logic, state, integrity, mutation and rules. For cleanup, reuse,
 efficiency, coupling and altitude, calibrate: a behaviour-identical change (a rename, a
 constant extraction, a doc reword) carrying no critical or major finding should draw few
 or no comments, so raise one only when it is material.
@@ -217,7 +225,7 @@ depth: standard — 4 raised, 1 merged, 1 refuted, 1 abstained, 1 returned
   caller holds the lock across both
 
 ## Checked
-- logic, state, integrity, security, cleanup, efficiency, coupling, altitude — swept over the whole diff
+- logic, state, integrity, security, cleanup, efficiency, coupling, altitude, mutation — swept over the whole diff
 - reuse — swept src/shared/ and src/lib/ only, so a helper living elsewhere would not
   have been found
 - rules — AGENTS.md and prose.md; design.md never loaded, so this diff's CSS went
