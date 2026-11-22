@@ -225,6 +225,50 @@ jobs:
       - name: Boot the app and request its routes (smoke)
         run: bun run smoke
 
+  # Runs mutation testing and uploads its HTML report for reading; the job
+  # passes whatever the score or the run's outcome. The incremental file
+  # restored below reuses the result of every mutant whose code and covering
+  # tests are unchanged, so a run without a cache is the slow one, and the
+  # cache key changes with the dependencies and the test setup, which can
+  # change a result without changing either.
+  mutation:
+    name: mutation report
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up the toolchain and dependencies
+        uses: ./.github/actions/setup
+
+      - name: Restore the incremental mutation results
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: reports/stryker-incremental.json
+          key: stryker-incremental-${{ hashFiles('bun.lock', 'vitest.config.mts', 'stryker.config.mjs', 'src/test/**') }}-${{ github.sha }}
+          restore-keys: stryker-incremental-${{ hashFiles('bun.lock', 'vitest.config.mts', 'stryker.config.mjs', 'src/test/**') }}-
+
+      - name: Run mutation testing (StrykerJS)
+        continue-on-error: true
+        run: bun run mutate
+
+      # Stryker writes the mutants it finished when it exits on an error, so
+      # saving after a failed run lets the next run resume from them.
+      - name: Save the incremental mutation results
+        if: ${{ !cancelled() && hashFiles('reports/stryker-incremental.json') != '' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: reports/stryker-incremental.json
+          key: stryker-incremental-${{ hashFiles('bun.lock', 'vitest.config.mts', 'stryker.config.mjs', 'src/test/**') }}-${{ github.sha }}
+
+      - name: Upload the mutation report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-report
+          path: reports/mutation/mutation.html
+
   # Reports every job above as one check, which fails when any of them did not
   # succeed. `!cancelled()` runs it after a failed job too, where
   # a plain `needs` would skip it and leave the check with neither a pass nor
@@ -232,7 +276,7 @@ jobs:
   build:
     name: build
     if: ${{ !cancelled() }}
-    needs: [static, check, doctor, test-shard, test, bundle, smoke]
+    needs: [static, check, doctor, test-shard, test, bundle, smoke, mutation]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

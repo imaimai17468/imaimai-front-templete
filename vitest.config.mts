@@ -7,7 +7,7 @@ const COVERED_ROOTS = "{src,scripts,tools}";
 // The script directories outside the roots take patterns of their own:
 // inside the brace, the glob vitest expands for coverage.include took about
 // 30 times longer on this tree.
-const coverageInclude = [
+export const coverageInclude = [
   `${COVERED_ROOTS}/**/*.ts`,
   "tools/**/*.js",
   ".claude/skills/dispatch-run/scripts/**/*.ts",
@@ -24,7 +24,7 @@ const nodeTestSkillExclude = ".claude/skills/web-security-audit/**";
 // ファイルは `*.entry.ts` と名付ければ、この配列を編集せずに外れる。パスで
 // 並ぶ 2 本は、ファイル名をこの規約の外が決めていて、改名するとその外側まで
 // 書き換わる。
-const coverageExclude = [
+export const coverageExclude = [
   "src/**/*.gen.ts",
   // include の `*.ts` は picomatch の contains モードで照合されるので `.tsx`
   // にも当たる。コンポーネントはこの行で外れる。
@@ -69,6 +69,7 @@ export default defineConfig({
     exclude: [
       ...defaultExclude,
       ".claude/worktrees/**",
+      ".stryker-tmp/**",
       nodeTestSkillExclude,
       "src/shared/ui/**",
     ],
