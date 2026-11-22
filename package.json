@@ -63,7 +63,7 @@
     "@stryker-mutator/api": "10.1.1",
     "@stryker-mutator/core": "10.1.1",
     "@stryker-mutator/vitest-runner": "10.1.1",
-    "@tailwindcss/vite": "4.3.2",
+    "@tailwindcss/vite": "4.3.5",
     "@tanstack/devtools-vite": "0.8.5",
     "@tanstack/eslint-plugin-query": "5.102.8",
     "@tanstack/react-devtools": "0.10.12",
