@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vite-plus/test";
-import plugin from "./start-rules.js";
+import plugin from "../start-rules.js";
 
 const makeContext = () => ({
   report: vi.fn<(descriptor: { message: string; node: unknown }) => void>(),
