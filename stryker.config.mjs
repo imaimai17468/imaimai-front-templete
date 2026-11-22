@@ -8,7 +8,10 @@ export default {
   mutate: [
     ...coverageInclude,
     ...coverageExclude.map((pattern) => `!${pattern}`),
+    // `**` does not descend into a directory whose name starts with a dot, so
+    // the test files under `.claude/` and `.github/` take a pattern of their own.
     "!**/*.test.ts",
+    "!{.claude,.github}/**/*.test.ts",
   ],
   // An empty name skips the tsconfig rewrite, which calls a JavaScript API
   // the TypeScript 7 package does not ship. The sandbox copies the whole
