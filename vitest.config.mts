@@ -5,8 +5,9 @@ import { defaultExclude, defineConfig } from "vite-plus";
 const COVERED_ROOTS = "{src,scripts,tools}";
 
 // The script directories outside the roots take patterns of their own:
-// inside the brace, tinyglobby took longer than 5 s to expand it.
-export const coverageInclude = [
+// inside the brace, the glob vitest expands for coverage.include took about
+// 30 times longer on this tree.
+const coverageInclude = [
   `${COVERED_ROOTS}/**/*.ts`,
   "tools/**/*.js",
   ".claude/skills/dispatch-run/scripts/**/*.ts",
@@ -16,16 +17,14 @@ export const coverageInclude = [
 
 // The web-security-audit skill ships its validators with `node:test` suites,
 // which vitest collects and then fails as holding no test. Run them with
-// `node --test .claude/skills/web-security-audit/scripts/*.test.cjs`. It is exported
-// so that `vitest.config.test.ts` fails once the directory it names is gone,
-// instead of leaving the exclusion to widen silently.
-export const nodeTestSkillExclude = ".claude/skills/web-security-audit/**";
+// `node --test .claude/skills/web-security-audit/scripts/*.test.cjs`.
+const nodeTestSkillExclude = ".claude/skills/web-security-audit/**";
 
 // coverage の gate から外れる条件はファイル名。コマンドとして実行される
 // ファイルは `*.entry.ts` と名付ければ、この配列を編集せずに外れる。パスで
 // 並ぶ 2 本は、ファイル名をこの規約の外が決めていて、改名するとその外側まで
 // 書き換わる。
-export const coverageExclude = [
+const coverageExclude = [
   "src/**/*.gen.ts",
   // include の `*.ts` は picomatch の contains モードで照合されるので `.tsx`
   // にも当たる。コンポーネントはこの行で外れる。
