@@ -59,7 +59,7 @@ export interface AvatarUpdated {
  * The condition that the row still holds `previousKey`. SQL's `=` never
  * matches a null, so a row read with no key is matched with `is null`.
  */
-export const avatarKeyStillHeld = (previousKey: Option.Option<string>): SQL =>
+const avatarKeyStillHeld = (previousKey: Option.Option<string>): SQL =>
   Option.match(previousKey, {
     onNone: () => isNull(users.avatarKey),
     onSome: (read) => eq(users.avatarKey, read),
@@ -144,14 +144,14 @@ export class AvatarWriter extends Context.Service<
         userId: string,
         file: File
       ) {
-        const fileExt = avatarExtensionForMime(file.type);
-        if (Option.isNone(fileExt)) {
-          return yield* AvatarTypeUnsupported.make();
-        }
         const contentMatches = yield* Effect.promise(() =>
           avatarContentMatchesMime(file)
         );
-        if (!contentMatches) {
+        const fileExt = Option.filter(
+          avatarExtensionForMime(file.type),
+          () => contentMatches
+        );
+        if (Option.isNone(fileExt)) {
           return yield* AvatarTypeUnsupported.make();
         }
 

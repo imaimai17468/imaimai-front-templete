@@ -1,13 +1,11 @@
 import { describe, expect, it, vi } from "@effect/vitest";
 import { DateTime, Effect, Layer, Option, Array, pipe } from "effect";
-import { SQLiteAsyncDialect } from "void/schema-d1";
 import { capturedReports } from "@/shared/gateway/error-reports";
 import { avatarUrlForKey } from "@/shared/gateway/user/avatar-url";
 import { DriverFailed } from "@/test/defect";
 import { UserPersistenceError } from "../persistence.ts";
 import { AvatarBucket, AvatarKeyIds } from "./bucket.ts";
 import {
-  avatarKeyStillHeld,
   AvatarTypeUnsupported,
   AvatarUploadFailed,
   AvatarWriter,
@@ -166,15 +164,18 @@ describe("AvatarWriter.replace", () => {
 
         expect({
           removeCalls: remove.mock.calls,
-          reportedEvents: pipe(
-            reported,
-            Array.map(({ event }) => event)
-          ),
+          reported,
           result,
           uploadKey: upload.mock.calls[0]?.[0],
         }).toStrictEqual({
           removeCalls: [],
-          reportedEvents: ["user.removePrevious"],
+          reported: [
+            {
+              event: "user.removePrevious",
+              message: "user-2/avatar.png does not belong to user-1",
+              name: "AvatarKeyNotOwned",
+            },
+          ],
           result: { avatarUrl: NEW_URL, cleanup: "pending" },
           uploadKey: NEW_KEY,
         });
@@ -482,29 +483,5 @@ describe("AvatarWriter.replace racing another upload", () => {
           row: Option.some(winnerKey),
         });
       })
-  );
-});
-
-describe(avatarKeyStillHeld, () => {
-  it.each([
-    [
-      "the row held a key",
-      Option.some(OLD_KEY),
-      { params: [OLD_KEY], sql: '"users"."avatar_key" = ?' },
-    ],
-    [
-      "the row held no key",
-      Option.none(),
-      { params: [], sql: '"users"."avatar_key" is null' },
-    ],
-  ])(
-    "should match only a row still holding what was read when %s",
-    (_label, previousKey, expected) => {
-      const { params, sql } = new SQLiteAsyncDialect().sqlToQuery(
-        avatarKeyStillHeld(previousKey)
-      );
-
-      expect({ params, sql }).toStrictEqual(expected);
-    }
   );
 });
