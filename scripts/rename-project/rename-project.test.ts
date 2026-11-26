@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { isRenamedFileType, planRename } from "./rename-project.ts";
+import { isRenamedFile, planRename } from "./rename-project.ts";
 import type { TrackedFile } from "./rename-project.ts";
 
 const MANIFEST = `{
@@ -204,7 +204,7 @@ describe(planRename, () => {
   });
 });
 
-describe(isRenamedFileType, () => {
+describe(isRenamedFile, () => {
   it.each([
     ["README.md", true],
     ["bun.lock", true],
@@ -213,11 +213,12 @@ describe(isRenamedFileType, () => {
     [".github/workflows/ci.yml", true],
     ["public/favicon.svg", false],
     ["public/readme.md.png", false],
+    ["scripts/rename-project/rename-project.test.ts", false],
     ["public/logo.png", false],
   ])(
     "should answer whether to scan %s when deciding which files the rename reads",
     (path, expected) => {
-      expect(isRenamedFileType(path)).toBe(expected);
+      expect(isRenamedFile(path)).toBe(expected);
     }
   );
 });

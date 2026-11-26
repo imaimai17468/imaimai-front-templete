@@ -14,7 +14,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { Schema } from "effect";
-import { isRenamedFileType, planRename } from "./rename-project.ts";
+import { isRenamedFile, planRename } from "./rename-project.ts";
 
 const root = execFileSync("git", ["rev-parse", "--show-toplevel"], {
   encoding: "utf-8",
@@ -32,9 +32,7 @@ const files = execFileSync("git", ["ls-files", "-z"], {
   encoding: "utf-8",
 })
   .split("\0")
-  .filter(
-    (file) => isRenamedFileType(file) && fs.existsSync(path.join(root, file))
-  )
+  .filter((file) => isRenamedFile(file) && fs.existsSync(path.join(root, file)))
   .map((file) => ({ path: file, text: readText(file) }));
 
 const uncommitted = execFileSync("git", ["status", "--porcelain"], {

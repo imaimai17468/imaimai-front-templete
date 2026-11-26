@@ -56,9 +56,15 @@ const SOURCE_FILE = /^src\/.+\.tsx?$/u;
 const RENAMED_FILE_TYPE =
   /\.(?:cjs|css|html|js|json|jsonc|lock|md|mjs|mts|sh|toml|ts|tsx|ya?ml)$/u;
 
-/** Whether a tracked file at `path` is text this command reads for the name. */
-export const isRenamedFileType = (path: string): boolean =>
-  RENAMED_FILE_TYPE.test(path);
+/**
+ * This command's own directory, whose tests name the template's project
+ * literally and would fail once a rename rewrote them.
+ */
+const OWN_DIRECTORY = "scripts/rename-project/";
+
+/** Whether the tracked file at `path` is text this command reads for the name. */
+export const isRenamedFile = (path: string): boolean =>
+  RENAMED_FILE_TYPE.test(path) && !String.startsWith(OWN_DIRECTORY)(path);
 
 /** Whether the working tree holds changes no commit records. */
 export type WorktreeState = "clean" | "dirty";
