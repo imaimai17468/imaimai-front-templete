@@ -217,9 +217,24 @@ export const uploadAvatarResult: (
 
 const runProfileHandler = makeRunHandler(ProfileWriter.layer);
 
-/** Writes the caller's name onto their own profile row. */
-export const updateProfile = (data: UpdateUser): Promise<UpdateProfileResult> =>
+/**
+ * Writes the caller's name onto their own profile row. It takes the handler
+ * context `updateProfileFn` passes, so the server function hands it over as is.
+ */
+export const updateProfile = ({
+  data,
+}: {
+  readonly data: UpdateUser;
+}): Promise<UpdateProfileResult> =>
   runProfileHandler(updateProfileResult(data));
 
-export const uploadAvatar = (file: File): Promise<UploadAvatarResult> =>
-  runProfileHandler(uploadAvatarResult(file));
+/**
+ * Replaces the caller's avatar. It takes the handler context `uploadAvatarFn`
+ * passes, so the server function hands it over as is.
+ */
+export const uploadAvatar = ({
+  data,
+}: {
+  readonly data: { readonly avatar: File };
+}): Promise<UploadAvatarResult> =>
+  runProfileHandler(uploadAvatarResult(data.avatar));
