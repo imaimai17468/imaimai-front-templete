@@ -59,7 +59,7 @@ export interface AvatarUpdated {
  * The condition that the row still holds `previousKey`. SQL's `=` never
  * matches a null, so a row read with no key is matched with `is null`.
  */
-export const avatarKeyStillHeld = (previousKey: Option.Option<string>): SQL =>
+const avatarKeyStillHeld = (previousKey: Option.Option<string>): SQL =>
   Option.match(previousKey, {
     onNone: () => isNull(users.avatarKey),
     onSome: (read) => eq(users.avatarKey, read),
