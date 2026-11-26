@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
-import { AVATAR_ROUTE_PATH, avatarUrlForKey } from "./avatar-url.ts";
+import { avatarUrlForKey } from "./avatar-url.ts";
 
 describe(avatarUrlForKey, () => {
-  it("should percent-encode the key into the query when the key holds slashes", () => {
+  it("should address the avatar route with the key percent-encoded into the query when the key holds slashes", () => {
     expect(avatarUrlForKey("user-1/avatars/0189ab/cd.png")).toBe(
-      `${AVATAR_ROUTE_PATH}?key=user-1%2Favatars%2F0189ab%2Fcd.png`
+      "/api/avatars?key=user-1%2Favatars%2F0189ab%2Fcd.png"
     );
   });
 });

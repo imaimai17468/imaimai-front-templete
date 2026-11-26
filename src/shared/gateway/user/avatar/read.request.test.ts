@@ -41,7 +41,9 @@ layer(LocalBindings.layer, { timeout: 30_000 })(
               const headers = yield* signUp("viewer@example.com");
               const upload = yield* inRequest(
                 headers,
-                Effect.promise(() => uploadAvatar(pngAvatarFile()))
+                Effect.promise(() =>
+                  uploadAvatar({ data: { avatar: pngAvatarFile() } })
+                )
               );
               if (upload.status !== "uploaded") {
                 return yield* Effect.die(upload);

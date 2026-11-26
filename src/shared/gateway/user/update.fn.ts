@@ -63,8 +63,8 @@ export const avatarUploadBody = (avatar: File): FormData => {
 
 export const updateProfileFn = createServerFn({ method: "POST" })
   .validator(ProfileUpdateForm)
-  .handler(({ data }) => updateProfile(data));
+  .handler(updateProfile);
 
 export const uploadAvatarFn = createServerFn({ method: "POST" })
   .validator(AvatarUploadForm)
-  .handler(({ data }) => uploadAvatar(data.avatar));
+  .handler(uploadAvatar);

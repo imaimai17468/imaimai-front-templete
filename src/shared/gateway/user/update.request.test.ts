@@ -11,7 +11,9 @@ import type { UpdateProfileResult, UploadAvatarResult } from "./update.ts";
 
 const currentUser = Effect.promise(getCurrentUser);
 
-const rename = Effect.promise(() => updateProfile({ name: "Renamed" }));
+const rename = Effect.promise(() =>
+  updateProfile({ data: { name: "Renamed" } })
+);
 
 layer(LocalBindings.layer, { timeout: 30_000 })(
   "the profile writes inside a real request",
@@ -49,7 +51,9 @@ layer(LocalBindings.layer, { timeout: 30_000 })(
               const headers = yield* signUp("uploader@example.com");
               const answer = yield* inRequest(
                 headers,
-                Effect.promise(() => uploadAvatar(pngAvatarFile()))
+                Effect.promise(() =>
+                  uploadAvatar({ data: { avatar: pngAvatarFile() } })
+                )
               );
               const after = yield* inRequest(headers, currentUser);
               return { avatarUrlAfter: after?.avatarUrl, result: answer };
@@ -66,7 +70,12 @@ layer(LocalBindings.layer, { timeout: 30_000 })(
 
     it.effect.each([
       ["a name", rename],
-      ["an avatar", Effect.promise(() => uploadAvatar(pngAvatarFile()))],
+      [
+        "an avatar",
+        Effect.promise(() =>
+          uploadAvatar({ data: { avatar: pngAvatarFile() } })
+        ),
+      ],
     ] satisfies [
       string,
       Effect.Effect<UpdateProfileResult | UploadAvatarResult>,

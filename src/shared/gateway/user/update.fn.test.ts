@@ -4,7 +4,12 @@ import {
   MAX_AVATAR_BYTES,
   MAX_AVATAR_MEGABYTES,
 } from "@/lib/storage/avatar-validation";
-import { AvatarUploadForm, ProfileUpdateForm } from "./update.fn.ts";
+import {
+  AvatarUploadForm,
+  ProfileUpdateForm,
+  updateProfileFn,
+  uploadAvatarFn,
+} from "./update.fn.ts";
 
 const pngFile = (byteLength: number) =>
   new File([new Uint8Array(byteLength)], "a.png", { type: "image/png" });
@@ -112,4 +117,16 @@ describe("the avatar upload form", () => {
       value: { avatar: file },
     });
   });
+});
+
+describe("the profile write server functions", () => {
+  it.each([
+    ["profile", updateProfileFn],
+    ["avatar", uploadAvatarFn],
+  ])(
+    "should travel as a POST when the %s form sends FormData",
+    (_label, fn) => {
+      expect(fn.method).toBe("POST");
+    }
+  );
 });
