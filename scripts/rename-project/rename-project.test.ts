@@ -15,7 +15,7 @@ const TEMPLATE: readonly TrackedFile[] = [
   { path: "bun.lock", text: MANIFEST },
   { path: "src/shared/gateway/user/read.ts", text: SERVICE },
   { path: "src/routes/index/-components/home-page.tsx", text: SERVICE },
-  { path: "tools/stryker/ignore-identifiers.test.ts", text: SERVICE },
+  { path: "tools/oxlint-plugins/arch-rules/layers.js", text: SERVICE },
   { path: "docs/src/example.ts", text: SERVICE },
   { path: "src/content/example.ts.md", text: SERVICE },
   { path: "README.md", text: "http://fix-ui.my-app.localhost:1355" },

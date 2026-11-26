@@ -76,8 +76,7 @@ would have survived.
   guarantee. Its first fix is the mechanism change that makes it unnecessary
 - **mutation**: a surviving mutant answered in a way `.claude/skills/ticket-work/SKILL.md`
   step 6 does not allow. One form is a test that cannot say which caller expectation it
-  protects, such as one asserting a span name or restating how the implementation reaches
-  its result, written only so a mutant dies; its fix is to delete the test and give that
+  protects, such as one restating how the implementation reaches its result, written only so a mutant dies; its fix is to delete the test and give that
   survivor the second or third answer. The other is a survivor taken out of mutation by the
   third answer, through a `stryker.config.mjs` change or a file renamed into a pattern that
   config excludes, where the code it removes carries behaviour rather than only a value;
