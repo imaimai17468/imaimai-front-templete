@@ -10,6 +10,7 @@ import {
 } from "effect";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { withRuntimeEnv } from "void/_env";
+import type projectEnv from "../../env.ts";
 
 const MIGRATION_FILES = import.meta.glob<string>("../../db/migrations/*.sql", {
   eager: true,
@@ -27,6 +28,17 @@ const migrationStatements = pipe(
   Array.map(String.trim),
   Array.filter(String.isNonEmpty)
 );
+
+/**
+ * Placeholder secrets, installed beside the bindings so a run that builds
+ * Better Auth reads them. No test here signs in with Google, so its two only
+ * have to be present.
+ */
+const LOCAL_SECRETS = {
+  BETTER_AUTH_SECRET: "local-bindings-secret-at-least-32-chars",
+  GOOGLE_CLIENT_ID: "local-bindings-google-client-id",
+  GOOGLE_CLIENT_SECRET: "local-bindings-google-client-secret",
+} satisfies typeof projectEnv;
 
 /**
  * Starts workerd through Miniflare with an empty D1 in a temporary directory
@@ -48,7 +60,8 @@ const startMiniflare = Effect.acquireRelease(
 );
 
 /**
- * A local D1, migrated from `db/migrations/`, and a local R2.
+ * A local D1, migrated from `db/migrations/`, a local R2, and the secrets
+ * Better Auth reads.
  *
  * `within` hands the bindings to one run through Void's request env, an
  * `AsyncLocalStorage`, so nothing is left installed once the run ends and a
@@ -80,7 +93,7 @@ export class LocalBindings extends Context.Service<
           )
         )
       );
-      const env = { DB: database, STORAGE: bucket };
+      const env = { ...LOCAL_SECRETS, DB: database, STORAGE: bucket };
 
       return LocalBindings.of({
         within: <A, E, R>(effect: Effect.Effect<A, E, R>) =>
