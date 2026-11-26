@@ -6,18 +6,10 @@ import { DrizzleQueryError } from "drizzle-orm/errors";
 import { DateTime, Effect, Option } from "effect";
 import { db, eq } from "void/db";
 import { LocalBindings } from "@/test/local-bindings";
+import { insertUser } from "@/test/users";
 import { persistenceEffect, readUserRow, writeUserRow } from "./persistence.ts";
 
 const WRITTEN_AT = DateTime.makeUnsafe("2026-08-13T00:00:00.000Z");
-
-const insertUser = (id: string) =>
-  persistenceEffect(() =>
-    db.insert(users).values({
-      email: `${id}@example.com`,
-      id,
-      name: "Before",
-    })
-  );
 
 const storedName = (id: string) =>
   readUserRow(id).pipe(
