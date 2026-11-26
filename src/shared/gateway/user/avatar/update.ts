@@ -144,14 +144,14 @@ export class AvatarWriter extends Context.Service<
         userId: string,
         file: File
       ) {
-        const fileExt = avatarExtensionForMime(file.type);
-        if (Option.isNone(fileExt)) {
-          return yield* AvatarTypeUnsupported.make();
-        }
         const contentMatches = yield* Effect.promise(() =>
           avatarContentMatchesMime(file)
         );
-        if (!contentMatches) {
+        const fileExt = Option.filter(
+          avatarExtensionForMime(file.type),
+          () => contentMatches
+        );
+        if (Option.isNone(fileExt)) {
           return yield* AvatarTypeUnsupported.make();
         }
 
