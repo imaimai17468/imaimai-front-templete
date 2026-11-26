@@ -164,15 +164,18 @@ describe("AvatarWriter.replace", () => {
 
         expect({
           removeCalls: remove.mock.calls,
-          reportedEvents: pipe(
-            reported,
-            Array.map(({ event }) => event)
-          ),
+          reported,
           result,
           uploadKey: upload.mock.calls[0]?.[0],
         }).toStrictEqual({
           removeCalls: [],
-          reportedEvents: ["user.removePrevious"],
+          reported: [
+            {
+              event: "user.removePrevious",
+              message: "user-2/avatar.png does not belong to user-1",
+              name: "AvatarKeyNotOwned",
+            },
+          ],
           result: { avatarUrl: NEW_URL, cleanup: "pending" },
           uploadKey: NEW_KEY,
         });
