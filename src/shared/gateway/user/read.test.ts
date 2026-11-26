@@ -242,6 +242,7 @@ describe("CurrentUserReader.read", () => {
               event: "gateway.handlerDefect",
               message: `Failed query: ${PROFILE_QUERY}`,
               name: "DrizzleQueryError",
+              operations: [],
               stack: ABSENT_FIELD,
             },
           ],

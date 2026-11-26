@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "@effect/vitest";
 import { DateTime, Effect, Layer, Option } from "effect";
 import type { UpdateUser, UserWithEmail } from "@/shared/entities/user/user";
 import { capturedReports } from "@/shared/gateway/error-reports";
+import { defectsToLog } from "@/shared/gateway/runtime";
 import { ABSENT_FIELD } from "@/test/absent-field";
 import { DriverFailed } from "@/test/defect";
 import {
@@ -125,6 +126,11 @@ describe(updateProfileResult, () => {
             event: "user.updateName",
             message: "D1 failed",
             name: "DriverFailed",
+            operations: [
+              "updateProfileResult",
+              "ProfileWriter.updateProfile",
+              "wroteOneRow",
+            ],
           },
         ],
         result: {
@@ -153,6 +159,11 @@ describe(updateProfileResult, () => {
               event: "user.updateName",
               message: "expected 1 row, got 0",
               name: "UnexpectedRowCount",
+              operations: [
+                "updateProfileResult",
+                "ProfileWriter.updateProfile",
+                "wroteOneRow",
+              ],
             },
           ],
           result: {
@@ -172,11 +183,17 @@ describe(updateProfileResult, () => {
           Effect.fail(UserPersistenceError.make({ cause: driverFailure }))
         );
 
-        const defect = yield* updateProfile({ name: "Updated User" }).pipe(
-          Effect.catchDefect(Effect.succeed)
+        const cause = yield* updateProfile({ name: "Updated User" }).pipe(
+          Effect.sandbox,
+          Effect.flip
         );
 
-        expect(defect).toBe(driverFailure);
+        expect(defectsToLog(cause)).toStrictEqual([
+          {
+            defect: driverFailure,
+            operations: ["updateProfileResult"],
+          },
+        ]);
       })
   );
 });
@@ -267,6 +284,30 @@ describe(uploadAvatarResult, () => {
   );
 
   it.effect(
+    "should name the upload operations the defect was raised inside when the avatar writer dies",
+    () =>
+      Effect.gen(function* () {
+        const writerFailure = DriverFailed.make({ message: "R2 failed" });
+        const { replaceAvatar, uploadAvatar } = makeFakes(
+          Effect.succeedSome(authenticatedUser)
+        );
+        replaceAvatar.mockReturnValue(Effect.die(writerFailure));
+
+        const cause = yield* uploadAvatar(pngFile(1)).pipe(
+          Effect.sandbox,
+          Effect.flip
+        );
+
+        expect(defectsToLog(cause)).toStrictEqual([
+          {
+            defect: writerFailure,
+            operations: ["uploadAvatarResult", "ProfileWriter.uploadAvatar"],
+          },
+        ]);
+      })
+  );
+
+  it.effect(
     "should propagate the cause as a defect when the identity read fails",
     () =>
       Effect.gen(function* () {
@@ -275,11 +316,17 @@ describe(uploadAvatarResult, () => {
           Effect.fail(UserPersistenceError.make({ cause: driverFailure }))
         );
 
-        const defect = yield* uploadAvatar(pngFile(1)).pipe(
-          Effect.catchDefect(Effect.succeed)
+        const cause = yield* uploadAvatar(pngFile(1)).pipe(
+          Effect.sandbox,
+          Effect.flip
         );
 
-        expect(defect).toBe(driverFailure);
+        expect(defectsToLog(cause)).toStrictEqual([
+          {
+            defect: driverFailure,
+            operations: ["uploadAvatarResult"],
+          },
+        ]);
       })
   );
 });

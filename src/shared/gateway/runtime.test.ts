@@ -16,6 +16,7 @@ const loggedRecord = {
   event: "gateway.handlerDefect",
   message: "marker-secret",
   name: "DriverFailed",
+  operations: [],
   stack: STACK,
 };
 
@@ -107,7 +108,14 @@ describe(makeRunHandler, () => {
 
       yield* rejectionOf(() => run(Effect.interrupt));
 
-      expect(errorSpy).toHaveBeenCalledOnce();
+      expect(errorSpy.mock.calls).toStrictEqual([
+        [
+          expect.objectContaining({
+            event: "gateway.handlerDefect",
+            operations: [],
+          }),
+        ],
+      ]);
     })
   );
 
@@ -123,6 +131,61 @@ describe(makeRunHandler, () => {
         );
 
         expect(rejection).toHaveProperty("message", FIXED_MESSAGE);
+      })
+  );
+
+  it.effect(
+    "should reject under the handler failure's own name when the handler dies",
+    () =>
+      Effect.gen(function* () {
+        silenceConsoleError();
+        const run = makeRunHandler(Layer.empty);
+
+        const rejection = yield* rejectionOf(() =>
+          run(Effect.die(defectWithStack()))
+        );
+
+        expect(rejection).toHaveProperty("name", "HandlerFailed");
+      })
+  );
+
+  it.effect("should build a layer once when two handlers run against it", () =>
+    Effect.gen(function* () {
+      const builds = vi.fn<() => void>();
+      const counted = Layer.effectDiscard(Effect.sync(builds));
+      const first = makeRunHandler(counted);
+      const second = makeRunHandler(counted);
+
+      yield* Effect.promise(() => first(Effect.void));
+      yield* Effect.promise(() => second(Effect.void));
+
+      expect(builds).toHaveBeenCalledOnce();
+    })
+  );
+
+  it.effect(
+    "should name the operations a defect was raised inside when the handler dies inside them",
+    () =>
+      Effect.gen(function* () {
+        const errorSpy = silenceConsoleError();
+        const run = makeRunHandler(Layer.empty);
+        const inner = Effect.fn("Inner.operation")(function* () {
+          return yield* Effect.die(defectWithStack());
+        });
+        const outer = Effect.fn("outerOperation")(function* () {
+          return yield* inner();
+        });
+
+        yield* rejectionOf(() => run(outer()));
+
+        expect(errorSpy.mock.calls).toStrictEqual([
+          [
+            {
+              ...loggedRecord,
+              operations: ["outerOperation", "Inner.operation"],
+            },
+          ],
+        ]);
       })
   );
 

@@ -203,7 +203,7 @@ describe(buildGateReport, () => {
         "Each of these is code whose behaviour no test states. Answer each one in this pull request:",
         "  1. A caller relies on the behaviour: write the test that states it.",
         "  2. Nothing relies on it: delete or simplify the code until the mutant has nothing to change.",
-        "  3. The code holds a value rather than behaviour (page copy, a trace name, a key): move it into a file stryker.config.mjs excludes, or add an exclusion for that kind of value there.",
+        "  3. The code holds a value rather than behaviour (page copy): move it into a file stryker.config.mjs excludes, or add an exclusion for that kind of value there.",
         "The Self-check step of .claude/skills/ticket-work/SKILL.md describes the three answers.",
       ],
     });
