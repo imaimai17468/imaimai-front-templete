@@ -29,7 +29,6 @@
     "void.config.ts",
     "env.ts",
     "db/schema.ts",
-    "tools/stryker/ignore-identifiers.ts",
   ],
   "ignoreDependencies": [
     // Named as strings in the lint config's `jsPlugins` block, which fallow
