@@ -3,13 +3,15 @@ import { describe, expect, it } from "vite-plus/test";
 import { name as packageName } from "../../package.json";
 
 /**
- * Every `.ts` and `.tsx` module under `src/`, loaded so their service classes
- * can be read. Test files, generated files and the test setup declare none.
+ * Every `.ts` module under `src/`, loaded so their service classes can be
+ * read. A component file exports its component alone, so it declares no
+ * service, and loading one starts the dev tools its tree mounts. Test files,
+ * generated files and the test setup declare none either.
  */
 const MODULES = import.meta.glob<Record<string, unknown>>(
   [
-    "/src/**/*.{ts,tsx}",
-    "!/src/**/*.test.{ts,tsx}",
+    "/src/**/*.ts",
+    "!/src/**/*.test.ts",
     "!/src/**/*.d.ts",
     "!/src/**/*.gen.ts",
     "!/src/**/*.entry.ts",
@@ -48,7 +50,7 @@ const deterministicKey = ({ className, module }: DeclaredService): string => {
   const path = pipe(
     module,
     String.replace(/^\/src\//u, ""),
-    String.replace(/\.tsx?$/u, "")
+    String.replace(/\.ts$/u, "")
   );
   const fileName = Array.lastNonEmpty(String.split(path, "/"));
   const ownName = Array.filter(
