@@ -38,7 +38,7 @@ Most of the code the Worker runs was written by someone else and reached this re
 
 Check that a lock mismatch fails the install without touching the tracked files: in a scratch copy of the repository, change one version in `package.json` and run `bun install --frozen-lockfile --ignore-scripts`. `error: lockfile had changes, but lockfile is frozen`, which is what a changed `clsx` version answered on 2026-09-30, means CI would refuse the same change. A clean install means the version you changed already matched `bun.lock`, which proves nothing, so pick a version the lock does not hold.
 
-Check an advisory's reach with `bun audit`, then `bun why <name>`. A chain that ends at a `dev` entry of `my-app` means the package reaches only tooling. A chain that ends at a runtime dependency means it may be bundled, and `bun run build` followed by a search of `dist/server` for the package's code settles it.
+Check an advisory's reach with `bun audit`, then `bun why <name>`. A chain that ends at a `dev` entry of the project's own package, the `name` in `package.json`, means the package reaches only tooling. A chain that ends at a runtime dependency means it may be bundled, and `bun run build` followed by a search of `dist/server` for the package's code settles it.
 
 ## Fix and pin
 
