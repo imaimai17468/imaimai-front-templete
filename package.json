@@ -22,6 +22,7 @@
     "typecheck": "vp check --no-fmt --no-lint",
     "test": "vp test --run --coverage",
     "mutate": "stryker run",
+    "rename-project": "bun scripts/rename-project/rename-project.entry.ts",
     "smoke": "bun scripts/smoke/smoke.entry.ts",
     "dead-code": "fallow dead-code",
     "dupes": "fallow dupes ./src",
