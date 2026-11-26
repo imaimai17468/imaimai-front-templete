@@ -39,10 +39,11 @@ describe("report-error", () => {
     it("should copy name, message, and stack when the value is an Error", () => {
       const error = failureWithStack();
 
-      expect(errorReport("user.updateName", error)).toStrictEqual({
+      expect(errorReport("user.updateName", error, [])).toStrictEqual({
         event: "user.updateName",
         message: "D1 failed",
         name: Option.some("DriverFailed"),
+        operations: [],
         stack: Option.some(STACK),
       });
     });
@@ -50,10 +51,11 @@ describe("report-error", () => {
     it("should store a None stack when the Error has none", () => {
       const error = failureWithoutStack();
 
-      expect(errorReport("user.updateName", error)).toStrictEqual({
+      expect(errorReport("user.updateName", error, [])).toStrictEqual({
         event: "user.updateName",
         message: "D1 failed",
         name: Option.some("DriverFailed"),
+        operations: [],
         stack: Option.none(),
       });
     });
@@ -65,10 +67,11 @@ describe("report-error", () => {
         driverFailure()
       );
 
-      expect(errorReport("user.updateName", error)).toStrictEqual({
+      expect(errorReport("user.updateName", error, [])).toStrictEqual({
         event: "user.updateName",
         message: `Failed query: ${UPDATE_QUERY}\nDriverFailed: D1_ERROR: probe`,
         name: Option.some("DrizzleQueryError"),
+        operations: [],
         stack: Option.some(DRIVER_STACK),
       });
     });
@@ -76,19 +79,36 @@ describe("report-error", () => {
     it("should report the SQL text alone when a failed query wraps no driver error", () => {
       const error = new DrizzleQueryError(UPDATE_QUERY, PARAMS);
 
-      expect(errorReport("user.updateName", error)).toStrictEqual({
+      expect(errorReport("user.updateName", error, [])).toStrictEqual({
         event: "user.updateName",
         message: `Failed query: ${UPDATE_QUERY}`,
         name: Option.some("DrizzleQueryError"),
+        operations: [],
+        stack: Option.none(),
+      });
+    });
+
+    it("should record absent fields when the Error carries them in shapes the record cannot hold", () => {
+      const error = DriverFailed.make({ message: "placeholder" });
+      Object.defineProperty(error, "message", { value: 42 });
+      Object.defineProperty(error, "name", { value: 0 });
+      Object.defineProperty(error, "stack", { value: 0 });
+
+      expect(errorReport("user.updateName", error, [])).toStrictEqual({
+        event: "user.updateName",
+        message: "42",
+        name: Option.none(),
+        operations: [],
         stack: Option.none(),
       });
     });
 
     it("should stringify the value when it is not an Error", () => {
-      expect(errorReport("user.updateName", "boom")).toStrictEqual({
+      expect(errorReport("user.updateName", "boom", [])).toStrictEqual({
         event: "user.updateName",
         message: "boom",
         name: Option.none(),
+        operations: [],
         stack: Option.none(),
       });
     });
@@ -107,6 +127,7 @@ describe("report-error", () => {
               event: "user.updateName",
               message: "D1 failed",
               name: "DriverFailed",
+              operations: [],
               stack: STACK,
             },
           ]);
@@ -125,6 +146,7 @@ describe("report-error", () => {
               event: "user.updateName",
               message: "D1 failed",
               name: "DriverFailed",
+              operations: [],
               stack: ABSENT_FIELD,
             },
           ]);

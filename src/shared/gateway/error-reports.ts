@@ -3,13 +3,17 @@ import { Effect, Schema } from "effect";
 import { TestConsole } from "effect/testing";
 import type { ErrorLogRecord } from "@/shared/gateway/report-error";
 
-type CapturedReport = Pick<ErrorLogRecord, "event" | "message" | "name">;
+type CapturedReport = Pick<
+  ErrorLogRecord,
+  "event" | "message" | "name" | "operations"
+>;
 
 const CapturedReports = Schema.Array(
   Schema.Struct({
     event: Schema.String,
     message: Schema.String,
     name: Schema.NullOr(Schema.String),
+    operations: Schema.Array(Schema.String),
   })
 );
 

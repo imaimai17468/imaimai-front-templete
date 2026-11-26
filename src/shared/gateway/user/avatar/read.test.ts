@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "@effect/vitest";
 import { Effect, Layer, Option, Record } from "effect";
 import { CurrentSession } from "@/lib/auth/session/current-session";
 import { capturedReports } from "@/shared/gateway/error-reports";
+import { defectsToLog } from "@/shared/gateway/runtime";
 import { DriverFailed } from "@/test/defect";
 import { UserPersistenceError } from "../persistence.ts";
 import { AvatarBucket, AvatarObject } from "./bucket.ts";
@@ -165,6 +166,7 @@ describe("AvatarReader.read", () => {
               event: "user.readAvatar",
               message: "R2 failed",
               name: "DriverFailed",
+              operations: ["AvatarReader.read"],
             },
           ],
           result: AvatarReadFailed.make(),
@@ -289,11 +291,14 @@ describe(getAvatarResponse, () => {
         });
         const respond = respondThrough(() => Effect.die(readFailure));
 
-        const defect = yield* respond(avatarRequest()).pipe(
-          Effect.catchDefect(Effect.succeed)
+        const cause = yield* respond(avatarRequest()).pipe(
+          Effect.sandbox,
+          Effect.flip
         );
 
-        expect(defect).toBe(readFailure);
+        expect(defectsToLog(cause)).toStrictEqual([
+          { defect: readFailure, operations: ["getAvatarResponse"] },
+        ]);
       })
   );
 });

@@ -2,6 +2,7 @@ import "@tanstack/react-start/server-only";
 import {
   Array,
   Cause,
+  Context,
   Effect,
   Exit,
   Layer,
@@ -10,7 +11,8 @@ import {
   Result,
   Schema,
 } from "effect";
-import { reportError } from "@/shared/gateway/report-error";
+import { operationNames, reportDefect } from "@/shared/gateway/report-error";
+import type { DefectToLog } from "@/shared/gateway/report-error";
 
 // Passed to every runtime `makeRunHandler` builds, so a layer two of them
 // reach is built once and the later runtime takes that instance. A map per
@@ -34,19 +36,26 @@ const HANDLER_FAILED_MESSAGE = "The request could not be completed";
 const HANDLER_DEFECT_EVENT = "gateway.handlerDefect";
 
 /**
- * Every defect the cause holds, so a finalizer's defect is logged beside the
- * handler's. A cause holding only interruptions has none, and logs the error
- * `Cause.squash` builds for it.
+ * Every defect the cause holds, each with the operations it was raised inside,
+ * so a finalizer's defect is logged beside the handler's. A cause holding only
+ * interruptions has none, and logs the error `Cause.squash` builds for it.
  */
-const defectsToLog = (cause: Cause.Cause<never>): readonly unknown[] =>
+export const defectsToLog = (
+  cause: Cause.Cause<never>
+): readonly DefectToLog[] =>
   Array.match(
     Array.filterMap(cause.reasons, (reason) =>
       Result.liftPredicate(reason, Cause.isDieReason, identity).pipe(
-        Result.map((die) => die.defect)
+        Result.map((die) => ({
+          defect: die.defect,
+          operations: operationNames(
+            Context.getOption(Cause.reasonAnnotations(die), Cause.StackTrace)
+          ),
+        }))
       )
     ),
     {
-      onEmpty: () => [Cause.squash(cause)],
+      onEmpty: () => [{ defect: Cause.squash(cause), operations: [] }],
       onNonEmpty: (defects) => defects,
     }
   );
@@ -54,10 +63,8 @@ const defectsToLog = (cause: Cause.Cause<never>): readonly unknown[] =>
 const answerFromExit = <A>(exit: Exit.Exit<A>): Effect.Effect<A> =>
   Exit.match(exit, {
     onFailure: (cause) =>
-      Effect.forEach(
-        defectsToLog(cause),
-        (defect) => reportError(HANDLER_DEFECT_EVENT, defect),
-        { concurrency: 1, discard: true }
+      Array.reduce(defectsToLog(cause), Effect.void, (logged, defect) =>
+        Effect.andThen(logged, reportDefect(HANDLER_DEFECT_EVENT, defect))
       ).pipe(
         Effect.andThen(
           Effect.die(HandlerFailed.make({ message: HANDLER_FAILED_MESSAGE }))
