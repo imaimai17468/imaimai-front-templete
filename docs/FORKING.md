@@ -8,7 +8,7 @@ clone した直後に置き換えるべき値と、残す/捨てるファイル�
 
 | 場所 | 初期値 | 置き換える値 |
 |---|---|---|
-| `package.json` の `name` | `my-app` | プロジェクト名。portless はこの値を dev URL のホスト名にするので、README と docs/DATABASE_SETUP.md と src/routes/index/-components/home-page.tsx の `my-app.localhost` も揃える |
+| `package.json` の `name` | `my-app` | プロジェクト名。`bun run rename-project <名前>` で置き換える。このコマンドは `package.json` と `bun.lock` の名前、Effect のサービスキーの先頭、portless が dev URL のホスト名にする `my-app.localhost` の表記をまとめて書き換える。サービスキーは `package.json` の名前で始まることを型チェックが確かめるので、名前だけを手で変えると `bun run check` が落ちる |
 | `void.config.ts` の `cloudflare.name` | `my-project` | Worker の名前（デプロイ先の Worker と `void project logs` が読む Worker を決める） |
 | `LICENSE` の著作権表記 | テンプレート作者名 | 自分または自組織 |
 | `README.md` の見出しと説明 | テンプレートの説明 | プロジェクトの説明 |
