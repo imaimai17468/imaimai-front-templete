@@ -5,27 +5,34 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   buildGateReport,
   decideMutationGate,
-  listChangedModules,
   parseChangedFiles,
   readReportFile,
 } from "./mutation-gate.ts";
 
-const mutant = (status: string, line: number, replacement?: string) => ({
-  location: { end: { column: 9, line }, start: { column: 3, line } },
-  mutatorName: "ConditionalExpression",
-  replacement,
-  status,
-});
+const mutant = (
+  file: string,
+  status: string,
+  line: number,
+  replacement?: string
+) => {
+  const base = {
+    column: 3,
+    file,
+    id: `${file}:${String(line)}`,
+    line,
+    mutator: "condition",
+    status,
+  };
+  if (replacement === undefined) {
+    return base;
+  }
+  return { ...base, focus: { column: 3, line, original: "x", replacement } };
+};
 
-const read = (files: Record<string, readonly unknown[]>) =>
+const read = (mutants: readonly unknown[]) =>
   ({
     kind: "read",
-    text: JSON.stringify({
-      files: Object.fromEntries(
-        Object.entries(files).map(([file, mutants]) => [file, { mutants }])
-      ),
-      schemaVersion: "1.0",
-    }),
+    text: JSON.stringify({ command: "run", mutants, schemaVersion: 3 }),
   }) as const;
 
 describe(readReportFile, () => {
@@ -55,40 +62,18 @@ describe(parseChangedFiles, () => {
   });
 });
 
-describe(listChangedModules, () => {
-  it("should name only the changed files the mutation run mutated when the report lists other files too", () => {
-    expect(
-      listChangedModules(
-        read({
-          "src/a.ts": [],
-          "src/b.ts": [mutant("Killed", 1)],
-          "src/c.ts": [mutant("Survived", 1)],
-        }),
-        ["src/b.ts", "README.md", "src/a.ts"]
-      )
-    ).toStrictEqual(["src/a.ts", "src/b.ts"]);
-  });
-
-  it("should name no file when the report cannot be read", () => {
-    expect(
-      listChangedModules({ detail: "ENOENT", kind: "unreadable" }, ["src/a.ts"])
-    ).toStrictEqual([]);
-  });
-});
-
 describe(decideMutationGate, () => {
-  it("should name each survived and uncovered mutant in line order when it sits in a changed file", () => {
+  it("should name each survived and uncovered mutant in file and line order when it sits in a changed file", () => {
     expect(
       decideMutationGate(
-        read({
-          "src/a.ts": [
-            mutant("NoCoverage", 7),
-            mutant("Killed", 9, "false"),
-            mutant("Survived", 12, "false"),
-            mutant("Survived", 3, "true"),
-          ],
-        }),
-        ["src/a.ts"]
+        read([
+          mutant("src/b.ts", "Survived", 2, "true"),
+          mutant("src/a.ts", "NoCoverage", 7),
+          mutant("src/a.ts", "Killed", 9, "false"),
+          mutant("src/a.ts", "Survived", 12, "false"),
+          mutant("src/a.ts", "Survived", 3, "true"),
+        ]),
+        ["src/a.ts", "src/b.ts"]
       )
     ).toStrictEqual({
       kind: "unnoticed",
@@ -96,20 +81,26 @@ describe(decideMutationGate, () => {
         {
           file: "src/a.ts",
           line: 3,
-          mutatorName: "ConditionalExpression",
+          mutatorName: "condition",
           replacement: "true",
         },
         {
           file: "src/a.ts",
           line: 7,
-          mutatorName: "ConditionalExpression",
+          mutatorName: "condition",
           replacement: undefined,
         },
         {
           file: "src/a.ts",
           line: 12,
-          mutatorName: "ConditionalExpression",
+          mutatorName: "condition",
           replacement: "false",
+        },
+        {
+          file: "src/b.ts",
+          line: 2,
+          mutatorName: "condition",
+          replacement: "true",
         },
       ],
     });
@@ -117,19 +108,17 @@ describe(decideMutationGate, () => {
 
   it("should report clean when the only unnoticed mutants sit in files the pull request did not change", () => {
     expect(
-      decideMutationGate(read({ "src/other.ts": [mutant("Survived", 1)] }), [
+      decideMutationGate(read([mutant("src/other.ts", "Survived", 1)]), [
         "src/a.ts",
       ])
     ).toStrictEqual({ kind: "clean" });
   });
 
-  it.each(["Ignored", "Killed", "Timeout", "RuntimeError", "CompileError"])(
+  it.each(["Ignored", "Killed", "Timeout", "Error"])(
     "should report clean when a changed file's mutants are all %s",
     (status) => {
       expect(
-        decideMutationGate(read({ "src/a.ts": [mutant(status, 1)] }), [
-          "src/a.ts",
-        ])
+        decideMutationGate(read([mutant("src/a.ts", status, 1)]), ["src/a.ts"])
       ).toStrictEqual({ kind: "clean" });
     }
   );
@@ -142,10 +131,14 @@ describe(decideMutationGate, () => {
 
   it.each([
     { text: "not json", what: "is not JSON" },
-    { text: '{"files":{"src/a.ts":{}}}', what: "has no mutants list" },
+    { text: '{"command":"run"}', what: "has no mutants list" },
     {
-      text: '{"files":{"src/a.ts":{"mutants":[{"location":{"start":{}},"mutatorName":"BlockStatement","status":"Survived"}]}}}',
-      what: "has a mutant without a start line",
+      text: '{"mutants":[{"file":"src/a.ts","mutator":"condition","status":"Survived"}]}',
+      what: "has a mutant without a line",
+    },
+    {
+      text: '{"mutants":[{"file":"src/a.ts","focus":{"replacement":42},"line":1,"mutator":"condition","status":"Survived"}]}',
+      what: "has a replacement that is not text",
     },
   ])(
     "should report no-report with the decode error when the report $what",
@@ -203,7 +196,7 @@ describe(buildGateReport, () => {
         "Each of these is code whose behaviour no test states. Answer each one in this pull request:",
         "  1. A caller relies on the behaviour: write the test that states it.",
         "  2. Nothing relies on it: delete or simplify the code until the mutant has nothing to change.",
-        "  3. The code holds a value rather than behaviour (page copy): move it into a file stryker.config.mjs excludes, or add an exclusion for that kind of value there.",
+        "  3. The code holds a value rather than behaviour (page copy): move it into a file scripts/mutate/mutation-targets.ts leaves unmutated, or add a pattern for that kind of value there.",
         "The Self-check step of .claude/skills/ticket-work/SKILL.md describes the three answers.",
       ],
     });

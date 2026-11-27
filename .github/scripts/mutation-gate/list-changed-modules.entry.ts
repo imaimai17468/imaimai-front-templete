@@ -5,22 +5,15 @@
  * git diff -z --name-only <base commit> HEAD | bun .github/scripts/mutation-gate/list-changed-modules.entry.ts
  * ```
  *
- * Prints, comma-separated for `stryker run --mutate`, the files read from
- * stdin that `reports/mutation/mutation.json` lists as mutated. Prints an
- * empty line when there are none or the report cannot be read.
+ * Prints, one per line for `bun run mutate`, the files read from stdin that
+ * mutation testing mutates. Prints nothing when there are none.
  */
 
 import { readFileSync } from "node:fs";
-import {
-  listChangedModules,
-  parseChangedFiles,
-  readReportFile,
-} from "./mutation-gate.ts";
+import { mutationTargets } from "../../../scripts/mutate/mutation-targets.ts";
+import { parseChangedFiles } from "./mutation-gate.ts";
 
-const modules = listChangedModules(
-  readReportFile(
-    new URL("../../../reports/mutation/mutation.json", import.meta.url)
-  ),
-  parseChangedFiles(readFileSync(0, "utf-8"))
-);
-console.log(modules.join(","));
+const modules = mutationTargets(parseChangedFiles(readFileSync(0, "utf-8")));
+if (modules.length > 0) {
+  console.log(modules.join("\n"));
+}

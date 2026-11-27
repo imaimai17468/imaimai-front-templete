@@ -1,5 +1,5 @@
 /**
- * Reads the JSON report StrykerJS writes and decides whether a mutant no test
+ * Reads the JSON report Mootant prints and decides whether a mutant no test
  * notices sits in a file the pull request changes. `Survived` and
  * `NoCoverage` are the two statuses no test noticed; every other status is
  * either a kill or a mutant the run could not judge.
@@ -9,18 +9,14 @@ import { readFileSync } from "node:fs";
 import { Result, Schema } from "effect";
 
 const Mutant = Schema.Struct({
-  location: Schema.Struct({ start: Schema.Struct({ line: Schema.Int }) }),
-  mutatorName: Schema.String,
-  replacement: Schema.optional(Schema.String),
+  file: Schema.String,
+  focus: Schema.optional(Schema.Struct({ replacement: Schema.String })),
+  line: Schema.Int,
+  mutator: Schema.String,
   status: Schema.String,
 });
 
-const MutationReport = Schema.Struct({
-  files: Schema.Record(
-    Schema.String,
-    Schema.Struct({ mutants: Schema.Array(Mutant) })
-  ),
-});
+const MutationReport = Schema.Struct({ mutants: Schema.Array(Mutant) });
 
 const decodeMutationReport = Schema.decodeUnknownResult(
   Schema.fromJsonString(MutationReport)
@@ -41,8 +37,6 @@ export interface UnnoticedMutant {
   readonly mutatorName: string;
   readonly replacement: string | undefined;
 }
-
-type MutatedFiles = typeof MutationReport.Type.files;
 
 export type GateVerdict =
   | { readonly kind: "clean" }
@@ -65,58 +59,45 @@ export const parseChangedFiles = (
 ): readonly string[] =>
   nulSeparatedPaths.split("\0").filter((path) => path !== "");
 
-const readMutatedFiles = (
+const readMutants = (
   report: ReportRead
-): Result.Result<MutatedFiles, string> => {
+): Result.Result<typeof MutationReport.Type.mutants, string> => {
   if (report.kind === "unreadable") {
     return Result.fail(report.detail);
   }
   return decodeMutationReport(report.text).pipe(
-    Result.map(({ files }) => files),
+    Result.map(({ mutants }) => mutants),
     Result.mapError(({ message }) => message)
   );
-};
-
-export const listChangedModules = (
-  report: ReportRead,
-  changedFiles: readonly string[]
-): readonly string[] => {
-  const mutated = readMutatedFiles(report);
-  if (Result.isFailure(mutated)) {
-    return [];
-  }
-  const changed = new Set(changedFiles);
-  return Object.keys(mutated.success).filter((file) => changed.has(file));
 };
 
 export const decideMutationGate = (
   report: ReportRead,
   changedFiles: readonly string[]
 ): GateVerdict => {
-  const mutated = readMutatedFiles(report);
-  if (Result.isFailure(mutated)) {
-    return { detail: mutated.failure, kind: "no-report" };
+  const mutants = readMutants(report);
+  if (Result.isFailure(mutants)) {
+    return { detail: mutants.failure, kind: "no-report" };
   }
   const changed = new Set(changedFiles);
-  const mutants = Object.entries(mutated.success)
-    .filter(([file]) => changed.has(file))
-    .flatMap(([file, { mutants: fileMutants }]) =>
-      fileMutants
-        .filter((mutant) => UNNOTICED_STATUSES.has(mutant.status))
-        .toSorted(
-          (first, second) =>
-            first.location.start.line - second.location.start.line
-        )
-        .map((mutant) => ({
-          file,
-          line: mutant.location.start.line,
-          mutatorName: mutant.mutatorName,
-          replacement: mutant.replacement,
-        }))
-    );
-  return mutants.length === 0
+  const unnoticed = mutants.success
+    .filter(
+      (mutant) =>
+        changed.has(mutant.file) && UNNOTICED_STATUSES.has(mutant.status)
+    )
+    .toSorted(
+      (first, second) =>
+        first.file.localeCompare(second.file) || first.line - second.line
+    )
+    .map((mutant) => ({
+      file: mutant.file,
+      line: mutant.line,
+      mutatorName: mutant.mutator,
+      replacement: mutant.focus?.replacement,
+    }));
+  return unnoticed.length === 0
     ? { kind: "clean" }
-    : { kind: "unnoticed", mutants };
+    : { kind: "unnoticed", mutants: unnoticed };
 };
 
 export interface GateReport {
@@ -128,7 +109,7 @@ const ANSWERS = [
   "Each of these is code whose behaviour no test states. Answer each one in this pull request:",
   "  1. A caller relies on the behaviour: write the test that states it.",
   "  2. Nothing relies on it: delete or simplify the code until the mutant has nothing to change.",
-  "  3. The code holds a value rather than behaviour (page copy): move it into a file stryker.config.mjs excludes, or add an exclusion for that kind of value there.",
+  "  3. The code holds a value rather than behaviour (page copy): move it into a file scripts/mutate/mutation-targets.ts leaves unmutated, or add a pattern for that kind of value there.",
   "The Self-check step of .claude/skills/ticket-work/SKILL.md describes the three answers.",
 ];
 
