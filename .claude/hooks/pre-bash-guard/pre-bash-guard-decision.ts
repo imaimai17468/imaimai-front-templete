@@ -23,18 +23,32 @@ const NAMED_ENV_FILE =
 const HEREDOC =
   /(?<!<)<<-?[ \t]*(?<quote>["']?)(?<delimiter>[\w.-]+)\k<quote>(?<tail>[^\n]*)\n(?<body>(?:[^\n]*\n)*?)[ \t]*\k<delimiter>(?=\n|$)/gu;
 
-const BODY_OPEN = "\uE000";
+/**
+ * A body is prose where a `git` or `gh` command reads it as text, or a `cat`
+ * passes it to one, and checked where this guard cannot place its reader in
+ * either.
+ */
+type BodyReading = "prose" | "checked";
+
+const BODY_OPEN = {
+  checked: "\uE002",
+  prose: "\uE000",
+} satisfies Record<BodyReading, string>;
 const BODY_CLOSE = "\uE001";
-const BODY_MARKER = /[\uE000\uE001]/u;
+const BODY_MARKER = /[\uE000-\uE002]/u;
 
 /**
- * The heredoc rewritten onto its operator's line, with its body between the
- * two markers, so the body stays in the simple command it feeds.
+ * The heredoc rewritten onto its operator's line, with its body between two
+ * markers, so the body stays in the simple command it feeds.
  */
-const HEREDOC_ON_ONE_LINE = `<<$<quote>$<delimiter>$<quote>$<tail> ${BODY_OPEN}$<body>${BODY_CLOSE} $<delimiter>`;
+const writeOnOneLine = (reading: BodyReading): string =>
+  `<<$<quote>$<delimiter>$<quote>$<tail> ${BODY_OPEN[reading]}$<body>${BODY_CLOSE} $<delimiter>`;
 
 /** A heredoc body the rewrite marked, which holds text. */
-const MARKED_BODY = /\uE000[^\uE001]+\uE001/gu;
+const MARKED_BODY = /[\uE000\uE002][^\uE001]+\uE001/gu;
+
+/** A marked body that may be prose. */
+const PROSE_BODY = /\uE000[^\uE001]+\uE001/gu;
 
 /** One global pattern trying each source's alternatives in the order given. */
 const joinAlternatives = (...sources: readonly string[]): RegExp =>
@@ -68,7 +82,8 @@ const PROSE_COMMAND = /^\s*(?:gh|git)(?!\S)/u;
 /**
  * A marked heredoc body, or a quoted span, that may be prose. A double-quoted
  * span holding `$`, a backtick or a backslash runs or decodes something
- * first, so it never is.
+ * first, so it never is. A checked body is removed here too, and the piece
+ * reading keeps it.
  */
 const QUOTED_SPAN = joinAlternatives(
   MARKED_BODY.source,
@@ -82,55 +97,199 @@ const QUOTED_SPAN = joinAlternatives(
 const DOUBLE_QUOTED_OVER_BODIES = String.raw`"(?:${MARKED_BODY.source}|\\[\s\S]|[^"\\])*"`;
 
 /**
- * A simple command's pieces: a marked body, a single- or double-quoted span,
- * an escaped character, or any other character.
+ * A piece of more than one character: a marked body, a single-quoted span,
+ * which takes in a `$` right before it, a double-quoted span, or an escaped
+ * character.
  */
-const SHELL_PIECE = joinAlternatives(
+const PAIRED_PIECE = joinAlternatives(
   MARKED_BODY.source,
-  /'[^']*'/u.source,
+  /\$?'[^']*'/u.source,
   DOUBLE_QUOTED_OVER_BODIES,
-  /\\[\s\S]|[\s\S]/u.source
+  /\\[\s\S]/u.source
 );
+
+/** A simple command's pieces: a paired piece, or any other character. */
+const SHELL_PIECE = joinAlternatives(PAIRED_PIECE.source, /[\s\S]/u.source);
 
 /**
  * A double-quoted piece holding `$`, a backtick or a backslash, which the
- * shell decodes or runs before the program reads it, so it is never prose.
+ * shell decodes or runs before the program reads it, or a checked body, which
+ * another program reads. Neither is ever prose.
  */
-const EXPANDING_DOUBLE_QUOTE = /^"[\s\S]*?[$`\\]/u;
+const NEVER_PROSE_PIECE = /^(?:"[\s\S]*?[$`\\]|\uE002)/u;
 
 /**
  * A double-quoted piece holding `$(`, `${` or a backtick, inside which the
  * shell starts pairing quotes afresh, so a quote this guard pairs from there
  * on may not be the one the shell pairs.
  */
-const NESTED_QUOTING_OPENER = /^"[\s\S]*?(?:\$[({]|`)/u;
+const NESTED_DOUBLE_QUOTE = /^"[\s\S]*?(?:\$[({]|`)/u;
+
+/**
+ * Whether the piece opens quoting this guard cannot pair: a nested double
+ * quote, or a `$'` span whose closing quote follows a backslash, which the
+ * shell, reading it as ANSI-C quoting, may not take as the end.
+ */
+const opensNestedQuoting = (piece: string): boolean =>
+  NESTED_DOUBLE_QUOTE.test(piece) ||
+  (piece.startsWith("$'") && piece.endsWith(String.raw`\'`));
 
 /** A path rarely holds a blank, so `git add '.env'` is still checked. */
 const proseRemoved = (span: string): string => (/\s/u.test(span) ? " " : span);
 
 /**
- * Before nested quoting opens, any piece but an expanding double quote that
- * holds a blank is quoted text, a marked body, or a blank, escaped or not, and
- * is removed. From the piece that opens it on, only the marked bodies are.
+ * Before nested quoting opens, any piece that may be prose and holds a blank
+ * is quoted text, a prose body, or a blank, escaped or not, and is removed.
+ * From the piece that opens it on, only the prose bodies are.
  */
 const removeProse = (piece: string, isNested: boolean): string => {
   if (isNested) {
-    return piece.replaceAll(MARKED_BODY, proseRemoved);
+    return piece.replaceAll(PROSE_BODY, proseRemoved);
   }
-  return EXPANDING_DOUBLE_QUOTE.test(piece) ? piece : proseRemoved(piece);
+  return NEVER_PROSE_PIECE.test(piece) ? piece : proseRemoved(piece);
 };
 
+/** An unquoted delimiter lets the shell run `$(...)` and backticks in the body. */
+const EXPANDING_BODY = /[$`]/u;
+
+/**
+ * A `"$(cat <<'EOF' ... EOF\n)"` whose body the rewrite marked, which closes
+ * where this guard reads it as closing.
+ */
+const CAT_SUBSTITUTION = /^"\$\(cat <<'EOF' \uE000[^\uE001]*\uE001 EOF\n\)"/u;
+
+/**
+ * The command line with every span the guard pairs as the shell does reduced
+ * to `_`, so the separators and quotes left are the shell's own. A span that
+ * opens nested quoting, other than a `"$(cat <<'EOF' ... EOF\n)"`, is reduced
+ * to `'`, an unpaired quote, because the guard cannot say where it closes.
+ */
+const outlineQuoting = (text: string): string =>
+  text.replaceAll(PAIRED_PIECE, (piece: string) =>
+    opensNestedQuoting(piece) && !CAT_SUBSTITUTION.test(piece) ? "'" : "_"
+  );
+
+/** A `#` after a blank on the operator's line, which makes the operator comment text. */
+const COMMENT_ON_LINE = /\s#[^\n]*$/u;
+
+/**
+ * Whether a line holds two `<<`, or ends in a backslash, which joins the next
+ * line to it. The shell may then read a body later than this guard does, so
+ * every body from such a line on is checked.
+ */
+const hasAmbiguousOperatorLine = (text: string): boolean =>
+  text
+    .split("\n")
+    .some((line) => line.split("<<").length > 2 || line.endsWith("\\"));
+
+/**
+ * A delimiter word that goes on past its quotes, such as `'E'OF`, whose body
+ * ends on a line other than the one this guard reads as its end.
+ */
+const DELIMITER_CONTINUES = /^[^\s;&|<>()]/u;
+
+/** A parenthesis, a backtick or a quote, around which this guard cannot place the operator's command. */
+const NESTING = /[()`"']/u;
+
+const UNPAIRED_QUOTE = /["']/u;
+
+const CAT_COMMAND = /^\s*cat(?!\S)/u;
+
+/** A `cat` whose output goes into the argument it stands in, or into a pipe to `git` or `gh`. */
+const CAT_INTO_PROSE = /^\s*(?:$|\|\s*(?:gh|git)(?!\S))/u;
+
+/**
+ * `$(cat ` right before the operator, inside double quotes or not, or else the
+ * end of the text.
+ */
+const CAT_SUBSTITUTION_START = /"?\$\(cat $|$/u;
+
+/**
+ * Whether the command an operator at the end of `text` belongs to, the text
+ * after the last control operator, matches `command`, where this guard pairs
+ * every quote and parenthesis before the operator.
+ */
+const isPlainCommandBefore = (text: string, command: RegExp): boolean => {
+  const operatorCommand = text.slice(
+    Math.max(
+      ...[...CONTROL_OPERATORS].map((operator) => text.lastIndexOf(operator))
+    ) + 1
+  );
+  return (
+    !UNPAIRED_QUOTE.test(text) &&
+    !NESTING.test(operatorCommand) &&
+    command.test(operatorCommand)
+  );
+};
+
+/**
+ * A body is prose where its delimiter is quoted or it holds nothing the shell
+ * expands, this guard reads the operator line as the shell does, the operator
+ * is not in a comment, and either a `git` or `gh` command owns the operator,
+ * or a `cat` does whose output goes to one, the `cat` starting a command or a
+ * substitution in an argument of one.
+ */
+const classifyBody = (
+  prefix: string,
+  quote: string,
+  tail: string,
+  body: string
+): BodyReading => {
+  const before = outlineQuoting(
+    prefix.replaceAll(HEREDOC, writeOnOneLine("prose"))
+  );
+  const after = outlineQuoting(tail);
+  const isCatIntoProse =
+    CAT_INTO_PROSE.test(after) &&
+    (isPlainCommandBefore(before, CAT_COMMAND) ||
+      isPlainCommandBefore(
+        before.slice(0, before.search(CAT_SUBSTITUTION_START)),
+        PROSE_COMMAND
+      ));
+  const isReadAsProse =
+    !(quote === "" && EXPANDING_BODY.test(body)) &&
+    !hasAmbiguousOperatorLine(`${prefix}<<${tail}`) &&
+    !DELIMITER_CONTINUES.test(tail) &&
+    !COMMENT_ON_LINE.test(before) &&
+    !NESTING.test(after) &&
+    (isPlainCommandBefore(before, PROSE_COMMAND) || isCatIntoProse);
+  return isReadAsProse ? "prose" : "checked";
+};
+
+/**
+ * Every heredoc rewritten onto one line, its body marked by how it is read.
+ * The text before each operator is classified with its own heredocs already
+ * on one line, so a quote inside an earlier body pairs with nothing.
+ */
+const markHeredocs = (command: string): string =>
+  command.replaceAll(
+    HEREDOC,
+    (
+      heredoc: string,
+      quote: string,
+      _delimiter: string,
+      tail: string,
+      body: string,
+      offset: number
+    ) =>
+      heredoc.replaceAll(
+        HEREDOC,
+        writeOnOneLine(
+          classifyBody(command.slice(0, offset), quote, tail, body)
+        )
+      )
+  );
+
 const REFUSAL =
-  "PreToolUse(Bash): this command names a protected env file (.env, .env.local, .env.development or .env.production), which holds the local secrets. Take the documented placeholder values from scripts/setup/placeholders.dotenv instead. A `git` or `gh` command may name the file in a quoted commit message or pull request body that holds a blank, or in a heredoc it reads.";
+  "PreToolUse(Bash): this command names a protected env file (.env, .env.local, .env.development or .env.production), which holds the local secrets. Take the documented placeholder values from scripts/setup/placeholders.dotenv instead. A `git` or `gh` command may name the file in a quoted commit message or pull request body that holds a blank, or in a heredoc with a quoted delimiter (`<<'EOF'`) that it reads, or that a `cat` piped or substituted into it reads.";
 
 const MARKER_REFUSAL =
-  "PreToolUse(Bash): this command holds U+E000 or U+E001, the private-use characters this guard writes around a heredoc body, so the guard cannot tell a body it marked from text written to look like one. Remove those characters from the command.";
+  "PreToolUse(Bash): this command holds U+E000, U+E001 or U+E002, the private-use characters this guard writes around a heredoc body, so the guard cannot tell a body it marked from text written to look like one. Remove those characters from the command.";
 
 /** The simple commands a command line runs, split at each unquoted control operator. */
 const simpleCommands = (command: string): string[] =>
-  Array.from(
-    command.replaceAll(HEREDOC, HEREDOC_ON_ONE_LINE).matchAll(SHELL_TOKEN),
-    ([token]) => (CONTROL_OPERATORS.has(token) ? COMMAND_BOUNDARY : token)
+  Array.from(markHeredocs(command).matchAll(SHELL_TOKEN), ([token]) =>
+    CONTROL_OPERATORS.has(token) ? COMMAND_BOUNDARY : token
   )
     .join("")
     .split(COMMAND_BOUNDARY);
@@ -154,8 +313,8 @@ const namesEnvFile = (checked: string): boolean =>
  * quotes differently. The scan pairs a quote with the next quote of its kind
  * wherever it stands, so after a span it cannot pair, such as `"$MSG"`, it
  * pairs a closing quote with an opening one and reads the text between them as
- * prose. The pairing follows the command line piece by piece, but it reads a
- * heredoc operator inside a quoted span as a heredoc. A name either reading
+ * prose. The pairing follows the command line piece by piece, and never
+ * removes a checked body that is a piece of its own. A name either reading
  * leaves outside prose is refused. Nested quoting that opens in one simple
  * command stays open for the ones that follow it.
  */
@@ -167,9 +326,7 @@ const readTextsToCheck = (command: string): string[] => {
         text,
       }))
   );
-  const nestedFrom = pieces.findIndex(({ text }) =>
-    NESTED_QUOTING_OPENER.test(text)
-  );
+  const nestedFrom = pieces.findIndex(({ text }) => opensNestedQuoting(text));
   const piecesByCommand = Map.groupBy(
     pieces.map((piece, index) => ({
       ...piece,
