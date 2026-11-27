@@ -228,12 +228,13 @@ jobs:
   # Runs mutation testing with Mootant and uploads its HTML report for
   # reading. On a pull request it mutates the files the pull request changes
   # that scripts/mutate/mutation-targets.ts names, and fails while one of them
-  # holds a mutant no test notices (Survived or NoCoverage), or when the run
-  # printed no report. On a push to main it mutates every target and only
-  # reports. The cache restored below reuses the verdict of every mutant whose
-  # code and tests are unchanged, so a run without it is the slow one, and its
-  # key changes with the dependencies and the test setup, which can change a
-  # verdict without changing either.
+  # holds a mutant no test notices (Survived or NoCoverage), when the run
+  # printed no report, or when the run itself reported an error. On a push to
+  # main it mutates every target and only reports. The cache restored below
+  # reuses the verdict of every mutant whose code and tests are unchanged, so
+  # a run without it is the slow one, and its key changes with the
+  # dependencies and the test setup, which can change a verdict without
+  # changing either.
   mutation:
     name: mutation testing
     runs-on: ubuntu-latest
@@ -261,11 +262,14 @@ jobs:
 
       - name: Run mutation testing on every target
         if: ${{ github.event_name != 'pull_request' }}
+        continue-on-error: true
         run: bun run mutate --html
 
       # A two-dot diff from the base commit to the merge commit the checkout
       # holds names the changed files, and the checkout fetches the merge
-      # commit alone, so the base commit is fetched first.
+      # commit alone, so the base commit is fetched first. Mootant exits
+      # non-zero on a run error and prints its details in the JSON alone, so
+      # the gate runs first and the details follow.
       - name: Fail on a mutant no test notices in a changed file
         if: ${{ github.event_name == 'pull_request' }}
         env:
@@ -278,8 +282,13 @@ jobs:
             echo "No file this pull request changes is mutated."
             exit 0
           fi
-          xargs -a "$RUNNER_TEMP/modules" -d '\n' bun run mutate --json --html > "$RUNNER_TEMP/mutation.json"
+          status=0
+          xargs -a "$RUNNER_TEMP/modules" -d '\n' bun run mutate --json --html > "$RUNNER_TEMP/mutation.json" || status=$?
           bun .github/scripts/mutation-gate/check-mutation-gate.entry.ts "$RUNNER_TEMP/mutation.json" < "$RUNNER_TEMP/changed-files"
+          if [ "$status" -ne 0 ]; then
+            jq '{diagnostics, errors: [.mutants[] | select(.status == "Error")]}' "$RUNNER_TEMP/mutation.json" || true
+            exit "$status"
+          fi
 
       - name: Upload the mutation report
         if: ${{ !cancelled() && hashFiles('.mootant/report.html') != '' }}
