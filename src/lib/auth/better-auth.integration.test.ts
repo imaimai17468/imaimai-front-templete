@@ -55,5 +55,21 @@ layer(LocalBindings.layer, { timeout: 30_000 })(
           expect(clientId.sent).toBe(clientId.expected);
         })
     );
+
+    it.effect(
+      "should give Better Auth's Drizzle adapter the SQLite dialect D1 runs when the auth instance is built",
+      () =>
+        Effect.gen(function* () {
+          const { within } = yield* LocalBindings;
+
+          const adapterOptions = yield* within(
+            Effect.promise(() => getAuth().$context).pipe(
+              Effect.map(({ adapter }) => adapter.options)
+            )
+          );
+
+          expect(adapterOptions).toMatchObject({ provider: "sqlite" });
+        })
+    );
   }
 );
