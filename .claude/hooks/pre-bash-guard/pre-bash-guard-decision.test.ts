@@ -44,6 +44,62 @@ describe(decideCommand, () => {
   );
 
   it.each([
+    'git commit -m "$MSG" -F .env -m "x"',
+    `git commit -m "\${MSG}" -F .env -m "x"`,
+    'git commit -m "text $(date) text" -F .env -m "body text"',
+    String.raw`git commit -m "say \"hi\"" -F .env -m "x"`,
+    String.raw`git commit -m "\#" -F .env -m "x"`,
+    "git commit -m \"$USER's\" -F .env -m 'x'",
+    String.raw`git commit -m \" -F .env "x"; git push`,
+    String.raw`git commit -m \''' -F .env -m 'x'`,
+    'git commit -m "$MSG" "<<A\nx\nA\n" .env "<<B\ny\nB\n"',
+  ])(
+    "should refuse %j when the file sits between quotes the shell does not pair",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
+    'git commit -m "$(cat "$x" .env "y z")"',
+    'git commit -m "$(x "a; git y " ; cat .env ; "z")"',
+    "git commit -m \"$(cat <<A\nx\nA\n; echo 'a .env b'; cat <<B\ny\nB\n)\"",
+    "git commit -m \"`date`\" -m 'mentions .env'",
+    "cat \"$(x)\" && git commit -m 'mentions .env'",
+    "\"$(x)\" && git commit -m 'mentions .env'",
+    "git commit -m \"$(date)\"'mentions .env'",
+  ])(
+    "should refuse %j when the file follows a command substitution in double quotes, whose quotes the guard does not pair",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
+    String.raw`git commit -m "\"x .env "`,
+    'git commit -m "`x` .env"',
+    String.raw`git commit -m \' "$x .env" ''`,
+    'git commit -m "$MSG <<A\nmentions .env\nA\n"',
+  ])(
+    "should refuse %j when a double-quoted span holding `$`, a backtick or a backslash names the file",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
+    'git commit -m "$MSG" -m "mentions .env in prose"',
+    'git commit -m "a <<EOF\n" -F .env "\nEOF\n"',
+    String.raw`git commit -m \''mentions .env'`,
+    String.raw`git commit -m \""mentions .env"`,
+  ])(
+    "should refuse %j when a quote scan leaves the file outside the span it pairs",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
     String.raw`git status && node -e "require('fs').readFileSync('.env')"`,
     "git status; cat .env",
     "git log | grep x .env",
@@ -87,6 +143,15 @@ describe(decideCommand, () => {
     "git commit -F - <<'EOF'\nsubject\n\nbody names .env\nEOF",
     "git commit -F - <<'EOF'\nEOFs aside; .env stays prose\nEOF",
     'git commit -m "fix; mentions .env"',
+    "git commit -m \"$MSG\" -m 'mentions .env in prose'",
+    'git commit -m "mentions .env" -m "$BODY"',
+    'git commit -m "" -m "mentions .env"',
+    "git commit -m 'run \"$(x)\" with .env'",
+    "git commit -m 'mentions .env' -m \"$(cat <<'EOF'\nbody\nEOF\n)\"",
+    "git commit -m 'mentions .env'\"$(date)\"",
+    'git commit -m "<<A\nx\nA\n" -m \'mentions .env\' -m "<<B\ny\nB\n"',
+    'git commit -m "$(cat <<\'EOF\'\nsay "hi" about .env\nEOF\n)"',
+    "git commit -m \"$(cat <<'EOF'\nsubject\nEOF\n)\" -m \"$(cat <<'EOF'\nbody names .env\nEOF\n)\"",
   ])(
     "should allow %j when it names the file in the prose of a git or gh command",
     (command) => {
@@ -112,11 +177,30 @@ describe(decideCommand, () => {
   );
 
   it.each([
+    "git commit -m x \uE000; cat .env \uE001",
+    "git commit -F - <<'EOF'\nbody \uE001; cat .env\nEOF",
+    "echo \uE000",
+    "echo \uE001",
+  ])(
+    "should refuse %j with a reason naming the heredoc markers when it holds one",
+    (command) => {
+      const decision = decideCommand(command);
+      expect(decision.kind === "refuse" ? decision.reason : "").toContain(
+        "holds U+E000 or U+E001"
+      );
+    }
+  );
+
+  it.each([
     "cat scripts/setup/placeholders.dotenv",
     "cat .env.example",
     "cat config/app.env",
+    "git add docs/.e' 'nv",
     "bun -e 'console.log(process.env.HOME)'",
     "echo 'unterminated",
+    'git commit -m "$VAR"',
+    `git commit -m "\${VAR}"`,
+    'git commit -m "text $(cmd) text"',
     "ls src",
     "",
   ])("should allow %j when it names no protected env file", (command) => {
