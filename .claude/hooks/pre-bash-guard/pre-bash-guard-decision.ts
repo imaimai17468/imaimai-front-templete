@@ -483,8 +483,14 @@ const markHeredocs = (command: string): string =>
       )
   );
 
-const REFUSAL =
-  "PreToolUse(Bash): this command names a protected env file (.env, .env.local, .env.development or .env.production), which holds the local secrets. Take the documented placeholder values from scripts/setup/placeholders.dotenv instead. A command that takes a message (`git commit`, `git tag`, `git merge`, `git notes add` or `append`, `git stash push`, `gh pr` or `gh issue` with `create`, `edit`, `comment`, `close` or `reopen`, `gh pr review` or `merge`, and `gh release edit`) may name the file in a quoted message that holds a blank, or in a heredoc with a quoted delimiter (`<<'EOF'`) that it reads, or that a `cat` piped or substituted into it reads, but not in the global options before the subcommand.";
+const MESSAGE_SUBCOMMAND_NAMES = [
+  ...GIT_MESSAGE_SUBCOMMANDS.map((words) => ["git", ...words]),
+  ...GH_MESSAGE_SUBCOMMANDS.map((words) => ["gh", ...words]),
+]
+  .map((words) => `\`${words.join(" ")}\``)
+  .join(", ");
+
+const REFUSAL = `PreToolUse(Bash): this command names a protected env file (.env, .env.local, .env.development or .env.production), which holds the local secrets. Take the documented placeholder values from scripts/setup/placeholders.dotenv instead. A command that takes a message (${MESSAGE_SUBCOMMAND_NAMES}) may name the file in a quoted message that holds a blank, or in a heredoc with a quoted delimiter (\`<<'EOF'\`) that it reads, or that a \`cat\` piped or substituted into it reads. It may not where the name stands in its global options before the subcommand, in a file it reads such as the one after \`-F\`, or in a command whose output it pipes on.`;
 
 const MARKER_REFUSAL =
   "PreToolUse(Bash): this command holds U+E000, U+E001 or U+E002, the private-use characters this guard writes around a heredoc body, so the guard cannot tell a body it marked from text written to look like one. Remove those characters from the command.";

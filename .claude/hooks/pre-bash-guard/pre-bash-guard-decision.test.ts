@@ -610,6 +610,15 @@ describe(hookOutput, () => {
     );
   });
 
+  it("should name the subcommands that take a message when the command is refused", () => {
+    const output = hookOutput("cat .env");
+    expect([
+      output.includes("`git commit`, `git tag`"),
+      output.includes("`git notes add`"),
+      output.includes("`gh pr create`"),
+    ]).toStrictEqual([true, true, true]);
+  });
+
   it("should print nothing when the command is allowed", () => {
     expect(hookOutput("ls src")).toBe("");
   });
