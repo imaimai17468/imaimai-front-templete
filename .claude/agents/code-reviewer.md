@@ -78,8 +78,8 @@ would have survived.
   step 6 does not allow. One form is a test that cannot say which caller expectation it
   protects, such as one restating how the implementation reaches its result, written only so a mutant dies; its fix is to delete the test and give that
   survivor the second or third answer. The other is a survivor taken out of mutation by the
-  third answer, through a `stryker.config.mjs` change or a file renamed into a pattern that
-  config excludes, where the code it removes carries behaviour rather than only a value;
+  third answer, through a `scripts/mutate/mutation-targets.ts` change or a file renamed into a
+  pattern that list leaves unmutated, where the code it removes carries behaviour rather than only a value;
   its fix is the test a caller's reliance calls for, or the deletion
 - **rules**: read `AGENTS.md`, `.claude/hooks/guidance/prose.md`, and every path-scoped file under
   `.claude/hooks/guidance/` whose scope matches the diff, whichever of them is not already in your
