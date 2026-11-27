@@ -191,6 +191,8 @@ describe(decideCommand, () => {
     'git status <<"E"OF\nx\nEOF\ncat .env\nE',
     "git status <<E''OF\nx\nEOF\ncat .env\nE",
     "git status <<E\\OF\nx\nEOF\ncat .env\nE",
+    "git status <<'A'; sed 1d <<B | sh\na\nA\ngit x <<'C'\ncat .env\nC\nB",
+    "git status <<'A' \\\n; sed 1d <<'B' | sh\na\nA\ngit x <<'C'\ncat .env\nC\nB",
   ])(
     "should refuse %j when the shell may not read the heredoc operator as one",
     (command) => {
@@ -273,6 +275,7 @@ describe(decideCommand, () => {
     "ls && git commit -F - <<'EOF'\nmentions .env\nEOF",
     "ls\ngit commit -F - <<'EOF'\nmentions .env\nEOF",
     "node <<'JS'\n// it's done\nJS\ngit commit -m 'mentions .env'",
+    "echo it\\'s; git commit -F - <<'EOF'\nmentions .env\nEOF",
   ])(
     "should allow %j when the git or gh command after an operator names the file in its prose",
     (command) => {

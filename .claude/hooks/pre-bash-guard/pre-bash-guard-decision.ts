@@ -173,6 +173,16 @@ const quotingOutline = (text: string): string =>
 const COMMENT_ON_LINE = /\s#[^\n]*$/u;
 
 /**
+ * Whether a line holds two `<<`, or ends in a backslash, which joins the next
+ * line to it. The shell may then read a body later than this guard does, so
+ * every body from such a line on is checked.
+ */
+const hasAmbiguousOperatorLine = (text: string): boolean =>
+  text
+    .split("\n")
+    .some((line) => line.split("<<").length > 2 || line.endsWith("\\"));
+
+/**
  * A delimiter word that goes on past its quotes, such as `'E'OF`, whose body
  * ends on a line other than the one this guard reads as its end.
  */
@@ -238,6 +248,7 @@ const bodyReading = (
       ));
   const isReadAsProse =
     !(quote === "" && EXPANDING_BODY.test(body)) &&
+    !hasAmbiguousOperatorLine(`${prefix}<<${tail}`) &&
     !DELIMITER_CONTINUES.test(tail) &&
     !COMMENT_ON_LINE.test(before) &&
     !NESTING.test(after) &&
