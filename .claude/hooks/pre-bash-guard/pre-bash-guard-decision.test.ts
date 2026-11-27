@@ -300,6 +300,31 @@ describe(decideCommand, () => {
     }
   );
 
+  it.each(
+    ["\v", "\f", "\r", "\u00A0"].flatMap((blank) => [
+      `git -C dir${blank}commit rebase --exec 'cat .env' HEAD^`,
+      `git notes${blank}add -m 'mentions .env'`,
+      `gh pr${blank}create --body 'mentions .env'`,
+      `git commit${blank}-m 'mentions .env'`,
+    ])
+  )(
+    "should refuse %j when a character the shell keeps inside a word stands where a blank would split it",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
+    "git -C dir\tcommit -m 'mentions .env'",
+    "\tgit\tnotes\tadd -m 'mentions .env'",
+    "gh\tpr\tcreate\t--body 'mentions .env'",
+  ])(
+    "should allow %j when tabs split the words of a message command",
+    (command) => {
+      expect(decideCommand(command)).toStrictEqual({ kind: "allow" });
+    }
+  );
+
   it.each([
     ...[
       "commit",

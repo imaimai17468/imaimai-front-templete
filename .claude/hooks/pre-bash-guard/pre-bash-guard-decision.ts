@@ -134,6 +134,16 @@ const GH_MESSAGE_SUBCOMMANDS = [
   ["release", "edit"],
 ];
 
+/**
+ * A blank the shell splits words at, a space or a tab. `\s` also takes in a
+ * vertical tab, a form feed, a carriage return and a no-break space, which the
+ * shell keeps inside a word.
+ */
+const SHELL_BLANK = /[ \t]/u.source;
+
+/** The end of a word: no character follows that the shell keeps in it. */
+const WORD_END = /(?![^ \t])/u.source;
+
 /** The `u` flag, read off a literal so the patterns built from sources carry it as the literals here do. */
 const UNICODE_FLAG = /(?:)/u.flags;
 
@@ -143,24 +153,24 @@ const alternation = (sources: readonly string[]): string =>
 const subcommandAlternation = (
   subcommands: readonly (readonly string[])[]
 ): string =>
-  alternation(subcommands.map((words) => words.join(String.raw`\s+`)));
+  alternation(subcommands.map((words) => words.join(`${SHELL_BLANK}+`)));
 
 /**
  * A simple command running a `git` subcommand that takes a message, with the
  * global options before the subcommand in the first group. A global option is
- * one git documents, and its value a literal word, so the subcommand this
- * finds is the one git runs.
+ * one git documents, and its value a literal word, and only a space or a tab
+ * separates two words, so the subcommand this finds is the one git runs.
  */
 const GIT_MESSAGE_COMMAND = new RegExp(
-  String.raw`^\s*git((?:\s+${alternation([
+  String.raw`^${SHELL_BLANK}*git((?:${SHELL_BLANK}+${alternation([
     ...GIT_GLOBAL_FLAGS,
     ...GIT_GLOBAL_OPTIONS_WITH_VALUE.map(
-      (name) => String.raw`${name}\s+${LITERAL_WORD}`
+      (name) => `${name}${SHELL_BLANK}+${LITERAL_WORD}`
     ),
     ...GIT_GLOBAL_OPTIONS_WITH_JOINED_VALUE.map(
       (name) => `${name}=${LITERAL_WORD}`
     ),
-  ])})*)\s+${subcommandAlternation(GIT_MESSAGE_SUBCOMMANDS)}(?!\S)`,
+  ])})*)${SHELL_BLANK}+${subcommandAlternation(GIT_MESSAGE_SUBCOMMANDS)}${WORD_END}`,
   UNICODE_FLAG
 );
 
@@ -169,7 +179,7 @@ const GIT_MESSAGE_COMMAND = new RegExp(
  * no global options, so its first group is always empty.
  */
 const GH_MESSAGE_COMMAND = new RegExp(
-  String.raw`^\s*gh()\s+${subcommandAlternation(GH_MESSAGE_SUBCOMMANDS)}(?!\S)`,
+  `^${SHELL_BLANK}*gh()${SHELL_BLANK}+${subcommandAlternation(GH_MESSAGE_SUBCOMMANDS)}${WORD_END}`,
   UNICODE_FLAG
 );
 
