@@ -179,49 +179,50 @@ const layerBoundaries = {
       return {};
     }
 
-    const checkImportSource = (node) => {
-      const { source } = node;
-      if (!source || typeof source.value !== "string") {
-        return;
-      }
+    const findViolationMessage = (specifier) => {
       const externalViolation = rules.externals?.find(
         (ban) =>
-          source.value === ban.source ||
-          source.value.startsWith(`${ban.source}/`)
+          specifier === ban.source || specifier.startsWith(`${ban.source}/`)
       );
       if (externalViolation !== undefined) {
-        context.report({ message: externalViolation.message, node });
-        return;
+        return externalViolation.message;
       }
-      const target = resolveImportTarget(fileSrcDir, source.value);
+      const target = resolveImportTarget(fileSrcDir, specifier);
       if (target === null) {
-        return;
+        return null;
       }
       const pathViolation = rules.paths?.find(
         (ban) => target === ban.target || target.startsWith(`${ban.target}/`)
       );
       if (pathViolation !== undefined) {
-        context.report({ message: pathViolation.message, node });
-        return;
+        return pathViolation.message;
       }
       const targetLayer = layerOf(target);
       const layerViolation = rules.layers?.find(
         (ban) => ban.layer === targetLayer
       );
       if (layerViolation !== undefined) {
-        context.report({ message: layerViolation.message, node });
-        return;
+        return layerViolation.message;
       }
       const owner = privateOwnerOf(target);
-      if (owner !== null && !mayReadPrivate(srcPath, owner)) {
-        const scope =
-          owner === ROUTES_ROOT
-            ? `the route files directly in \`${owner}/\``
-            : `\`${owner}/\``;
-        context.report({
-          message: `A \`-\` directory is private to ${scope}. A second route reaching this module makes it shared, so move it to \`src/shared/\`.`,
-          node,
-        });
+      if (owner === null || mayReadPrivate(srcPath, owner)) {
+        return null;
+      }
+      const scope =
+        owner === ROUTES_ROOT
+          ? `the route files directly in \`${owner}/\``
+          : `\`${owner}/\``;
+      return `A \`-\` directory is private to ${scope}. A second route reaching this module makes it shared, so move it to \`src/shared/\`.`;
+    };
+
+    const checkImportSource = (node) => {
+      const { source } = node;
+      if (!source || typeof source.value !== "string") {
+        return;
+      }
+      const message = findViolationMessage(source.value);
+      if (message !== null) {
+        context.report({ message, node });
       }
     };
 

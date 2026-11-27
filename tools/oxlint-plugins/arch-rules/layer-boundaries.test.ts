@@ -33,33 +33,6 @@ describe("layer-boundaries", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it.each(["void/db", "void/storage", "void/env", "@schema", "@schema/users"])(
-    "should report when a route imports %s",
-    (specifier) => {
-      // Arrange
-      const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
-      const visitors = rule.create(context);
-
-      // Act
-      visitors.ImportDeclaration?.(importNode(specifier));
-
-      // Assert
-      expect(context.report).toHaveBeenCalledOnce();
-    }
-  );
-
-  it("should report when a route imports the session adapter", () => {
-    // Arrange
-    const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
-    const visitors = rule.create(context);
-
-    // Act
-    visitors.ImportDeclaration?.(importNode("@/lib/auth/session"));
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
   it("should report when a route imports a module inside the session directory", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/login/route.tsx");
@@ -67,32 +40,6 @@ describe("layer-boundaries", () => {
 
     // Act
     visitors.ImportDeclaration?.(importNode("@/lib/auth/session/caller"));
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should report when a route imports Cloudflare Workers directly", () => {
-    // Arrange
-    const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
-    const visitors = rule.create(context);
-
-    // Act
-    visitors.ImportDeclaration?.(importNode("cloudflare:workers"));
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
-
-  it("should report when a route imports getRequest from TanStack Start", () => {
-    // Arrange
-    const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
-    const visitors = rule.create(context);
-
-    // Act
-    visitors.ImportDeclaration?.(
-      importNode("@tanstack/react-start/server", ["getRequest"])
-    );
 
     // Assert
     expect(context.report).toHaveBeenCalledOnce();
@@ -254,6 +201,18 @@ describe("layer-boundaries", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
+  it("should not report when a gateway imports a package whose subpath names a role directory", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/shared/gateway/user/index.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@react-email/components"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
   it.each([
     "/repo/src/shared/entities/user/index.ts",
     "/repo/src/routes/login/-entities/plan.ts",
@@ -305,7 +264,7 @@ describe("layer-boundaries", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it.each(["void/db", "void/storage", "void/env", "@schema"])(
+  it.each(["void/storage", "void/env", "@schema"])(
     "should report when an entity imports %s",
     (specifier) => {
       // Arrange
@@ -321,18 +280,6 @@ describe("layer-boundaries", () => {
       expect(context.report).toHaveBeenCalledOnce();
     }
   );
-
-  it("should report when an entity imports a route", () => {
-    // Arrange
-    const context = makeLayerContext("/repo/src/shared/entities/user/index.ts");
-    const visitors = rule.create(context);
-
-    // Act
-    visitors.ImportDeclaration?.(importNode("@/routes/login/route"));
-
-    // Assert
-    expect(context.report).toHaveBeenCalledOnce();
-  });
 
   it("should report when an entity imports a component", () => {
     // Arrange
@@ -446,6 +393,18 @@ describe("layer-boundaries", () => {
 
     // Act
     visitors.ImportDeclaration?.(importNode("@/lib/auth/session.helpers"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a route imports a module under a directory whose name ends in the coverage suffix", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/auth/session.entry/caller"));
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
@@ -597,6 +556,34 @@ describe("layer-boundaries", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
+  it("should not report when a route imports a dash-prefixed file of another route", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/login/route.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/routes/api/-avatar-limits"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a nested route imports its parent route's private directory", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/routes/_authed/profile/settings/route.tsx"
+    );
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(
+      importNode("@/routes/_authed/profile/-components/profile-page")
+    );
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
   it("should not report when a route imports a sibling route via relative path", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/login/route.tsx");
@@ -715,4 +702,115 @@ describe("layer-boundaries", () => {
     // Assert
     expect(context.report).not.toHaveBeenCalled();
   });
+
+  const ROUTE = "/repo/src/routes/api/avatars.ts";
+  const COMPONENT = "/repo/src/shared/components/header/header.tsx";
+  const ADAPTER = "/repo/src/lib/storage/r2.ts";
+  const ENTITY = "/repo/src/shared/entities/user/index.ts";
+  const GATEWAY = "/repo/src/shared/gateway/user/index.ts";
+  const PERSISTENCE =
+    "Routes and components must not touch persistence. D1, R2 and the schema are owned by gateways.";
+  const ENTITY_RESOURCE =
+    "Entities import nothing from the layers above. D1, R2, the schema and the Worker's secrets belong to gateways.";
+  const SESSION =
+    "Routes and components must not resolve request authentication. Delegate to a gateway.";
+
+  it.each([
+    { filename: ROUTE, message: SESSION, specifier: "@/lib/auth/session" },
+    { filename: COMPONENT, message: SESSION, specifier: "@/lib/auth/session" },
+    { filename: ROUTE, message: PERSISTENCE, specifier: "void/db" },
+    { filename: ROUTE, message: PERSISTENCE, specifier: "void/storage" },
+    { filename: ROUTE, message: PERSISTENCE, specifier: "@schema" },
+    { filename: ROUTE, message: PERSISTENCE, specifier: "@schema/users" },
+    {
+      filename: ROUTE,
+      message:
+        "Routes and components must not read the Worker's secrets. Delegate to a gateway.",
+      specifier: "void/env",
+    },
+    {
+      filename: ROUTE,
+      message:
+        "Routes and components must not access Cloudflare bindings directly. Delegate to a gateway.",
+      specifier: "cloudflare:workers",
+    },
+    {
+      filename: ROUTE,
+      message:
+        "Routes and components must not resolve request context directly. Delegate to a gateway.",
+      specifier: "@tanstack/react-start/server",
+    },
+    {
+      filename: ADAPTER,
+      message:
+        "Adapters must not import routes. src/lib is read by the layers above it.",
+      specifier: "@/routes/login/route",
+    },
+    {
+      filename: ADAPTER,
+      message:
+        "Adapters must not import gateways. A gateway reaches src/lib, never the reverse.",
+      specifier: "@/shared/gateway/user",
+    },
+    {
+      filename: ADAPTER,
+      message: "Adapters never import components.",
+      specifier: "@/shared/components/header/header",
+    },
+    { filename: ENTITY, message: ENTITY_RESOURCE, specifier: "void/db" },
+    {
+      filename: ENTITY,
+      message:
+        "Entities import nothing from the layers above. Routes are above entities.",
+      specifier: "@/routes/login/route",
+    },
+    {
+      filename: ENTITY,
+      message:
+        "Entities import nothing from the layers above. Gateways are above entities.",
+      specifier: "@/shared/gateway/user",
+    },
+    {
+      filename: ENTITY,
+      message:
+        "Entities import nothing from the layers above. A component reads entities, never the reverse.",
+      specifier: "@/shared/components/header/header",
+    },
+    {
+      filename: ENTITY,
+      message:
+        "Entities import nothing from the layers above. A src/lib adapter reads entities, never the reverse.",
+      specifier: "@/lib/memoize-value",
+    },
+    {
+      filename: GATEWAY,
+      message: "Gateways must not import routes. Imports flow downward only.",
+      specifier: "@/routes/login/route",
+    },
+    {
+      filename: GATEWAY,
+      message: "Gateways never import components.",
+      specifier: "@/shared/ui/button",
+    },
+    {
+      filename: "/repo/src/routes/login/route.tsx",
+      message:
+        "A `-` directory is private to `src/routes/index/`. A second route reaching this module makes it shared, so move it to `src/shared/`.",
+      specifier: "@/routes/index/-components/code-block/code-block",
+    },
+  ])(
+    "should report on the import the reason its ban gives when $filename imports $specifier",
+    ({ filename, message, specifier }) => {
+      // Arrange
+      const context = makeLayerContext(filename);
+      const visitors = rule.create(context);
+      const node = importNode(specifier);
+
+      // Act
+      visitors.ImportDeclaration?.(node);
+
+      // Assert
+      expect(context.report).toHaveBeenCalledExactlyOnceWith({ message, node });
+    }
+  );
 });
