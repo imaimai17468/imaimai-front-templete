@@ -220,7 +220,7 @@ jobs:
         uses: ./.github/actions/setup
 
       # Boots the dev server on an empty local D1 and R2, which applies the D1
-      # migrations, requests the routes scripts/smoke/smoke.ts names, and sends
+      # migrations, requests the routes scripts/smoke/smoke.expected.ts names, and sends
       # its sign-in burst. It reads no Cloudflare account.
       - name: Boot the app and request its routes (smoke)
         run: bun run smoke

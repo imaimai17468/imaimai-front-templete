@@ -7,9 +7,17 @@
  * ```
  *
  * Exits non-zero when any rule, agent, or skill frontmatter fails to parse,
- * which `claude-frontmatter.ts` decides and prints.
+ * which `claude-frontmatter.ts` decides.
  */
 
-import { main } from "./claude-frontmatter.ts";
+import {
+  frontmatterOutcome,
+  frontmatterReport,
+  frontmatterRoot,
+} from "./claude-frontmatter.ts";
 
-process.exit(main(process.argv.slice(2)));
+const { exitCode, text } = frontmatterOutcome(
+  frontmatterReport(frontmatterRoot(process.argv.slice(2)))
+);
+console.log(text);
+process.exit(exitCode);

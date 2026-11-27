@@ -1,6 +1,7 @@
 /**
- * What the smoke run asks of each route and how it reports the answer.
- * `smoke.entry.ts` holds the process and network side.
+ * How the smoke run judges each route's answer and reports it.
+ * `smoke.expected.ts` holds the routes it requests and what each must answer, and
+ * `smoke.entry.ts` the process and network side.
  */
 
 import { stripVTControlCharacters } from "node:util";
@@ -24,72 +25,10 @@ export interface Route {
 }
 
 /**
- * What the root route's `headers()` has to put on a rendered document.
- *
- * Written out here rather than imported from `src/`, so a change to the
- * application's record has to be made on this side too and cannot drop a
- * header silently.
- */
-// fallow-ignore-next-line code-duplication
-export const EXPECTED_DOCUMENT_HEADERS = {
-  "Cache-Control": "private, no-store",
-  "Content-Security-Policy": "frame-ancestors 'none'",
-  "Cross-Origin-Opener-Policy": "same-origin",
-  "Referrer-Policy": "strict-origin-when-cross-origin",
-  "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "DENY",
-} satisfies Record<string, string>;
-
-/** What the smoke run requests, and what each route's answer must hold. */
-export const ROUTES: readonly Route[] = [
-  {
-    headers: EXPECTED_DOCUMENT_HEADERS,
-    location: null,
-    marker: "docs/FORKING.md",
-    path: "/",
-    status: 200,
-  },
-  {
-    headers: EXPECTED_DOCUMENT_HEADERS,
-    location: null,
-    marker: "Sign in With Google",
-    path: "/login",
-    status: 200,
-  },
-  {
-    headers: EXPECTED_DOCUMENT_HEADERS,
-    location: null,
-    marker: "Sign-in failed",
-    path: "/login?error=access_denied",
-    status: 200,
-  },
-  // A build that stops copying `public/` answers 404 here while every
-  // rendered route still passes.
-  {
-    headers: {},
-    location: null,
-    marker: null,
-    path: "/favicon.svg",
-    status: 200,
-  },
-  // Signed out, so the profile route's guard answers with its redirect rather
-  // than a page. Nothing else here runs that guard. The framework returns that
-  // redirect before it collects the route's headers, so this row names none.
-  {
-    headers: {},
-    location: "/login",
-    marker: null,
-    path: "/profile",
-    status: 307,
-  },
-];
-
-/**
  * The sign-in burst the run sends from one address after the routes.
  * better-auth limits `/sign-in` paths to three requests per ten seconds unless
  * `rateLimit.customRules` says otherwise. Written out here rather than read
- * from `src/`, as the document headers are, so a change to the limit has to be
- * made on this side too.
+ * from `src/`, so a change to the limit has to be made on this side too.
  */
 export const SIGN_IN_BURST = {
   allowed: 3,
@@ -152,7 +91,10 @@ export const missingHeaders = (
  * Chrome refuses and answers with an error page.
  */
 export const repeatedChunking = (headers: Headers): readonly string[] => {
-  const encoding = headers.get("transfer-encoding") ?? "";
+  const encoding = headers.get("transfer-encoding");
+  if (encoding === null) {
+    return [];
+  }
   const chunkings = encoding
     .split(",")
     .filter((coding) => coding.trim().toLowerCase() === "chunked");
@@ -182,13 +124,12 @@ export const missedBy = (
 export const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-const READY_LINE = /Local:\s+(?<url>http:\/\/\S+)$/mu;
+const READY_LINE = /Local:\s+(?<url>http:\/\/\S+)/u;
 
 /**
  * The address the dev server prints once it listens, or null while the text
- * holds no such line. Matching to end of line keeps a URL that a stdout chunk
- * cut in half from being read as the whole address, and the terminal colors
- * come off first because they sit between the URL and the line's end.
+ * holds no such line. The terminal colors come off first, because the pattern
+ * would read their escape codes as part of the address.
  */
 export const readyUrlIn = (lines: string): string | null =>
   READY_LINE.exec(stripVTControlCharacters(lines))?.groups?.url ?? null;
@@ -210,7 +151,7 @@ export const report = (result: RouteResult): string => {
 };
 
 const decodeLocalD1Record = Schema.decodeUnknownOption(
-  Schema.fromJsonString(Schema.Struct({ persistRoot: Schema.String }))
+  Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown))
 );
 
 /**
@@ -220,5 +161,5 @@ const decodeLocalD1Record = Schema.decodeUnknownOption(
  */
 export const pointsAt = (recordText: string, dir: string): boolean =>
   decodeLocalD1Record(recordText).pipe(
-    Option.exists(({ persistRoot }) => persistRoot === dir)
+    Option.exists((record) => record.persistRoot === dir)
   );

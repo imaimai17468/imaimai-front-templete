@@ -22,6 +22,10 @@ describe(mutationTargets, () => {
       ".github/scripts/mutation-gate/mutation-gate.test.ts",
     ],
     ["page copy", "src/routes/index/-components/home-page.content.ts"],
+    [
+      "what a check expects of the running app",
+      "scripts/smoke/smoke.expected.ts",
+    ],
     ["a component", "src/routes/index/-components/home-page.tsx"],
     ["a command's entry", "scripts/smoke/smoke.entry.ts"],
     ["a generated file", "src/routeTree.gen.ts"],

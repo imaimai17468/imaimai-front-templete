@@ -6,17 +6,21 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import {
-  Effect,
-  Predicate,
-  Result,
-  Schema,
-  SchemaTransformation,
-} from "effect";
+import { Effect, Predicate, Result, Schema } from "effect";
 import { parse } from "yaml";
 import { HOOK_EVENTS } from "../../.claude/hooks/scoped-guidance/scoped-guidance-decision.ts";
 
 const REPO = path.resolve(import.meta.dirname, "../..");
+
+/** The tree the check reads: the one `argv` names, or this repository. */
+export const frontmatterRoot = (argv: readonly string[]): string =>
+  path.resolve(argv[0] ?? REPO);
+
+/**
+ * Reads a file as UTF-8 with any byte order mark left in place, so a file
+ * whose frontmatter a byte order mark pushes off the first line is reported.
+ */
+const UTF8_KEEPING_BOM = new TextDecoder("utf-8", { ignoreBOM: true });
 
 const FRONTMATTER = /^---\r?\n(?<body>[\s\S]*?)\r?\n---/u;
 
@@ -99,19 +103,13 @@ const GUIDANCE_DIR = ".claude/hooks/guidance/";
 const TriggerList = Schema.Union([
   Schema.String,
   Schema.Array(Schema.String),
-]).pipe(
-  Schema.decodeTo(
-    Schema.Array(Schema.String),
-    SchemaTransformation.transform({
-      decode: (list): readonly string[] =>
-        (Predicate.isString(list) ? list.split(",") : list).flatMap((item) =>
-          item.trim() === "" ? [] : [item.trim()]
-        ),
-      encode: (items) => items,
-    })
-  ),
-  Schema.withDecodingDefault(Effect.succeed([]))
-);
+]).pipe(Schema.withDecodingDefault(Effect.succeed([])));
+
+/** The triggers a frontmatter field names, as a list or one comma-joined string. */
+const triggersIn = (field: string | readonly string[]): readonly string[] =>
+  (Predicate.isString(field) ? field.split(",") : field).flatMap((item) =>
+    item.trim() === "" ? [] : [item.trim()]
+  );
 
 const decodeGuidanceTriggers = Schema.decodeUnknownResult(
   Schema.Struct({
@@ -132,14 +130,18 @@ export const guidanceTriggerProblem = (data: unknown): string | undefined => {
   if (Result.isFailure(triggers)) {
     return "paths, commands and events must each be a string or a list of strings";
   }
-  const { commands, events, paths } = triggers.success;
+  const commands = triggersIn(triggers.success.commands);
+  const events = triggersIn(triggers.success.events);
+  const paths = triggersIn(triggers.success.paths);
   const unanswered = events.filter(
     (event) => !HOOK_EVENTS.some((answered) => answered === event)
   );
   if (unanswered.length > 0) {
     return `events names ${unanswered.join(", ")}, which scoped-guidance.sh does not answer (${HOOK_EVENTS.join(", ")})`;
   }
-  if (commands.length + events.length + paths.length === 0) {
+  if (
+    [commands, events, paths].every((triggerList) => triggerList.length === 0)
+  ) {
     return "names no trigger: give it paths, commands or events";
   }
   return undefined;
@@ -164,25 +166,43 @@ export const frontmatterReport = (root: string): FrontmatterReport => {
   const files = frontmatterFiles(root);
   const problems = files.flatMap((entry) => {
     const absolute = path.join(root, entry);
-    const detail = problemFor(entry, fs.readFileSync(absolute, "utf-8"));
+    const content = UTF8_KEEPING_BOM.decode(fs.readFileSync(absolute));
+    const detail = problemFor(entry, content);
     return detail === undefined ? [] : [{ detail, entry }];
   });
   return { files, problems };
 };
 
-export const main = (argv: readonly string[]): number => {
-  const { files, problems } = frontmatterReport(path.resolve(argv[0] ?? REPO));
+export interface FrontmatterOutcome {
+  readonly exitCode: 0 | 1;
+  readonly text: string;
+}
+
+/**
+ * What the check prints for `report`, and the code it exits with. A tree with
+ * no file to read fails, because a root that holds no `.claude` tree would
+ * otherwise pass having checked nothing.
+ */
+export const frontmatterOutcome = ({
+  files,
+  problems,
+}: FrontmatterReport): FrontmatterOutcome => {
+  if (files.length === 0) {
+    return {
+      exitCode: 1,
+      text: "Claude frontmatter: no rule, agent or skill file under the checked tree",
+    };
+  }
   if (problems.length > 0) {
-    console.log(
-      [
+    return {
+      exitCode: 1,
+      text: [
         `Claude frontmatter problems: ${problems.length}`,
         ...problems.map(({ detail, entry }) => `  ${entry}: ${detail}`),
         "",
         "Quote description values that contain ': ' or wrap them in a block scalar, and give each guidance file a trigger scoped-guidance.sh answers.",
-      ].join("\n")
-    );
-    return 1;
+      ].join("\n"),
+    };
   }
-  console.log(`claude frontmatter ok (${files.length} files)`);
-  return 0;
+  return { exitCode: 0, text: `claude frontmatter ok (${files.length} files)` };
 };

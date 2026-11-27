@@ -107,7 +107,10 @@ export const planRename = (
   files: readonly TrackedFile[],
   worktree: WorktreeState
 ): RenamePlan => {
-  if (!Array.isReadonlyArrayNonEmpty(argv) || argv.length > 1) {
+  if (
+    !Array.isReadonlyArrayNonEmpty(argv) ||
+    Array.isReadonlyArrayNonEmpty(Array.tailNonEmpty(argv))
+  ) {
     return { kind: "rejected", reason: "usage: bun run rename-project <name>" };
   }
   if (worktree === "dirty") {
