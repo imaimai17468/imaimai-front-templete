@@ -54,7 +54,6 @@ export const readUserRow = (
       .select()
       .from(users)
       .where(eq(users.id, userId))
-      .limit(1)
       .then(([row]) => Option.fromNullishOr(row))
   );
 
