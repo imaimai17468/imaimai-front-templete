@@ -106,7 +106,7 @@ describe(decideCommand, () => {
     "git status\ncat .env",
     "node <<'JS'\nrequire('fs').readFileSync('.env')\nJS",
     "git commit --allow-empty -F - <<EOF\nEOF\nnode -e \"require('fs').readFileSync('.env')\"\nEOF",
-    "git log <<<EOF\nnode -e \"require('fs').readFileSync('.env')\"\nEOF",
+    "git commit -F - <<<EOF\nnode -e \"require('fs').readFileSync('.env')\"\nEOF",
     "git commit -F - <<'EOF' && cat .env\nbody\nEOF",
     "git commit -F - <<'EOF'\nfirst\nEOF\ncat .env\ngit tag -F - <<'EOF'\nsecond\nEOF",
     "git commit -F - <<'EOF'\nmsg\nEOF\nnode <<'JS'\nrequire('fs').readFileSync('.env')\nJS",
@@ -187,12 +187,12 @@ describe(decideCommand, () => {
     "git commit -m x # <<EOF\ncat .env\nEOF",
     "git commit -m x #<<EOF\ncat .env\nEOF",
     "git commit -F - <<'EOF' $(true\ncat .env\nEOF\n)\nbody\nEOF",
-    "git status <<'E'OF\nx\nEOF\ncat .env\nE",
-    'git status <<"E"OF\nx\nEOF\ncat .env\nE',
-    "git status <<E''OF\nx\nEOF\ncat .env\nE",
-    "git status <<E\\OF\nx\nEOF\ncat .env\nE",
-    "git status <<'A'; sed 1d <<B | sh\na\nA\ngit x <<'C'\ncat .env\nC\nB",
-    "git status <<'A' \\\n; sed 1d <<'B' | sh\na\nA\ngit x <<'C'\ncat .env\nC\nB",
+    "git commit -F - <<'E'OF\nx\nEOF\ncat .env\nE",
+    'git commit -F - <<"E"OF\nx\nEOF\ncat .env\nE',
+    "git commit -F - <<E''OF\nx\nEOF\ncat .env\nE",
+    "git commit -F - <<E\\OF\nx\nEOF\ncat .env\nE",
+    "git status <<'A'; sed 1d <<B | sh\na\nA\ngit commit -F - <<'C'\ncat .env\nC\nB",
+    "git status <<'A' \\\n; sed 1d <<'B' | sh\na\nA\ngit commit -F - <<'C'\ncat .env\nC\nB",
   ])(
     "should refuse %j when the shell may not read the heredoc operator as one",
     (command) => {
@@ -217,6 +217,171 @@ describe(decideCommand, () => {
     "should refuse %j when it finds no line ending the heredoc that names the file",
     (command) => {
       expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
+    "git rebase --exec 'cat .env' HEAD~1",
+    "git -c alias.r='!sh' r <<'EOF'\ncat .env\nEOF",
+    "{ true; git stripspace <<'EOF'\nrequire('fs').readFileSync('.env')\nEOF\n} | node",
+    "git push 'mentions .env'",
+    "git revert -m 1 'mentions .env'",
+    "git notes <<'EOF'\nmentions .env\nEOF",
+    "gh api repos/o/r/issues -F body=@- <<'EOF'\nmentions .env\nEOF",
+    "gh api repos/o/r/issues -f body='mentions .env'",
+    "gh release create v1 --notes 'mentions .env'",
+    "cat <<'EOF' | gh api repos/o/r/issues -F body=@-\nmentions .env\nEOF",
+    "git 'commit' -m 'mentions .env'",
+    "git commitx -m 'mentions .env'",
+    "git commitx<<'EOF'\nmentions .env\nEOF",
+    "git commit>x -m 'mentions .env'",
+    "git stash list 'mentions .env'",
+    "gh pr view --comments 'mentions .env'",
+    "gh issue view 'mentions .env'",
+  ])(
+    "should refuse %j when the git or gh subcommand that names the file in quotes takes no message",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
+    "cat <<'EOF' || git commit -F -\nmentions .env\nEOF",
+    "cat <<'EOF' git commit -F - && git push\nmentions .env\nEOF",
+    "git commit -F - <<'EOF' && git push 'mentions .env'\nbody\nEOF",
+    "cat <<'EOF' x | git commit -F -\nmentions .env\nEOF",
+  ])(
+    "should refuse %j when the git command after the heredoc's own takes no message",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
+    "git commit -F - <<'EOF' && ls\nmentions .env\nEOF",
+    "git commit -F - <<'EOF' && echo git\nmentions .env\nEOF",
+    "git commit -F - <<'EOF' && gitk\nmentions .env\nEOF",
+  ])(
+    "should refuse %j when the body a message command reads lands in a command other than git or gh",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
+    "git -c 'core.editor=cat .env' commit",
+    String.raw`git -c core.editor="cat .env" commit -m x`,
+    "git -c 'alias.x=!cat .env' tag -m 'a b'",
+    "git --work-tree='a .env' commit -m x",
+  ])(
+    "should refuse %j when a global option before the message subcommand names the file",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
+    "git -C 2>x commit -c 'alias.r=!cat .env' r",
+    "git -C $DIR rebase -m 'mentions .env'",
+    "git -C {a,b} commit -m 'mentions .env'",
+    "git -C d* commit -m 'mentions .env'",
+    "git -c \"x=$y\" commit -m 'mentions .env'",
+    "git --git-dir .git commit -m 'mentions .env'",
+    "git --exec-path=/x commit -m 'mentions .env'",
+    "git -pX commit -m 'mentions .env'",
+    "git -C commit -m 'mentions .env'",
+    "gh -R o/r pr create --body 'mentions .env'",
+    "git -c 'unclosed commit -m 'mentions .env'",
+    "git -c 'a=b' rebase 'x' commit --exec 'cat .env'",
+  ])(
+    "should refuse %j when this guard cannot read the global options before the subcommand",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
+    ...[
+      "commit",
+      "tag",
+      "merge",
+      "notes add",
+      "notes append",
+      "stash push",
+    ].map((subcommand) => `git ${subcommand} -m 'mentions .env'`),
+    ...[
+      "pr create",
+      "pr edit",
+      "pr comment",
+      "pr review",
+      "pr merge",
+      "pr close",
+      "pr reopen",
+      "issue create",
+      "issue edit",
+      "issue comment",
+      "issue close",
+      "issue reopen",
+      "release edit v1",
+    ].map((subcommand) => `gh ${subcommand} --body 'mentions .env'`),
+    "git notes  add -m 'mentions .env'",
+    "gh  pr  create --title x --body 'mentions .env'",
+  ])(
+    "should allow %j when a subcommand that takes a message names the file in its prose",
+    (command) => {
+      expect(decideCommand(command)).toStrictEqual({ kind: "allow" });
+    }
+  );
+
+  it.each([
+    ...[
+      "-p",
+      "--paginate",
+      "-P",
+      "--no-pager",
+      "--bare",
+      "--no-replace-objects",
+      "--no-lazy-fetch",
+      "--no-optional-locks",
+      "--no-advice",
+      "--literal-pathspecs",
+      "--glob-pathspecs",
+      "--noglob-pathspecs",
+      "--icase-pathspecs",
+      "-C dir",
+      "-c user.name=x",
+      "-c 'user.name=a b'",
+      '-c "user.name=a b"',
+      "-C ~/a_b%c+d,e/f:g@h-i",
+      "-C ''",
+      '-C ""',
+      "--git-dir=.git",
+      "--work-tree=.",
+      "--namespace=x",
+      "--config-env=user.name=NAME",
+      "--attr-source=HEAD",
+      "-C dir --no-pager -c user.name=x",
+    ].map((options) => `git ${options} commit -m 'mentions .env'`),
+    "git -c user.name=x commit -F - <<'EOF'\nmentions .env\nEOF",
+    "cat <<'EOF' | git -C dir commit -F -\nmentions .env\nEOF",
+  ])(
+    "should allow %j when the message subcommand follows global options git documents",
+    (command) => {
+      expect(decideCommand(command)).toStrictEqual({ kind: "allow" });
+    }
+  );
+
+  it.each([
+    "gh pr edit 12 --body-file - <<'EOF'\nmentions .env\nEOF",
+    "gh pr comment 12 --body 'mentions .env'",
+    "gh issue create --title x --body 'mentions .env'",
+    "gh issue comment 12 --body 'mentions .env'",
+    "gh pr create --title 'mentions .env' --body 'a b'",
+    "git commit -F - <<'EOF' && git push -u origin x\nmentions .env\nEOF",
+  ])(
+    "should allow %j when it is a form this repository's workflow uses",
+    (command) => {
+      expect(decideCommand(command)).toStrictEqual({ kind: "allow" });
     }
   );
 
@@ -255,7 +420,7 @@ describe(decideCommand, () => {
     "git commit -m $'a b' -m 'mentions .env'",
     String.raw`git commit -m 'C:\' -m 'mentions .env'`,
   ])(
-    "should allow %j when it names the file in the prose of a git or gh command",
+    "should allow %j when it names the file in the prose of a message command",
     (command) => {
       expect(decideCommand(command)).toStrictEqual({ kind: "allow" });
     }
@@ -277,7 +442,7 @@ describe(decideCommand, () => {
     "node <<'JS'\n// it's done\nJS\ngit commit -m 'mentions .env'",
     "echo it\\'s; git commit -F - <<'EOF'\nmentions .env\nEOF",
   ])(
-    "should allow %j when the git or gh command after an operator names the file in its prose",
+    "should allow %j when the message command after an operator names the file in its prose",
     (command) => {
       expect(decideCommand(command)).toStrictEqual({ kind: "allow" });
     }
