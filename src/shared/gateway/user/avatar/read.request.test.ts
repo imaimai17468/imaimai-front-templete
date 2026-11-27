@@ -66,6 +66,24 @@ layer(LocalBindings.layer, { timeout: 30_000 })(
         })
     );
 
+    it.effect(
+      "should answer the caller's HEAD for their own avatar with a GET's status and headers and no body",
+      () =>
+        Effect.gen(function* () {
+          const { within } = yield* LocalBindings;
+
+          const response = yield* within(
+            servedOwnAvatar("head-viewer@example.com", "HEAD")
+          );
+
+          expect(response).toStrictEqual({
+            body: [],
+            contentType: "image/png",
+            status: 200,
+          });
+        })
+    );
+
     it.effect("should answer 401 when the request carries no cookie", () =>
       Effect.gen(function* () {
         const { within } = yield* LocalBindings;
