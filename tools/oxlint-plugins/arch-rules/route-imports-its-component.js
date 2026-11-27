@@ -9,7 +9,7 @@ const wrapperName = (callee) => {
     return callee.name;
   }
   if (callee?.type === "MemberExpression") {
-    return callee.property?.name;
+    return callee.property.name;
   }
   return null;
 };
@@ -31,7 +31,7 @@ const isFunctionInit = (init) => {
     init?.type === "CallExpression" &&
     COMPONENT_WRAPPERS.has(wrapperName(init.callee))
   ) {
-    return isFunctionInit(init.arguments?.[0]);
+    return isFunctionInit(init.arguments[0]);
   }
   return false;
 };
@@ -65,9 +65,7 @@ const componentsDeclaredBy = (statement) => {
     return declaration.declarations
       .filter(
         (declarator) =>
-          declarator.id?.type === "Identifier" &&
-          isComponentName(declarator.id.name) &&
-          isFunctionInit(declarator.init)
+          isComponentName(declarator.id.name) && isFunctionInit(declarator.init)
       )
       .map((declarator) => declarator.id.name);
   }

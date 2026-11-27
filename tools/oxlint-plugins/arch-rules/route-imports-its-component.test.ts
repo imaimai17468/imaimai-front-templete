@@ -73,18 +73,25 @@ describe("route-imports-its-component", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it("should name the component and its destination when it reports a route file", () => {
+  it("should name the component and its destination on the declaring statement when it reports a route file", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/index/route.tsx");
     const visitors = rule.create(context);
+    const statement = arrowDeclaration("HomeComponent");
 
     // Act
-    visitors.Program?.(moduleBody(arrowDeclaration("HomeComponent")));
+    visitors.Program?.(moduleBody(statement));
 
     // Assert
-    expect(context.report.mock.calls[0]?.[0].message).toBe(
-      "A route file declares 'Route' and imports what it draws. Move 'HomeComponent' to a '-components/' directory beside this file and import it."
-    );
+    expect(context.report.mock.calls).toStrictEqual([
+      [
+        {
+          message:
+            "A route file declares 'Route' and imports what it draws. Move 'HomeComponent' to a '-components/' directory beside this file and import it.",
+          node: statement,
+        },
+      ],
+    ]);
   });
 
   it("should report when the root route file declares its layout", () => {
@@ -222,6 +229,38 @@ describe("route-imports-its-component", () => {
         { name: "memo", type: "Identifier" },
         { type: "Identifier" }
       ),
+    },
+    {
+      name: "should not report when a wrapper is constructed with new rather than called",
+      reports: 0,
+      statement: {
+        declarations: [
+          {
+            id: { name: "Page", type: "Identifier" },
+            init: {
+              arguments: [arrow],
+              callee: { name: "memo", type: "Identifier" },
+              type: "NewExpression",
+            },
+          },
+        ],
+        type: "VariableDeclaration",
+      },
+    },
+    {
+      name: "should not report when a component-named variable is declared without a value",
+      reports: 0,
+      statement: {
+        declarations: [
+          { id: { name: "Page", type: "Identifier" }, init: null },
+        ],
+        type: "VariableDeclaration",
+      },
+    },
+    {
+      name: "should not report when a lowercase name is bound to an arrow function",
+      reports: 0,
+      statement: arrowDeclaration("helper"),
     },
     {
       name: "should not report when a call that is not a component wrapper builds the value",
