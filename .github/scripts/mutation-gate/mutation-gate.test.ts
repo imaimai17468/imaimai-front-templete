@@ -149,6 +149,10 @@ describe(decideMutationGate, () => {
       text: '{"mutants":[{"file":"src/a.ts","mutator":"condition","status":"Survived"}]}',
       what: "has a mutant without a line",
     },
+    {
+      text: '{"mutants":[{"file":"src/a.ts","focus":{"replacement":42},"line":1,"mutator":"condition","status":"Survived"}]}',
+      what: "has a replacement that is not text",
+    },
   ])(
     "should report no-report with the decode error when the report $what",
     ({ text }) => {
