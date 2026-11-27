@@ -124,12 +124,19 @@ export const getAvatarResponse: (
 
 const runAvatarHandler = makeRunHandler(AvatarReader.layer);
 
+/** `response` with its body dropped when it answers a HEAD. */
+const answerForMethod = (method: string, response: Response): Response => {
+  if (method === "HEAD") {
+    return new Response("", response);
+  }
+  return response;
+};
+
 /**
- * Answers a request for an avatar object on behalf of the caller's session. It
- * takes the handler context the `/api/avatars` route passes, so the route
- * hands it over as is.
+ * Answers a request for an avatar object on behalf of the caller's session. A
+ * HEAD gets the status and headers a GET would, without the body.
  */
-export const serveAvatar = (handlerContext: {
-  readonly request: Request;
-}): Promise<Response> =>
-  runAvatarHandler(getAvatarResponse(handlerContext.request));
+export const serveAvatar = (request: Request): Promise<Response> =>
+  runAvatarHandler(getAvatarResponse(request)).then((response) =>
+    answerForMethod(request.method, response)
+  );

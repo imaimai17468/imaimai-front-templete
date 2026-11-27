@@ -19,14 +19,16 @@
   // Read by the react-doctor binary at startup, run by
   // .claude/hooks/scoped-guidance/scoped-guidance.sh and by the PreToolUse hook
   // .claude/settings.json registers for pre-bash-guard, and loaded by the void
-  // CLI and plugin (the config, the env schema, and the D1 schema the `@schema`
-  // alias names) and by Mootant as its config, none of which an import graph
-  // reaches.
+  // CLI and plugin (the config, the env schema, the D1 schema the `@schema`
+  // alias names, and the Worker entry `void.config.ts` names as
+  // `cloudflare.main`) and by Mootant as its config, none of which an import
+  // graph reaches.
   "dynamicallyLoaded": [
     "doctor.config.ts",
     ".claude/hooks/scoped-guidance/scoped-guidance.entry.ts",
     ".claude/hooks/pre-bash-guard/pre-bash-guard.entry.ts",
     "void.config.ts",
+    "src/server.entry.ts",
     "mootant.config.ts",
     "env.ts",
     "db/schema.ts",
