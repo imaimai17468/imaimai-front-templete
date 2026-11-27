@@ -32,4 +32,7 @@ if (command.kind === "nothing") {
 }
 
 const run = spawnSync("mootant", command.args, { cwd: root, stdio: "inherit" });
+if (run.error !== undefined) {
+  console.error(run.error.message);
+}
 process.exit(run.status ?? 1);

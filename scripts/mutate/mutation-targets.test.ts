@@ -27,6 +27,7 @@ describe(mutationTargets, () => {
     ["a generated file", "src/routeTree.gen.ts"],
     ["a test helper", "src/test/local-bindings.ts"],
     ["a file outside the measured roots", "db/schema.ts"],
+    ["a declaration file", "src/env.d.ts"],
   ])("should leave %s unmutated when the file is %s", (_label, file) => {
     expect(mutationTargets([file])).toStrictEqual([]);
   });
@@ -57,6 +58,47 @@ describe(mutateCommand, () => {
   it("should mutate every mutated tracked file and pass the flags through when the command passes flags alone", () => {
     expect(mutateCommand(["--json"], TRACKED)).toStrictEqual({
       args: ["run", "src/lib/utils.ts", "--json"],
+      kind: "run",
+    });
+  });
+
+  it.each([
+    ["apart", ["--since", "origin/main"]],
+    ["joined by =", ["--since=origin/main"]],
+  ])(
+    "should keep a flag's value with the flag when the value is written %s",
+    (_label, argv) => {
+      expect(mutateCommand(argv, TRACKED)).toStrictEqual({
+        args: ["run", "src/lib/utils.ts", "--since", "origin/main"],
+        kind: "run",
+      });
+    }
+  );
+
+  it("should mutate the mutated files under a directory when the command names the directory", () => {
+    expect(mutateCommand(["src/lib/"], TRACKED)).toStrictEqual({
+      args: ["run", "src/lib/utils.ts"],
+      kind: "run",
+    });
+  });
+
+  it("should leave out a file whose path only begins with the directory's name when the command names the directory", () => {
+    expect(
+      mutateCommand(["src/lib"], ["src/lib/utils.ts", "src/libs.ts"])
+    ).toStrictEqual({ args: ["run", "src/lib/utils.ts"], kind: "run" });
+  });
+
+  it("should mutate the one file under a directory when the directory holds one", () => {
+    expect(mutateCommand(["src/shared"], ["src/shared/only.ts"])).toStrictEqual(
+      { args: ["run", "src/shared/only.ts"], kind: "run" }
+    );
+  });
+
+  it("should pass every id through when the command names more than one mutant", () => {
+    expect(
+      mutateCommand(["--mutant", "abcd", "--mutant", "efgh"], TRACKED)
+    ).toStrictEqual({
+      args: ["run", "src/lib/utils.ts", "--mutant", "abcd", "--mutant", "efgh"],
       kind: "run",
     });
   });
