@@ -124,6 +124,12 @@ export const getAvatarResponse: (
 
 const runAvatarHandler = makeRunHandler(AvatarReader.layer);
 
-/** Answers a request for an avatar object on behalf of the caller's session. */
-export const serveAvatar = (request: Request): Promise<Response> =>
-  runAvatarHandler(getAvatarResponse(request));
+/**
+ * Answers a request for an avatar object on behalf of the caller's session. It
+ * takes the handler context the `/api/avatars` route passes, so the route
+ * hands it over as is.
+ */
+export const serveAvatar = (handlerContext: {
+  readonly request: Request;
+}): Promise<Response> =>
+  runAvatarHandler(getAvatarResponse(handlerContext.request));
