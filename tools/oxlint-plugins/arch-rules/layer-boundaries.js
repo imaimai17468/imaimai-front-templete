@@ -136,7 +136,7 @@ const ROUTES_ROOT = "src/routes";
  * the path holds none.
  *
  * The last segment is a module name rather than a directory, so a `-` file such
- * as `src/routes/api/-avatars.test.ts` owns nothing.
+ * as `src/routes/-response-headers.ts` owns nothing.
  */
 const privateOwnerOf = (srcPath) => {
   const segments = srcPath.split("/");
