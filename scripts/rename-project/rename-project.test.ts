@@ -49,6 +49,17 @@ describe(planRename, () => {
     ]);
   });
 
+  it("should leave a name field alone when the file is not a manifest", () => {
+    const plan = planRename(
+      ["zenn-award"],
+      "my-app",
+      [{ path: "docs/example.json", text: MANIFEST }],
+      "clean"
+    );
+
+    expect(plan.kind === "rename" && plan.files).toStrictEqual([]);
+  });
+
   it("should rewrite a service key's leading segment when the file is one of the application's sources", () => {
     const plan = renamedTo("zenn-award");
 
