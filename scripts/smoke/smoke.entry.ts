@@ -18,14 +18,21 @@
 
 import { spawn } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
-import { once } from "node:events";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { constants, tmpdir } from "node:os";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { setTimeout as delay } from "node:timers/promises";
+import {
+  chooseStopRequest,
+  stopGroup,
+  toProcessGroup,
+} from "./process-group.ts";
+import type { Kill, ProcessGroup } from "./process-group.ts";
 import { ROUTES } from "./smoke.expected.ts";
 import {
+  describeError,
+  exitStatus,
   report,
   messageOf,
   pointsAt,
@@ -53,6 +60,14 @@ const devEnv = (stateDir: string): NodeJS.ProcessEnv => ({
 const BOOT_TIMEOUT_MS = 120_000;
 const REQUEST_TIMEOUT_MS = 30_000;
 const KILL_TIMEOUT_MS = 10_000;
+const STOP_POLL_MS = 100;
+
+/**
+ * The numbers of the signals that interrupted the run. The server sits in a
+ * process group of its own, so a Ctrl-C in the terminal reaches this process
+ * alone, which stops the group and lets the run clean up and exit.
+ */
+const interruptingSignals: number[] = [];
 
 /**
  * The base URL the dev server prints once it listens. It moves to the next
@@ -102,21 +117,64 @@ const readyUrl = async (child: ChildProcess, stdout: Readable) => {
   }
 };
 
-const hasExited = (child: ChildProcess): boolean =>
-  child.exitCode !== null || child.signalCode !== null;
+const killProcess: Kill = (pid, signal) => {
+  process.kill(pid, signal);
+};
 
-/** SIGTERM, then SIGKILL for a child that ignores it, so the run always ends. */
-const stop = async (child: ChildProcess) => {
-  if (hasExited(child)) {
-    return;
+/** The group of a dev server that never started, so it has nothing to stop. */
+const GROUP_NEVER_STARTED: ProcessGroup = {
+  isAlive: () => false,
+  send: () => {
+    /* A group that never started has no process to signal. */
+  },
+};
+
+/** The stop in flight, which every later request to stop waits on. */
+interface PendingStop {
+  promise: Promise<void> | null;
+}
+
+/**
+ * Stops the dev server and every process it started, so no `vite` or
+ * `workerd` keeps the run's output open after the run exits.
+ */
+const stop = async (group: ProcessGroup) => {
+  const outcome = await stopGroup(
+    group,
+    async () => {
+      await delay(STOP_POLL_MS);
+    },
+    KILL_TIMEOUT_MS / STOP_POLL_MS
+  );
+  if (outcome === "survived") {
+    console.error(
+      "[smoke] the dev server's process group still had processes after SIGKILL"
+    );
   }
-  child.kill();
-  await Promise.race([once(child, "close"), delay(KILL_TIMEOUT_MS)]);
-  if (hasExited(child)) {
-    return;
-  }
-  child.kill("SIGKILL");
-  await once(child, "close");
+};
+
+/**
+ * Stops the group on the first SIGHUP, SIGINT or SIGTERM and kills it on any
+ * that follows, so a repeated Ctrl-C still leaves nothing running. The run
+ * goes on to fail its requests, clean up, and exit with `exitStatus`.
+ */
+const stopOnSignals = (
+  group: ProcessGroup,
+  stopServer: () => Promise<void>
+) => {
+  const answer = (signalName: NodeJS.Signals) => {
+    const request = chooseStopRequest(interruptingSignals);
+    interruptingSignals.push(constants.signals[signalName]);
+    if (request === "forced") {
+      group.send("SIGKILL");
+      return;
+    }
+    console.error(`[smoke] stopping the dev server on ${signalName}`);
+    void stopServer();
+  };
+  process.on("SIGHUP", answer);
+  process.on("SIGINT", answer);
+  process.on("SIGTERM", answer);
 };
 
 const request = async (baseUrl: string, route: Route): Promise<RouteResult> => {
@@ -176,9 +234,20 @@ const signInStatuses = async (
 /** Boots the dev server with its local D1 and R2 kept under `stateDir`. */
 const smokeOn = async (stateDir: string): Promise<number> => {
   const child = spawn("bunx", ["vp", "dev"], {
+    detached: true,
     env: devEnv(stateDir),
     stdio: ["ignore", "pipe", "inherit"],
   });
+  const group =
+    child.pid === undefined
+      ? GROUP_NEVER_STARTED
+      : toProcessGroup(child.pid, killProcess);
+  const stopping: PendingStop = { promise: null };
+  const stopServer = async () => {
+    stopping.promise ??= stop(group);
+    await stopping.promise;
+  };
+  stopOnSignals(group, stopServer);
 
   try {
     const baseUrl = await readyUrl(child, child.stdout);
@@ -210,7 +279,7 @@ const smokeOn = async (stateDir: string): Promise<number> => {
     );
     return 0;
   } finally {
-    await stop(child);
+    await stopServer();
   }
 };
 
@@ -242,4 +311,8 @@ const run = async (): Promise<number> => {
   }
 };
 
-process.exit(await run());
+const result = await run().catch((error: unknown) => {
+  console.error(`[smoke] ${describeError(error)}`);
+  return 1;
+});
+process.exit(exitStatus(result, interruptingSignals));
