@@ -78,7 +78,8 @@ const GIT_OR_GH_COMMAND = /^\s*(?:gh|git)(?!\S)/u;
 /**
  * A word the shell passes on as exactly one argument: nothing it expands,
  * globs or redirects outside quotes, and nothing it expands inside double
- * quotes.
+ * quotes. A leading `~` is the one expansion it takes in, which the shell
+ * turns into a single home directory.
  */
 const LITERAL_WORD = /(?:[\w%+,./:=@~-]|'[^']*'|"[^"$`\\]*")+/u.source;
 
