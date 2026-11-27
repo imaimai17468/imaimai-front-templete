@@ -221,6 +221,36 @@ const messageCommandGlobalOptions = (
     GH_MESSAGE_COMMAND.exec(simpleCommand)
   )?.[1];
 
+/** Every prefix of the name, since git takes a long option by any prefix that names only it. */
+const prefixesOf = (name: string): string[] =>
+  Array.from(name, (_, index) => name.slice(0, index + 1));
+
+/**
+ * A word opening an option of a git message subcommand that reads a file: a
+ * short `-F` or `-t`, alone, bundled or with its value stuck on, or a long
+ * `--file`, `--template` or `--pathspec-from-file`.
+ */
+const GIT_FILE_FLAG = new RegExp(
+  `^-(?:[A-Za-z]*[Ft]|-${alternation(
+    ["file", "template", "pathspec-from-file"].flatMap(prefixesOf)
+  )}(?:=|$))`,
+  UNICODE_FLAG
+);
+
+/**
+ * A word opening an option of a gh message subcommand that reads a file: a
+ * short `-F` or `-T`, or a long `--body-file`, `--notes-file` or
+ * `--template`. `gh` takes a long option by its whole name only.
+ */
+const GH_FILE_FLAG = new RegExp(
+  `^-(?:[A-Za-z]*[FT]|-${alternation([
+    "body-file",
+    "notes-file",
+    "template",
+  ])}(?:=|$))`,
+  UNICODE_FLAG
+);
+
 const isMessageCommand = (simpleCommand: string): boolean =>
   messageCommandGlobalOptions(simpleCommand) !== undefined;
 
@@ -500,6 +530,54 @@ const spellings = (text: string): readonly string[] => {
 const namesEnvFile = (checked: string): boolean =>
   spellings(checked).some((spelling) => NAMED_ENV_FILE.test(spelling));
 
+/** A word of a simple command: paired pieces and characters up to a blank. */
+const SHELL_WORD = new RegExp(`(?:${PAIRED_PIECE.source}|[^ \t])+`, "gu");
+
+/**
+ * The quotes and backslashes the shell drops, and every `$`, which takes in
+ * the one before a quote.
+ */
+const QUOTING = /[$"'\\]/gu;
+
+/**
+ * The words of a message command that name a file it reads, the flag word and
+ * the word after it, which a quote with a blank would otherwise pass as prose.
+ * `-F -` names standard input.
+ */
+const readMessageFileOperands = (simpleCommand: string): string[] => {
+  const fileFlag = GIT_MESSAGE_COMMAND.test(simpleCommand)
+    ? GIT_FILE_FLAG
+    : GH_FILE_FLAG;
+  const words = Array.from(
+    simpleCommand.matchAll(SHELL_WORD),
+    ([word]) => word
+  );
+  return words.flatMap((word, index) =>
+    fileFlag.test(word.replaceAll(QUOTING, ""))
+      ? words.slice(index, index + 2)
+      : []
+  );
+};
+
+/**
+ * What a `git` or `gh` command is checked as besides its two prose readings:
+ * whole where it pipes its output on, its global options and the files it
+ * reads where it is a message command, and else whole but for the heredoc
+ * bodies a message command reads.
+ */
+const readOwnTexts = (
+  simpleCommand: string,
+  pipesOn: boolean
+): readonly string[] => {
+  if (pipesOn) {
+    return [simpleCommand];
+  }
+  const globalOptions = messageCommandGlobalOptions(simpleCommand);
+  return globalOptions === undefined
+    ? [simpleCommand.replaceAll(PROSE_BODY, proseRemoved)]
+    : [globalOptions, ...readMessageFileOperands(simpleCommand)];
+};
+
 /**
  * A command other than `git` or `gh` is checked whole. Of a message command
  * that pipes its output nowhere, the global options are checked whole. Any
@@ -536,10 +614,7 @@ const readTextsToCheck = (command: string): string[] => {
       return [simpleCommand];
     }
     return [
-      pipesOn
-        ? simpleCommand
-        : (messageCommandGlobalOptions(simpleCommand) ??
-          simpleCommand.replaceAll(PROSE_BODY, proseRemoved)),
+      ...readOwnTexts(simpleCommand, pipesOn),
       simpleCommand.replaceAll(QUOTED_SPAN, proseRemoved),
       commandPieces
         .map(({ isNested, text }) => removeProse(text, isNested))

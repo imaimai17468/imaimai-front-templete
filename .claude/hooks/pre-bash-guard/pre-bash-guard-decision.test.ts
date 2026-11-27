@@ -294,6 +294,55 @@ describe(decideCommand, () => {
     }
   );
 
+  it.each(
+    [
+      "git commit -F './a b/../.env'",
+      "git commit -F'./a b/../.env'",
+      "git commit -aF './a b/../.env'",
+      "git commit --file='./a b/../.env'",
+      "git commit --file './a b/../.env'",
+      "git commit --f './a b/../.env'",
+      "git commit --fil './a b/../.env'",
+      "git commit -t './a b/../.env'",
+      "git commit --template './a b/../.env'",
+      "git commit --pathspec-from-file './a b/../.env'",
+      "git commit '-F' './a b/../.env'",
+      "git commit \"-F\" './a b/../.env'",
+      String.raw`git commit \-F './a b/../.env'`,
+      "git commit $'-F' './a b/../.env'",
+      "git tag -F './a b/../.env' v1",
+      "git merge -F './a b/../.env' x",
+      "git notes add -F './a b/../.env'",
+      "git stash push --pathspec-from-file='./a b/../.env'",
+      "gh pr create --body-file './a b/../.env'",
+      "gh pr create --body-file='./a b/../.env'",
+      "gh pr create -F './a b/../.env'",
+      "gh pr create -dF './a b/../.env'",
+      "gh pr create -T './a b/../.env'",
+      "gh pr create --template './a b/../.env'",
+      "gh release edit v1 --notes-file './a b/../.env'",
+    ].map((command) => `${command} -m 'a b'`)
+  )(
+    "should refuse %j when a quoted word a message command reads as a file names the file",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
+    "gh pr create -t 'mentions .env' --body x",
+    "gh pr create --title 'mentions .env' --body-file -",
+    "git commit --fixup=x -m 'mentions .env'",
+    "git commit -m x -- 'mentions .env'",
+    "git commit --trailer 'Ref: mentions .env' -m x",
+    "git commit -F - -m 'mentions .env'",
+  ])(
+    "should allow %j when the quoted word naming the file follows no flag reading a file",
+    (command) => {
+      expect(decideCommand(command)).toStrictEqual({ kind: "allow" });
+    }
+  );
+
   it.each([
     "git commit -m 'mentions .env' || true",
     "git commit -F - <<'EOF' || git status\nmentions .env\nEOF",
