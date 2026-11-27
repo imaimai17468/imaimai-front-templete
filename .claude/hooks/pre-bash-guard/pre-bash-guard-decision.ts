@@ -79,12 +79,13 @@ const simpleCommands = (command: string): string[] =>
     .split(COMMAND_BOUNDARY);
 
 /**
- * The text, and the text the shell hands the program once it drops
- * backslashes and quotes, which turns `.e\nv` and `.en"v"` into `.env`.
+ * The text as the shell hands it to the program, with its backslashes dropped
+ * and then its quotes as well, which turns `.e\nv` and `.en"v"` into `.env`.
+ * No match holds a backslash, so dropping one never hides a match.
  */
 const spellings = (text: string): readonly string[] => {
   const unescaped = text.replaceAll("\\", "");
-  return [text, unescaped, unescaped.replaceAll(/["']/gu, "")];
+  return [unescaped, unescaped.replaceAll(/["']/gu, "")];
 };
 
 const namesEnvFile = (simpleCommand: string): boolean => {
