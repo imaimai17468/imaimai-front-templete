@@ -112,6 +112,21 @@ describe(decideCommand, () => {
   );
 
   it.each([
+    "git commit -m x \uE000; cat .env \uE001",
+    "git commit -F - <<'EOF'\nbody \uE001; cat .env\nEOF",
+    "echo \uE000",
+    "echo \uE001",
+  ])(
+    "should refuse %j with a reason naming the heredoc markers when it holds one",
+    (command) => {
+      const decision = decideCommand(command);
+      expect(decision.kind === "refuse" ? decision.reason : "").toContain(
+        "holds U+E000 or U+E001"
+      );
+    }
+  );
+
+  it.each([
     "cat scripts/setup/placeholders.dotenv",
     "cat .env.example",
     "cat config/app.env",

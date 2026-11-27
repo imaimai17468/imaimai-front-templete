@@ -25,6 +25,7 @@ const HEREDOC =
 
 const BODY_OPEN = "\uE000";
 const BODY_CLOSE = "\uE001";
+const BODY_MARKER = /[\uE000\uE001]/u;
 
 /**
  * The heredoc rewritten onto its operator's line, with its body between the
@@ -69,6 +70,9 @@ const proseRemoved = (span: string): string => (/\s/u.test(span) ? " " : span);
 const REFUSAL =
   "PreToolUse(Bash): this command names a protected env file (.env, .env.local, .env.development or .env.production), which holds the local secrets. Take the documented placeholder values from scripts/setup/placeholders.dotenv instead. A `git` or `gh` command may name the file in a quoted commit message or pull request body that holds a blank, or in a heredoc it reads.";
 
+const MARKER_REFUSAL =
+  "PreToolUse(Bash): this command holds U+E000 or U+E001, the private-use characters this guard writes around a heredoc body, so the guard cannot tell a body it marked from text written to look like one. Remove those characters from the command.";
+
 /** The simple commands a command line runs, split at each unquoted control operator. */
 const simpleCommands = (command: string): string[] =>
   Array.from(
@@ -95,10 +99,14 @@ const namesEnvFile = (simpleCommand: string): boolean => {
   return spellings(checked).some((spelling) => NAMED_ENV_FILE.test(spelling));
 };
 
-export const decideCommand = (command: string): GuardDecision =>
-  simpleCommands(command).some(namesEnvFile)
+export const decideCommand = (command: string): GuardDecision => {
+  if (BODY_MARKER.test(command)) {
+    return { kind: "refuse", reason: MARKER_REFUSAL };
+  }
+  return simpleCommands(command).some(namesEnvFile)
     ? { kind: "refuse", reason: REFUSAL }
     : { kind: "allow" };
+};
 
 /**
  * What the hook prints for a command: nothing when it allows the command, and
