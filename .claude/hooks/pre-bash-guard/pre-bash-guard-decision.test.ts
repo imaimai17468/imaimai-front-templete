@@ -281,6 +281,22 @@ describe(decideCommand, () => {
   );
 
   it.each([
+    "git -c core.editor=sh commit --allow-empty -e -m 'x; cat .env'",
+    "git -c 'core.editor=sh' commit --allow-empty -e -m 'x; cat .env'",
+    "git -c \"sequence.editor=sh\" commit -m 'x; cat .env'",
+    "git --config-env=core.editor=E commit --allow-empty -e -m 'x; cat .env'",
+    "git -p -c core.pager=sh commit -m 'x; cat .env'",
+    "git -c userXname=x commit -m 'mentions .env'",
+    "git -c user.name commit -m 'mentions .env'",
+    "git -c user.name.x=y commit -m 'mentions .env'",
+  ])(
+    "should refuse %j when a global option sets a config other than an identity before the message subcommand",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
     "git -C 2>x commit -c 'alias.r=!cat .env' r",
     "git -C $DIR rebase -m 'mentions .env'",
     "git -C {a,b} commit -m 'mentions .env'",
@@ -292,7 +308,9 @@ describe(decideCommand, () => {
     "git -C commit -m 'mentions .env'",
     "gh -R o/r pr create --body 'mentions .env'",
     "git -c 'unclosed commit -m 'mentions .env'",
-    "git -c 'a=b' rebase 'x' commit --exec 'cat .env'",
+    "git -C 'a' rebase 'x' commit --exec 'cat .env'",
+    'git -C "a" rebase "x" commit --exec \'cat .env\'',
+    "git -C \"$DIR\" commit -m 'mentions .env'",
   ])(
     "should refuse %j when this guard cannot read the global options before the subcommand",
     (command) => {
@@ -384,6 +402,11 @@ describe(decideCommand, () => {
       "--work-tree=.",
       "--namespace=x",
       "--config-env=user.name=NAME",
+      "-c user.email=a@b.c",
+      "-c author.name=x",
+      "-c author.email=x",
+      "-c committer.name=x",
+      "-c committer.email=x",
       "--attr-source=HEAD",
       "-C dir --no-pager -c user.name=x",
     ].map((options) => `git ${options} commit -m 'mentions .env'`),

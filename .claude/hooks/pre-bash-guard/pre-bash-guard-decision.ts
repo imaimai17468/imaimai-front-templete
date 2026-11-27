@@ -98,14 +98,25 @@ const GIT_GLOBAL_FLAGS = [
   "--icase-pathspecs",
 ];
 
-const GIT_GLOBAL_OPTIONS_WITH_VALUE = ["-C", "-c"];
-
 const GIT_GLOBAL_OPTIONS_WITH_JOINED_VALUE = [
   "--git-dir",
   "--work-tree",
   "--namespace",
-  "--config-env",
   "--attr-source",
+];
+
+/**
+ * The config keys a `-c` or a `--config-env` before a message subcommand may
+ * set. Each names an identity git records, where a key such as `core.editor`,
+ * `core.pager` or `alias.*` names a program git runs.
+ */
+const GIT_CONFIG_KEYS_RUNNING_NOTHING = [
+  "user.name",
+  "user.email",
+  "author.name",
+  "author.email",
+  "committer.name",
+  "committer.email",
 ];
 
 /** The `git` subcommands that take a message (`-m` or `-F`). */
@@ -155,21 +166,33 @@ const subcommandAlternation = (
 ): string =>
   alternation(subcommands.map((words) => words.join(`${SHELL_BLANK}+`)));
 
+const GIT_CONFIG_KEY = alternation(
+  GIT_CONFIG_KEYS_RUNNING_NOTHING.map((key) => key.replace(".", String.raw`\.`))
+);
+
+/** A `-c` value setting one of those keys, as a literal word or whole in quotes. */
+const GIT_CONFIG_ASSIGNMENT = alternation([
+  `${GIT_CONFIG_KEY}=${LITERAL_WORD}`,
+  `'${GIT_CONFIG_KEY}=[^']*'`,
+  String.raw`"${GIT_CONFIG_KEY}=[^"$\x60\\]*"`,
+]);
+
 /**
  * A simple command running a `git` subcommand that takes a message, with the
  * global options before the subcommand in the first group. A global option is
  * one git documents, and its value a literal word, and only a space or a tab
  * separates two words, so the subcommand this finds is the one git runs.
+ * A config it sets is one of the keys above.
  */
 const GIT_MESSAGE_COMMAND = new RegExp(
   String.raw`^${SHELL_BLANK}*git((?:${SHELL_BLANK}+${alternation([
     ...GIT_GLOBAL_FLAGS,
-    ...GIT_GLOBAL_OPTIONS_WITH_VALUE.map(
-      (name) => `${name}${SHELL_BLANK}+${LITERAL_WORD}`
-    ),
+    `-C${SHELL_BLANK}+${LITERAL_WORD}`,
+    `-c${SHELL_BLANK}+${GIT_CONFIG_ASSIGNMENT}`,
     ...GIT_GLOBAL_OPTIONS_WITH_JOINED_VALUE.map(
       (name) => `${name}=${LITERAL_WORD}`
     ),
+    `--config-env=${GIT_CONFIG_KEY}=${LITERAL_WORD}`,
   ])})*)${SHELL_BLANK}+${subcommandAlternation(GIT_MESSAGE_SUBCOMMANDS)}${WORD_END}`,
   UNICODE_FLAG
 );
