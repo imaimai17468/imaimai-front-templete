@@ -51,7 +51,7 @@ describe("component-file-naming", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it("should report when component name does not match file name", () => {
+  it("should report the found and expected names on the export when component name does not match file name", () => {
     const context = {
       ...makeContext(),
       filename: "/src/shared/components/StatsCard/StatsCard.tsx",
@@ -63,7 +63,15 @@ describe("component-file-naming", () => {
 
     visitors.ExportNamedDeclaration?.(node);
 
-    expect(context.report).toHaveBeenCalledOnce();
+    expect(context.report.mock.calls).toStrictEqual([
+      [
+        {
+          message:
+            "Component name 'UserCard' does not match file name. Expected 'StatsCard'.",
+          node,
+        },
+      ],
+    ]);
   });
 
   it("should not report when component name matches container file convention", () => {
@@ -328,21 +336,6 @@ describe("component-file-naming (defensive branches)", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it("should not report when a default export has no declaration", () => {
-    // Arrange
-    const context = {
-      ...makeContext(),
-      filename: "/src/shared/components/Card.tsx",
-    };
-    const visitors = rule.create(context);
-
-    // Act
-    visitors.ExportDefaultDeclaration?.({ declaration: null });
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
   it("should not report when a default export is an arrow function", () => {
     // Arrange
     const context = {
@@ -414,6 +407,82 @@ describe("component-file-naming (defensive branches)", () => {
     // Act
     visitors.ExportDefaultDeclaration?.({
       declaration: { id: { name: "Other" }, type: "FunctionDeclaration" },
+    });
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should report when a default-exported named function expression does not match the file name", () => {
+    // Arrange
+    const context = {
+      ...makeContext(),
+      filename: "/src/shared/components/Card.tsx",
+    };
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportDefaultDeclaration?.({
+      declaration: { id: { name: "Other" }, type: "FunctionExpression" },
+    });
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+
+  it("should not report when a default-exported class does not match the file name", () => {
+    // Arrange
+    const context = {
+      ...makeContext(),
+      filename: "/src/shared/components/Card.tsx",
+    };
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportDefaultDeclaration?.({
+      declaration: { id: { name: "Other" }, type: "ClassDeclaration" },
+    });
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when an exported class does not match the file name", () => {
+    // Arrange
+    const context = {
+      ...makeContext(),
+      filename: "/src/shared/components/Card.tsx",
+    };
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportNamedDeclaration?.({
+      declaration: { id: { name: "Other" }, type: "ClassDeclaration" },
+    });
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should report when an exported function-expression component does not match the file name", () => {
+    // Arrange
+    const context = {
+      ...makeContext(),
+      filename: "/src/shared/components/Card.tsx",
+    };
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ExportNamedDeclaration?.({
+      declaration: {
+        declarations: [
+          {
+            id: { name: "Other", type: "Identifier" },
+            init: { type: "FunctionExpression" },
+          },
+        ],
+        type: "VariableDeclaration",
+      },
     });
 
     // Assert

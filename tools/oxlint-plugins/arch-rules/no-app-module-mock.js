@@ -2,8 +2,8 @@ const MOCK_METHODS = new Set(["mock", "doMock"]);
 
 const APP_MODULE_RE = /^(?:\.{1,2}\/|@\/)/u;
 
-/** The module a `vi.mock(...)` or `vi.doMock(...)` call names, or null. */
-const mockedSpecifier = (node) => {
+/** The literal value a `vi.mock(...)` or `vi.doMock(...)` call passes, or null. */
+const mockedLiteralValue = (node) => {
   const { callee } = node;
   if (
     callee.type !== "MemberExpression" ||
@@ -14,9 +14,7 @@ const mockedSpecifier = (node) => {
   }
   const [target] = node.arguments;
   const source = target?.type === "ImportExpression" ? target.source : target;
-  return source?.type === "Literal" && typeof source.value === "string"
-    ? source.value
-    : null;
+  return source?.type === "Literal" ? source.value : null;
 };
 
 /**
@@ -29,10 +27,12 @@ const noAppModuleMock = {
   create(context) {
     return {
       CallExpression(node) {
-        const specifier = mockedSpecifier(node);
-        if (specifier !== null && APP_MODULE_RE.test(specifier)) {
+        const mockedValue = mockedLiteralValue(node);
+        // A value that is not a string, such as `1` or `null`, reads as its
+        // string form here, and none of those opens with `./`, `../` or `@/`.
+        if (APP_MODULE_RE.test(mockedValue)) {
           context.report({
-            message: `'${specifier}' is an app module, and test files share a worker's module cache (isolate: false), so this mock does nothing once another file has loaded it. Pass the dependency in as an argument instead.`,
+            message: `'${mockedValue}' is an app module, and test files share a worker's module cache (isolate: false), so this mock does nothing once another file has loaded it. Pass the dependency in as an argument instead.`,
             node,
           });
         }

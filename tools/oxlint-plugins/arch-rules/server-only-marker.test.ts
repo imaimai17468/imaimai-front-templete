@@ -224,4 +224,68 @@ describe("server-only-marker", () => {
     // Assert
     expect(visitors).toStrictEqual({});
   });
+
+  it("should report when a gateway module's only statements are code rather than imports", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/shared/gateway/user/read.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.Program?.({
+      body: [{ type: "ExpressionStatement" }],
+      type: "Program",
+    });
+
+    // Assert
+    expect(context.report).toHaveBeenCalledOnce();
+  });
+});
+
+describe("server-only-marker messages", () => {
+  const SERVER_ONLY = "@tanstack/react-start/server-only";
+  const GATEWAY_HINT =
+    "Write the `createServerFn` declarations in a `*.fn.ts`, and put everything else in a module that file imports.";
+  const AUTH_HINT =
+    "`src/lib/auth/session/` is the half the server runs and `src/lib/auth/sign-in/` the half the browser runs.";
+
+  it.each([
+    {
+      filename: "/repo/src/shared/gateway/user/read.ts",
+      message: `A module in a \`gateway/\` directory must open with \`import "${SERVER_ONLY}";\`, so a client module importing it fails the build on this file. ${GATEWAY_HINT}`,
+      name: "a gateway module opens without the marker",
+      sources: ["effect"],
+    },
+    {
+      filename: "/repo/src/shared/gateway/user/read.fn.ts",
+      message: `A \`*.fn.ts\` reaches the browser, so \`import "${SERVER_ONLY}";\` here fails the client build. ${GATEWAY_HINT}`,
+      name: "a fn file carries the marker",
+      sources: [SERVER_ONLY],
+    },
+    {
+      filename: "/repo/src/lib/auth/session/caller.ts",
+      message: `A module under \`src/lib/auth/\` must open with \`import "${SERVER_ONLY}";\`, so a client module importing it fails the build on this file. ${AUTH_HINT}`,
+      name: "a session module opens without the marker",
+      sources: ["effect"],
+    },
+    {
+      filename: "/repo/src/lib/auth/sign-in/client.ts",
+      message: `A module under \`src/lib/auth/sign-in/\` reaches the browser, so \`import "${SERVER_ONLY}";\` here fails the client build. ${AUTH_HINT}`,
+      name: "a sign-in module carries the marker",
+      sources: [SERVER_ONLY],
+    },
+  ])(
+    "should name the module, the fault and the fix on the program when $name",
+    ({ filename, message, sources }) => {
+      // Arrange
+      const context = makeLayerContext(filename);
+      const visitors = rule.create(context);
+      const node = programNode(sources);
+
+      // Act
+      visitors.Program?.(node);
+
+      // Assert
+      expect(context.report.mock.calls).toStrictEqual([[{ message, node }]]);
+    }
+  );
 });

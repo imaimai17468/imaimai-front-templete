@@ -11,7 +11,7 @@ const SKIP_STEMS = new Set(["index"]);
 const expectedComponentName = (filename) => {
   const basename = filename.slice(filename.lastIndexOf("/") + 1);
   const stem = stripSourceExtension(basename);
-  if (stem === "" || SKIP_STEMS.has(stem) || isTestStem(stem)) {
+  if (SKIP_STEMS.has(stem) || isTestStem(stem)) {
     return null;
   }
   const name = stem
@@ -36,7 +36,7 @@ const componentFileNaming = {
     }
 
     const checkComponentName = (name, node) => {
-      if (name && isComponentName(name) && name !== expectedName) {
+      if (isComponentName(name) && name !== expectedName) {
         context.report({
           message: `Component name '${name}' does not match file name. Expected '${expectedName}'.`,
           node,
@@ -47,9 +47,6 @@ const componentFileNaming = {
     return {
       ExportDefaultDeclaration(node) {
         const decl = node.declaration;
-        if (!decl) {
-          return;
-        }
         if (
           (decl.type === "FunctionDeclaration" ||
             decl.type === "FunctionExpression") &&
@@ -63,24 +60,17 @@ const componentFileNaming = {
         if (!decl) {
           return;
         }
-        if (decl.type === "FunctionDeclaration" && decl.id) {
+        if (decl.type === "FunctionDeclaration") {
           checkComponentName(decl.id.name, node);
-          return;
         }
         if (decl.type === "VariableDeclaration") {
-          for (const declarator of decl.declarations) {
-            const name =
-              declarator.id?.type === "Identifier" ? declarator.id.name : null;
-            if (!name || !isComponentName(name)) {
-              continue;
-            }
-            const { init } = declarator;
+          for (const { id, init } of decl.declarations) {
             if (
               init &&
               (init.type === "ArrowFunctionExpression" ||
                 init.type === "FunctionExpression")
             ) {
-              checkComponentName(name, node);
+              checkComponentName(id.name, node);
             }
           }
         }

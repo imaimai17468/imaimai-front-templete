@@ -55,7 +55,6 @@ const createDirectImportResolver = () => {
     if (
       callee.type === "MemberExpression" &&
       !callee.computed &&
-      callee.object.type === "Identifier" &&
       namespaceImports.has(callee.object.name)
     ) {
       return callee.property.name;

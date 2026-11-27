@@ -316,6 +316,26 @@ describe("no-rewritten-factory-in-handler", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
+  it("should stay silent when both calls come off a default import", () => {
+    const context = makeContext();
+    lintModule(context, {
+      calls: [
+        methodCall(
+          call(member(identifier("Start"), identifier("createServerFn"))),
+          "handler",
+          [
+            call(
+              member(identifier("Start"), identifier("createServerOnlyFn")),
+              [identifier("impl")]
+            ),
+          ]
+        ),
+      ],
+      imports: [importFrom(START, [defaultImport("Start")])],
+    });
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
   it("should stay silent when the called method is not handler", () => {
     const context = makeContext();
     lintModule(context, {

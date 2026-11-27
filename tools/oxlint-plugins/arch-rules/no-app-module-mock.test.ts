@@ -63,6 +63,11 @@ describe("no-app-module-mock", () => {
 
   it.each([
     { args: [literal("react-grab")], method: "mock", name: "a package" },
+    {
+      args: [literal("react-grab/./core")],
+      method: "mock",
+      name: "a package subpath holding a relative segment",
+    },
     { args: [literal("./client")], method: "spyOn", name: "a spy" },
     { args: [], method: "mock", name: "no argument" },
     { args: [literal(1)], method: "mock", name: "a non-string literal" },
@@ -73,6 +78,23 @@ describe("no-app-module-mock", () => {
     },
   ])("should not report when the call is $name", ({ args, method }) => {
     expect(reportCount(viCall(method, args))).toBe(0);
+  });
+
+  it("should report the module and the fix on the call when vi.mock names an app module", () => {
+    const context = makeContext();
+    const node = viCall("mock", [literal("./client")]);
+
+    rule.create(context).CallExpression(node);
+
+    expect(context.report.mock.calls).toStrictEqual([
+      [
+        {
+          message:
+            "'./client' is an app module, and test files share a worker's module cache (isolate: false), so this mock does nothing once another file has loaded it. Pass the dependency in as an argument instead.",
+          node,
+        },
+      ],
+    ]);
   });
 
   it("should not report when the callee is not a member of vi", () => {
