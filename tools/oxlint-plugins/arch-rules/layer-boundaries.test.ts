@@ -532,6 +532,34 @@ describe("layer-boundaries", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
+  it("should not report when a route imports a dash-prefixed file of another route", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/login/route.tsx");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/routes/api/-avatar-limits"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a nested route imports its parent route's private directory", () => {
+    // Arrange
+    const context = makeLayerContext(
+      "/repo/src/routes/_authed/profile/settings/route.tsx"
+    );
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(
+      importNode("@/routes/_authed/profile/-components/profile-page")
+    );
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
   it("should not report when a route imports a sibling route via relative path", () => {
     // Arrange
     const context = makeLayerContext("/repo/src/routes/login/route.tsx");
