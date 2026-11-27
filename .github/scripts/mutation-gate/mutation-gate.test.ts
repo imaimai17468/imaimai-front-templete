@@ -5,7 +5,6 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   buildGateReport,
   decideMutationGate,
-  listChangedModules,
   parseChangedFiles,
   readReportFile,
 } from "./mutation-gate.ts";
@@ -60,18 +59,6 @@ describe(parseChangedFiles, () => {
       "src/a b.ts",
       "src/日.ts",
     ]);
-  });
-});
-
-describe(listChangedModules, () => {
-  it("should name only the changed files mutation testing mutates when the pull request changes others too", () => {
-    expect(
-      listChangedModules([
-        "src/lib/utils.ts",
-        "README.md",
-        "src/lib/utils.test.ts",
-      ])
-    ).toStrictEqual(["src/lib/utils.ts"]);
   });
 });
 

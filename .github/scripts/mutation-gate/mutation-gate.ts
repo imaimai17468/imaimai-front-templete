@@ -7,7 +7,6 @@
 
 import { readFileSync } from "node:fs";
 import { Result, Schema } from "effect";
-import { mutationTargets } from "../../../scripts/mutate/mutation-targets.ts";
 
 const Mutant = Schema.Struct({
   file: Schema.String,
@@ -71,11 +70,6 @@ const readMutants = (
     Result.mapError(({ message }) => message)
   );
 };
-
-/** The files a pull request changed that mutation testing mutates. */
-export const listChangedModules = (
-  changedFiles: readonly string[]
-): readonly string[] => mutationTargets(changedFiles);
 
 export const decideMutationGate = (
   report: ReportRead,

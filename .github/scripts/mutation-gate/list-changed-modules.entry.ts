@@ -10,9 +10,10 @@
  */
 
 import { readFileSync } from "node:fs";
-import { listChangedModules, parseChangedFiles } from "./mutation-gate.ts";
+import { mutationTargets } from "../../../scripts/mutate/mutation-targets.ts";
+import { parseChangedFiles } from "./mutation-gate.ts";
 
-const modules = listChangedModules(parseChangedFiles(readFileSync(0, "utf-8")));
+const modules = mutationTargets(parseChangedFiles(readFileSync(0, "utf-8")));
 if (modules.length > 0) {
   console.log(modules.join("\n"));
 }
