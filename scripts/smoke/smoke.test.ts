@@ -277,13 +277,14 @@ describe("smoke", () => {
     ]);
   });
 
-  it("should request every page route and the favicon when the smoke run boots the Worker", () => {
+  it("should request every page route, the favicon and the avatar path when the smoke run boots the Worker", () => {
     expect(ROUTES.map((route) => route.path)).toStrictEqual([
       "/",
       "/login",
       "/login?error=access_denied",
       "/favicon.svg",
       "/profile",
+      "/api/avatars",
     ]);
   });
 

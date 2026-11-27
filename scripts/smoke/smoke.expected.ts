@@ -60,4 +60,15 @@ export const ROUTES: readonly Route[] = [
     path: "/profile",
     status: 307,
   },
+  // The Worker's entry hands this path to the avatar gateway in place of
+  // Start's handler, so a request that skipped the entry would answer the
+  // router's 404 page. Signed out, the gateway answers its JSON 401 before
+  // reading a key.
+  {
+    headers: { "Content-Type": "application/json" },
+    location: null,
+    marker: null,
+    path: "/api/avatars",
+    status: 401,
+  },
 ];
