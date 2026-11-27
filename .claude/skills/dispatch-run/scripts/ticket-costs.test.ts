@@ -409,6 +409,18 @@ describe(formatCosts, () => {
     ).toStrictEqual([soloLine("2.5", 2)]);
   });
 
+  it("should stop counting an orphan dispatch as in flight when its branch was dispatched again in the same second", () => {
+    expect(
+      costs([
+        dispatch("feat/a", NOW, { window: at(5) }),
+        dispatch("feat/a", NOW, { window: at(5) }),
+        done("feat/a", NOW + 100, { window: at(6) }),
+        dispatch("feat/b", NOW + 200, { window: at(6) }),
+        done("feat/b", NOW + 300, { window: at(9) }),
+      ])
+    ).toStrictEqual([soloLine("3.0", 1, 2)]);
+  });
+
   it("should count the ticket as solo when the orphan's window reset before it began", () => {
     expect(
       costs([

@@ -283,9 +283,10 @@ const pairing = (events: readonly CostEvent[]): Pairing => {
 };
 
 /**
- * A dispatch with no completion still had a worker running: until its branch
- * was dispatched again, or else until the window it read resets, or else for
- * good.
+ * A dispatch with no completion still had a worker running: until the next
+ * later event of its branch, which is a re-dispatch or the completion of one
+ * because `pairing` gives the dispatch any completion that comes first, or
+ * else until the window it read resets, or else for good.
  */
 const orphanEnd = (
   orphan: DispatchEvent,
@@ -294,12 +295,7 @@ const orphanEnd = (
   Math.min(
     orphan.window?.resets_at ?? Number.POSITIVE_INFINITY,
     ...events
-      .filter(
-        (event) =>
-          event.event === "dispatch" &&
-          event.branch === orphan.branch &&
-          event.at > orphan.at
-      )
+      .filter((event) => event.branch === orphan.branch && event.at > orphan.at)
       .map((event) => event.at)
   );
 
