@@ -6,7 +6,7 @@
  * ```
  *
  * Boots the dev server under Void on an empty local D1 and R2, which applies
- * the D1 migrations, requests the routes `smoke.ts` names, then sends the
+ * the D1 migrations, requests the routes `smoke.expected.ts` names, then sends the
  * sign-in burst `SIGN_IN_BURST` names. A Worker that throws on every request
  * fails here, and so does an auth rate limiter that is off or whose table the
  * migrations do not create. The run reads no Cloudflare account.
@@ -24,13 +24,13 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { setTimeout as delay } from "node:timers/promises";
+import { ROUTES } from "./smoke.expected.ts";
 import {
   report,
   messageOf,
   pointsAt,
   missedBy,
   readyUrlIn,
-  ROUTES,
   served,
   SIGN_IN_BURST,
   signInBurstFailure,

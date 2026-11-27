@@ -6,8 +6,8 @@
  */
 
 import { describe, expect, it } from "vite-plus/test";
+import { EXPECTED_DOCUMENT_HEADERS, ROUTES } from "./smoke.expected.ts";
 import {
-  EXPECTED_DOCUMENT_HEADERS,
   messageOf,
   pointsAt,
   missedBy,
@@ -16,7 +16,6 @@ import {
   readyUrlIn,
   repeatedChunking,
   report,
-  ROUTES,
   served,
   signInBurstFailure,
 } from "./smoke.ts";
