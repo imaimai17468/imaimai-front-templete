@@ -169,7 +169,7 @@ const outlineQuoting = (text: string): string =>
     opensNestedQuoting(piece) && !CAT_SUBSTITUTION.test(piece) ? "'" : "_"
   );
 
-/** A `#` that starts a word on the operator's line, which makes the operator comment text. */
+/** A `#` after a blank on the operator's line, which makes the operator comment text. */
 const COMMENT_ON_LINE = /\s#[^\n]*$/u;
 
 /**
