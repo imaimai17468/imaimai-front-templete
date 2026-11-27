@@ -21,7 +21,7 @@ const NAMED_ENV_FILE =
  * is not one, and a heredoc may have no body lines at all.
  */
 const HEREDOC =
-  /(?<!<)<<-?(?!<)[ \t]*(?<quote>["']?)(?<delimiter>[\w.-]+)\k<quote>(?<tail>[^\n]*)\n(?<body>(?:[^\n]*\n)*?)[ \t]*\k<delimiter>(?=\n|$)/gu;
+  /(?<!<)<<-?[ \t]*(?<quote>["']?)(?<delimiter>[\w.-]+)\k<quote>(?<tail>[^\n]*)\n(?<body>(?:[^\n]*\n)*?)[ \t]*\k<delimiter>(?=\n|$)/gu;
 
 const BODY_OPEN = "\uE000";
 const BODY_CLOSE = "\uE001";
