@@ -19,10 +19,6 @@ const NOT_MUTATED = [
   // A `*.content.ts` module holds page copy alone, so its mutants change the
   // text rather than what the code does.
   "src/**/*.content.ts",
-  // A `*.expected.ts` module holds what a check expects the running app to
-  // answer, so its mutants change what is checked rather than what the code
-  // does, and only that check running against the app could notice them.
-  "scripts/**/*.expected.ts",
 ];
 
 const matchesAny = (file: string, patterns: readonly string[]): boolean =>
