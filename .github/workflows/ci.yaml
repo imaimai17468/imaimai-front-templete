@@ -267,9 +267,11 @@ jobs:
 
       # A two-dot diff from the base commit to the merge commit the checkout
       # holds names the changed files, and the checkout fetches the merge
-      # commit alone, so the base commit is fetched first. Mootant exits
-      # non-zero on a run error and prints its details in the JSON alone, so
-      # the gate runs first and the details follow.
+      # commit alone, so the base commit is fetched first. `--no-fast` runs
+      # each mutant on its own, because a kill in fast mode can come from
+      # state an earlier try left behind, and the run covers the changed files
+      # alone. Mootant exits non-zero on a run error and prints its details in
+      # the JSON alone, so the gate runs first and the details follow.
       - name: Fail on a mutant no test notices in a changed file
         if: ${{ github.event_name == 'pull_request' }}
         env:
@@ -283,7 +285,7 @@ jobs:
             exit 0
           fi
           status=0
-          xargs -a "$RUNNER_TEMP/modules" -d '\n' bun run mutate --json --html > "$RUNNER_TEMP/mutation.json" || status=$?
+          xargs -a "$RUNNER_TEMP/modules" -d '\n' bun run mutate --json --html --no-fast > "$RUNNER_TEMP/mutation.json" || status=$?
           bun .github/scripts/mutation-gate/check-mutation-gate.entry.ts "$RUNNER_TEMP/mutation.json" < "$RUNNER_TEMP/changed-files"
           if [ "$status" -ne 0 ]; then
             jq '{diagnostics, errors: [.mutants[] | select(.status == "Error")]}' "$RUNNER_TEMP/mutation.json" || true
