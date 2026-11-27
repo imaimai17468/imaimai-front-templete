@@ -12,10 +12,12 @@ export type GuardDecision =
 
 /**
  * A protected env file named as a word of its own, as a flag's value, or as a
- * path's last component. macOS opens `.ENV` as `.env`, so case is ignored.
+ * path's last component, or before the `#` that starts the label
+ * `gh release create` and `gh release upload` give an asset. macOS opens
+ * `.ENV` as `.env`, so case is ignored.
  */
 const NAMED_ENV_FILE =
-  /(?:^|[\s"'`=@{}:,;&|<>(/-])\.env(?:\.(?:local|development|production))?(?=[\s"'`{}:,;&|<>)*]|$)/iu;
+  /(?:^|[\s"'`=@{}:,;&|<>(/-])\.env(?:\.(?:local|development|production))?(?=[\s"'`{}:,;&|<>)*#]|$)/iu;
 
 /**
  * A heredoc from its operator through its terminator line. A `<<<` here-string
