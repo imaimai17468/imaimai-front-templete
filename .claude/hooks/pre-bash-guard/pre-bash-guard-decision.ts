@@ -33,13 +33,21 @@ const BODY_MARKER = /[\uE000\uE001]/u;
  */
 const HEREDOC_ON_ONE_LINE = `<<$<quote>$<delimiter>$<quote>$<tail> ${BODY_OPEN}$<body>${BODY_CLOSE} $<delimiter>`;
 
+/** A heredoc body the rewrite marked, which holds text. */
+const MARKED_BODY = /\uE000[^\uE001]+\uE001/gu;
+
+/** One global pattern trying each source's alternatives in the order given. */
+const joinAlternatives = (...sources: readonly string[]): RegExp =>
+  new RegExp(sources.join("|"), "gu");
+
 /**
- * A marked heredoc body that holds text, a quoted span, an escaped character,
- * or any other single character. A quote that never closes is a token of its
- * own.
+ * A marked heredoc body, a quoted span, an escaped character, or any other
+ * single character. A quote that never closes is a token of its own.
  */
-const SHELL_TOKEN =
-  /\uE000[^\uE001]+\uE001|'[^']*'|"(?:\\[\s\S]|[^"\\])*"|\\[\s\S]|[\s\S]/gu;
+const SHELL_TOKEN = joinAlternatives(
+  MARKED_BODY.source,
+  /'[^']*'|"(?:\\[\s\S]|[^"\\])*"|\\[\s\S]|[\s\S]/u.source
+);
 
 /**
  * The characters that end a simple command. `&&` and `||` are two of them in
@@ -58,14 +66,59 @@ const COMMAND_BOUNDARY = "\u0000";
 const PROSE_COMMAND = /^\s*(?:gh|git)(?!\S)/u;
 
 /**
- * A heredoc body that holds text, or a quoted span, that may be prose. A
- * double-quoted span holding `$`, a backtick or a backslash runs or decodes
- * something first, so it never is.
+ * A marked heredoc body, or a quoted span, that may be prose. A double-quoted
+ * span holding `$`, a backtick or a backslash runs or decodes something
+ * first, so it never is.
  */
-const QUOTED_SPAN = /\uE000[^\uE001]+\uE001|'[^']*'|"[^"$`\\]*"/gu;
+const QUOTED_SPAN = joinAlternatives(
+  MARKED_BODY.source,
+  /'[^']*'|"[^"$`\\]*"/u.source
+);
+
+/**
+ * A double-quoted span in which a marked body is one piece, so a quote inside
+ * that body does not end the span.
+ */
+const DOUBLE_QUOTED_OVER_BODIES = String.raw`"(?:${MARKED_BODY.source}|\\[\s\S]|[^"\\])*"`;
+
+/**
+ * A simple command's pieces: a marked body, a single- or double-quoted span,
+ * an escaped character, or any other character.
+ */
+const SHELL_PIECE = joinAlternatives(
+  MARKED_BODY.source,
+  /'[^']*'/u.source,
+  DOUBLE_QUOTED_OVER_BODIES,
+  /\\[\s\S]|[\s\S]/u.source
+);
+
+/**
+ * A double-quoted piece holding `$`, a backtick or a backslash, which the
+ * shell decodes or runs before the program reads it, so it is never prose.
+ */
+const EXPANDING_DOUBLE_QUOTE = /^"[\s\S]*?[$`\\]/u;
+
+/**
+ * A double-quoted piece holding `$(`, `${` or a backtick, inside which the
+ * shell starts pairing quotes afresh, so a quote this guard pairs from there
+ * on may not be the one the shell pairs.
+ */
+const NESTED_QUOTING_OPENER = /^"[\s\S]*?(?:\$[({]|`)/u;
 
 /** A path rarely holds a blank, so `git add '.env'` is still checked. */
 const proseRemoved = (span: string): string => (/\s/u.test(span) ? " " : span);
+
+/**
+ * Before nested quoting opens, any piece but an expanding double quote that
+ * holds a blank is quoted text, a marked body, or a blank, escaped or not, and
+ * is removed. From the piece that opens it on, only the marked bodies are.
+ */
+const removeProse = (piece: string, isNested: boolean): string => {
+  if (isNested) {
+    return piece.replaceAll(MARKED_BODY, proseRemoved);
+  }
+  return EXPANDING_DOUBLE_QUOTE.test(piece) ? piece : proseRemoved(piece);
+};
 
 const REFUSAL =
   "PreToolUse(Bash): this command names a protected env file (.env, .env.local, .env.development or .env.production), which holds the local secrets. Take the documented placeholder values from scripts/setup/placeholders.dotenv instead. A `git` or `gh` command may name the file in a quoted commit message or pull request body that holds a blank, or in a heredoc it reads.";
@@ -92,18 +145,57 @@ const spellings = (text: string): readonly string[] => {
   return [unescaped, unescaped.replaceAll(/["']/gu, "")];
 };
 
-const namesEnvFile = (simpleCommand: string): boolean => {
-  const checked = PROSE_COMMAND.test(simpleCommand)
-    ? simpleCommand.replaceAll(QUOTED_SPAN, proseRemoved)
-    : simpleCommand;
-  return spellings(checked).some((spelling) => NAMED_ENV_FILE.test(spelling));
+const namesEnvFile = (checked: string): boolean =>
+  spellings(checked).some((spelling) => NAMED_ENV_FILE.test(spelling));
+
+/**
+ * A command other than `git` or `gh` is checked whole. A `git` or `gh`
+ * command is checked twice, with its prose removed by two readings that pair
+ * quotes differently. The scan pairs a quote with the next quote of its kind
+ * wherever it stands, so after a span it cannot pair, such as `"$MSG"`, it
+ * pairs a closing quote with an opening one and reads the text between them as
+ * prose. The pairing follows the command line piece by piece, but it reads a
+ * heredoc operator inside a quoted span as a heredoc. A name either reading
+ * leaves outside prose is refused. Nested quoting that opens in one simple
+ * command stays open for the ones that follow it.
+ */
+const readTextsToCheck = (command: string): string[] => {
+  const pieces = simpleCommands(command).flatMap(
+    (simpleCommand, commandIndex) =>
+      Array.from(simpleCommand.matchAll(SHELL_PIECE), ([text]) => ({
+        commandIndex,
+        text,
+      }))
+  );
+  const nestedFrom = pieces.findIndex(({ text }) =>
+    NESTED_QUOTING_OPENER.test(text)
+  );
+  const piecesByCommand = Map.groupBy(
+    pieces.map((piece, index) => ({
+      ...piece,
+      isNested: nestedFrom !== -1 && index >= nestedFrom,
+    })),
+    ({ commandIndex }) => commandIndex
+  );
+  return [...piecesByCommand.values()].flatMap((commandPieces) => {
+    const simpleCommand = commandPieces.map(({ text }) => text).join("");
+    if (!PROSE_COMMAND.test(simpleCommand)) {
+      return [simpleCommand];
+    }
+    return [
+      simpleCommand.replaceAll(QUOTED_SPAN, proseRemoved),
+      commandPieces
+        .map(({ isNested, text }) => removeProse(text, isNested))
+        .join(""),
+    ];
+  });
 };
 
 export const decideCommand = (command: string): GuardDecision => {
   if (BODY_MARKER.test(command)) {
     return { kind: "refuse", reason: MARKER_REFUSAL };
   }
-  return simpleCommands(command).some(namesEnvFile)
+  return readTextsToCheck(command).some(namesEnvFile)
     ? { kind: "refuse", reason: REFUSAL }
     : { kind: "allow" };
 };
