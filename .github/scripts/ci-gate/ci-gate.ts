@@ -36,7 +36,7 @@ export const gateCoverage = (
   if (gate === undefined) {
     return { kind: "gate-missing" };
   }
-  const awaited = new Set([gate.needs ?? []].flat());
+  const awaited = new Set([gate.needs].flat());
   const missing = Object.keys(jobs).filter(
     (job) => job !== gateJob && !awaited.has(job)
   );

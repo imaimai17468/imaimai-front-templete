@@ -45,6 +45,23 @@ describe(gateCoverage, () => {
       kind: "malformed",
     });
   });
+
+  it("should name every unreadable needs in the detail when two jobs have one", () => {
+    expect(
+      gateCoverage(
+        { jobs: { build: { needs: 1 }, lint: { needs: [2] } } },
+        "build"
+      )
+    ).toStrictEqual({
+      detail: [
+        "Expected string | array | undefined",
+        '  at ["jobs"]["build"]["needs"]',
+        "Expected string",
+        '  at ["jobs"]["lint"]["needs"][0]',
+      ].join("\n"),
+      kind: "malformed",
+    });
+  });
 });
 
 describe(gateCoverageReport, () => {
