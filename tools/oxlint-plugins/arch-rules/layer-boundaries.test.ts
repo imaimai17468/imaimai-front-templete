@@ -201,6 +201,18 @@ describe("layer-boundaries", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
+  it("should not report when a gateway imports a package whose subpath names a role directory", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/shared/gateway/user/index.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@react-email/components"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
   it.each([
     "/repo/src/shared/entities/user/index.ts",
     "/repo/src/routes/login/-entities/plan.ts",
@@ -381,6 +393,18 @@ describe("layer-boundaries", () => {
 
     // Act
     visitors.ImportDeclaration?.(importNode("@/lib/auth/session.helpers"));
+
+    // Assert
+    expect(context.report).not.toHaveBeenCalled();
+  });
+
+  it("should not report when a route imports a module under a directory whose name ends in the coverage suffix", () => {
+    // Arrange
+    const context = makeLayerContext("/repo/src/routes/api/avatars.ts");
+    const visitors = rule.create(context);
+
+    // Act
+    visitors.ImportDeclaration?.(importNode("@/lib/auth/session.entry/caller"));
 
     // Assert
     expect(context.report).not.toHaveBeenCalled();
