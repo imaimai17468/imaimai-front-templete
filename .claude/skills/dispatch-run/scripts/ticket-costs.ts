@@ -6,7 +6,7 @@
  * from every line on each read.
  */
 
-import { isRecord } from "./orchestrate-decisions.ts";
+import { isRecord, parseJson } from "./orchestrate-decisions.ts";
 import type { RemainingBudget } from "./orchestrate-decisions.ts";
 
 const MODELS = ["opus", "fable", "sonnet", "haiku"] as const;
@@ -94,15 +94,20 @@ const withWindow = <T extends object>(
 
 const RECORD_DISPATCH_USAGE = `usage: bun .claude/skills/dispatch-run/scripts/orchestrate.ts record-dispatch <branch> <${MODELS.join("|")}> <${EFFORTS.join("|")}> <${KINDS.join("|")}>`;
 
+type FourArgs = readonly [string, string, string, string];
+
+const isFourArgs = (args: readonly string[]): args is FourArgs =>
+  args.length === 4;
+
 export const dispatchEvent = (
   args: readonly string[],
   at: number,
   window?: WindowSnapshot
 ): Parsed<DispatchEvent> => {
-  const [branch, model, effort, kind] = args;
-  if (args.length !== 4 || branch === undefined || branch === "") {
+  if (!isFourArgs(args) || args[0] === "") {
     return error(RECORD_DISPATCH_USAGE);
   }
+  const [branch, model, effort, kind] = args;
   if (!isOneOf(MODELS, model)) {
     return error(`model must be one of ${MODELS.join(", ")}`);
   }
@@ -126,18 +131,18 @@ const RECORD_DONE_USAGE =
 
 const COUNT = /^\d+$/u;
 
-const count = (value: string | undefined): number | undefined =>
-  value !== undefined && COUNT.test(value) ? Number(value) : undefined;
+const count = (value: string): number | undefined =>
+  COUNT.test(value) ? Number(value) : undefined;
 
 export const doneEvent = (
   args: readonly string[],
   at: number,
   window?: WindowSnapshot
 ): Parsed<DoneEvent> => {
-  const [branch, ...numbers] = args;
-  if (args.length !== 4 || branch === undefined || branch === "") {
+  if (!isFourArgs(args) || args[0] === "") {
     return error(RECORD_DONE_USAGE);
   }
+  const [branch, ...numbers] = args;
   const [subagentTokens, toolUses, durationMs] = numbers.map(count);
   if (
     subagentTokens === undefined ||
@@ -165,7 +170,7 @@ export const doneEvent = (
 };
 
 const isFiniteNumber = (value: unknown): value is number =>
-  typeof value === "number" && Number.isFinite(value);
+  Number.isFinite(value);
 
 const isWindowSnapshot = (value: unknown): value is WindowSnapshot =>
   isRecord(value) &&
@@ -196,12 +201,11 @@ const isDoneEvent = (value: unknown): value is DoneEvent =>
   hasValidWindow(value);
 
 const lineEvent = (line: string): CostEvent | undefined => {
-  try {
-    const parsed: unknown = JSON.parse(line);
-    return isDispatchEvent(parsed) || isDoneEvent(parsed) ? parsed : undefined;
-  } catch {
-    return undefined;
-  }
+  const json = parseJson(line);
+  return json !== undefined &&
+    (isDispatchEvent(json.value) || isDoneEvent(json.value))
+    ? json.value
+    : undefined;
 };
 
 export interface CostLog {
@@ -268,10 +272,12 @@ const pairing = (events: readonly CostEvent[]): Pairing => {
       const index = open.findLastIndex(
         (candidate) => candidate.branch === event.branch
       );
-      const [dispatch] = index === -1 ? [] : open.splice(index, 1);
-      if (dispatch !== undefined) {
-        spans.push({ dispatch, done: event });
+      const dispatch = open[index];
+      if (dispatch === undefined) {
+        return;
       }
+      open.splice(index, 1);
+      spans.push({ dispatch, done: event });
     });
   return { orphans: open, spans };
 };
@@ -418,9 +424,9 @@ const formatGroup = (group: CostGroup): string => {
 export const formatCosts = (log: CostLog, path: string): readonly string[] => {
   const groups = costGroups(tickets(log.events));
   const skipped =
-    log.skippedLines === 0
-      ? []
-      : [`skipped ${log.skippedLines} lines of ${path} that hold no event`];
+    log.skippedLines >= 1
+      ? [`skipped ${log.skippedLines} lines of ${path} that hold no event`]
+      : [];
   return groups.length === 0
     ? [`no completed ticket in ${path} yet`, ...skipped]
     : [...groups.map(formatGroup), ...skipped];

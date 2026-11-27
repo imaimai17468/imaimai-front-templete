@@ -13,9 +13,11 @@ const NOW = 1_791_964_866;
 const RESETS_AT = NOW + 3600;
 const LOG_PATH = "/repo/.claude/ticket-costs.jsonl";
 const RECORD_DISPATCH_USAGE =
-  "usage: bun .claude/skills/dispatch-run/scripts/orchestrate.ts record-dispatch";
+  "usage: bun .claude/skills/dispatch-run/scripts/orchestrate.ts record-dispatch <branch> <opus|fable|sonnet|haiku> <low|medium|high|xhigh|max> <gate|judgment>";
 const RECORD_DONE_USAGE =
-  "usage: bun .claude/skills/dispatch-run/scripts/orchestrate.ts record-done";
+  "usage: bun .claude/skills/dispatch-run/scripts/orchestrate.ts record-done <branch> <subagent_tokens> <tool_uses> <duration_ms>";
+const COUNTS_MESSAGE =
+  "subagent_tokens, tool_uses and duration_ms must be whole numbers, as the Agent completion notice prints them";
 
 const budget = (
   windows: Extract<RemainingBudget, { kind: "budget" }>["windows"]
@@ -64,6 +66,35 @@ describe(fiveHourSnapshot, () => {
     expect(snapshot).toBeUndefined();
   });
 
+  it("should read the five-hour window when the seven-day window is listed before it", () => {
+    const snapshot = fiveHourSnapshot(
+      budget([
+        {
+          kind: "window",
+          label: "7d",
+          resetsInSeconds: 90_000,
+          usedPercentage: 40,
+        },
+        {
+          kind: "window",
+          label: "5h",
+          resetsInSeconds: 3600,
+          usedPercentage: 31,
+        },
+      ]),
+      NOW
+    );
+
+    expect(snapshot).toStrictEqual({
+      resets_at: RESETS_AT,
+      used_percentage: 31,
+    });
+  });
+
+  it("should return undefined when the budget lists no five-hour window at all", () => {
+    expect(fiveHourSnapshot(budget([]), NOW)).toBeUndefined();
+  });
+
   it("should return undefined when the five-hour window has reset", () => {
     expect(
       fiveHourSnapshot(budget([{ kind: "expired", label: "5h" }]), NOW)
@@ -108,16 +139,38 @@ describe(dispatchEvent, () => {
   });
 
   it.each([
+    ["haiku", "low"],
+    ["sonnet", "xhigh"],
+  ])(
+    "should accept the model and effort when they are %s and %s",
+    (model, effort) => {
+      const parsed = dispatchEvent(["feat/a", model, effort, "gate"], NOW);
+
+      expect(
+        parsed.kind === "ok" && [parsed.value.model, parsed.value.effort]
+      ).toStrictEqual([model, effort]);
+    }
+  );
+
+  it.each([
     [[], RECORD_DISPATCH_USAGE],
     [["", "opus", "high", "gate"], RECORD_DISPATCH_USAGE],
     [["feat/a", "opus", "high"], RECORD_DISPATCH_USAGE],
-    [["feat/a", "gpt", "high", "gate"], "model must be one of"],
-    [["feat/a", "opus", "huge", "gate"], "effort must be one of"],
-    [["feat/a", "opus", "high", "docs"], "kind must be one of"],
+    [["feat/a", "opus", "high", "gate", "extra"], RECORD_DISPATCH_USAGE],
+    [
+      ["feat/a", "gpt", "high", "gate"],
+      "model must be one of opus, fable, sonnet, haiku",
+    ],
+    [
+      ["feat/a", "opus", "huge", "gate"],
+      "effort must be one of low, medium, high, xhigh, max",
+    ],
+    [["feat/a", "opus", "high", "docs"], "kind must be one of gate, judgment"],
   ])("should name what is wrong when the arguments are %j", (args, message) => {
-    const parsed = dispatchEvent(args, NOW, WINDOW);
-
-    expect(parsed.kind === "error" && parsed.message).toContain(message);
+    expect(dispatchEvent(args, NOW, WINDOW)).toStrictEqual({
+      kind: "error",
+      message,
+    });
   });
 });
 
@@ -142,13 +195,13 @@ describe(doneEvent, () => {
   it.each([
     [[], RECORD_DONE_USAGE],
     [["", "1", "2", "3"], RECORD_DONE_USAGE],
-    [["feat/a", "1.5", "2", "3"], "must be whole numbers"],
-    [["feat/a", "1", "-2", "3"], "must be whole numbers"],
-    [["feat/a", "1", "2", "3ms"], "must be whole numbers"],
+    [["feat/a", "1", "2"], RECORD_DONE_USAGE],
+    [["feat/a", "1", "2", "3", "4"], RECORD_DONE_USAGE],
+    [["feat/a", "1.5", "2", "3"], COUNTS_MESSAGE],
+    [["feat/a", "1", "-2", "3"], COUNTS_MESSAGE],
+    [["feat/a", "1", "2", "3ms"], COUNTS_MESSAGE],
   ])("should refuse the counts when the arguments are %j", (args, message) => {
-    const parsed = doneEvent(args, NOW);
-
-    expect(parsed.kind === "error" && parsed.message).toContain(message);
+    expect(doneEvent(args, NOW)).toStrictEqual({ kind: "error", message });
   });
 });
 
@@ -204,6 +257,53 @@ describe(costLog, () => {
       events: log.events.map((event) => event.event),
       skippedLines: log.skippedLines,
     }).toStrictEqual({ events: ["dispatch", "done"], skippedLines: 4 });
+  });
+
+  it("should count no skipped line when a line holds only whitespace", () => {
+    expect(costLog("  \t\n").skippedLines).toBe(0);
+  });
+
+  const DISPATCH = dispatch("feat/a", NOW, { window: at(10) });
+  const DONE = done("feat/a", NOW + 60, { window: at(12) });
+
+  it.each([
+    ["the line is JSON null", null],
+    ["the dispatch's window is null", { ...DISPATCH, window: null }],
+    [
+      "the dispatch's window has no used_percentage",
+      { ...DISPATCH, window: { resets_at: RESETS_AT } },
+    ],
+    [
+      "the dispatch's window has no resets_at",
+      { ...DISPATCH, window: { used_percentage: 10 } },
+    ],
+    ["the dispatch names another event", { ...DISPATCH, event: "other" }],
+    ["the dispatch's branch is not a string", { ...DISPATCH, branch: 1 }],
+    ["the dispatch has no time", { ...DISPATCH, at: undefined }],
+    ["the dispatch's model is unknown", { ...DISPATCH, model: "gpt" }],
+    ["the dispatch's effort is unknown", { ...DISPATCH, effort: "huge" }],
+    ["the dispatch's kind is unknown", { ...DISPATCH, kind: "docs" }],
+    ["the completion names another event", { ...DONE, event: "other" }],
+    ["the completion's branch is not a string", { ...DONE, branch: 1 }],
+    ["the completion has no time", { ...DONE, at: undefined }],
+    [
+      "the completion has no subagent_tokens",
+      { ...DONE, subagent_tokens: undefined },
+    ],
+    ["the completion has no tool_uses", { ...DONE, tool_uses: undefined }],
+    ["the completion has no duration_ms", { ...DONE, duration_ms: undefined }],
+    ["the completion's window is null", { ...DONE, window: null }],
+  ])("should skip the line when %s", (_case, value) => {
+    expect(costLog(JSON.stringify(value))).toStrictEqual({
+      events: [],
+      skippedLines: 1,
+    });
+  });
+
+  it("should skip the line when its time overflows to Infinity", () => {
+    expect(
+      costLog(JSON.stringify(DISPATCH).replace(`"at":${NOW}`, '"at":1e999'))
+    ).toStrictEqual({ events: [], skippedLines: 1 });
   });
 });
 
@@ -272,6 +372,30 @@ describe(formatCosts, () => {
       ).toStrictEqual([unknownLine(1)]);
     }
   );
+
+  it("should count an orphan dispatch as in flight when another ticket ran before its branch was dispatched again", () => {
+    expect(
+      costs([
+        dispatch("feat/a", NOW, { window: at(5) }),
+        dispatch("feat/b", NOW + 100, { window: at(6) }),
+        done("feat/b", NOW + 200, { window: at(8) }),
+        dispatch("feat/a", NOW + 300, { window: at(8) }),
+        done("feat/a", NOW + 600, { window: at(10) }),
+      ])
+    ).toStrictEqual([soloLine("2.0", 1, 2)]);
+  });
+
+  it("should count an orphan dispatch as in flight when its branch also ran a ticket before it", () => {
+    expect(
+      costs([
+        dispatch("feat/a", NOW, { window: at(5) }),
+        done("feat/a", NOW + 100, { window: at(6) }),
+        dispatch("feat/a", NOW + 200, { window: at(6) }),
+        dispatch("feat/b", NOW + 300, { window: at(7) }),
+        done("feat/b", NOW + 400, { window: at(9) }),
+      ])
+    ).toStrictEqual([soloLine("1.0", 1, 2)]);
+  });
 
   it("should stop counting an orphan dispatch as in flight when its branch was dispatched again", () => {
     expect(
@@ -375,6 +499,32 @@ describe(formatCosts, () => {
     ]);
   });
 
+  it("should take the middle value when an odd count of tickets lies unevenly", () => {
+    expect(
+      costs([
+        dispatch("feat/a", NOW),
+        done("feat/a", NOW + 100, { subagent_tokens: 100 }),
+        dispatch("feat/b", NOW + 100),
+        done("feat/b", NOW + 200, { subagent_tokens: 200 }),
+        dispatch("feat/c", NOW + 200),
+        done("feat/c", NOW + 300, { subagent_tokens: 900 }),
+      ])
+    ).toStrictEqual([
+      `opus high gate: tickets 3, median 200 subagent_tokens, 10.0 min, ${UNKNOWN_SOLO}`,
+    ]);
+  });
+
+  it("should round the minutes to a tenth when the duration falls between two tenths", () => {
+    expect(
+      costs([
+        dispatch("feat/a", NOW),
+        done("feat/a", NOW + 100, { duration_ms: 63_000 }),
+      ])
+    ).toStrictEqual([
+      `opus high gate: tickets 1, median 100000 subagent_tokens, 1.1 min, ${UNKNOWN_SOLO}`,
+    ]);
+  });
+
   it("should keep two efforts of one model and kind apart when both completed a ticket", () => {
     expect(
       costs([
@@ -401,6 +551,22 @@ describe(formatCosts, () => {
     expect(formatCosts(log, LOG_PATH)).toStrictEqual([
       unknownLine(1),
       `skipped 1 lines of ${LOG_PATH} that hold no event`,
+    ]);
+  });
+
+  it("should print the skipped count after saying no ticket completed when the log holds only lines without an event", () => {
+    expect(formatCosts(costLog("garbage"), LOG_PATH)).toStrictEqual([
+      `no completed ticket in ${LOG_PATH} yet`,
+      `skipped 1 lines of ${LOG_PATH} that hold no event`,
+    ]);
+  });
+
+  it("should print the whole skipped count when several lines hold no event", () => {
+    expect(
+      formatCosts(costLog("garbage\nmore garbage"), LOG_PATH)
+    ).toStrictEqual([
+      `no completed ticket in ${LOG_PATH} yet`,
+      `skipped 2 lines of ${LOG_PATH} that hold no event`,
     ]);
   });
 
