@@ -13,8 +13,7 @@ import type { ProfileRow } from "./read.ts";
 
 const AVATAR_KEY = "user-1/avatar.jpg";
 const PROVIDER_IMAGE = "https://images.example.com/from-google.png";
-const PROFILE_QUERY =
-  'select "id", "name" from "users" where "users"."id" = ? limit ?';
+const PROFILE_QUERY = 'select "id", "name" from "users" where "users"."id" = ?';
 
 // このファイルがテストする CurrentUserReader の Layer を、依存の CurrentSession と
 // UserProfiles を差し替えて組む。共通化すると、ここが差し替えていない依存が変わった

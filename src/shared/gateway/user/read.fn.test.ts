@@ -8,4 +8,8 @@ describe(currentUserQueryOptions, () => {
       "current",
     ]);
   });
+
+  it("should give the query a function to fetch the user with when a component reads it", () => {
+    expect(currentUserQueryOptions().queryFn).toBeTypeOf("function");
+  });
 });

@@ -1,10 +1,5 @@
 import "@tanstack/react-start/server-only";
-import { Effect, Schema } from "effect";
-
-class PromiseRejected extends Schema.TaggedError<
-  PromiseRejected,
-  { readonly brand: unique symbol }
->()("PromiseRejected", { cause: Schema.Defect() }) {}
+import { Effect } from "effect";
 
 /**
  * What `answer`'s Promise rejected with, as the Effect's value.
@@ -14,9 +9,9 @@ class PromiseRejected extends Schema.TaggedError<
  */
 export const rejectionOf = <A>(answer: () => Promise<A>) =>
   Effect.tryPromise({
-    catch: (cause) => PromiseRejected.make({ cause }),
+    catch: (cause) => ({ rejected: cause }),
     try: answer,
   }).pipe(
     Effect.flip,
-    Effect.map(({ cause }) => cause)
+    Effect.map(({ rejected }) => rejected)
   );

@@ -101,22 +101,25 @@ describe(makeRunHandler, () => {
       })
   );
 
-  it.effect("should log one record when the handler is interrupted", () =>
-    Effect.gen(function* () {
-      const errorSpy = silenceConsoleError();
-      const run = makeRunHandler(Layer.empty);
+  it.effect(
+    "should log one record saying the fibers were interrupted when the handler is interrupted",
+    () =>
+      Effect.gen(function* () {
+        const errorSpy = silenceConsoleError();
+        const run = makeRunHandler(Layer.empty);
 
-      yield* rejectionOf(() => run(Effect.interrupt));
+        yield* rejectionOf(() => run(Effect.interrupt));
 
-      expect(errorSpy.mock.calls).toStrictEqual([
-        [
-          expect.objectContaining({
-            event: "gateway.handlerDefect",
-            operations: [],
-          }),
-        ],
-      ]);
-    })
+        expect(errorSpy.mock.calls).toStrictEqual([
+          [
+            expect.objectContaining({
+              event: "gateway.handlerDefect",
+              message: "All fibers interrupted without error",
+              operations: [],
+            }),
+          ],
+        ]);
+      })
   );
 
   it.effect(
