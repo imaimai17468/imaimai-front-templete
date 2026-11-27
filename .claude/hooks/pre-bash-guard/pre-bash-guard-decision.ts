@@ -41,7 +41,7 @@ const BODY_MARKER = /[\uE000-\uE002]/u;
  * The heredoc rewritten onto its operator's line, with its body between two
  * markers, so the body stays in the simple command it feeds.
  */
-const heredocOnOneLine = (reading: BodyReading): string =>
+const writeOnOneLine = (reading: BodyReading): string =>
   `<<$<quote>$<delimiter>$<quote>$<tail> ${BODY_OPEN[reading]}$<body>${BODY_CLOSE} $<delimiter>`;
 
 /** A heredoc body the rewrite marked, which holds text. */
@@ -164,7 +164,7 @@ const CAT_SUBSTITUTION = /^"\$\(cat <<'EOF' \uE000[^\uE001]*\uE001 EOF\n\)"/u;
  * opens nested quoting, other than a `"$(cat <<'EOF' ... EOF\n)"`, is reduced
  * to `'`, an unpaired quote, because the guard cannot say where it closes.
  */
-const quotingOutline = (text: string): string =>
+const outlineQuoting = (text: string): string =>
   text.replaceAll(PAIRED_PIECE, (piece: string) =>
     opensNestedQuoting(piece) && !CAT_SUBSTITUTION.test(piece) ? "'" : "_"
   );
@@ -229,16 +229,16 @@ const isPlainCommandBefore = (text: string, command: RegExp): boolean => {
  * or a `cat` does whose output goes to one, the `cat` starting a command or a
  * substitution in an argument of one.
  */
-const bodyReading = (
+const classifyBody = (
   prefix: string,
   quote: string,
   tail: string,
   body: string
 ): BodyReading => {
-  const before = quotingOutline(
-    prefix.replaceAll(HEREDOC, heredocOnOneLine("prose"))
+  const before = outlineQuoting(
+    prefix.replaceAll(HEREDOC, writeOnOneLine("prose"))
   );
-  const after = quotingOutline(tail);
+  const after = outlineQuoting(tail);
   const isCatIntoProse =
     CAT_INTO_PROSE.test(after) &&
     (isPlainCommandBefore(before, CAT_COMMAND) ||
@@ -274,8 +274,8 @@ const markHeredocs = (command: string): string =>
     ) =>
       heredoc.replaceAll(
         HEREDOC,
-        heredocOnOneLine(
-          bodyReading(command.slice(0, offset), quote, tail, body)
+        writeOnOneLine(
+          classifyBody(command.slice(0, offset), quote, tail, body)
         )
       )
   );
