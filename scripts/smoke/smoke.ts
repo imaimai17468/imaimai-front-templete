@@ -124,6 +124,15 @@ export const missedBy = (
 export const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
+/**
+ * The error's message followed by each cause's, so a failure wrapped around
+ * a system error still names it.
+ */
+export const describeError = (error: unknown): string =>
+  error instanceof Error && error.cause !== undefined
+    ? `${error.message}: ${describeError(error.cause)}`
+    : messageOf(error);
+
 const READY_LINE = /Local:\s+(?<url>http:\/\/\S+)/u;
 
 /**
@@ -163,3 +172,16 @@ export const pointsAt = (recordText: string, dir: string): boolean =>
   decodeLocalD1Record(recordText).pipe(
     Option.exists((record) => record.persistRoot === dir)
   );
+
+/**
+ * The status the run exits with: its own result, or 128 plus the number of
+ * the first signal that interrupted it, which is how a shell reports a
+ * process that signal ended.
+ */
+export const exitStatus = (
+  result: number,
+  interruptingSignals: readonly number[]
+): number => {
+  const [first] = interruptingSignals;
+  return first === undefined ? result : 128 + first;
+};

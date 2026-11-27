@@ -8,6 +8,8 @@
 import { describe, expect, it } from "vite-plus/test";
 import { EXPECTED_DOCUMENT_HEADERS, ROUTES } from "./smoke.expected.ts";
 import {
+  describeError,
+  exitStatus,
   messageOf,
   pointsAt,
   missedBy,
@@ -307,4 +309,34 @@ describe("smoke", () => {
       expect(signInBurstFailure(statuses)).toBeNull();
     }
   );
+});
+
+describe(describeError, () => {
+  it("should name each cause after the message when the error wraps causes", () => {
+    expect(
+      describeError(
+        new Error("could not start", {
+          cause: new Error("spawn bunx", { cause: "ENOENT" }),
+        })
+      )
+    ).toBe("could not start: spawn bunx: ENOENT");
+  });
+
+  it("should print the message alone when the error has no cause", () => {
+    expect(describeError(new Error("not ready"))).toBe("not ready");
+  });
+
+  it("should print the value when what was thrown is not an error", () => {
+    expect(describeError(null)).toBe("null");
+  });
+});
+
+describe(exitStatus, () => {
+  it("should exit with the run's result when no signal interrupted it", () => {
+    expect(exitStatus(1, [])).toBe(1);
+  });
+
+  it("should exit as a shell reports the first signal when signals interrupted the run", () => {
+    expect(exitStatus(1, [2, 15])).toBe(130);
+  });
 });
