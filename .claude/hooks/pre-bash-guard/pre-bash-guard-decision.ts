@@ -50,10 +50,11 @@ const CONTROL_OPERATORS: ReadonlySet<string> = new Set([";", "&", "|", "\n"]);
 const COMMAND_BOUNDARY = "\u0000";
 
 /**
- * Programs whose arguments carry prose, such as a commit message or a pull
- * request body, where naming the file is not reading it.
+ * A simple command running `git` or `gh`, whose arguments carry prose, such
+ * as a commit message or a pull request body, where naming the file is not
+ * reading it.
  */
-const PROSE_PROGRAMS: ReadonlySet<string> = new Set(["gh", "git"]);
+const PROSE_COMMAND = /^\s*(?:gh|git)(?!\S)/u;
 
 /**
  * A heredoc body that holds text, or a quoted span, that may be prose. A
@@ -77,9 +78,6 @@ const simpleCommands = (command: string): string[] =>
     .join("")
     .split(COMMAND_BOUNDARY);
 
-const programOf = (simpleCommand: string): string =>
-  simpleCommand.trimStart().replace(/\s[\s\S]*$/u, "");
-
 /**
  * The text, and the text the shell hands the program once it drops
  * backslashes and quotes, which turns `.e\nv` and `.en"v"` into `.env`.
@@ -90,7 +88,7 @@ const spellings = (text: string): readonly string[] => {
 };
 
 const namesEnvFile = (simpleCommand: string): boolean => {
-  const checked = PROSE_PROGRAMS.has(programOf(simpleCommand))
+  const checked = PROSE_COMMAND.test(simpleCommand)
     ? simpleCommand.replaceAll(QUOTED_SPAN, proseRemoved)
     : simpleCommand;
   return spellings(checked).some((spelling) => NAMED_ENV_FILE.test(spelling));
