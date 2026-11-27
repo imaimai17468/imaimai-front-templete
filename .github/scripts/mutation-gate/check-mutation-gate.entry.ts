@@ -2,15 +2,16 @@
 
 /**
  * ```
- * git diff -z --name-only <base commit> HEAD | bun .github/scripts/mutation-gate/check-mutation-gate.entry.ts
+ * git diff -z --name-only <base commit> HEAD | bun .github/scripts/mutation-gate/check-mutation-gate.entry.ts <report>
  * ```
  *
  * Reads the files a pull request changed from stdin and exits non-zero when
- * `reports/mutation/mutation.json` holds a mutant no test notices in one of
- * them, or when that report is missing or unreadable.
+ * `<report>`, the JSON `bun run mutate --json` printed, holds a mutant no test
+ * notices in one of them, or when that report is missing or unreadable.
  */
 
 import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 import {
   buildGateReport,
   decideMutationGate,
@@ -20,9 +21,7 @@ import {
 
 const report = buildGateReport(
   decideMutationGate(
-    readReportFile(
-      new URL("../../../reports/mutation/mutation.json", import.meta.url)
-    ),
+    readReportFile(pathToFileURL(process.argv[2] ?? "")),
     parseChangedFiles(readFileSync(0, "utf-8"))
   )
 );

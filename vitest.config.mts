@@ -70,7 +70,6 @@ export default defineConfig({
     exclude: [
       ...defaultExclude,
       ".claude/worktrees/**",
-      ".stryker-tmp/**",
       nodeTestSkillExclude,
       "src/shared/ui/**",
     ],

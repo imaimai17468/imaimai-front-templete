@@ -225,14 +225,15 @@ jobs:
       - name: Boot the app and request its routes (smoke)
         run: bun run smoke
 
-  # Runs mutation testing and uploads its HTML report for reading. On a pull
-  # request the job fails while a file the pull request changes holds a
-  # mutant no test notices (Survived or NoCoverage), or when the run wrote no
-  # report; on a push to main it only reports. The incremental file
-  # restored below reuses the result of every mutant whose code and covering
-  # tests are unchanged, so a run without a cache is the slow one, and the
-  # cache key changes with the dependencies and the test setup, which can
-  # change a result without changing either.
+  # Runs mutation testing with Mootant and uploads its HTML report for
+  # reading. On a pull request it mutates the files the pull request changes
+  # that scripts/mutate/mutation-targets.ts names, and fails while one of them
+  # holds a mutant no test notices (Survived or NoCoverage), or when the run
+  # printed no report. On a push to main it mutates every target and only
+  # reports. The cache restored below reuses the verdict of every mutant whose
+  # code and tests are unchanged, so a run without it is the slow one, and its
+  # key changes with the dependencies and the test setup, which can change a
+  # verdict without changing either.
   mutation:
     name: mutation testing
     runs-on: ubuntu-latest
@@ -244,32 +245,20 @@ jobs:
       - name: Set up the toolchain and dependencies
         uses: ./.github/actions/setup
 
-      - name: Restore the incremental mutation results
+      - name: Restore the cached mutation verdicts
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: reports/stryker-incremental.json
-          key: stryker-incremental-${{ hashFiles('bun.lock', 'vitest.config.mts', 'stryker.config.mjs', 'src/test/**') }}-${{ github.sha }}
-          restore-keys: stryker-incremental-${{ hashFiles('bun.lock', 'vitest.config.mts', 'stryker.config.mjs', 'src/test/**') }}-
+          path: node_modules/.cache/mootant
+          key: mootant-${{ hashFiles('bun.lock', 'vitest.config.mts', 'mootant.config.ts', 'src/test/**') }}-${{ github.sha }}
+          restore-keys: mootant-${{ hashFiles('bun.lock', 'vitest.config.mts', 'mootant.config.ts', 'src/test/**') }}-
 
-      - name: Run mutation testing (StrykerJS)
-        continue-on-error: true
-        run: bun run mutate
+      - name: Run mutation testing on every target
+        if: ${{ github.event_name != 'pull_request' }}
+        run: bun run mutate --html
 
-      - name: Upload the mutation report
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: mutation-report
-          path: reports/mutation/mutation.html
-
-      # The incremental run above keeps a cached Survived result for a mutant
-      # no test covers per test, such as one in a module-level value, after a
-      # test that kills it lands, and keeps a cached Killed result after a
-      # change to a module the mutant calls. So the modules this pull request
-      # changes are mutated again with `--force` before the gate reads the
-      # report. A two-dot diff from the base commit to the merge commit the
-      # checkout holds names the changed files, and the checkout fetches the
-      # merge commit alone, so the base commit is fetched first.
+      # A two-dot diff from the base commit to the merge commit the checkout
+      # holds names the changed files, and the checkout fetches the merge
+      # commit alone, so the base commit is fetched first.
       - name: Fail on a mutant no test notices in a changed file
         if: ${{ github.event_name == 'pull_request' }}
         env:
@@ -277,20 +266,27 @@ jobs:
         run: |
           git fetch --no-tags --depth=1 origin "$BASE_SHA"
           git diff -z --name-only --no-renames "$BASE_SHA" HEAD > "$RUNNER_TEMP/changed-files"
-          modules="$(bun .github/scripts/mutation-gate/list-changed-modules.entry.ts < "$RUNNER_TEMP/changed-files")"
-          if [ -n "$modules" ]; then
-            bun run mutate --force --mutate "$modules"
+          bun .github/scripts/mutation-gate/list-changed-modules.entry.ts < "$RUNNER_TEMP/changed-files" > "$RUNNER_TEMP/modules"
+          if [ ! -s "$RUNNER_TEMP/modules" ]; then
+            echo "No file this pull request changes is mutated."
+            exit 0
           fi
-          bun .github/scripts/mutation-gate/check-mutation-gate.entry.ts < "$RUNNER_TEMP/changed-files"
+          xargs -a "$RUNNER_TEMP/modules" -d '\n' bun run mutate --json --html > "$RUNNER_TEMP/mutation.json"
+          bun .github/scripts/mutation-gate/check-mutation-gate.entry.ts "$RUNNER_TEMP/mutation.json" < "$RUNNER_TEMP/changed-files"
 
-      # Stryker writes the mutants it finished when it exits on an error, so
-      # saving after a failed run lets the next run resume from them.
-      - name: Save the incremental mutation results
-        if: ${{ !cancelled() && hashFiles('reports/stryker-incremental.json') != '' }}
+      - name: Upload the mutation report
+        if: ${{ !cancelled() && hashFiles('.mootant/report.html') != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-report
+          path: .mootant/report.html
+
+      - name: Save the cached mutation verdicts
+        if: ${{ !cancelled() && hashFiles('node_modules/.cache/mootant/**') != '' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: reports/stryker-incremental.json
-          key: stryker-incremental-${{ hashFiles('bun.lock', 'vitest.config.mts', 'stryker.config.mjs', 'src/test/**') }}-${{ github.sha }}
+          path: node_modules/.cache/mootant
+          key: mootant-${{ hashFiles('bun.lock', 'vitest.config.mts', 'mootant.config.ts', 'src/test/**') }}-${{ github.sha }}
 
   # Reports every job above as one check, which fails when any of them did not
   # succeed. `!cancelled()` runs it after a failed job too, where

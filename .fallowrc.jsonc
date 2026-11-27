@@ -20,13 +20,14 @@
   // .claude/hooks/scoped-guidance/scoped-guidance.sh and by the PreToolUse hook
   // .claude/settings.json registers for pre-bash-guard, and loaded by the void
   // CLI and plugin (the config, the env schema, and the D1 schema the `@schema`
-  // alias names) and by Stryker as a plugin path, none of which an import graph
+  // alias names) and by Mootant as its config, none of which an import graph
   // reaches.
   "dynamicallyLoaded": [
     "doctor.config.ts",
     ".claude/hooks/scoped-guidance/scoped-guidance.entry.ts",
     ".claude/hooks/pre-bash-guard/pre-bash-guard.entry.ts",
     "void.config.ts",
+    "mootant.config.ts",
     "env.ts",
     "db/schema.ts",
   ],
