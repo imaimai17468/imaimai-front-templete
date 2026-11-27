@@ -18,6 +18,10 @@ const AuditReportSchema = Schema.Record(Schema.String, Schema.Array(Advisory));
 
 type AuditReport = typeof AuditReportSchema.Type;
 
+const decodeJson = Schema.decodeUnknownResult(
+  Schema.fromJsonString(Schema.Unknown)
+);
+
 const decodeAuditReport = Schema.decodeUnknownResult(AuditReportSchema, {
   errors: "all",
 });
@@ -47,37 +51,27 @@ export type AuditOutcome =
       readonly transitive: readonly string[];
     };
 
-type ParsedReport =
-  | { readonly kind: "report"; readonly report: AuditReport }
-  | { readonly kind: "not-json" }
-  | { readonly kind: "unexpected-shape"; readonly issues: string };
-
-type ParsedJson =
-  | { readonly kind: "json"; readonly value: unknown }
-  | { readonly kind: "not-json" };
-
-const parseJson = (text: string): ParsedJson => {
-  try {
-    const value: unknown = JSON.parse(text);
-    return { kind: "json", value };
-  } catch {
-    return { kind: "not-json" };
-  }
-};
-
-const parseReport = (stdout: string): ParsedReport => {
-  const json = parseJson(stdout);
-  if (json.kind === "not-json") {
-    return json;
-  }
-  const decoded = decodeAuditReport(json.value);
-  return Result.isSuccess(decoded)
-    ? { kind: "report", report: decoded.success }
-    : { issues: decoded.failure.message, kind: "unexpected-shape" };
-};
-
 const stderrLine = (run: AuditRun): string =>
   `stderr: ${run.stderr.trim() || "(empty)"}`;
+
+/** The advisory report the run printed, or why it printed none to judge. */
+const readReport = (run: AuditRun): Result.Result<AuditReport, string> => {
+  const json = decodeJson(run.stdout);
+  if (Result.isFailure(json)) {
+    return Result.fail(
+      [
+        `bun audit exited ${String(run.exitCode)} without printing a JSON report, so the registry gave no answer to judge.`,
+        stderrLine(run),
+      ].join("\n")
+    );
+  }
+  return Result.mapError(decodeAuditReport(json.success), (issue) =>
+    [
+      `bun audit exited ${String(run.exitCode)} and printed JSON this step cannot read as an advisory report:`,
+      issue.message,
+    ].join("\n")
+  );
+};
 
 const classify = (
   report: AuditReport,
@@ -109,26 +103,10 @@ export const auditOutcome = (
       kind: "unanswered",
     };
   }
-  const parsed = parseReport(run.stdout);
-  if (parsed.kind === "not-json") {
-    return {
-      detail: [
-        `bun audit exited ${String(run.exitCode)} without printing a JSON report, so the registry gave no answer to judge.`,
-        stderrLine(run),
-      ].join("\n"),
-      kind: "unanswered",
-    };
-  }
-  if (parsed.kind === "unexpected-shape") {
-    return {
-      detail: [
-        `bun audit exited ${String(run.exitCode)} and printed JSON this step cannot read as an advisory report:`,
-        parsed.issues,
-      ].join("\n"),
-      kind: "unanswered",
-    };
-  }
-  return classify(parsed.report, new Set(directNames));
+  const report = readReport(run);
+  return Result.isFailure(report)
+    ? { detail: report.failure, kind: "unanswered" }
+    : classify(report.success, new Set(directNames));
 };
 
 export interface AuditReportLines {
