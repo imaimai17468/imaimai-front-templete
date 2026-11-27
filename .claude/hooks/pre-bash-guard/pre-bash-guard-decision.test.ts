@@ -122,6 +122,16 @@ describe(decideCommand, () => {
   );
 
   it.each([
+    String.raw`git commit -m $'a \' b' -F .env 'c d'`,
+    String.raw`git commit -m $'\'' -F .env -m 'x y'`,
+  ])(
+    "should refuse %j when the file follows an ANSI-C quoted span holding an escaped quote",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
     "git commit -F - <<_EOF_\nmentions .env\nEOF",
     "git commit -F - <<'END OF'\nmentions .env\nEND OF",
   ])(
@@ -152,6 +162,8 @@ describe(decideCommand, () => {
     'git commit -m "<<A\nx\nA\n" -m \'mentions .env\' -m "<<B\ny\nB\n"',
     'git commit -m "$(cat <<\'EOF\'\nsay "hi" about .env\nEOF\n)"',
     "git commit -m \"$(cat <<'EOF'\nsubject\nEOF\n)\" -m \"$(cat <<'EOF'\nbody names .env\nEOF\n)\"",
+    "git commit -m $'a b' -m 'mentions .env'",
+    String.raw`git commit -m 'C:\' -m 'mentions .env'`,
   ])(
     "should allow %j when it names the file in the prose of a git or gh command",
     (command) => {

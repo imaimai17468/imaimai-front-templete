@@ -82,12 +82,13 @@ const QUOTED_SPAN = joinAlternatives(
 const DOUBLE_QUOTED_OVER_BODIES = String.raw`"(?:${MARKED_BODY.source}|\\[\s\S]|[^"\\])*"`;
 
 /**
- * A simple command's pieces: a marked body, a single- or double-quoted span,
- * an escaped character, or any other character.
+ * A simple command's pieces: a marked body, a single-quoted span, which takes
+ * in a `$` right before it, a double-quoted span, an escaped character, or any
+ * other character.
  */
 const SHELL_PIECE = joinAlternatives(
   MARKED_BODY.source,
-  /'[^']*'/u.source,
+  /\$?'[^']*'/u.source,
   DOUBLE_QUOTED_OVER_BODIES,
   /\\[\s\S]|[\s\S]/u.source
 );
@@ -103,7 +104,16 @@ const EXPANDING_DOUBLE_QUOTE = /^"[\s\S]*?[$`\\]/u;
  * shell starts pairing quotes afresh, so a quote this guard pairs from there
  * on may not be the one the shell pairs.
  */
-const NESTED_QUOTING_OPENER = /^"[\s\S]*?(?:\$[({]|`)/u;
+const NESTED_DOUBLE_QUOTE = /^"[\s\S]*?(?:\$[({]|`)/u;
+
+/**
+ * Whether the piece opens quoting this guard cannot pair: a nested double
+ * quote, or a `$'` span cut at an escaped quote, where the shell, reading it
+ * as ANSI-C quoting, does not end the span.
+ */
+const opensNestedQuoting = (piece: string): boolean =>
+  NESTED_DOUBLE_QUOTE.test(piece) ||
+  (piece.startsWith("$'") && piece.endsWith(String.raw`\'`));
 
 /** A path rarely holds a blank, so `git add '.env'` is still checked. */
 const proseRemoved = (span: string): string => (/\s/u.test(span) ? " " : span);
@@ -167,9 +177,7 @@ const readTextsToCheck = (command: string): string[] => {
         text,
       }))
   );
-  const nestedFrom = pieces.findIndex(({ text }) =>
-    NESTED_QUOTING_OPENER.test(text)
-  );
+  const nestedFrom = pieces.findIndex(({ text }) => opensNestedQuoting(text));
   const piecesByCommand = Map.groupBy(
     pieces.map((piece, index) => ({
       ...piece,
