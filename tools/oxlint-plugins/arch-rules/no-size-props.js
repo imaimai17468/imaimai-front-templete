@@ -8,11 +8,7 @@ const noSizeProps = {
         if (propName !== "width" && propName !== "height") {
           return;
         }
-        const openingElement = node.parent;
-        if (!openingElement) {
-          return;
-        }
-        const elementName = openingElement.name;
+        const elementName = node.parent.name;
         if (
           elementName.type === "JSXMemberExpression" ||
           isComponentName(elementName.name)

@@ -158,18 +158,6 @@ describe("no-size-props", () => {
 });
 
 describe("no-size-props (defensive branches)", () => {
-  it("should not report when the attribute has no parent element", () => {
-    // Arrange
-    const context = makeContext();
-    const visitors = rule.create(context);
-
-    // Act
-    visitors.JSXAttribute({ name: { name: "width" }, parent: null });
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
   it("should not report when the element name is a namespaced identifier", () => {
     // Arrange
     const context = makeContext();
