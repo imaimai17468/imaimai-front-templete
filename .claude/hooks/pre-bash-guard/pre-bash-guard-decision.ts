@@ -172,6 +172,12 @@ const quotingOutline = (text: string): string =>
 /** A `#` that starts a word on the operator's line, which makes the operator comment text. */
 const COMMENT_ON_LINE = /\s#[^\n]*$/u;
 
+/**
+ * A delimiter word that goes on past its quotes, such as `'E'OF`, whose body
+ * ends on a line other than the one this guard reads as its end.
+ */
+const DELIMITER_CONTINUES = /^[^\s;&|<>()]/u;
+
 /** A parenthesis, a backtick or a quote, around which this guard cannot place the operator's command. */
 const NESTING = /[()`"']/u;
 
@@ -208,9 +214,10 @@ const isPlainCommandBefore = (text: string, command: RegExp): boolean => {
 
 /**
  * A body is prose where its delimiter is quoted or it holds nothing the shell
- * expands, the operator is not in a comment, and either a `git` or `gh`
- * command owns the operator, or a `cat` does whose output goes to one, the
- * `cat` starting a command or a substitution in an argument of one.
+ * expands, this guard reads the operator line as the shell does, the operator
+ * is not in a comment, and either a `git` or `gh` command owns the operator,
+ * or a `cat` does whose output goes to one, the `cat` starting a command or a
+ * substitution in an argument of one.
  */
 const bodyReading = (
   prefix: string,
@@ -231,6 +238,7 @@ const bodyReading = (
       ));
   const isReadAsProse =
     !(quote === "" && EXPANDING_BODY.test(body)) &&
+    !DELIMITER_CONTINUES.test(tail) &&
     !COMMENT_ON_LINE.test(before) &&
     !NESTING.test(after) &&
     (isPlainCommandBefore(before, PROSE_COMMAND) || isCatIntoProse);

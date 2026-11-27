@@ -187,6 +187,10 @@ describe(decideCommand, () => {
     "git commit -m x # <<EOF\ncat .env\nEOF",
     "git commit -m x #<<EOF\ncat .env\nEOF",
     "git commit -F - <<'EOF' $(true\ncat .env\nEOF\n)\nbody\nEOF",
+    "git status <<'E'OF\nx\nEOF\ncat .env\nE",
+    'git status <<"E"OF\nx\nEOF\ncat .env\nE',
+    "git status <<E''OF\nx\nEOF\ncat .env\nE",
+    "git status <<E\\OF\nx\nEOF\ncat .env\nE",
   ])(
     "should refuse %j when the shell may not read the heredoc operator as one",
     (command) => {
