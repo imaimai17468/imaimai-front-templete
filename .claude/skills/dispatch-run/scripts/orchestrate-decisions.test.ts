@@ -28,6 +28,8 @@ import type {
 
 const GIB = 1024 ** 3;
 
+const POLL_MS = 60_000;
+
 describe(freeGibFromMemoryPressure, () => {
   it("should multiply the free percentage by the machine's memory when the percentage line is present", () => {
     const output = "Pageouts: 0\n\nSystem-wide memory free percentage: 50%\n";
@@ -35,6 +37,15 @@ describe(freeGibFromMemoryPressure, () => {
     const gib = freeGibFromMemoryPressure(output, 64 * GIB);
 
     expect(gib).toBe(32);
+  });
+
+  it("should return undefined when the percentage is not a number", () => {
+    const gib = freeGibFromMemoryPressure(
+      "System-wide memory free percentage: unknown%\n",
+      64 * GIB
+    );
+
+    expect(gib).toBeUndefined();
   });
 
   it("should return undefined when the percentage line is absent", () => {
@@ -58,6 +69,12 @@ describe(freeGibFromFreeB, () => {
     const gib = freeGibFromFreeB(output);
 
     expect(gib).toBe(6);
+  });
+
+  it("should return undefined when the Mem row stops before the available column", () => {
+    const gib = freeGibFromFreeB(`Mem: ${8 * GIB} 0 0 0 0 \n`);
+
+    expect(gib).toBeUndefined();
   });
 
   it("should return undefined when no Mem row is present", () => {
@@ -292,6 +309,45 @@ describe(remainingBudget, () => {
     });
   });
 
+  it("should report the windows when the file is exactly as old as the freshness threshold", () => {
+    const budget = remainingBudget(
+      fileHolding({
+        rate_limits: { five_hour: FIVE_HOUR },
+        written_at: NOW_SECONDS - 120,
+      }),
+      NOW_SECONDS
+    );
+
+    expect(budget.kind).toBe("budget");
+  });
+
+  it("should answer stale when the file is one second past the freshness threshold", () => {
+    const budget = remainingBudget(
+      fileHolding({
+        rate_limits: { five_hour: FIVE_HOUR },
+        written_at: NOW_SECONDS - 121,
+      }),
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      kind: "unknown",
+      reason: { ageSeconds: 121, kind: "stale" },
+    });
+  });
+
+  it("should answer no-written-at when the JSON is null", () => {
+    const budget = remainingBudget(
+      { kind: "content", text: "null" },
+      NOW_SECONDS
+    );
+
+    expect(budget).toStrictEqual({
+      kind: "unknown",
+      reason: { kind: "no-written-at" },
+    });
+  });
+
   it("should answer absent when no file was found", () => {
     const budget = remainingBudget({ kind: "absent" }, NOW_SECONDS);
 
@@ -501,6 +557,28 @@ describe(formatRemainingBudget, () => {
     );
   });
 
+  it.each([
+    [59.9, "59s"],
+    [3600, "1h0m"],
+    [86_400, "1d0h"],
+  ])(
+    "should print the reset in its largest units when it is %s seconds away",
+    (resetsInSeconds, printed) => {
+      const line = formatRemainingBudget(
+        {
+          ageSeconds: 0,
+          kind: "budget",
+          windows: [
+            { kind: "window", label: "5h", resetsInSeconds, usedPercentage: 1 },
+          ],
+        },
+        RATE_LIMITS_PATH
+      );
+
+      expect(line).toBe(`budget 5h 1% resets in ${printed}, written 0s ago`);
+    }
+  );
+
   it("should name the path when no file was found", () => {
     const line = formatRemainingBudget(
       { kind: "unknown", reason: { kind: "absent" } },
@@ -679,19 +757,26 @@ describe(prListing, () => {
 
 describe(watchEvent, () => {
   it("should name every branch when its open pull request is CONFLICTING", () => {
-    const event = watchEvent([
-      {
-        branch: "feat/a",
-        pullRequest: pullRequest("OPEN", "CONFLICTING"),
-        unchangedPolls: 0,
-      },
-      { branch: "feat/b", pullRequest: pullRequest("OPEN"), unchangedPolls: 0 },
-      {
-        branch: "feat/c",
-        pullRequest: pullRequest("OPEN", "CONFLICTING"),
-        unchangedPolls: 0,
-      },
-    ]);
+    const event = watchEvent(
+      [
+        {
+          branch: "feat/a",
+          pullRequest: pullRequest("OPEN", "CONFLICTING"),
+          unchangedPolls: 0,
+        },
+        {
+          branch: "feat/b",
+          pullRequest: pullRequest("OPEN"),
+          unchangedPolls: 0,
+        },
+        {
+          branch: "feat/c",
+          pullRequest: pullRequest("OPEN", "CONFLICTING"),
+          unchangedPolls: 0,
+        },
+      ],
+      POLL_MS
+    );
 
     expect(event).toStrictEqual({
       branches: ["feat/a", "feat/c"],
@@ -700,69 +785,88 @@ describe(watchEvent, () => {
   });
 
   it("should report all-closed when every branch's pull request is finished", () => {
-    const event = watchEvent([
-      {
-        branch: "feat/a",
-        pullRequest: pullRequest("MERGED", "UNKNOWN"),
-        unchangedPolls: 0,
-      },
-      {
-        branch: "feat/b",
-        pullRequest: pullRequest("CLOSED", "UNKNOWN"),
-        unchangedPolls: 0,
-      },
-    ]);
+    const event = watchEvent(
+      [
+        {
+          branch: "feat/a",
+          pullRequest: pullRequest("MERGED", "UNKNOWN"),
+          unchangedPolls: 0,
+        },
+        {
+          branch: "feat/b",
+          pullRequest: pullRequest("CLOSED", "UNKNOWN"),
+          unchangedPolls: 0,
+        },
+      ],
+      POLL_MS
+    );
 
     expect(event).toStrictEqual({ kind: "all-closed" });
   });
 
   it("should report all-closed when a finished pull request is CONFLICTING", () => {
-    const event = watchEvent([
-      {
-        branch: "feat/a",
-        pullRequest: pullRequest("CLOSED", "CONFLICTING"),
-        unchangedPolls: 0,
-      },
-    ]);
+    const event = watchEvent(
+      [
+        {
+          branch: "feat/a",
+          pullRequest: pullRequest("CLOSED", "CONFLICTING"),
+          unchangedPolls: 0,
+        },
+      ],
+      POLL_MS
+    );
 
     expect(event).toStrictEqual({ kind: "all-closed" });
   });
 
   it("should return undefined when a branch has no pull request yet", () => {
-    const event = watchEvent([
-      { branch: "feat/a", pullRequest: NO_PULL_REQUEST, unchangedPolls: 0 },
-      {
-        branch: "feat/b",
-        pullRequest: pullRequest("MERGED", "UNKNOWN"),
-        unchangedPolls: 0,
-      },
-    ]);
+    const event = watchEvent(
+      [
+        { branch: "feat/a", pullRequest: NO_PULL_REQUEST, unchangedPolls: 0 },
+        {
+          branch: "feat/b",
+          pullRequest: pullRequest("MERGED", "UNKNOWN"),
+          unchangedPolls: 0,
+        },
+      ],
+      POLL_MS
+    );
 
     expect(event).toBeUndefined();
   });
 
   it("should return undefined when a branch's pull request is open and mergeable", () => {
-    const event = watchEvent([
-      { branch: "feat/a", pullRequest: pullRequest("OPEN"), unchangedPolls: 0 },
-    ]);
+    const event = watchEvent(
+      [
+        {
+          branch: "feat/a",
+          pullRequest: pullRequest("OPEN"),
+          unchangedPolls: 0,
+        },
+      ],
+      POLL_MS
+    );
 
     expect(event).toBeUndefined();
   });
 
   it("should name every waiting branch when it has gone unchanged for an hour", () => {
-    const event = watchEvent([
-      {
-        branch: "feat/a",
-        pullRequest: pullRequest("OPEN"),
-        unchangedPolls: 60,
-      },
-      {
-        branch: "feat/b",
-        pullRequest: pullRequest("OPEN"),
-        unchangedPolls: 59,
-      },
-      { branch: "feat/c", pullRequest: NO_PULL_REQUEST, unchangedPolls: 60 },
-    ]);
+    const event = watchEvent(
+      [
+        {
+          branch: "feat/a",
+          pullRequest: pullRequest("OPEN"),
+          unchangedPolls: 60,
+        },
+        {
+          branch: "feat/b",
+          pullRequest: pullRequest("OPEN"),
+          unchangedPolls: 59,
+        },
+        { branch: "feat/c", pullRequest: NO_PULL_REQUEST, unchangedPolls: 60 },
+      ],
+      POLL_MS
+    );
 
     expect(event).toStrictEqual({
       branches: ["feat/a", "feat/c"],
@@ -770,26 +874,77 @@ describe(watchEvent, () => {
     });
   });
 
+  it("should name the one waiting branch when only it has gone unchanged for an hour", () => {
+    const event = watchEvent(
+      [
+        {
+          branch: "feat/a",
+          pullRequest: pullRequest("OPEN"),
+          unchangedPolls: 60,
+        },
+      ],
+      POLL_MS
+    );
+
+    expect(event).toStrictEqual({ branches: ["feat/a"], kind: "stalled" });
+  });
+
+  it("should name a waiting branch when it has gone unchanged for longer than an hour", () => {
+    const event = watchEvent(
+      [
+        {
+          branch: "feat/a",
+          pullRequest: pullRequest("OPEN"),
+          unchangedPolls: 61,
+        },
+      ],
+      POLL_MS
+    );
+
+    expect(event).toStrictEqual({ branches: ["feat/a"], kind: "stalled" });
+  });
+
+  it("should count the hour in time rather than in polls when the polls are further apart", () => {
+    const event = watchEvent(
+      [
+        {
+          branch: "feat/a",
+          pullRequest: pullRequest("OPEN"),
+          unchangedPolls: 30,
+        },
+      ],
+      2 * POLL_MS
+    );
+
+    expect(event).toStrictEqual({ branches: ["feat/a"], kind: "stalled" });
+  });
+
   it("should report the conflict rather than the stall when a stalled pull request is CONFLICTING", () => {
-    const event = watchEvent([
-      {
-        branch: "feat/a",
-        pullRequest: pullRequest("OPEN", "CONFLICTING"),
-        unchangedPolls: 60,
-      },
-    ]);
+    const event = watchEvent(
+      [
+        {
+          branch: "feat/a",
+          pullRequest: pullRequest("OPEN", "CONFLICTING"),
+          unchangedPolls: 60,
+        },
+      ],
+      POLL_MS
+    );
 
     expect(event).toStrictEqual({ branches: ["feat/a"], kind: "conflict" });
   });
 
   it("should report all-closed when a finished pull request has gone unchanged for an hour", () => {
-    const event = watchEvent([
-      {
-        branch: "feat/a",
-        pullRequest: pullRequest("MERGED", "UNKNOWN"),
-        unchangedPolls: 60,
-      },
-    ]);
+    const event = watchEvent(
+      [
+        {
+          branch: "feat/a",
+          pullRequest: pullRequest("MERGED", "UNKNOWN"),
+          unchangedPolls: 60,
+        },
+      ],
+      POLL_MS
+    );
 
     expect(event).toStrictEqual({ kind: "all-closed" });
   });
@@ -832,6 +987,28 @@ describe(watchedBranches, () => {
 
     expect(watched).toStrictEqual([
       { branch: "feat/a", pullRequest: NO_PULL_REQUEST, unchangedPolls: 5 },
+    ]);
+  });
+
+  it("should count each branch on from its own previous poll when the previous poll listed them in another order", () => {
+    const watched = watchedBranches(
+      [
+        {
+          branch: "feat/b",
+          pullRequest: pullRequest("OPEN"),
+          unchangedPolls: 9,
+        },
+        {
+          branch: "feat/a",
+          pullRequest: pullRequest("OPEN"),
+          unchangedPolls: 4,
+        },
+      ],
+      [{ branch: "feat/a", pullRequest: pullRequest("OPEN") }]
+    );
+
+    expect(watched).toStrictEqual([
+      { branch: "feat/a", pullRequest: pullRequest("OPEN"), unchangedPolls: 5 },
     ]);
   });
 
@@ -918,6 +1095,26 @@ describe(branchNames, () => {
     const branches = branchNames(["feat/a", "docs_b", "fix.c-2"]);
 
     expect(branches).toStrictEqual(["feat/a", "docs_b", "fix.c-2"]);
+  });
+
+  it.each([
+    ["a one-character name", "a"],
+    ["a name that starts with digits", "12-fix"],
+    ["a component that only begins with .lock", "feat/a.locked"],
+  ])("should return the argument when it is %s", (_case, branch) => {
+    expect(branchNames([branch])).toStrictEqual([branch]);
+  });
+
+  it("should return undefined when one argument of several cannot name a branch", () => {
+    const branches = branchNames(["feat/a", "12"]);
+
+    expect(branches).toBeUndefined();
+  });
+
+  it("should return undefined when an inner component of an argument ends with .lock", () => {
+    const branches = branchNames(["feat/a.lock/b"]);
+
+    expect(branches).toBeUndefined();
   });
 
   it("should return undefined when no argument is given", () => {
@@ -1034,6 +1231,10 @@ describe(agentWorktrees, () => {
     const worktrees = agentWorktrees(PORCELAIN);
 
     expect(worktrees).toHaveLength(4);
+  });
+
+  it("should return no worktree when git printed nothing", () => {
+    expect(agentWorktrees("")).toStrictEqual([]);
   });
 
   it("should return no worktree when the list holds none under .claude/worktrees", () => {

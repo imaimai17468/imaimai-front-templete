@@ -14,7 +14,7 @@ export const freeGibFromMemoryPressure = (
   output: string,
   totalBytes: number
 ): number | undefined => {
-  const match = /free percentage:\s*(?<percent>\d+)%/u.exec(output);
+  const match = /free percentage: (?<percent>\d+)%/u.exec(output);
   if (match?.groups === undefined) {
     return undefined;
   }
@@ -99,23 +99,19 @@ export const isRecord = (value: unknown): value is Record<string, unknown> =>
 /** The parsed file, carrying the epoch second its writer stamped on it. */
 type WrittenFile = Record<string, unknown> & { readonly written_at: number };
 
-type ParsedJson =
-  | { readonly kind: "json"; readonly value: unknown }
-  | { readonly kind: "not-json" };
-
-const jsonOf = (text: string): ParsedJson => {
+/** The parsed text, or undefined where it holds no JSON. */
+export const parseJson = (
+  text: string
+): { readonly value: unknown } | undefined => {
   try {
-    const value: unknown = JSON.parse(text);
-    return { kind: "json", value };
+    return { value: JSON.parse(text) };
   } catch {
-    return { kind: "not-json" };
+    return undefined;
   }
 };
 
 const isWrittenFile = (value: unknown): value is WrittenFile =>
-  isRecord(value) &&
-  typeof value.written_at === "number" &&
-  Number.isFinite(value.written_at);
+  isRecord(value) && Number.isFinite(value.written_at);
 
 /** One window of `rate_limits`, in the field names the JSON carries. */
 interface RateWindowJson {
@@ -125,9 +121,7 @@ interface RateWindowJson {
 
 const isRateWindowJson = (value: unknown): value is RateWindowJson =>
   isRecord(value) &&
-  typeof value.used_percentage === "number" &&
   Number.isFinite(value.used_percentage) &&
-  typeof value.resets_at === "number" &&
   Number.isFinite(value.resets_at);
 
 const unknownBudget = (reason: BudgetUnknown): RemainingBudget => ({
@@ -169,8 +163,8 @@ export const remainingBudget = (
   if (file.kind === "unreadable") {
     return unknownBudget({ detail: file.detail, kind: "unreadable" });
   }
-  const json = jsonOf(file.text);
-  if (json.kind === "not-json") {
+  const json = parseJson(file.text);
+  if (json === undefined) {
     return unknownBudget({ kind: "no-json" });
   }
   const parsed = json.value;
@@ -203,13 +197,13 @@ const formatSeconds = (seconds: number): string => {
   const days = Math.floor(whole / SECONDS_PER_DAY);
   const hours = Math.floor((whole % SECONDS_PER_DAY) / SECONDS_PER_HOUR);
   const minutes = Math.floor((whole % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
-  if (days > 0) {
+  if (days >= 1) {
     return `${days}d${hours}h`;
   }
-  if (hours > 0) {
+  if (hours >= 1) {
     return `${hours}h${minutes}m`;
   }
-  return minutes > 0 ? `${minutes}m` : `${whole}s`;
+  return minutes >= 1 ? `${minutes}m` : `${whole}s`;
 };
 
 const formatWindow = (window: BudgetWindowReading): string => {
@@ -266,13 +260,9 @@ export interface PullRequest {
 }
 
 const isPullRequest = (value: unknown): value is PullRequest =>
-  typeof value === "object" &&
-  value !== null &&
-  "headRefOid" in value &&
+  isRecord(value) &&
   typeof value.headRefOid === "string" &&
-  "mergeable" in value &&
   typeof value.mergeable === "string" &&
-  "state" in value &&
   typeof value.state === "string";
 
 export type PrListing =
@@ -314,9 +304,6 @@ export interface WatchedBranch extends BranchPullRequest {
   readonly unchangedPolls: number;
 }
 
-/** How long the watch waits between two rounds of `gh pr list`. */
-export const POLL_MS = 60_000;
-
 /**
  * How long a waiting branch may go unchanged before the watch hands it to the
  * orchestrator. An hour is a choice rather than a measurement, kept under the
@@ -324,8 +311,6 @@ export const POLL_MS = 60_000;
  * before its timeout ends it.
  */
 const STALLED_AFTER_MS = 60 * 60_000;
-
-const STALLED_AFTER_POLLS = STALLED_AFTER_MS / POLL_MS;
 
 /**
  * A worker moves its pull request by opening it, pushing a commit, or merging
@@ -365,10 +350,12 @@ export type WatchEvent =
  * What the watch reports back, or undefined while nothing needs the
  * orchestrator. A branch whose pull request is undefined is one whose worker
  * has not opened it yet, and it holds the watch for the same reason an open
- * pull request does, until it has stayed that way for STALLED_AFTER_POLLS.
+ * pull request does, until it has stayed that way for STALLED_AFTER_MS of
+ * polls `pollMs` apart.
  */
 export const watchEvent = (
-  watched: readonly WatchedBranch[]
+  watched: readonly WatchedBranch[],
+  pollMs: number
 ): WatchEvent | undefined => {
   const conflicting = watched
     .filter(
@@ -388,7 +375,7 @@ export const watchEvent = (
     return { kind: "all-closed" };
   }
   const stalled = waiting
-    .filter((entry) => entry.unchangedPolls >= STALLED_AFTER_POLLS)
+    .filter((entry) => entry.unchangedPolls * pollMs >= STALLED_AFTER_MS)
     .map((entry) => entry.branch);
   return stalled.length > 0
     ? { branches: stalled, kind: "stalled" }
@@ -453,6 +440,37 @@ export interface Worktree {
 
 const HOME_SEGMENT = "/.claude/worktrees/";
 
+const WORKTREE_LINE_PREFIX = "worktree ";
+
+const BRANCH_LINE_PREFIX = "branch refs/heads/";
+
+/** One entry of the porcelain: its path and the lines that follow it. */
+interface PorcelainEntry {
+  readonly lines: string[];
+  readonly path: string;
+}
+
+/**
+ * Each `worktree <path>` line opens an entry, the lines after it join that
+ * entry until the next one opens, and lines before the first entry are dropped.
+ */
+const parsePorcelainEntries = (
+  porcelain: string
+): readonly PorcelainEntry[] => {
+  const entries: PorcelainEntry[] = [];
+  porcelain.split("\n").forEach((line) => {
+    if (line.startsWith(WORKTREE_LINE_PREFIX)) {
+      entries.push({
+        lines: [],
+        path: line.slice(WORKTREE_LINE_PREFIX.length),
+      });
+    } else {
+      entries.at(-1)?.lines.push(line);
+    }
+  });
+  return entries;
+};
+
 /**
  * The agent worktrees of `git worktree list --porcelain`. The main checkout and
  * any worktree outside `.claude/worktrees/` are left out. A person's own
@@ -460,23 +478,15 @@ const HOME_SEGMENT = "/.claude/worktrees/";
  * what tells a worker's leftovers from theirs.
  */
 export const agentWorktrees = (porcelain: string): readonly Worktree[] =>
-  porcelain
-    .split("\n\n")
-    .map((block) => {
-      const lines = block.split("\n");
-      const path = lines
-        .find((line) => line.startsWith("worktree "))
-        ?.slice("worktree ".length);
-      const branch = lines
-        .find((line) => line.startsWith("branch refs/heads/"))
-        ?.slice("branch refs/heads/".length);
-      return {
-        branch,
-        locked: lines.some((line) => line.startsWith("locked")),
-        path: path ?? "",
-        prunable: lines.some((line) => line.startsWith("prunable")),
-      };
-    })
+  parsePorcelainEntries(porcelain)
+    .map(({ lines, path }) => ({
+      branch: lines
+        .find((line) => line.startsWith(BRANCH_LINE_PREFIX))
+        ?.slice(BRANCH_LINE_PREFIX.length),
+      locked: lines.some((line) => line.startsWith("locked")),
+      path,
+      prunable: lines.some((line) => line.startsWith("prunable")),
+    }))
     .filter((worktree) => worktree.path.includes(HOME_SEGMENT));
 
 const WORKTREE_BRANCH_PREFIX = "worktree-";

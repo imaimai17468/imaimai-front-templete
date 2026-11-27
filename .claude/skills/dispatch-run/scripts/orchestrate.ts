@@ -55,7 +55,6 @@ import {
   MAIN_BRANCH,
   MAIN_REF,
   MAIN_REMOTE,
-  POLL_MS,
   formatBranch,
   formatEvent,
   formatRemainingBudget,
@@ -239,6 +238,9 @@ type Poll =
   | { readonly exitCode: number; readonly kind: "exit"; readonly line: string }
   | { readonly kind: "wait"; readonly watched: readonly WatchedBranch[] };
 
+/** How long the watch waits between two rounds of `gh pr list`. */
+const POLL_MS = 60_000;
+
 const poll = (
   branches: readonly string[],
   previous: readonly WatchedBranch[]
@@ -248,7 +250,7 @@ const poll = (
       previous,
       branches.map((branch) => ({ branch, pullRequest: prOf(branch) }))
     );
-    const event = watchEvent(watched);
+    const event = watchEvent(watched, POLL_MS);
     return event === undefined
       ? { kind: "wait", watched }
       : { exitCode: 0, kind: "exit", line: formatEvent(event) };
