@@ -127,8 +127,8 @@ const NESTED_DOUBLE_QUOTE = /^"[\s\S]*?(?:\$[({]|`)/u;
 
 /**
  * Whether the piece opens quoting this guard cannot pair: a nested double
- * quote, or a `$'` span cut at an escaped quote, where the shell, reading it
- * as ANSI-C quoting, does not end the span.
+ * quote, or a `$'` span whose closing quote follows a backslash, which the
+ * shell, reading it as ANSI-C quoting, may not take as the end.
  */
 const opensNestedQuoting = (piece: string): boolean =>
   NESTED_DOUBLE_QUOTE.test(piece) ||
