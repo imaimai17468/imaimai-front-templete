@@ -144,6 +144,13 @@ description: work: clarify
     ]);
   });
 
+  it("should fail when the tree holds no file to check", () => {
+    expect(frontmatterOutcome({ files: [], problems: [] })).toStrictEqual({
+      exitCode: 1,
+      text: "Claude frontmatter: no rule, agent or skill file under the checked tree",
+    });
+  });
+
   it("should print the file count when the tree is valid", () => {
     expect(
       frontmatterOutcome({ files: ["a.md", "b.md"], problems: [] })

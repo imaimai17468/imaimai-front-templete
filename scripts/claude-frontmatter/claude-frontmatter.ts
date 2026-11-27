@@ -178,19 +178,31 @@ export interface FrontmatterOutcome {
   readonly text: string;
 }
 
-/** What the check prints for `report`, and the code it exits with. */
+/**
+ * What the check prints for `report`, and the code it exits with. A tree with
+ * no file to read fails, because a root that holds no `.claude` tree would
+ * otherwise pass having checked nothing.
+ */
 export const frontmatterOutcome = ({
   files,
   problems,
-}: FrontmatterReport): FrontmatterOutcome =>
-  problems.length > 0
-    ? {
-        exitCode: 1,
-        text: [
-          `Claude frontmatter problems: ${problems.length}`,
-          ...problems.map(({ detail, entry }) => `  ${entry}: ${detail}`),
-          "",
-          "Quote description values that contain ': ' or wrap them in a block scalar, and give each guidance file a trigger scoped-guidance.sh answers.",
-        ].join("\n"),
-      }
-    : { exitCode: 0, text: `claude frontmatter ok (${files.length} files)` };
+}: FrontmatterReport): FrontmatterOutcome => {
+  if (files.length === 0) {
+    return {
+      exitCode: 1,
+      text: "Claude frontmatter: no rule, agent or skill file under the checked tree",
+    };
+  }
+  if (problems.length > 0) {
+    return {
+      exitCode: 1,
+      text: [
+        `Claude frontmatter problems: ${problems.length}`,
+        ...problems.map(({ detail, entry }) => `  ${entry}: ${detail}`),
+        "",
+        "Quote description values that contain ': ' or wrap them in a block scalar, and give each guidance file a trigger scoped-guidance.sh answers.",
+      ].join("\n"),
+    };
+  }
+  return { exitCode: 0, text: `claude frontmatter ok (${files.length} files)` };
+};
