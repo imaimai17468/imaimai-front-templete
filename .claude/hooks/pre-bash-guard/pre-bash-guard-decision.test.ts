@@ -122,10 +122,83 @@ describe(decideCommand, () => {
   );
 
   it.each([
+    "git commit -F - <<EOF\n$(cat .env)\nEOF",
+    "git commit -F - <<EOF\n`cat .env`\nEOF",
+    "git commit -F - <<EOF\nmentions .env for $USER\nEOF",
+    "git commit -F - <<EOF\n$(node -e \"require('fs').readFileSync('.env', 'utf8')\")\nEOF",
+  ])(
+    "should refuse %j when a heredoc with an unquoted delimiter holds what the shell expands",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
+    "git commit -m \"$(node <<'JS'\nrequire('fs').readFileSync('.env')\nJS\n)\"",
+    "git commit -m $(node <<'JS'\nrequire('fs').readFileSync('.env')\nJS\n)",
+    "git commit -m \"$(\nnode <<'JS'\nrequire('fs').readFileSync('.env')\nJS\n)\"",
+    "node <<'JS' | git commit -F -\nrequire('fs').readFileSync('.env')\nJS",
+  ])(
+    "should refuse %j when a program other than git, gh or cat reads the heredoc that names the file",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
+    "python3 - git <<'PY' | git commit -F -\nprint(open('.env').read())\nPY",
+    "python3 - cat <<'PY' | git commit -F -\nprint(open('.env').read())\nPY",
+    "ghx<<'JS' | git commit -F -\nrequire('fs').readFileSync('.env')\nJS",
+    "cat\"x\" <<'EOF' | git commit -F -\nmentions .env\nEOF",
+  ])(
+    "should refuse %j when the program reading the heredoc that names the file only resembles git, gh or cat",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
+    "cat <<'JS' | node | git commit -F -\nrequire('fs').readFileSync('.env')\nJS",
+    "git commit -m \"$(cat <<'JS' | node\nrequire('fs').readFileSync('.env')\nJS\n)\"",
+    "git commit -m \"$(node -e \"$(cat <<'JS'\nrequire('fs').readFileSync('.env')\nJS\n)\")\"",
+    "git commit -m $(node -e $(cat <<'JS'\nrequire('fs').readFileSync('.env')\nJS\n))",
+    "cat <<'HS' | ghci && git push\nreadFile \".env\" >>= putStr\nHS",
+  ])(
+    "should refuse %j when cat passes the heredoc that names the file to a program other than git or gh",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
     String.raw`git commit -m $'a \' b' -F .env 'c d'`,
     String.raw`git commit -m $'\'' -F .env -m 'x y'`,
   ])(
     "should refuse %j when the file follows an ANSI-C quoted span holding an escaped quote",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
+    'git commit -m "$(x) <<EOF\n" -F .env "\nEOF\n"',
+    'git commit -m "$(y)\ncat <<EOF\n" -F .env "\nEOF\n"',
+    'git commit -m "$(cat x) y <<EOF\n" -F .env "\nEOF\n"',
+    "git commit -m x # <<EOF\ncat .env\nEOF",
+    "git commit -m x #<<EOF\ncat .env\nEOF",
+    "git commit -F - <<'EOF' $(true\ncat .env\nEOF\n)\nbody\nEOF",
+  ])(
+    "should refuse %j when the shell may not read the heredoc operator as one",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
+    'git commit -m "x\\"$(cat <<\'EOF\'\ny\nEOF\n)" -m "$(cat <<\'EOF\'\nmentions .env\nEOF\n)"',
+    "git commit -m \"$(cat <<'EOF'\nx\nEOF\n)$(cat <<'EOF'\ny\nEOF\n)\" -m \"$(cat <<'EOF'\nmentions .env\nEOF\n)\"",
+  ])(
+    "should refuse %j when the heredoc follows a double-quoted span holding more than one `$(cat <<'EOF' ... )`",
     (command) => {
       expect(decideCommand(command).kind).toBe("refuse");
     }
@@ -162,6 +235,17 @@ describe(decideCommand, () => {
     'git commit -m "<<A\nx\nA\n" -m \'mentions .env\' -m "<<B\ny\nB\n"',
     'git commit -m "$(cat <<\'EOF\'\nsay "hi" about .env\nEOF\n)"',
     "git commit -m \"$(cat <<'EOF'\nsubject\nEOF\n)\" -m \"$(cat <<'EOF'\nbody names .env\nEOF\n)\"",
+    "cat <<'EOF' | git commit -F - && git push\nmentions .env\nEOF",
+    "git commit -F - <<'EOF'\nit's\nEOF\ngit tag -F - <<'EOF'\nmentions .env\nEOF",
+    "git commit -m $(cat <<'EOF'\nmentions .env\nEOF\n)",
+    "git commit -m \"$(cat <<'EOF'\nEOF\n)\" -m \"$(cat <<'EOF'\nmentions .env\nEOF\n)\"",
+    "git tag v1#rc -F - <<'EOF'\nmentions .env\nEOF",
+    "git commit -m 'x' # note\ngit commit -F - <<'EOF'\nmentions .env\nEOF",
+    "cat <<'EOF'|git commit -F -\nmentions .env\nEOF",
+    "cat <<'EOF' | gh pr create --title x --body-file -\nmentions .env\nEOF",
+    "gh pr create --title x --body-file - <<'EOF'\nmentions .env\nEOF",
+    "git commit -F - <<'EOF' && git push\nmentions .env\nEOF",
+    "git commit -F - <<'EOF'\ncosts $5 and mentions .env\nEOF",
     "git commit -m $'a b' -m 'mentions .env'",
     String.raw`git commit -m 'C:\' -m 'mentions .env'`,
   ])(
@@ -181,6 +265,10 @@ describe(decideCommand, () => {
     'printf "" && git commit -m "mentions .env"',
     'node -e "1"; git commit -m "mentions .env"',
     String.raw`echo it\'s done; git commit -m 'mentions .env'`,
+    "ls; git commit -F - <<'EOF'\nmentions .env\nEOF",
+    "ls && git commit -F - <<'EOF'\nmentions .env\nEOF",
+    "ls\ngit commit -F - <<'EOF'\nmentions .env\nEOF",
+    "node <<'JS'\n// it's done\nJS\ngit commit -m 'mentions .env'",
   ])(
     "should allow %j when the git or gh command after an operator names the file in its prose",
     (command) => {
@@ -193,12 +281,13 @@ describe(decideCommand, () => {
     "git commit -F - <<'EOF'\nbody \uE001; cat .env\nEOF",
     "echo \uE000",
     "echo \uE001",
+    "echo \uE002",
   ])(
     "should refuse %j with a reason naming the heredoc markers when it holds one",
     (command) => {
       const decision = decideCommand(command);
       expect(decision.kind === "refuse" ? decision.reason : "").toContain(
-        "holds U+E000 or U+E001"
+        "holds U+E000, U+E001 or U+E002"
       );
     }
   );
