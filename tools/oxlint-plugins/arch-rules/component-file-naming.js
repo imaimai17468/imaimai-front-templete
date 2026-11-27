@@ -47,9 +47,6 @@ const componentFileNaming = {
     return {
       ExportDefaultDeclaration(node) {
         const decl = node.declaration;
-        if (!decl) {
-          return;
-        }
         if (
           (decl.type === "FunctionDeclaration" ||
             decl.type === "FunctionExpression") &&

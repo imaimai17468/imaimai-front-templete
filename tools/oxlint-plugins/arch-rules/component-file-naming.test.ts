@@ -336,21 +336,6 @@ describe("component-file-naming (defensive branches)", () => {
     expect(context.report).not.toHaveBeenCalled();
   });
 
-  it("should not report when a default export has no declaration", () => {
-    // Arrange
-    const context = {
-      ...makeContext(),
-      filename: "/src/shared/components/Card.tsx",
-    };
-    const visitors = rule.create(context);
-
-    // Act
-    visitors.ExportDefaultDeclaration?.({ declaration: null });
-
-    // Assert
-    expect(context.report).not.toHaveBeenCalled();
-  });
-
   it("should not report when a default export is an arrow function", () => {
     // Arrange
     const context = {
