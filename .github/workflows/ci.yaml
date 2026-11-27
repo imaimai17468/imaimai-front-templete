@@ -245,6 +245,13 @@ jobs:
       - name: Set up the toolchain and dependencies
         uses: ./.github/actions/setup
 
+      # Mootant keys its cached verdicts on the modification time of this file
+      # of its own, and every install writes the file anew, so the time is
+      # pinned for a verdict cached by one run to match the next. The Mootant
+      # version is in bun.lock, which the cache key already reads.
+      - name: Pin the time Mootant keys its cache on
+        run: touch -m -d @0 node_modules/mootant/dist/core/cache/prepare-run-cache.js
+
       - name: Restore the cached mutation verdicts
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
