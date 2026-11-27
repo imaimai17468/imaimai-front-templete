@@ -86,7 +86,7 @@
     "oxlint-plugin-effect": "0.12.1",
     "oxlint-plugin-react-doctor": "0.9.23",
     "oxlint-tailwindcss": "1.10.2",
-    "portless": "0.15.6",
+    "portless": "0.18.1",
     "react-doctor": "0.9.23",
     "react-grab": "0.2.0",
     "tailwindcss": "4.3.5",
