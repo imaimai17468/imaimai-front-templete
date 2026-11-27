@@ -39,7 +39,7 @@ const BODY_MARKER = /[\uE000-\uE002]/u;
 
 /**
  * The heredoc rewritten onto its operator's line, with its body between two
- * markers, so the body stays in the simple command it feeds.
+ * markers, so the body lands in the last simple command on that line.
  */
 const writeOnOneLine = (reading: BodyReading): string =>
   `<<$<quote>$<delimiter>$<quote>$<tail> ${BODY_OPEN[reading]}$<body>${BODY_CLOSE} $<delimiter>`;
