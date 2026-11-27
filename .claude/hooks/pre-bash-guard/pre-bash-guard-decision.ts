@@ -348,13 +348,21 @@ const NOTHING_AFTER = /^\s*$/u;
 
 const PIPE = /^\s*\|/u;
 
+/** A `|` that pipes a command's output on, where `||` runs the next command only on a failure. */
+const PIPES_ON = /(?<!\|)\|(?!\|)/u;
+
 /**
  * Whether the rest of the operator's line sends a `cat`'s output into the
- * argument it stands in, or into a pipe to a message command.
+ * argument it stands in, or into a pipe to a message command whose own output
+ * goes into no further pipe.
  */
-const sendsCatIntoProse = (after: string): boolean =>
-  NOTHING_AFTER.test(after) ||
-  (PIPE.test(after) && isMessageCommand(after.slice(after.indexOf("|") + 1)));
+const sendsCatIntoProse = (after: string): boolean => {
+  const piped = after.slice(after.indexOf("|") + 1);
+  return (
+    NOTHING_AFTER.test(after) ||
+    (PIPE.test(after) && isMessageCommand(piped) && !PIPES_ON.test(piped))
+  );
+};
 
 /**
  * `$(cat ` right before the operator, inside double quotes or not, or else the
@@ -386,8 +394,9 @@ const isPlainCommandBefore = (
 /**
  * A body is prose where its delimiter is quoted or it holds nothing the shell
  * expands, this guard reads the operator line as the shell does, the operator
- * is not in a comment, and either a message command owns the operator, or a
- * `cat` does whose output goes to one, the `cat` starting a command or a
+ * is not in a comment, and either a message command owns the operator and
+ * pipes its output nowhere, since a commit prints its subject, or a `cat`
+ * does whose output goes to such a command, the `cat` starting a command or a
  * substitution in an argument of one.
  */
 const classifyBody = (
@@ -413,7 +422,9 @@ const classifyBody = (
     !DELIMITER_CONTINUES.test(tail) &&
     !COMMENT_ON_LINE.test(before) &&
     !NESTING.test(after) &&
-    (isPlainCommandBefore(before, isMessageCommand) || isCatIntoProse);
+    ((isPlainCommandBefore(before, isMessageCommand) &&
+      !PIPES_ON.test(after)) ||
+      isCatIntoProse);
   return isReadAsProse ? "prose" : "checked";
 };
 
@@ -447,13 +458,34 @@ const REFUSAL =
 const MARKER_REFUSAL =
   "PreToolUse(Bash): this command holds U+E000, U+E001 or U+E002, the private-use characters this guard writes around a heredoc body, so the guard cannot tell a body it marked from text written to look like one. Remove those characters from the command.";
 
-/** The simple commands a command line runs, split at each unquoted control operator. */
-const simpleCommands = (command: string): string[] =>
-  Array.from(markHeredocs(command).matchAll(SHELL_TOKEN), ([token]) =>
-    CONTROL_OPERATORS.has(token) ? COMMAND_BOUNDARY : token
-  )
+interface SimpleCommand {
+  readonly text: string;
+  /** Whether a `|` sends the command's output on to the next one. */
+  readonly pipesOn: boolean;
+}
+
+/**
+ * The simple commands a command line runs, split at each unquoted control
+ * operator. The empty command between the two characters of `||` tells it
+ * from a `|`.
+ */
+const simpleCommands = (command: string): SimpleCommand[] => {
+  const tokens = Array.from(
+    markHeredocs(command).matchAll(SHELL_TOKEN),
+    ([token]) => token
+  );
+  const operators = tokens.filter((token) => CONTROL_OPERATORS.has(token));
+  const texts = tokens
+    .map((token) => (CONTROL_OPERATORS.has(token) ? COMMAND_BOUNDARY : token))
     .join("")
     .split(COMMAND_BOUNDARY);
+  return texts.map((text, index) => ({
+    pipesOn:
+      operators[index] === "|" &&
+      !(texts[index + 1] === "" && operators[index + 1] === "|"),
+    text,
+  }));
+};
 
 /**
  * The text as the shell hands it to the program, with its backslashes dropped
@@ -469,10 +501,11 @@ const namesEnvFile = (checked: string): boolean =>
   spellings(checked).some((spelling) => NAMED_ENV_FILE.test(spelling));
 
 /**
- * A command other than `git` or `gh` is checked whole. Of a message command,
- * the global options are checked whole. Any other `git` or `gh` command is
- * checked whole but for the heredoc bodies a message command reads, because
- * such a body lands in the last simple command on its operator's line. A
+ * A command other than `git` or `gh` is checked whole. Of a message command
+ * that pipes its output nowhere, the global options are checked whole. Any
+ * other `git` or `gh` command is checked whole but for the heredoc bodies a
+ * message command reads, because such a body lands in the last simple command
+ * on its operator's line. A
  * `git` or `gh` command is then checked twice more, with its prose removed by
  * two readings that pair quotes differently. The scan pairs a quote with the next quote of its kind
  * wherever it stands, so after a span it cannot pair, such as `"$MSG"`, it
@@ -483,12 +516,11 @@ const namesEnvFile = (checked: string): boolean =>
  * command stays open for the ones that follow it.
  */
 const readTextsToCheck = (command: string): string[] => {
-  const pieces = simpleCommands(command).flatMap(
-    (simpleCommand, commandIndex) =>
-      Array.from(simpleCommand.matchAll(SHELL_PIECE), ([text]) => ({
-        commandIndex,
-        text,
-      }))
+  const pieces = simpleCommands(command).flatMap((simpleCommand) =>
+    Array.from(simpleCommand.text.matchAll(SHELL_PIECE), ([text]) => ({
+      simpleCommand,
+      text,
+    }))
   );
   const nestedFrom = pieces.findIndex(({ text }) => opensNestedQuoting(text));
   const piecesByCommand = Map.groupBy(
@@ -496,16 +528,18 @@ const readTextsToCheck = (command: string): string[] => {
       ...piece,
       isNested: nestedFrom !== -1 && index >= nestedFrom,
     })),
-    ({ commandIndex }) => commandIndex
+    (piece) => piece.simpleCommand
   );
-  return [...piecesByCommand.values()].flatMap((commandPieces) => {
+  return [...piecesByCommand].flatMap(([{ pipesOn }, commandPieces]) => {
     const simpleCommand = commandPieces.map(({ text }) => text).join("");
     if (!GIT_OR_GH_COMMAND.test(simpleCommand)) {
       return [simpleCommand];
     }
     return [
-      messageCommandGlobalOptions(simpleCommand) ??
-        simpleCommand.replaceAll(PROSE_BODY, proseRemoved),
+      pipesOn
+        ? simpleCommand
+        : (messageCommandGlobalOptions(simpleCommand) ??
+          simpleCommand.replaceAll(PROSE_BODY, proseRemoved)),
       simpleCommand.replaceAll(QUOTED_SPAN, proseRemoved),
       commandPieces
         .map(({ isNested, text }) => removeProse(text, isNested))

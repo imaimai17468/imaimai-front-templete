@@ -281,6 +281,31 @@ describe(decideCommand, () => {
   );
 
   it.each([
+    "git commit --allow-empty -F - <<'EOF' | git -c alias.x='!sh' x\ncat .env\nEOF",
+    "cat <<'EOF' | git commit --allow-empty -F - | git -c alias.x='!sh' x\ncat .env\nEOF",
+    "git commit --allow-empty -m 'x; cat .env' | sh",
+    "git commit --allow-empty -m 'x; cat .env' |& sh",
+    "git commit --allow-empty -m 'x; cat .env' | sh | cat",
+    "git commit -m \"$(cat <<'EOF'\nx; cat .env\nEOF\n)\" | sh",
+  ])(
+    "should refuse %j when the message command pipes the output naming the file on",
+    (command) => {
+      expect(decideCommand(command).kind).toBe("refuse");
+    }
+  );
+
+  it.each([
+    "git commit -m 'mentions .env' || true",
+    "git commit -F - <<'EOF' || git status\nmentions .env\nEOF",
+    "cat <<'EOF' | git commit -F - || git status\nmentions .env\nEOF",
+  ])(
+    "should allow %j when the message command runs another only on a failure",
+    (command) => {
+      expect(decideCommand(command)).toStrictEqual({ kind: "allow" });
+    }
+  );
+
+  it.each([
     "git -c core.editor=sh commit --allow-empty -e -m 'x; cat .env'",
     "git -c 'core.editor=sh' commit --allow-empty -e -m 'x; cat .env'",
     "git -c \"sequence.editor=sh\" commit -m 'x; cat .env'",
