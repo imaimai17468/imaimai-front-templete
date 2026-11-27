@@ -112,8 +112,38 @@ describe("UserWithEmailSchema decoding", () => {
     );
   });
 
-  it("should reject the user when the email is malformed", () => {
+  it("should report that an email address was expected when the email is malformed", () => {
     const result = decodeUserWithEmail({ ...base, email: "not-an-email" });
+
+    expect(Result.isFailure(result) && result.failure.message).toBe(
+      'Expected an email address\n  at ["email"]'
+    );
+  });
+
+  // The cases follow what the HTML Standard's `input type=email` accepts.
+  it.each([
+    ["a domain of one label", "a@localhost"],
+    ["a one-character first label", "a@b.com"],
+    ["a two-character first label", "a@ab.com"],
+    ["a one-character last label", "a@example.c"],
+    ["a two-character last label", "a@example.co"],
+  ])("should accept the email when it has %s", (_label, email) => {
+    const result = decodeUserWithEmail({ ...base, email });
+
+    expect(Result.isSuccess(result)).toBeTruthy();
+  });
+
+  it.each([
+    ["a space in the local part", "a b@example.com"],
+    ["text after the domain", "a@example.com!"],
+    ["a first label that starts with a hyphen", "a@-example.com"],
+    ["a first label that ends with a hyphen", "a@example-.com"],
+    ["an underscore in the first label", "a@ex_ample.com"],
+    ["a last label that starts with a hyphen", "a@example.-com"],
+    ["a last label that ends with a hyphen", "a@example.com-"],
+    ["an underscore in the last label", "a@example.c_m"],
+  ])("should reject the email when it has %s", (_label, email) => {
+    const result = decodeUserWithEmail({ ...base, email });
 
     expect(Result.isFailure(result)).toBeTruthy();
   });
