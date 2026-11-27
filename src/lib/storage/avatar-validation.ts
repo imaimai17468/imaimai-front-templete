@@ -97,7 +97,7 @@ const contentTypeForExtension = (
 };
 
 const AVATAR_KEY_PATTERN =
-  /^(?<ownerId>[A-Za-z0-9_-]+)\/(?:avatar|avatars\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.(?<extension>[A-Za-z0-9]+)$/u;
+  /^(?<ownerId>[A-Za-z0-9_-]+)\/(?:avatar|avatars\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.(?<extension>.+)$/u;
 
 const parseAvatarKey = (
   key: string

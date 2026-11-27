@@ -93,9 +93,34 @@ describe(isOwnAvatarKey, () => {
     ["disallowed extension", "user-123/avatar.svg"],
     ["html extension", "user-123/avatar.html"],
     ["trailing garbage", "user-123/avatar.png.html"],
+    ["a line break after the extension", "user-123/avatar.png\nsecond-line"],
     ["prefix with dot", "user.123/avatar.png"],
     ["no extension", "user-123/avatar"],
     ["versioned key with malformed UUID", "user-123/avatars/not-a-uuid.png"],
+    [
+      "a UUID whose first group holds a non-hex letter",
+      "user-123/avatars/g23e4567-e89b-42d3-a456-426614174000.png",
+    ],
+    [
+      "a UUID whose second group holds a non-hex letter",
+      "user-123/avatars/123e4567-g89b-42d3-a456-426614174000.png",
+    ],
+    [
+      "a UUID whose third group holds a non-hex letter",
+      "user-123/avatars/123e4567-e89b-g2d3-a456-426614174000.png",
+    ],
+    [
+      "a UUID whose fourth group holds a non-hex letter",
+      "user-123/avatars/123e4567-e89b-42d3-g456-426614174000.png",
+    ],
+    [
+      "a UUID whose last group holds a non-hex letter",
+      "user-123/avatars/123e4567-e89b-42d3-a456-g26614174000.png",
+    ],
+    [
+      "a UUID with an uppercase hex digit",
+      "user-123/avatars/123E4567-e89b-42d3-a456-426614174000.png",
+    ],
   ])("should reject the key when it is %s (%j)", (_label, key) => {
     expect(isOwnAvatarKey(key, "user-123")).toBeFalsy();
   });
