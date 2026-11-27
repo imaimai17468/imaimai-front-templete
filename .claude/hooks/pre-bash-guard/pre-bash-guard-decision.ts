@@ -159,20 +159,20 @@ const WORD_END = /(?![^ \t])/u.source;
 /** The `u` flag, read off a literal so the patterns built from sources carry it as the literals here do. */
 const UNICODE_FLAG = /(?:)/u.flags;
 
-const alternation = (sources: readonly string[]): string =>
+const groupAlternatives = (sources: readonly string[]): string =>
   `(?:${sources.join("|")})`;
 
-const subcommandAlternation = (
+const matchSubcommandWords = (
   subcommands: readonly (readonly string[])[]
 ): string =>
-  alternation(subcommands.map((words) => words.join(`${SHELL_BLANK}+`)));
+  groupAlternatives(subcommands.map((words) => words.join(`${SHELL_BLANK}+`)));
 
-const GIT_CONFIG_KEY = alternation(
+const GIT_CONFIG_KEY = groupAlternatives(
   GIT_CONFIG_KEYS_RUNNING_NOTHING.map((key) => key.replace(".", String.raw`\.`))
 );
 
 /** A `-c` value setting one of those keys, as a literal word or whole in quotes. */
-const GIT_CONFIG_ASSIGNMENT = alternation([
+const GIT_CONFIG_ASSIGNMENT = groupAlternatives([
   `${GIT_CONFIG_KEY}=${LITERAL_WORD}`,
   `'${GIT_CONFIG_KEY}=[^']*'`,
   String.raw`"${GIT_CONFIG_KEY}=[^"$\x60\\]*"`,
@@ -186,7 +186,7 @@ const GIT_CONFIG_ASSIGNMENT = alternation([
  * A config it sets is one of the keys above.
  */
 const GIT_MESSAGE_COMMAND = new RegExp(
-  String.raw`^${SHELL_BLANK}*git((?:${SHELL_BLANK}+${alternation([
+  String.raw`^${SHELL_BLANK}*git((?:${SHELL_BLANK}+${groupAlternatives([
     ...GIT_GLOBAL_FLAGS,
     `-C${SHELL_BLANK}+${LITERAL_WORD}`,
     `-c${SHELL_BLANK}+${GIT_CONFIG_ASSIGNMENT}`,
@@ -194,7 +194,7 @@ const GIT_MESSAGE_COMMAND = new RegExp(
       (name) => `${name}=${LITERAL_WORD}`
     ),
     `--config-env=${GIT_CONFIG_KEY}=${LITERAL_WORD}`,
-  ])})*)${SHELL_BLANK}+${subcommandAlternation(GIT_MESSAGE_SUBCOMMANDS)}${WORD_END}`,
+  ])})*)${SHELL_BLANK}+${matchSubcommandWords(GIT_MESSAGE_SUBCOMMANDS)}${WORD_END}`,
   UNICODE_FLAG
 );
 
@@ -203,7 +203,7 @@ const GIT_MESSAGE_COMMAND = new RegExp(
  * no global options, so its first group is always empty.
  */
 const GH_MESSAGE_COMMAND = new RegExp(
-  `^${SHELL_BLANK}*gh()${SHELL_BLANK}+${subcommandAlternation(GH_MESSAGE_SUBCOMMANDS)}${WORD_END}`,
+  `^${SHELL_BLANK}*gh()${SHELL_BLANK}+${matchSubcommandWords(GH_MESSAGE_SUBCOMMANDS)}${WORD_END}`,
   UNICODE_FLAG
 );
 
@@ -214,7 +214,7 @@ const GH_MESSAGE_COMMAND = new RegExp(
  * where naming the file is not reading it, while its global options, such as
  * `-c core.editor=...`, can make git run what they name.
  */
-const messageCommandGlobalOptions = (
+const readMessageCommandGlobalOptions = (
   simpleCommand: string
 ): string | undefined =>
   (
@@ -223,7 +223,7 @@ const messageCommandGlobalOptions = (
   )?.[1];
 
 /** Every prefix of the name, since git takes a long option by any prefix that names only it. */
-const prefixesOf = (name: string): string[] =>
+const listPrefixes = (name: string): string[] =>
   Array.from(name, (_, index) => name.slice(0, index + 1));
 
 /**
@@ -232,8 +232,8 @@ const prefixesOf = (name: string): string[] =>
  * `--file`, `--template` or `--pathspec-from-file`.
  */
 const GIT_FILE_FLAG = new RegExp(
-  `^-(?:[A-Za-z]*[Ft]|-${alternation(
-    ["file", "template", "pathspec-from-file"].flatMap(prefixesOf)
+  `^-(?:[A-Za-z]*[Ft]|-${groupAlternatives(
+    ["file", "template", "pathspec-from-file"].flatMap(listPrefixes)
   )}(?:=|$))`,
   UNICODE_FLAG
 );
@@ -244,7 +244,7 @@ const GIT_FILE_FLAG = new RegExp(
  * `--template`. `gh` takes a long option by its whole name only.
  */
 const GH_FILE_FLAG = new RegExp(
-  `^-(?:[A-Za-z]*[FT]|-${alternation([
+  `^-(?:[A-Za-z]*[FT]|-${groupAlternatives([
     "body-file",
     "notes-file",
     "template",
@@ -253,7 +253,7 @@ const GH_FILE_FLAG = new RegExp(
 );
 
 const isMessageCommand = (simpleCommand: string): boolean =>
-  messageCommandGlobalOptions(simpleCommand) !== undefined;
+  readMessageCommandGlobalOptions(simpleCommand) !== undefined;
 
 /**
  * A marked heredoc body, or a quoted span, that may be prose. A double-quoted
@@ -387,7 +387,7 @@ const PIPES_ON = /(?<!\|)\|(?!\|)/u;
  * argument it stands in, or into a pipe to a message command whose own output
  * goes into no further pipe.
  */
-const sendsCatIntoProse = (after: string): boolean => {
+const isCatSentIntoProse = (after: string): boolean => {
   const piped = after.slice(after.indexOf("|") + 1);
   return (
     NOTHING_AFTER.test(after) ||
@@ -441,7 +441,7 @@ const classifyBody = (
   );
   const after = outlineQuoting(tail);
   const isCatIntoProse =
-    sendsCatIntoProse(after) &&
+    isCatSentIntoProse(after) &&
     (isPlainCommandBefore(before, isCatCommand) ||
       isPlainCommandBefore(
         before.slice(0, before.search(CAT_SUBSTITUTION_START)),
@@ -579,7 +579,7 @@ const readOwnTexts = (
   if (pipesOn) {
     return [simpleCommand];
   }
-  const globalOptions = messageCommandGlobalOptions(simpleCommand);
+  const globalOptions = readMessageCommandGlobalOptions(simpleCommand);
   return globalOptions === undefined
     ? [simpleCommand.replaceAll(PROSE_BODY, proseRemoved)]
     : [globalOptions, ...readMessageFileOperands(simpleCommand)];
