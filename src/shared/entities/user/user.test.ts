@@ -1,6 +1,7 @@
 import { DateTime, Option, Result, Schema, String } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { ABSENT_FIELD } from "@/test/absent-field";
+import { validateStandard } from "@/test/standard-schema";
 import {
   displayName,
   UpdateAvatarSchema,
@@ -9,11 +10,8 @@ import {
   UserWithEmailSchema,
 } from "./user.ts";
 
-// The Standard Schema contract lets `validate` answer with the result or with
-// a Promise of it, and this resolves both arms the way react-hook-form's
-// resolver does.
 const validateUpdateUser = (input: { readonly name: string }) =>
-  globalThis.Promise.resolve(UpdateUserSchema["~standard"].validate(input));
+  validateStandard(UpdateUserSchema, input);
 
 const decodeUser = Schema.decodeUnknownResult(UserSchema);
 const decodeUserWithEmail = Schema.decodeUnknownResult(UserWithEmailSchema);
