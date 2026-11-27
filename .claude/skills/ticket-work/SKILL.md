@@ -38,7 +38,7 @@ In a fresh worktree, run `bun run setup` before anything else, because without `
 
    Write a test only for the first answer. A test that restates how the implementation reaches its result protects no caller, and the survivor it was aimed at takes the second or third answer instead. A survivor never stays in place with a reason in the PR body or a disable comment in the code.
 
-   `bun run mutate --json --all <those modules>` lists every killed mutant with the test file that killed it, so a test file no entry names killed nothing. Mootant stops a mutant at the first test file that fails, so read such a test before deleting it.
+   The tests credited with a kill are listed by `bun run mutate --json --all --verbose <those modules> | jq -r '[.mutants[].killedBy | select(. != null) | "\(.file) \(.name)"] | unique[]'`, so a test the diff adds or changes that the list leaves out killed nothing. Mootant credits a kill only to the first test that failed, so read such a test before deleting it.
 
    Confirm step 3's acceptance criteria, reading the diff yourself for anything a subagent implemented rather than its summary. Where a criterion watches a `requestAnimationFrame` loop, confirm it in a page Chrome DevTools MCP's `new_page` opened, which is in the foreground unless `background` is set, because a tab opened with `tabs_create_mcp` can report `hidden` and run no frames while `javascript_tool` still runs scripts in it, timers included.
 7. **Review, then commit.**
