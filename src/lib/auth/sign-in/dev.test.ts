@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "@effect/vitest";
 import { Effect, Option } from "effect";
+import { UpdateUserSchema } from "@/shared/entities/user/user";
 import { DriverFailed } from "@/test/defect";
 import type { DevSignInDeps } from "./dev.ts";
 import { createDevSignIn, DEV_USER } from "./dev.ts";
@@ -112,6 +113,20 @@ describe("devSignIn", () => {
         const outcome = yield* Effect.promise(() => devSignIn(DEV_USER));
 
         expect(outcome).toStrictEqual({ kind: "failed", message: RECOVERY });
+      })
+  );
+
+  it.effect(
+    "should save the dev user's name unchanged when the profile form submits it",
+    () =>
+      Effect.gen(function* () {
+        const result = yield* Effect.promise(() =>
+          globalThis.Promise.resolve(
+            UpdateUserSchema["~standard"].validate({ name: DEV_USER.name })
+          )
+        );
+
+        expect(result).toStrictEqual({ value: { name: DEV_USER.name } });
       })
   );
 });
