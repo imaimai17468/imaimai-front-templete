@@ -5,6 +5,14 @@ import { getAuth } from "@/lib/auth/better-auth";
 
 const ORIGIN = "http://localhost";
 
+/** The `Cookie` header a browser sends back after receiving `setCookies`. */
+export const cookieHeaderFrom = (setCookies: readonly string[]): string =>
+  pipe(
+    setCookies,
+    Array.map((setCookie) => String.split(setCookie, ";")[0]),
+    Array.join("; ")
+  );
+
 /** The headers of a request no session cookie rides on. */
 export const SIGNED_OUT: HeadersInit = {};
 
@@ -21,11 +29,7 @@ export const signUp = (email: string): Effect.Effect<HeadersInit> =>
     })
   ).pipe(
     Effect.map(({ headers }) => ({
-      cookie: pipe(
-        headers.getSetCookie(),
-        Array.map((setCookie) => String.split(setCookie, ";")[0]),
-        Array.join("; ")
-      ),
+      cookie: cookieHeaderFrom(headers.getSetCookie()),
     }))
   );
 
