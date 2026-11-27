@@ -12,9 +12,11 @@ const served = (headers: HeadersInit, avatarUrl: string) =>
   inRequest(
     headers,
     Effect.promise(() =>
-      serveAvatar(
-        new Request(new URL(avatarUrl, "http://localhost"), { headers })
-      )
+      serveAvatar({
+        request: new Request(new URL(avatarUrl, "http://localhost"), {
+          headers,
+        }),
+      })
     )
   ).pipe(
     Effect.flatMap((response) =>

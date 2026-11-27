@@ -4,6 +4,7 @@ import {
   MAX_AVATAR_BYTES,
   MAX_AVATAR_MEGABYTES,
 } from "@/lib/storage/avatar-validation";
+import { validateStandard } from "@/test/standard-schema";
 import {
   AvatarUploadForm,
   ProfileUpdateForm,
@@ -16,10 +17,8 @@ const pngFile = (byteLength: number) =>
 
 type ServerFnForm = typeof AvatarUploadForm | typeof ProfileUpdateForm;
 
-// The Standard Schema contract lets `validate` answer with the result or with
-// a Promise of it, and this resolves both arms.
 const validate = (form: ServerFnForm, input: FormData | URLSearchParams) =>
-  globalThis.Promise.resolve(form["~standard"].validate(input));
+  validateStandard(form, input);
 
 const issueMessages = (form: ServerFnForm, input: FormData | URLSearchParams) =>
   validate(form, input).then((result) =>

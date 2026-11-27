@@ -34,7 +34,7 @@ describe("submitProfile", () => {
     return submitProfile(DATA, null).then((submission) => {
       expect({
         submission,
-        submittedName: updateProfile.mock.calls[0]?.[0].get("name"),
+        submittedName: updateProfile.mock.calls[0]?.[0].data.get("name"),
         uploadCalls: uploadAvatar.mock.calls,
       }).toStrictEqual({
         submission: { avatarUploaded: false, outcome: { status: "saved" } },
@@ -70,7 +70,7 @@ describe("submitProfile", () => {
       expect({
         submission,
         updateCalls: updateProfile.mock.calls,
-        uploadedFile: uploadAvatar.mock.calls[0]?.[0].get("avatar"),
+        uploadedFile: uploadAvatar.mock.calls[0]?.[0].data.get("avatar"),
       }).toStrictEqual({
         submission: {
           avatarUploaded: false,

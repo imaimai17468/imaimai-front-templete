@@ -13,6 +13,10 @@ import { UserAvatar } from "@/shared/components/user-avatar/user-avatar";
 import type { UpdateUser, UserWithEmail } from "@/shared/entities/user/user";
 import { displayName, UpdateUserSchema } from "@/shared/entities/user/user";
 import { currentUserQueryOptions } from "@/shared/gateway/user/read.fn";
+import {
+  updateProfileFn,
+  uploadAvatarFn,
+} from "@/shared/gateway/user/update.fn";
 import { Button } from "@/shared/ui/button";
 import {
   Form,
@@ -25,12 +29,17 @@ import {
 } from "@/shared/ui/form";
 import { Input } from "@/shared/ui/input";
 import { SubmitLabel } from "./submit-label.tsx";
-import { submitProfile } from "./submit-profile.ts";
+import { createSubmitProfile } from "./submit-profile.ts";
 
 const AVATAR_SIZE_TOASTS = {
   empty: "That file is empty. Please select another one.",
   "too-large": `Please keep file size under ${MAX_AVATAR_MEGABYTES}MB`,
 } satisfies Record<AvatarSizeRejection, string>;
+
+const submitProfile = createSubmitProfile({
+  updateProfile: updateProfileFn,
+  uploadAvatar: uploadAvatarFn,
+});
 
 export const ProfileForm = ({ user }: { readonly user: UserWithEmail }) => {
   const queryClient = useQueryClient();

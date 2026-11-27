@@ -63,6 +63,8 @@ export const UpdateAvatarSchema = Schema.Struct({
  */
 export type UpdateAvatar = typeof UpdateAvatarSchema.Encoded;
 
+const isShownName = Schema.is(Schema.NonEmptyString);
+
 /**
  * The name to show for a user.
  *
@@ -70,8 +72,8 @@ export type UpdateAvatar = typeof UpdateAvatarSchema.Encoded;
  * blank submission as a clear, so both reach here and both fall back.
  */
 export const displayName = (name: UserWithEmail["name"]): string => {
-  if (name === "") {
-    return "User";
+  if (isShownName(name)) {
+    return name;
   }
-  return name ?? "User";
+  return "User";
 };

@@ -22,7 +22,7 @@ const nodeTestSkillExclude = ".claude/skills/web-security-audit/**";
 
 // coverage の gate から外れる条件はファイル名。コマンドとして実行される
 // ファイルは `*.entry.ts` と名付ければ、この配列を編集せずに外れる。パスで
-// 並ぶ 2 本は、ファイル名をこの規約の外が決めていて、改名するとその外側まで
+// 並ぶ残りは、ファイル名をこの規約の外が決めていて、改名するとその外側まで
 // 書き換わる。
 export const coverageExclude = [
   "src/**/*.gen.ts",
@@ -36,9 +36,12 @@ export const coverageExclude = [
   // `.claude/settings.json` の allow ルール `Bash(bun .claude/skills/dispatch-run/scripts/orchestrate.ts *)`
   // がこのパスを名指すので、改名はその設定ファイルの編集になる。
   ".claude/skills/dispatch-run/scripts/orchestrate.ts",
-  // ファイル名が URL を決めるファイルルートで、`auth.$` が `/api/auth/$` を
-  // 生む。改名するとその URL が変わる。
-  "src/routes/api/auth.$.ts",
+  // `src/routes/api/` のファイルルートは、ファイル名が URL を決める
+  // (`auth.$` が `/api/auth/$` を生む)ので改名できない。中身はハンドラ表だけで、
+  // `createFileRoute` に渡すパスは実行時に読まれず型とルート生成が守るので、
+  // `.tsx` のルートと同じく変異もさせない。ハンドラ表の配線もこの行で変異から
+  // 外れる。`-` で始まるファイルはルートではないので、ゲートに残る。
+  "src/routes/api/[!-]*.ts",
 ];
 
 export default defineConfig({

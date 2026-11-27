@@ -6,13 +6,15 @@ import type {
 import {
   avatarUploadBody,
   profileUpdateBody,
-  updateProfileFn,
-  uploadAvatarFn,
 } from "@/shared/gateway/user/update.fn";
 
 export interface SubmitProfileDeps {
-  readonly updateProfile: (form: FormData) => Promise<UpdateProfileResult>;
-  readonly uploadAvatar: (form: FormData) => Promise<UploadAvatarResult>;
+  readonly updateProfile: (options: {
+    readonly data: FormData;
+  }) => Promise<UpdateProfileResult>;
+  readonly uploadAvatar: (options: {
+    readonly data: FormData;
+  }) => Promise<UploadAvatarResult>;
 }
 
 /**
@@ -32,14 +34,15 @@ interface ProfileSubmission {
 const uploadPendingAvatar = (
   uploadAvatar: SubmitProfileDeps["uploadAvatar"],
   pendingFile: File
-): Promise<UploadAvatarResult> => uploadAvatar(avatarUploadBody(pendingFile));
+): Promise<UploadAvatarResult> =>
+  uploadAvatar({ data: avatarUploadBody(pendingFile) });
 
 const saveName = (
   updateProfile: SubmitProfileDeps["updateProfile"],
   data: UpdateUser,
   avatarUploaded: boolean
 ): Promise<ProfileSubmission> =>
-  updateProfile(profileUpdateBody(data)).then((updated) => {
+  updateProfile({ data: profileUpdateBody(data) }).then((updated) => {
     if (updated.status === "failed") {
       return {
         avatarUploaded,
@@ -72,8 +75,3 @@ export const createSubmitProfile =
       return saveName(updateProfile, data, true);
     });
   };
-
-export const submitProfile = createSubmitProfile({
-  updateProfile: (form) => updateProfileFn({ data: form }),
-  uploadAvatar: (form) => uploadAvatarFn({ data: form }),
-});
