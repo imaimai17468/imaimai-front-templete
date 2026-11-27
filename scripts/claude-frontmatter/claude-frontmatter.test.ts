@@ -5,12 +5,16 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vite-plus/test";
 import {
+  frontmatterOutcome,
   frontmatterReport,
+  frontmatterRoot,
   frontmatterText,
   guidanceTriggerProblem,
-  main,
   yamlParseErrorDetail,
 } from "./claude-frontmatter.ts";
+
+const exitCodeFor = (root: string): number =>
+  frontmatterOutcome(frontmatterReport(root)).exitCode;
 
 const WORK = fs.mkdtempSync(path.join(os.tmpdir(), "claude-frontmatter-"));
 
@@ -109,8 +113,62 @@ description: work: clarify
     });
   });
 
-  it("should exit zero when main is called on a valid tree", () => {
-    expect(main([validTree()])).toBe(0);
+  it("should exit zero when the tree is valid", () => {
+    expect(exitCodeFor(validTree())).toBe(0);
+  });
+
+  it("should parse an empty block when the frontmatter holds nothing", () => {
+    expect(frontmatterText("---\n\n---\n")).toStrictEqual({
+      data: null,
+      ok: true,
+    });
+  });
+
+  it("should report a missing frontmatter block when the block does not open the file", () => {
+    expect(
+      frontmatterText("# Title\n---\ndescription: x\n---\n")
+    ).toStrictEqual({
+      detail: "missing opening --- frontmatter block",
+      ok: false,
+    });
+  });
+
+  it("should list the files in path order when one directory's name starts another's", () => {
+    const root = fs.mkdtempSync(path.join(WORK, "order-"));
+    write(root, ".claude/skills/a/SKILL.md", "---\nname: a\n---\n");
+    write(root, ".claude/skills/a-b/SKILL.md", "---\nname: a-b\n---\n");
+
+    expect(frontmatterReport(root).files).toStrictEqual([
+      ".claude/skills/a-b/SKILL.md",
+      ".claude/skills/a/SKILL.md",
+    ]);
+  });
+
+  it("should print the file count when the tree is valid", () => {
+    expect(
+      frontmatterOutcome({ files: ["a.md", "b.md"], problems: [] })
+    ).toStrictEqual({ exitCode: 0, text: "claude frontmatter ok (2 files)" });
+  });
+
+  it("should print every problem and how to fix it when some files are broken", () => {
+    expect(
+      frontmatterOutcome({
+        files: ["a.md", "b.md"],
+        problems: [
+          { detail: "missing opening --- frontmatter block", entry: "a.md" },
+          { detail: "names no trigger", entry: "b.md" },
+        ],
+      })
+    ).toStrictEqual({
+      exitCode: 1,
+      text: [
+        "Claude frontmatter problems: 2",
+        "  a.md: missing opening --- frontmatter block",
+        "  b.md: names no trigger",
+        "",
+        "Quote description values that contain ': ' or wrap them in a block scalar, and give each guidance file a trigger scoped-guidance.sh answers.",
+      ].join("\n"),
+    });
   });
 
   it("should report a missing frontmatter block when the file has no opening delimiter", () => {
@@ -158,8 +216,34 @@ description: work: clarify
     }
   });
 
-  it("should exit zero when main is called without a root argument on this repository", () => {
-    expect(main([])).toBe(0);
+  it("should check this repository's rules when no tree is named", () => {
+    expect(frontmatterReport(frontmatterRoot([])).files).toContain(
+      ".claude/hooks/guidance/prose.md"
+    );
+  });
+
+  it("should check the named tree when one is named", () => {
+    expect(frontmatterRoot(["some/tree"])).toBe(path.resolve("some/tree"));
+  });
+
+  it("should exit zero when the tree is this repository's", () => {
+    expect(exitCodeFor(frontmatterRoot([]))).toBe(0);
+  });
+
+  it("should report a missing frontmatter block when a guidance file opens with a byte order mark", () => {
+    const root = validTree();
+    write(
+      root,
+      ".claude/hooks/guidance/marked.md",
+      '\uFEFF---\npaths: "src/**"\n---\n'
+    );
+
+    expect(frontmatterReport(root).problems).toStrictEqual([
+      {
+        detail: "missing opening --- frontmatter block",
+        entry: ".claude/hooks/guidance/marked.md",
+      },
+    ]);
   });
 
   it("should report a broken rule when its frontmatter does not parse", () => {
@@ -186,6 +270,12 @@ description: broken: value
     { data: { paths: "src/**" }, expected: undefined },
     { data: { commands: ["git commit"] }, expected: undefined },
     { data: { events: "UserPromptSubmit" }, expected: undefined },
+    { data: { events: "PreToolUse, PostToolUse" }, expected: undefined },
+    {
+      data: { events: ["Stop", "SessionStart"] },
+      expected:
+        "events names Stop, SessionStart, which scoped-guidance.sh does not answer (PreToolUse, PostToolUse, UserPromptSubmit)",
+    },
     {
       data: { events: "UserPromptSubmitt" },
       expected:
@@ -219,7 +309,7 @@ description: broken: value
     ]);
   });
 
-  it("should exit one when main is called on a tree with broken frontmatter", () => {
+  it("should exit one when the tree holds broken frontmatter", () => {
     const root = validTree();
     write(
       root,
@@ -230,6 +320,6 @@ description: broken: value
 `
     );
 
-    expect(main([root])).toBe(1);
+    expect(exitCodeFor(root)).toBe(1);
   });
 });
