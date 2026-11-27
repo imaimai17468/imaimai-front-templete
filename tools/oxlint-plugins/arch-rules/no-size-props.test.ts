@@ -6,7 +6,7 @@ const makeContext = () => ({
 });
 
 describe("no-size-props", () => {
-  it("should report when width prop is on a custom component with uppercase JSXIdentifier", () => {
+  it("should report the prop and where size belongs on the attribute when width is on a custom component with uppercase JSXIdentifier", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
@@ -21,7 +21,15 @@ describe("no-size-props", () => {
     visitors.JSXAttribute(node);
 
     // Assert
-    expect(context.report).toHaveBeenCalledOnce();
+    expect(context.report.mock.calls).toStrictEqual([
+      [
+        {
+          message:
+            "Do not pass 'width' prop to components. Control size externally via the parent's CSS layout.",
+          node,
+        },
+      ],
+    ]);
   });
 
   it("should report when height prop is on a custom component with uppercase JSXIdentifier", () => {
@@ -42,7 +50,7 @@ describe("no-size-props", () => {
     expect(context.report).toHaveBeenCalledOnce();
   });
 
-  it("should report when width prop is on a JSXMemberExpression element", () => {
+  it("should report the prop and where size belongs on the attribute when width is on a JSXMemberExpression element", () => {
     // Arrange
     const context = makeContext();
     const visitors = rule.create(context);
@@ -61,7 +69,15 @@ describe("no-size-props", () => {
     visitors.JSXAttribute(node);
 
     // Assert
-    expect(context.report).toHaveBeenCalledOnce();
+    expect(context.report.mock.calls).toStrictEqual([
+      [
+        {
+          message:
+            "Do not pass 'width' prop to components. Control size externally via the parent's CSS layout.",
+          node,
+        },
+      ],
+    ]);
   });
 
   it("should report when height prop is on a JSXMemberExpression element", () => {
@@ -160,7 +176,13 @@ describe("no-size-props (defensive branches)", () => {
     const visitors = rule.create(context);
     const node = {
       name: { name: "width" },
-      parent: { name: { type: "JSXNamespacedName" } },
+      parent: {
+        name: {
+          name: { name: "Rect", type: "JSXIdentifier" },
+          namespace: { name: "Svg", type: "JSXIdentifier" },
+          type: "JSXNamespacedName",
+        },
+      },
     };
 
     // Act
