@@ -75,6 +75,14 @@ describe("smoke", () => {
     ).toBe("http://localhost:5174/");
   });
 
+  it("should give the local address when a network address follows it", () => {
+    expect(
+      readyUrlIn(
+        "  ➜  Local:   http://localhost:5174/\n  ➜  Network: http://192.168.1.2:5174/\n"
+      )
+    ).toBe("http://localhost:5174/");
+  });
+
   it("should give no address when the text holds no ready line", () => {
     expect(
       readyUrlIn("[void] Applied 1 migration(s): 20261120155350_init.sql\n")
@@ -191,11 +199,36 @@ describe("smoke", () => {
     ).toStrictEqual(["Transfer-Encoding: chunked once (got chunked, chunked)"]);
   });
 
-  it("should find nothing missing when the answer is chunked once", () => {
+  it("should name every miss at once when the answer lacks the marker, the redirect target and a header", () => {
+    const route: Route = {
+      headers: { "X-Frame-Options": "DENY" },
+      location: "/login",
+      marker: "Sign in",
+      path: "/login",
+      status: 200,
+    };
+
+    expect(missedBy("<html></html>", new Headers(), route)).toStrictEqual([
+      "Sign in",
+      "location /login",
+      "X-Frame-Options: DENY",
+    ]);
+  });
+
+  it("should not check the redirect target when the route names none", () => {
     expect(
-      repeatedChunking(new Headers({ "transfer-encoding": "chunked" }))
+      missedBy("<html>Sign in</html>", new Headers({ location: "/" }), ROUTE)
     ).toStrictEqual([]);
   });
+
+  it.each(["chunked", "gzip, chunked", "gzip"])(
+    "should find nothing missing when the answer's transfer coding is %s",
+    (encoding) => {
+      expect(
+        repeatedChunking(new Headers({ "transfer-encoding": encoding }))
+      ).toStrictEqual([]);
+    }
+  );
 
   it("should find nothing missing when the answer carries no transfer coding", () => {
     expect(repeatedChunking(new Headers())).toStrictEqual([]);
@@ -256,13 +289,22 @@ describe("smoke", () => {
     ["the table is missing", [500, 500, 500, 500]],
     ["the table cannot read back its row", [400, 429, 429, 429]],
     ["the limiter is off", [400, 400, 400, 400]],
+    ["the first sign-in fails", [500, 400, 400, 429]],
+    ["a sign-in within the limit fails above 500", [400, 503, 400, 429]],
+    ["the sign-in over the limit fails", [400, 400, 400, 500]],
   ])("should report the burst when %s", (_label, statuses) => {
     expect(signInBurstFailure(statuses)).toBe(
       `/api/auth/sign-in/email answered ${statuses.join(" ")} to 4 sign-ins from one address, where 3 answers below 500 other than 429 and then a 429 were expected`
     );
   });
 
-  it("should report nothing when the fourth sign-in is the first one limited", () => {
-    expect(signInBurstFailure([400, 400, 400, 429])).toBeNull();
-  });
+  it.each([
+    ["the same client error", [400, 400, 400, 429]],
+    ["client errors other than 429", [400, 415, 499, 429]],
+  ])(
+    "should report nothing when the sign-ins within the limit answer %s and the fourth is limited",
+    (_label, statuses) => {
+      expect(signInBurstFailure(statuses)).toBeNull();
+    }
+  );
 });

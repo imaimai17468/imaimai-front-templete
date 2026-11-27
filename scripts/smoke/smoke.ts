@@ -91,7 +91,10 @@ export const missingHeaders = (
  * Chrome refuses and answers with an error page.
  */
 export const repeatedChunking = (headers: Headers): readonly string[] => {
-  const encoding = headers.get("transfer-encoding") ?? "";
+  const encoding = headers.get("transfer-encoding");
+  if (encoding === null) {
+    return [];
+  }
   const chunkings = encoding
     .split(",")
     .filter((coding) => coding.trim().toLowerCase() === "chunked");
@@ -121,13 +124,12 @@ export const missedBy = (
 export const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-const READY_LINE = /Local:\s+(?<url>http:\/\/\S+)$/mu;
+const READY_LINE = /Local:\s+(?<url>http:\/\/\S+)/u;
 
 /**
  * The address the dev server prints once it listens, or null while the text
- * holds no such line. Matching to end of line keeps a URL that a stdout chunk
- * cut in half from being read as the whole address, and the terminal colors
- * come off first because they sit between the URL and the line's end.
+ * holds no such line. The terminal colors come off first, because the pattern
+ * would read their escape codes as part of the address.
  */
 export const readyUrlIn = (lines: string): string | null =>
   READY_LINE.exec(stripVTControlCharacters(lines))?.groups?.url ?? null;
@@ -149,7 +151,7 @@ export const report = (result: RouteResult): string => {
 };
 
 const decodeLocalD1Record = Schema.decodeUnknownOption(
-  Schema.fromJsonString(Schema.Struct({ persistRoot: Schema.String }))
+  Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown))
 );
 
 /**
@@ -159,5 +161,5 @@ const decodeLocalD1Record = Schema.decodeUnknownOption(
  */
 export const pointsAt = (recordText: string, dir: string): boolean =>
   decodeLocalD1Record(recordText).pipe(
-    Option.exists(({ persistRoot }) => persistRoot === dir)
+    Option.exists((record) => record.persistRoot === dir)
   );
