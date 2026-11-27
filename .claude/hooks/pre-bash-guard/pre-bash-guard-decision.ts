@@ -33,21 +33,18 @@ const BODY_CLOSE = "\uE001";
 const HEREDOC_ON_ONE_LINE = `<<$<quote>$<delimiter>$<quote>$<tail> ${BODY_OPEN}$<body>${BODY_CLOSE} $<delimiter>`;
 
 /**
- * A marked heredoc body, a quoted span, an escaped character, a control
- * operator, or a run of anything else. A quote that never closes is a token
- * of its own.
+ * A marked heredoc body that holds text, a quoted span, an escaped character,
+ * or any other single character. A quote that never closes is a token of its
+ * own.
  */
 const SHELL_TOKEN =
-  /\uE000[^\uE001]*\uE001|'[^']*'|"(?:\\[\s\S]|[^"\\])*"|\\[\s\S]|&&|\|\||[;&|\n]|[^\uE000'"\\;&|\n]+|['"\\\uE000]/gu;
+  /\uE000[^\uE001]+\uE001|'[^']*'|"(?:\\[\s\S]|[^"\\])*"|\\[\s\S]|[\s\S]/gu;
 
-const CONTROL_OPERATORS: ReadonlySet<string> = new Set([
-  "&&",
-  "||",
-  ";",
-  "&",
-  "|",
-  "\n",
-]);
+/**
+ * The characters that end a simple command. `&&` and `||` are two of them in
+ * a row, and the empty command between the two names no file.
+ */
+const CONTROL_OPERATORS: ReadonlySet<string> = new Set([";", "&", "|", "\n"]);
 
 /** A shell command cannot carry a NUL byte, so a split at one lands only where an operator stood. */
 const COMMAND_BOUNDARY = "\u0000";
@@ -59,11 +56,11 @@ const COMMAND_BOUNDARY = "\u0000";
 const PROSE_PROGRAMS: ReadonlySet<string> = new Set(["gh", "git"]);
 
 /**
- * A heredoc body or a quoted span that may be prose. A double-quoted span
- * holding `$`, a backtick or a backslash runs or decodes something first, so
- * it never is.
+ * A heredoc body that holds text, or a quoted span, that may be prose. A
+ * double-quoted span holding `$`, a backtick or a backslash runs or decodes
+ * something first, so it never is.
  */
-const QUOTED_SPAN = /\uE000[^\uE001]*\uE001|'[^']*'|"[^"$`\\]*"/gu;
+const QUOTED_SPAN = /\uE000[^\uE001]+\uE001|'[^']*'|"[^"$`\\]*"/gu;
 
 /** A path rarely holds a blank, so `git add '.env'` is still checked. */
 const proseRemoved = (span: string): string => (/\s/u.test(span) ? " " : span);
